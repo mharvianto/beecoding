@@ -77,7 +77,7 @@ onBeforeUnmount(() => {
         <!-- primary nav: own row on mobile, inline after the logo on ≥md -->
         <nav class="order-3 md:order-2 w-full md:w-auto flex items-center gap-4 text-sm overflow-x-auto whitespace-nowrap
                     text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100">
-          <RouterLink v-if="!auth.isTeacher" to="/dashboard">Dashboard</RouterLink>
+          <RouterLink to="/dashboard">Dashboard</RouterLink>
           <RouterLink to="/practice">Practice</RouterLink>
           <RouterLink to="/playground">Playground</RouterLink>
           <RouterLink to="/leaderboard">Leaderboard</RouterLink>
