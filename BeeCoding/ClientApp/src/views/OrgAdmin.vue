@@ -4,6 +4,8 @@ import { api } from '../lib/api';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
+import TableViewToggle from '../components/TableViewToggle.vue';
+import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
 
@@ -191,7 +193,10 @@ onMounted(loadOrgs);
 
 <template>
   <div class="max-w-4xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-bold mb-4">Organization</h1>
+    <div class="flex items-center gap-3 mb-4">
+      <h1 class="text-xl font-bold">Organization</h1>
+      <TableViewToggle class="ml-auto" />
+    </div>
 
     <p v-if="err" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ err }}</p>
 
@@ -288,7 +293,7 @@ onMounted(loadOrgs);
         </div>
 
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2">
+        <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="m in members" :key="m.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
@@ -310,7 +315,7 @@ onMounted(loadOrgs);
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -340,7 +345,7 @@ onMounted(loadOrgs);
       <!-- Boards -->
       <section v-show="tab === 'boards'">
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2">
+        <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="b in boards" :key="b.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ b.title }}</div>
             <div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div>
@@ -352,7 +357,7 @@ onMounted(loadOrgs);
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -480,7 +485,7 @@ onMounted(loadOrgs);
           </div>
 
           <!-- mobile: cards -->
-          <div class="sm:hidden space-y-2">
+          <div v-if="tableView === 'card'" class="space-y-2">
             <div v-for="p in ltiPlatforms" :key="p.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
               <div class="flex items-start justify-between gap-2">
                 <div class="font-medium text-sm">{{ p.name }}</div>
@@ -500,7 +505,7 @@ onMounted(loadOrgs);
           </div>
 
           <!-- desktop: table -->
-          <div class="hidden sm:block overflow-x-auto">
+          <div v-if="tableView === 'table'" class="overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">

@@ -9,6 +9,8 @@ import { useConfirmDialog } from '../stores/confirmDialog';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
+import TableViewToggle from '../components/TableViewToggle.vue';
+import { tableView } from '../lib/tableView';
 
 const auth = useAuth();
 const route = useRoute();
@@ -563,7 +565,10 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-5xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-bold mb-4">Admin</h1>
+    <div class="flex items-center gap-3 mb-4">
+      <h1 class="text-xl font-bold">Admin</h1>
+      <TableViewToggle class="ml-auto" />
+    </div>
 
     <!-- mobile: current tab + dropdown; desktop: inline pill row -->
     <div class="mb-4">
@@ -658,7 +663,7 @@ onMounted(async () => {
           <button @click="switchTab('audit')" class="text-xs text-slate-400 dark:text-slate-500 hover:underline">view all</button>
         </div>
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2">
+        <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="r in dashboard.recentActivity" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="flex items-center justify-between gap-2 mb-1">
               <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
@@ -671,7 +676,7 @@ onMounted(async () => {
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="r in dashboard.recentActivity" :key="r.id" class="border-b border-slate-100 dark:border-slate-800/60">
@@ -757,7 +762,7 @@ onMounted(async () => {
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-2">Per-user overrides</h2>
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2 mb-3">
+        <div v-if="tableView === 'card'" class="space-y-2 mb-3">
           <div v-for="row in aiOverrides" :key="row.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ row.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-2">{{ row.email }}</div>
@@ -777,7 +782,7 @@ onMounted(async () => {
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto mb-3">
+        <div v-if="tableView === 'table'" class="overflow-x-auto mb-3">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -826,7 +831,7 @@ onMounted(async () => {
           <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
         </div>
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2">
+        <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="r in aiRows" :key="r.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ r.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
@@ -840,7 +845,7 @@ onMounted(async () => {
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -880,7 +885,7 @@ onMounted(async () => {
       <p v-if="userDeleteResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ userDeleteResultMsg }}</p>
 
       <!-- mobile: cards -->
-      <div class="sm:hidden space-y-2">
+      <div v-if="tableView === 'card'" class="space-y-2">
         <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 px-1">
           <input type="checkbox" :checked="selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
                  @change="selectAllUsers($event.target.checked)" /> Select all
@@ -914,7 +919,7 @@ onMounted(async () => {
       </div>
 
       <!-- desktop: table -->
-      <div class="hidden sm:block overflow-x-auto">
+      <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1041,7 +1046,7 @@ onMounted(async () => {
       <p v-if="archiveResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ archiveResultMsg }}</p>
 
       <!-- mobile: cards -->
-      <div class="sm:hidden space-y-2">
+      <div v-if="tableView === 'card'" class="space-y-2">
         <div v-for="b in boards" :key="b.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-start gap-2">
             <input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" class="mt-1 shrink-0" />
@@ -1060,7 +1065,7 @@ onMounted(async () => {
       </div>
 
       <!-- desktop: table -->
-      <div class="hidden sm:block overflow-x-auto">
+      <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1273,7 +1278,7 @@ onMounted(async () => {
         <p v-if="trash[kind].msg" class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-1">{{ trash[kind].msg }}</p>
 
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-1.5">
+        <div v-if="tableView === 'card'" class="space-y-1.5">
           <label v-if="trash[kind].rows?.length" class="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 px-1">
             <input type="checkbox" :checked="trash[kind].selected.size === trash[kind].rows.length"
                    @change="selectAllTrash(kind, $event.target.checked)" /> Select all
@@ -1295,7 +1300,7 @@ onMounted(async () => {
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1346,7 +1351,7 @@ onMounted(async () => {
       </div>
 
       <!-- mobile: cards -->
-      <div class="sm:hidden space-y-2">
+      <div v-if="tableView === 'card'" class="space-y-2">
         <div v-for="r in auditRows" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-center justify-between gap-2 mb-1">
             <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
@@ -1359,7 +1364,7 @@ onMounted(async () => {
       </div>
 
       <!-- desktop: table -->
-      <div class="hidden sm:block overflow-x-auto">
+      <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1409,7 +1414,7 @@ onMounted(async () => {
       </div>
 
       <!-- mobile: cards -->
-      <div class="sm:hidden space-y-2">
+      <div v-if="tableView === 'card'" class="space-y-2">
         <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm">{{ o.name }}</div>
@@ -1421,7 +1426,7 @@ onMounted(async () => {
       </div>
 
       <!-- desktop: table -->
-      <div class="hidden sm:block overflow-x-auto">
+      <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1496,7 +1501,7 @@ onMounted(async () => {
         </div>
 
         <!-- mobile: cards -->
-        <div class="sm:hidden space-y-2">
+        <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="p in ltiPlatforms" :key="p.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="flex items-start justify-between gap-2">
               <div class="font-medium text-sm">{{ p.name }}</div>
@@ -1517,7 +1522,7 @@ onMounted(async () => {
         </div>
 
         <!-- desktop: table -->
-        <div class="hidden sm:block overflow-x-auto">
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
