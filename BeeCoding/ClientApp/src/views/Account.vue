@@ -188,6 +188,21 @@ async function deleteAccount(force = false) {
     <!-- AI usage -->
     <section v-if="aiUsage" class="space-y-2">
       <h2 class="font-semibold text-sm">AI tutor usage</h2>
+
+      <div v-if="aiUsage.blocked" class="text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
+        🚫 {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
+      </div>
+      <div v-else-if="aiUsage.dailyQuota > 0">
+        <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-1">
+          <span>Daily quota</span>
+          <span>{{ fmt(aiUsage.today.calls) }} / {{ fmt(aiUsage.dailyQuota) }} requests used today</span>
+        </div>
+        <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+          <span class="block h-full bg-amber-400"
+                :style="{ width: Math.min(100, (aiUsage.today.calls / aiUsage.dailyQuota) * 100) + '%' }"></span>
+        </div>
+      </div>
+
       <div class="overflow-x-auto">
       <table class="w-full text-sm min-w-[360px]">
         <thead>

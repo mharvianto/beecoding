@@ -5,7 +5,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Services.Ai;
 
 public record AiUsageBucketDto(int Calls, long PromptTokens, long CompletionTokens, long TotalTokens);
-public record AiUsageDto(AiUsageBucketDto Today, AiUsageBucketDto Month, AiUsageBucketDto AllTime);
+public record AiUsageDto(
+    AiUsageBucketDto Today, AiUsageBucketDto Month, AiUsageBucketDto AllTime,
+    int DailyQuota, bool Blocked, string? BlockedReason);
 
 /// <summary>Per-user, per-day rollup of AI token consumption.</summary>
 public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
@@ -59,7 +61,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
         }
     }
 
-    public async Task<AiUsageDto> SummaryAsync(int userId, CancellationToken ct = default)
+    public async Task<AiUsageDto> SummaryAsync(int userId, string role, int? organizationId, CancellationToken ct = default)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
@@ -72,9 +74,11 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
             return new AiUsageBucketDto(c, p, k, p + k);
         }
 
+        var (blocked, quota, reason) = _runtime.Effective(userId, role, organizationId);
         return new AiUsageDto(
             Sum(rows.Where(x => x.Day == today)),
             Sum(rows.Where(x => x.Day >= monthStart)),
-            Sum(rows));
+            Sum(rows),
+            quota, blocked, reason);
     }
 }

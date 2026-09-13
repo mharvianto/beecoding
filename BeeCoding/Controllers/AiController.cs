@@ -52,7 +52,11 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         Ok(new { enabled = _ai.Available, defaultLang = _ai.DefaultReplyLanguage });
 
     [HttpGet("usage")]
-    public async Task<IActionResult> Usage() => Ok(await _usage.SummaryAsync(UserId));
+    public async Task<IActionResult> Usage()
+    {
+        var orgId = await _orgs.ForUserAsync(UserId);
+        return Ok(await _usage.SummaryAsync(UserId, CurrentRole, orgId));
+    }
 
     /// <summary>
     /// Teacher-only. Ask the AI to draft a full bank problem from an idea, then compile and
