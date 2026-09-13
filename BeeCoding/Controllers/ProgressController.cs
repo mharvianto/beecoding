@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Controllers;
 
 public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me);
+public record MyOrgDto(int Id, string Name, string Slug);
 
 [ApiController]
 [Authorize]
@@ -104,19 +105,74 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
             .ToList();
     }
 
-    [HttpGet("api/leaderboard")]
-    public async Task<ActionResult<IEnumerable<LeaderRowDto>>> Leaderboard([FromQuery] int limit = 50)
-    {
-        limit = Math.Clamp(limit, 1, 200);
-        var top = await _db.Users
-            .Where(u => u.Xp > 0)
-            .OrderByDescending(u => u.Xp).ThenBy(u => u.Id)
-            .Take(limit)
-            .Select(u => new { u.Id, u.DisplayName, u.Role, u.Xp })
+    /// <summary>Organizations the caller belongs to (any role) — for the leaderboard's
+    /// "my organization" scope picker. Not the same as OrgAccess.ManagedOrgsAsync, which is
+    /// for orgs the caller ADMINISTERS.</summary>
+    [HttpGet("api/me/organizations")]
+    public async Task<ActionResult<List<MyOrgDto>>> MyOrganizations() =>
+        await _db.OrganizationMemberships.Where(m => m.UserId == UserId)
+            .OrderBy(m => m.Organization!.Name)
+            .Select(m => new MyOrgDto(m.Organization!.Id, m.Organization.Name, m.Organization.Slug))
             .ToListAsync();
 
-        return top.Select((u, i) => new LeaderRowDto(
-            i + 1, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
-            ProgressService.LevelForXp(u.Xp), u.Id == UserId)).ToList();
+    /// <summary>Ranked by XP. `period` narrows to XP earned within a window (via
+    /// SolveRecord, since Xp itself is a lifetime total with no history) — "all" uses the
+    /// fast denormalized User.Xp column when also unscoped by org. `organizationId` narrows
+    /// to that org's own members; the caller must belong to it (any role) — leaderboard rows
+    /// name real students, so this is an org data-isolation boundary like everywhere else.</summary>
+    [HttpGet("api/leaderboard")]
+    public async Task<ActionResult<IEnumerable<LeaderRowDto>>> Leaderboard(
+        [FromQuery] int limit = 50, [FromQuery] string period = "all", [FromQuery] int? organizationId = null)
+    {
+        limit = Math.Clamp(limit, 1, 200);
+
+        if (organizationId is int orgId
+            && !await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == UserId))
+            return Forbid();
+
+        if (organizationId is null && period == "all")
+        {
+            var top = await _db.Users
+                .Where(u => u.Xp > 0)
+                .OrderByDescending(u => u.Xp).ThenBy(u => u.Id)
+                .Take(limit)
+                .Select(u => new { u.Id, u.DisplayName, u.Role, u.Xp })
+                .ToListAsync();
+
+            return top.Select((u, i) => new LeaderRowDto(
+                i + 1, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
+                ProgressService.LevelForXp(u.Xp), u.Id == UserId)).ToList();
+        }
+
+        DateTime? cutoff = period switch
+        {
+            "1y" => DateTime.UtcNow.AddYears(-1),
+            "6m" => DateTime.UtcNow.AddMonths(-6),
+            "1m" => DateTime.UtcNow.AddMonths(-1),
+            _ => null,   // "all"
+        };
+
+        var records = _db.SolveRecords.AsQueryable();
+        if (cutoff is DateTime c) records = records.Where(r => r.CreatedAt >= c);
+        if (organizationId is int oid)
+        {
+            var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == oid).Select(m => m.UserId);
+            records = records.Where(r => memberIds.Contains(r.UserId));
+        }
+
+        var ranked = await records
+            .GroupBy(r => r.UserId)
+            .Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) })
+            .OrderByDescending(x => x.Xp)
+            .Take(limit)
+            .ToListAsync();
+
+        var userIds = ranked.Select(r => r.UserId).ToList();
+        var users = await _db.Users.Where(u => userIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
+
+        return ranked.Select((r, i) => new LeaderRowDto(
+            i + 1, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
+            ProgressService.LevelForXp(r.Xp), r.UserId == UserId)).ToList();
     }
 }
