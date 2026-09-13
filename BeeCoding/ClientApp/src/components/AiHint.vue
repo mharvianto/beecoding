@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
 import MarkdownBlock from './MarkdownBlock.vue';
@@ -24,6 +24,8 @@ const open = ref(false);
 const question = ref('');
 const reply = ref('');
 const busy = ref(false);
+const elapsed = ref(0);   // seconds spent waiting on the current ask(), for the "Thinking…" timer
+let elapsedTimer = null;
 const error = ref('');
 const level = ref(0);   // progressive hint level for this problem (1..4)
 const LEVEL_LABEL = ['', 'a small nudge', 'more specific', 'step-by-step', 'detailed walkthrough'];
@@ -43,6 +45,7 @@ onMounted(async () => {
     if (r?.defaultLang && !localStorage.getItem('beecoding.aiLang')) lang.value = r.defaultLang;
   } catch { enabled.value = false; }
 });
+onUnmounted(() => clearInterval(elapsedTimer));
 
 const idPayload = () => ({
   problemId: props.problemId ? Number(props.problemId) : null,
@@ -76,6 +79,9 @@ function payload(extra = {}) {
 
 async function ask(extra = {}) {
   error.value = ''; reply.value = ''; busy.value = true; level.value = 0;
+  elapsed.value = 0;
+  clearInterval(elapsedTimer);
+  elapsedTimer = setInterval(() => { elapsed.value += 1; }, 1000);
   try {
     const res = await fetch(withBase('/api/ai/hint/stream'), {
       method: 'POST',
@@ -113,6 +119,8 @@ async function ask(extra = {}) {
     error.value = e.message;
   } finally {
     busy.value = false;
+    clearInterval(elapsedTimer);
+    elapsedTimer = null;
   }
 }
 </script>
@@ -153,7 +161,7 @@ async function ask(extra = {}) {
       <div class="flex flex-wrap gap-2">
         <button @click="ask()" :disabled="busy || (!code && !liveMode)"
                 class="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ busy ? 'Thinking…' : liveMode ? 'Ask about my code' : 'Ask for a hint' }}
+          {{ busy ? `Thinking… ${elapsed}s` : liveMode ? 'Ask about my code' : 'Ask for a hint' }}
         </button>
         <button v-if="liveMode" @click="ask({ explain: true })" :disabled="busy || !teacherCode"
                 class="border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
