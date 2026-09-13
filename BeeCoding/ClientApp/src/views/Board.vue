@@ -11,6 +11,8 @@ import PadletWall from '../components/PadletWall.vue';
 import BankPicker from '../components/BankPicker.vue';
 import LevelBadge from '../components/LevelBadge.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
+import MiniLineChart from '../components/MiniLineChart.vue';
+import TopicBarChart from '../components/TopicBarChart.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
@@ -63,6 +65,18 @@ async function toggleHide(student) {
 }
 
 const picking = ref(false);
+const stats = ref(null);
+const statsOpen = ref(false);
+async function toggleStats() {
+  statsOpen.value = !statsOpen.value;
+  if (statsOpen.value && !stats.value) {
+    try { stats.value = await api.get(`/api/boards/${props.slug}/stats`); } catch (e) { error.value = e.message; }
+  }
+}
+const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+const weeklyActiveUsers = () => (stats.value?.weekly || []).map((w) => ({ label: shortDate(w.weekStart), value: w.activeUsers }));
+const weeklySubmissions = () => (stats.value?.weekly || []).map((w) => ({ label: shortDate(w.weekStart), value: w.submissions }));
+const topicBarItems = () => (stats.value?.topics || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
 
 async function saveToBank(p) {
@@ -169,6 +183,13 @@ onBeforeUnmount(async () => {
               class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📚 From bank
       </button>
+      <button @click="toggleStats"
+              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
+              :class="statsOpen
+                ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
+        📊 Statistics
+      </button>
       <button v-if="board.isOwner" @click="deleteBoard"
               class="ml-auto px-3 py-1.5 rounded-lg text-sm font-medium border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
         🗑️ Delete board
@@ -185,6 +206,38 @@ onBeforeUnmount(async () => {
                 : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
         {{ s.displayName }} {{ s.hiddenByTeacher ? '🔒' : '' }}
       </button>
+    </div>
+
+    <!-- Staff: board statistics (this board only) -->
+    <div v-if="isStaff && statsOpen" class="mb-4 space-y-3">
+      <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="text-xs text-slate-400 dark:text-slate-500">Students</div>
+          <div class="text-xl font-bold">{{ stats.totalStudents }}</div>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="text-xs text-slate-400 dark:text-slate-500">Problems</div>
+          <div class="text-xl font-bold">{{ stats.totalProblems }}</div>
+        </div>
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 col-span-2 sm:col-span-1">
+          <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
+          <div class="text-xl font-bold">{{ stats.totalSubmissions }}</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500">
+            {{ stats.totalSubmissions ? Math.round(100 * stats.acceptedSubmissions / stats.totalSubmissions) : 0 }}% accepted
+          </div>
+        </div>
+      </div>
+      <p v-else class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+
+      <div v-if="stats?.weekly?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <MiniLineChart title="Active students / week" :points="weeklyActiveUsers()" />
+        <MiniLineChart title="Submissions / week" :points="weeklySubmissions()" />
+      </div>
+
+      <div v-if="stats?.topics?.length">
+        <h2 class="font-semibold text-sm mb-1.5">Top topics by attempts</h2>
+        <TopicBarChart :items="topicBarItems()" />
+      </div>
     </div>
 
     <!-- Student: exam-mode notice -->

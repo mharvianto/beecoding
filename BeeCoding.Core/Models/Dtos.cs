@@ -138,6 +138,17 @@ public record AdminDashboardDto(
 public record AdminWeeklyStatDto(string WeekStart, int ActiveUsers, int Submissions);
 public record AdminTopicStatDto(string Tag, int Attempts, int Accepted, double AcceptRate);
 
+// ---- Student: personal dashboard, aggregated across every board + practice/bank ----
+public record StudentDashboardDto(
+    int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount,
+    int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts);
+public record MyWeeklyStatDto(string WeekStart, int Attempts, int Solved);
+
+// ---- Teacher: one board's own stats (Board.vue staff panel) ----
+public record BoardStatsDto(
+    int TotalStudents, int TotalProblems, int TotalSubmissions, int AcceptedSubmissions,
+    List<AdminWeeklyStatDto> Weekly, List<AdminTopicStatDto> Topics);
+
 // ---- Admin: role / admin-flag management ----
 public record AdminChangeRoleDto(string Role);   // "Teacher" | "Student"
 
