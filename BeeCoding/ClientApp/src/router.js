@@ -7,7 +7,7 @@ const routes = [
   { path: '/register', component: () => import('./views/Register.vue'), meta: { anon: true } },
   { path: '/privacy', component: () => import('./views/Privacy.vue'), meta: { public: true } },
   { path: '/terms', component: () => import('./views/Terms.vue'), meta: { public: true } },
-  { path: '/dashboard', component: () => import('./views/MyDashboard.vue') },
+  { path: '/dashboard', redirect: '/account' },
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
   { path: '/bank', component: () => import('./views/Bank.vue') },
   { path: '/bank/new', component: () => import('./views/ProblemEdit.vue') },

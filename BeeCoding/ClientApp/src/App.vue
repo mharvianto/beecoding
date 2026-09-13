@@ -92,7 +92,6 @@ onBeforeUnmount(() => {
              class="md:flex order-5 md:order-2 w-full md:w-auto flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 text-sm
                     text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100
                     border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">
-          <RouterLink to="/dashboard" @click="mobileNavOpen = false">Dashboard</RouterLink>
           <RouterLink to="/practice" @click="mobileNavOpen = false">Practice</RouterLink>
           <RouterLink to="/playground" @click="mobileNavOpen = false">Playground</RouterLink>
           <RouterLink to="/leaderboard" @click="mobileNavOpen = false">Leaderboard</RouterLink>
