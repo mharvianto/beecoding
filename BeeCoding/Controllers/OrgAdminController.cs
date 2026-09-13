@@ -307,4 +307,86 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
 
     private static string? ApiKeyPreview(string? key) =>
         string.IsNullOrEmpty(key) ? null : $"••••{key[Math.Max(0, key.Length - 4)..]}";
+
+    // ---- LTI 1.3 platform registry: this org's own platforms only --------------
+    // Mirrors AdminUiController's lti-platforms endpoints, but every read/write is pinned
+    // to `orgId` so an org admin can only ever see/touch platforms belonging to their own
+    // organization — never another org's, and never the platform-wide unaffiliated ones.
+    [HttpGet("{orgId:int}/lti-platforms/tool-config")]
+    public async Task<ActionResult<AdminLtiToolConfigDto>> LtiToolConfig(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        string Abs(string path) => $"{Request.Scheme}://{Request.Host}{Url.Content("~" + path)}";
+        return new AdminLtiToolConfigDto(
+            LoginInitiationUrl: Abs("/lti/login"),
+            LaunchUrl: Abs("/lti/launch"),
+            JwksUrl: Abs("/lti/jwks"),
+            DeepLinkingUrl: Abs("/lti/launch"));
+    }
+
+    [HttpGet("{orgId:int}/lti-platforms")]
+    public async Task<ActionResult<List<AdminLtiPlatformDto>>> LtiPlatforms(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var orgName = await _db.Organizations.Where(o => o.Id == orgId).Select(o => o.Name).FirstOrDefaultAsync();
+        return await _db.LtiPlatforms.Where(p => p.OrganizationId == orgId).OrderBy(p => p.Name)
+            .Select(p => new AdminLtiPlatformDto(
+                p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt,
+                p.OrganizationId, orgName))
+            .ToListAsync();
+    }
+
+    [HttpPost("{orgId:int}/lti-platforms")]
+    public async Task<ActionResult<AdminLtiPlatformDto>> CreateLtiPlatform(int orgId, AdminUpsertLtiPlatformDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        if (string.IsNullOrWhiteSpace(dto.Issuer) || string.IsNullOrWhiteSpace(dto.ClientId))
+            return BadRequest("Issuer and Client ID are required.");
+        var org = await _db.Organizations.FindAsync(orgId);
+        if (org is null) return NotFound();
+
+        var p = new LtiPlatform
+        {
+            Name = dto.Name.Trim(), Issuer = dto.Issuer.Trim(), ClientId = dto.ClientId.Trim(),
+            DeploymentIds = dto.DeploymentIds.Trim(), AuthLoginUrl = dto.AuthLoginUrl.Trim(),
+            AuthTokenUrl = dto.AuthTokenUrl.Trim(), JwksUrl = dto.JwksUrl.Trim(), Enabled = dto.Enabled,
+            OrganizationId = orgId,   // pinned — the dto's own OrganizationId (if any) is ignored
+        };
+        _db.LtiPlatforms.Add(p);
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-create", "LtiPlatform", p.Id, $"{p.Name} (org {org.Name})");
+        return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, org.Name);
+    }
+
+    [HttpPut("{orgId:int}/lti-platforms/{id:int}")]
+    public async Task<ActionResult<AdminLtiPlatformDto>> UpdateLtiPlatform(int orgId, int id, AdminUpsertLtiPlatformDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        if (string.IsNullOrWhiteSpace(dto.Issuer) || string.IsNullOrWhiteSpace(dto.ClientId))
+            return BadRequest("Issuer and Client ID are required.");
+        var p = await _db.LtiPlatforms.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == orgId);
+        if (p is null) return NotFound();   // also hides platforms owned by other orgs
+
+        p.Name = dto.Name.Trim(); p.Issuer = dto.Issuer.Trim(); p.ClientId = dto.ClientId.Trim();
+        p.DeploymentIds = dto.DeploymentIds.Trim(); p.AuthLoginUrl = dto.AuthLoginUrl.Trim();
+        p.AuthTokenUrl = dto.AuthTokenUrl.Trim(); p.JwksUrl = dto.JwksUrl.Trim(); p.Enabled = dto.Enabled;
+        // OrganizationId is deliberately NOT taken from dto — an org admin can never move a
+        // platform to a different organization, only the platform super admin can.
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-update", "LtiPlatform", p.Id, p.Name);
+        var orgName = await _db.Organizations.Where(o => o.Id == orgId).Select(o => o.Name).FirstOrDefaultAsync();
+        return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, orgName);
+    }
+
+    [HttpDelete("{orgId:int}/lti-platforms/{id:int}")]
+    public async Task<IActionResult> DeleteLtiPlatform(int orgId, int id)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var p = await _db.LtiPlatforms.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == orgId);
+        if (p is null) return NotFound();
+        _db.LtiPlatforms.Remove(p);
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-delete", "LtiPlatform", id, p.Name);
+        return NoContent();
+    }
 }
