@@ -110,6 +110,7 @@ builder.Services.AddSingleton<AdminAccess>();
 builder.Services.AddScoped<AuditLog>();
 builder.Services.AddSingleton<AiRuntimeSettings>();
 builder.Services.AddSingleton<AiProviderRuntime>();
+builder.Services.AddSingleton<LtiPlatformOriginsCache>();
 builder.Services.AddSingleton<IAuthorizationHandler, AdminAuthorizationHandler>();
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Admin", p => p.Requirements.Add(new AdminRequirement()));
@@ -280,6 +281,11 @@ using (var scope = app.Services.CreateScope())
         .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel })
         .ToListAsync();
     providerRuntime.SetOrgs(orgProviders.Select(x => (x.OrganizationId, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel)));
+
+    // Same warm-up for which origins the CSP should let frame this app (see
+    // LtiPlatformOriginsCache) — every enabled LTI platform's issuer.
+    var ltiOrigins = scope.ServiceProvider.GetRequiredService<LtiPlatformOriginsCache>();
+    ltiOrigins.Set(await db.LtiPlatforms.Where(p => p.Enabled).Select(p => p.Issuer).ToListAsync());
 }
 
 // Build the sandbox runner + probe capabilities before serving traffic.
@@ -298,25 +304,53 @@ if (!string.IsNullOrWhiteSpace(pathBase))
 
 // Security headers on every response. Override CSP with Security:ContentSecurityPolicy
 // (a custom string), or set it to "off" to send no CSP header (e.g. if Monaco breaks).
+// The default CSP's frame-ancestors is computed per-request from LtiPlatformOriginsCache
+// instead of being baked in here — an LTI tool must be frameable by its registered
+// platform(s) (both a normal resource-link launch and the Deep Linking picker embed this
+// app in an iframe), so a blanket 'none' breaks LTI the moment one platform is registered.
+// A custom override string is trusted as-is (its own frame-ancestors, if any, applies).
 var cspCfg = builder.Configuration["Security:ContentSecurityPolicy"];
-var csp = string.Equals(cspCfg, "off", StringComparison.OrdinalIgnoreCase) ? ""
-    : !string.IsNullOrWhiteSpace(cspCfg) ? cspCfg!
-    : "default-src 'self'; " +
-      "img-src 'self' data: blob:; " +
-      "style-src 'self' 'unsafe-inline'; " +
-      "script-src 'self' blob:; " +          // blob: for Vite's Monaco worker shim
-      "worker-src 'self' blob:; " +
-      "connect-src 'self'; " +
-      "font-src 'self' data:; " +
-      "object-src 'none'; base-uri 'self'; frame-ancestors 'none'";
+var cspOff = string.Equals(cspCfg, "off", StringComparison.OrdinalIgnoreCase);
+var customCsp = !cspOff && !string.IsNullOrWhiteSpace(cspCfg) ? cspCfg : null;
+var defaultCspBase =
+    "default-src 'self'; " +
+    "img-src 'self' data: blob:; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "script-src 'self' blob:; " +          // blob: for Vite's Monaco worker shim
+    "worker-src 'self' blob:; " +
+    "connect-src 'self'; " +
+    "font-src 'self' data:; " +
+    "object-src 'none'; base-uri 'self'";
 app.Use(async (ctx, next) =>
 {
     var h = ctx.Response.Headers;
     h["X-Content-Type-Options"] = "nosniff";
-    h["X-Frame-Options"] = "DENY";
     h["Referrer-Policy"] = "no-referrer";
     h["Cross-Origin-Opener-Policy"] = "same-origin";
-    if (csp.Length > 0) h["Content-Security-Policy"] = csp;
+    if (!cspOff)
+    {
+        if (customCsp is not null)
+        {
+            h["Content-Security-Policy"] = customCsp;
+            h["X-Frame-Options"] = "DENY";   // unknown whether the override covers framing — safest default
+        }
+        else
+        {
+            var origins = ctx.RequestServices.GetRequiredService<LtiPlatformOriginsCache>().Origins;
+            if (origins.Count > 0)
+            {
+                h["Content-Security-Policy"] = $"{defaultCspBase}; frame-ancestors 'self' {string.Join(' ', origins)}";
+                // Legacy browsers ignore frame-ancestors and fall back to this — it can only
+                // express one policy, so once >=1 LTI platform is allowed, it's dropped
+                // rather than wrongly DENY-ing every evergreen browser too.
+            }
+            else
+            {
+                h["Content-Security-Policy"] = $"{defaultCspBase}; frame-ancestors 'none'";
+                h["X-Frame-Options"] = "DENY";
+            }
+        }
+    }
     if (ctx.Request.IsHttps) h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
     // API responses reflect the caller's session (auth/me, board membership, …) and must
     // never be cached by the browser or an intermediate proxy — without this, a browser's

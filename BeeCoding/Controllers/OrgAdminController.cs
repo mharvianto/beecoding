@@ -21,13 +21,14 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, BoardService boards) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;
     private readonly AuditLog _audit = audit;
     private readonly AiRuntimeSettings _aiRuntime = aiRuntime;
     private readonly AiProviderRuntime _aiProviderRuntime = aiProviderRuntime;
+    private readonly LtiPlatformOriginsCache _ltiOrigins = ltiOrigins;
     private readonly BoardService _boards = boards;
 
     /// <summary>Organizations the caller administers — for the org picker. Empty for a
@@ -459,6 +460,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         };
         _db.LtiPlatforms.Add(p);
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-create", "LtiPlatform", p.Id, $"{p.Name} (org {org.Name})");
         return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, org.Name);
     }
@@ -478,6 +480,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         // OrganizationId is deliberately NOT taken from dto — an org admin can never move a
         // platform to a different organization, only the platform super admin can.
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-update", "LtiPlatform", p.Id, p.Name);
         var orgName = await _db.Organizations.Where(o => o.Id == orgId).Select(o => o.Name).FirstOrDefaultAsync();
         return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, orgName);
@@ -491,7 +494,14 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         if (p is null) return NotFound();
         _db.LtiPlatforms.Remove(p);
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-delete", "LtiPlatform", id, p.Name);
         return NoContent();
     }
+
+    /// <summary>Re-reads every enabled LTI platform's issuer into LtiPlatformOriginsCache —
+    /// call after any write, so the CSP's frame-ancestors reflects the change immediately
+    /// instead of only after a restart.</summary>
+    private async Task RefreshLtiOriginsAsync() =>
+        _ltiOrigins.Set(await _db.LtiPlatforms.Where(p => p.Enabled).Select(p => p.Issuer).ToListAsync());
 }

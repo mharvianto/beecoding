@@ -25,7 +25,7 @@ namespace BeeCoding.Controllers;
 [Route("api/admin-ui")]
 public class AdminUiController(
     AppDbContext db, AdminAccess admin, AuditLog audit, PasswordService pw, AiRuntimeSettings aiRuntime,
-    AiProviderRuntime aiProviderRuntime,
+    AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt, IOptions<RealtimeStoreOptions> realtimeOpt)
     : ApiControllerBase
 {
@@ -35,6 +35,7 @@ public class AdminUiController(
     private readonly PasswordService _pw = pw;
     private readonly AiRuntimeSettings _aiRuntime = aiRuntime;
     private readonly AiProviderRuntime _aiProviderRuntime = aiProviderRuntime;
+    private readonly LtiPlatformOriginsCache _ltiOrigins = ltiOrigins;
     private readonly NativeToolchain _toolchain = toolchain;
     private readonly IJudgeQueue _judgeQueue = judgeQueue;
     private readonly JudgeOptions _judgeOpt = judgeOpt.Value;
@@ -716,6 +717,7 @@ public class AdminUiController(
         };
         _db.LtiPlatforms.Add(p);
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "create", "LtiPlatform", p.Id, p.Name);
         var orgName = dto.OrganizationId is int oid ? await _db.Organizations.Where(o => o.Id == oid).Select(o => o.Name).FirstOrDefaultAsync() : null;
         return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, orgName);
@@ -731,6 +733,7 @@ public class AdminUiController(
         p.AuthTokenUrl = dto.AuthTokenUrl.Trim(); p.JwksUrl = dto.JwksUrl.Trim(); p.Enabled = dto.Enabled;
         p.OrganizationId = dto.OrganizationId;
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "update", "LtiPlatform", p.Id, p.Name);
         var orgName = dto.OrganizationId is int oid ? await _db.Organizations.Where(o => o.Id == oid).Select(o => o.Name).FirstOrDefaultAsync() : null;
         return new AdminLtiPlatformDto(p.Id, p.Name, p.Issuer, p.ClientId, p.DeploymentIds, p.AuthLoginUrl, p.AuthTokenUrl, p.JwksUrl, p.Enabled, p.CreatedAt, p.OrganizationId, orgName);
@@ -743,9 +746,16 @@ public class AdminUiController(
         if (p is null) return NotFound();
         _db.LtiPlatforms.Remove(p);
         await _db.SaveChangesAsync();
+        await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "delete", "LtiPlatform", id, p.Name);
         return NoContent();
     }
+
+    /// <summary>Re-reads every enabled LTI platform's issuer into LtiPlatformOriginsCache —
+    /// call after any write, so the CSP's frame-ancestors reflects the change immediately
+    /// instead of only after a restart.</summary>
+    private async Task RefreshLtiOriginsAsync() =>
+        _ltiOrigins.Set(await _db.LtiPlatforms.Where(p => p.Enabled).Select(p => p.Issuer).ToListAsync());
 
     // ---- audit log ------------------------------------------------------------
     [HttpGet("audit-log")]
