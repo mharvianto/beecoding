@@ -318,6 +318,11 @@ app.Use(async (ctx, next) =>
     h["Cross-Origin-Opener-Policy"] = "same-origin";
     if (csp.Length > 0) h["Content-Security-Policy"] = csp;
     if (ctx.Request.IsHttps) h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    // API responses reflect the caller's session (auth/me, board membership, …) and must
+    // never be cached by the browser or an intermediate proxy — without this, a browser's
+    // heuristic cache (or an over-eager reverse proxy) can replay a stale 200 from GET
+    // /api/auth/me after sign-out, making a page refresh look like it's still logged in.
+    if (ctx.Request.Path.StartsWithSegments("/api")) h["Cache-Control"] = "no-store";
     await next();
 });
 
