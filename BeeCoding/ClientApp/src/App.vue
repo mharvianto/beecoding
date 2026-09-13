@@ -1,5 +1,5 @@
 <script setup>
-import { watch, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from './stores/auth';
 import { useProgress } from './stores/progress';
@@ -13,6 +13,9 @@ const auth = useAuth();
 const progress = useProgress();
 const router = useRouter();
 const route = useRoute();
+
+const mobileNavOpen = ref(false);
+watch(() => route.path, () => { mobileNavOpen.value = false; });
 
 // The footer flows at the end of the page content (not pinned). Skip it on the
 // full-height editor views where there is no natural page bottom. Problem/practice
@@ -72,21 +75,33 @@ onBeforeUnmount(() => {
   <div class="h-full min-h-0 flex flex-col">
     <header v-if="auth.user" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
-        <RouterLink to="/boards" class="order-1 font-bold text-lg text-amber-600 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
+        <button @click="mobileNavOpen = !mobileNavOpen"
+                class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" aria-label="Menu">
+          <svg v-if="!mobileNavOpen" viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+          <svg v-else viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
 
-        <!-- primary nav: own row(s) on mobile (wraps rather than scrolling off-screen), inline after the logo on ≥md -->
-        <nav class="order-3 md:order-2 w-full md:w-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm
-                    text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100">
-          <RouterLink to="/dashboard">Dashboard</RouterLink>
-          <RouterLink to="/practice">Practice</RouterLink>
-          <RouterLink to="/playground">Playground</RouterLink>
-          <RouterLink to="/leaderboard">Leaderboard</RouterLink>
-          <RouterLink v-if="auth.isTeacher" to="/bank">Problem bank</RouterLink>
-          <RouterLink v-if="auth.user?.hasOrgAdmin" to="/org-admin" class="text-violet-600 dark:text-violet-400">Organization</RouterLink>
-          <RouterLink v-if="auth.user?.isAdmin" to="/admin" class="text-rose-600 dark:text-rose-400">Admin</RouterLink>
+        <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-600 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
+
+        <!-- primary nav: burger-toggled dropdown on mobile, inline row after the logo on ≥md -->
+        <nav :class="mobileNavOpen ? 'flex' : 'hidden'"
+             class="md:flex order-5 md:order-2 w-full md:w-auto flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 text-sm
+                    text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100
+                    border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">
+          <RouterLink to="/dashboard" @click="mobileNavOpen = false">Dashboard</RouterLink>
+          <RouterLink to="/practice" @click="mobileNavOpen = false">Practice</RouterLink>
+          <RouterLink to="/playground" @click="mobileNavOpen = false">Playground</RouterLink>
+          <RouterLink to="/leaderboard" @click="mobileNavOpen = false">Leaderboard</RouterLink>
+          <RouterLink v-if="auth.isTeacher" to="/bank" @click="mobileNavOpen = false">Problem bank</RouterLink>
+          <RouterLink v-if="auth.user?.hasOrgAdmin" to="/org-admin" class="text-violet-600 dark:text-violet-400" @click="mobileNavOpen = false">Organization</RouterLink>
+          <RouterLink v-if="auth.user?.isAdmin" to="/admin" class="text-rose-600 dark:text-rose-400" @click="mobileNavOpen = false">Admin</RouterLink>
         </nav>
 
-        <div class="order-2 md:order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
+        <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
           <RouterLink to="/leaderboard" v-if="progress.ready"
                       class="hidden md:flex items-center gap-2" title="Your XP">
             <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Lv {{ progress.level }}</span>
@@ -113,10 +128,12 @@ onBeforeUnmount(() => {
       </div>
     </header>
     <main class="flex-1 min-h-0 flex flex-col">
-      <div class="flex-1 min-h-0 overflow-y-auto">
-        <RouterView />
+      <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
+        <div class="flex-1">
+          <RouterView />
+        </div>
+        <AppFooter v-if="showFooter" class="shrink-0" />
       </div>
-      <AppFooter v-if="showFooter" class="shrink-0" />
     </main>
     <UndoToast />
     <ConfirmDialog />

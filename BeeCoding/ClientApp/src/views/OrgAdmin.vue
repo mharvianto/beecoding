@@ -9,7 +9,9 @@ const confirmDialog = useConfirmDialog();
 
 const orgs = ref(null);
 const orgId = ref(null);
+const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['ai', 'AI settings'], ['lti', 'LTI']];
 const tab = ref('dashboard');
+const mobileTabsOpen = ref(false);
 const err = ref('');
 
 const summary = ref(null);
@@ -51,7 +53,7 @@ function selectOrg(id) {
   loadTab(tab.value);
 }
 
-function switchTab(id) { tab.value = id; loadTab(id); }
+function switchTab(id) { mobileTabsOpen.value = false; tab.value = id; loadTab(id); }
 function loadTab(id) {
   if (!orgId.value) return;
   loadSummary();
@@ -209,12 +211,22 @@ onMounted(loadOrgs);
         </span>
       </div>
 
-      <div class="flex flex-wrap gap-1 pb-2 mb-4 border-b border-slate-200 dark:border-slate-800 text-sm">
-        <button v-for="t in [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['ai', 'AI settings'], ['lti', 'LTI']]" :key="t[0]"
-                @click="switchTab(t[0])" class="whitespace-nowrap rounded-lg px-3 py-1.5"
-                :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
-          {{ t[1] }}
+      <!-- mobile: current tab + dropdown; desktop: inline pill row -->
+      <div class="mb-4">
+        <button @click="mobileTabsOpen = !mobileTabsOpen"
+                class="md:hidden w-full flex items-center justify-between gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium">
+          {{ tabDefs.find((t) => t[0] === tab)?.[1] }}
+          <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0 transition-transform" :class="{ 'rotate-180': mobileTabsOpen }"
+               fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6" /></svg>
         </button>
+        <div :class="mobileTabsOpen ? 'flex' : 'hidden'"
+             class="md:flex flex-col md:flex-row flex-wrap gap-1 mt-1 md:mt-0 pb-2 border-b border-slate-200 dark:border-slate-800 text-sm">
+          <button v-for="t in tabDefs" :key="t[0]"
+                  @click="switchTab(t[0])" class="whitespace-nowrap text-left md:text-center rounded-lg px-3 py-1.5"
+                  :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+            {{ t[1] }}
+          </button>
+        </div>
       </div>
 
       <!-- Dashboard -->
