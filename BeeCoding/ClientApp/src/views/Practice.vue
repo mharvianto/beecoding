@@ -153,7 +153,10 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
           <span v-if="p.solved" class="text-emerald-500">✓</span>
           <span v-else-if="p.myVerdict !== 'None'" class="inline-block w-2 h-2 rounded-full bg-amber-400"></span>
         </span>
-        <span class="flex-1 text-sm font-medium truncate">{{ p.title }}</span>
+        <div class="flex-1 min-w-0">
+          <span class="text-sm font-medium truncate block">{{ p.title }}</span>
+          <span v-if="p.tags" class="md:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">{{ p.tags }}</span>
+        </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
         <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ p.tags }}</span>
         <LevelBadge :level="p.level" />
