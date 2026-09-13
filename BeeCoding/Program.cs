@@ -73,11 +73,22 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         // from the cookie's point of view, and SameSite=Lax is never sent on those (only on
         // top-level navigations), so every /api/* call 401s even right after a successful
         // launch. SameSite=None fixes that, but browsers silently drop a None cookie unless
-        // it's also Secure — which requires HTTPS, so this only flips over HTTPS; a plain
-        // HTTP dev server keeps Lax (LTI needs HTTPS anyway, so this never matters there).
+        // it's also Secure — which requires HTTPS, so this only flips when the request looks
+        // like HTTPS; a plain HTTP dev server keeps Lax (LTI needs HTTPS anyway, so this
+        // never matters there).
+        //
+        // ctx.Request.IsHttps only reflects reality if a fronting reverse proxy correctly
+        // forwards X-Forwarded-Proto (see the ForwardedHeaders config above) — some setups
+        // (notably some reverse-proxy GUIs, e.g. Synology's) don't, in which case the app
+        // sees plain HTTP even though the browser is on HTTPS and the auto-detection above
+        // never fires. Security:CookieAlwaysSecure=true is an escape hatch for exactly that:
+        // it forces Secure+SameSite=None unconditionally. Only set it if the app is in fact
+        // reachable solely over HTTPS externally — it would otherwise mark the cookie Secure
+        // on a real plain-HTTP deployment, which browsers then simply never send back.
+        var forceSecureCookie = builder.Configuration.GetValue("Security:CookieAlwaysSecure", false);
         o.Events.OnSigningIn = ctx =>
         {
-            if (ctx.Request.IsHttps)
+            if (ctx.Request.IsHttps || forceSecureCookie)
             {
                 ctx.CookieOptions.SameSite = SameSiteMode.None;
                 ctx.CookieOptions.Secure = true;

@@ -850,6 +850,24 @@ passback bersifat *best-effort* — kalau LMS-nya tidak bisa dihubungi atau izin
 *grading*-nya dicabut, itu cuma tercatat di log server, tidak pernah menggagalkan
 proses penilaian soal itu sendiri.
 
+**Troubleshooting: 401 terus-menerus di dalam iframe LMS (Deep Linking atau launch
+biasa), padahal login/launch-nya sendiri sukses.** Ini cookie session yang tidak
+terkirim — browser tidak pernah mengirim cookie `SameSite=Lax` untuk request AJAX
+lintas-situs (yaitu semua panggilan API dari dalam iframe LMS). BeeCoding otomatis
+pakai `SameSite=None; Secure` kalau request-nya terdeteksi HTTPS, tapi deteksi itu
+bergantung pada reverse proxy meneruskan header `X-Forwarded-Proto: https` dengan
+benar. Kalau proxy-mu (misal reverse proxy bawaan Synology) tidak meneruskan header
+itu, set:
+
+```
+Environment=Security__CookieAlwaysSecure=true
+```
+
+di unit systemd (§4A), lalu `sudo systemctl restart beecoding`. Ini paksa cookie
+selalu `Secure`, terlepas dari apa yang terdeteksi aplikasi — **hanya aman dipakai
+kalau aplikasi memang cuma bisa diakses lewat HTTPS dari luar** (kalau masih ada
+akses HTTP polos, browser akan menolak cookie yang di-mark Secure lewat koneksi HTTP).
+
 ---
 
 ## 5B. Multi-tenant: beberapa organisasi/institusi dalam satu deployment
