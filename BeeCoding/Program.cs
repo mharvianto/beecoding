@@ -92,6 +92,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             {
                 ctx.CookieOptions.SameSite = SameSiteMode.None;
                 ctx.CookieOptions.Secure = true;
+                // CHIPS: Chrome (and, following its lead, other browsers) now blocks
+                // unpartitioned third-party cookies by default even when SameSite=None;
+                // Secure is correct — Partitioned opts back in without needing the user to
+                // grant a manual site exception, since the whole point of partitioning is
+                // that it can't be used for cross-site tracking (storage is isolated per
+                // top-level site, which is exactly "usable inside this one LMS's iframe").
+                ctx.CookieOptions.Extensions.Add("Partitioned");
             }
             return Task.CompletedTask;
         };

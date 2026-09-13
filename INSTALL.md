@@ -868,6 +868,18 @@ selalu `Secure`, terlepas dari apa yang terdeteksi aplikasi — **hanya aman dip
 kalau aplikasi memang cuma bisa diakses lewat HTTPS dari luar** (kalau masih ada
 akses HTTP polos, browser akan menolak cookie yang di-mark Secure lewat koneksi HTTP).
 
+**Masih 401 walau cookie sudah `SameSite=None; Secure` dengan benar (cek DevTools →
+Application → Cookies)?** Browser modern (Chrome dkk.) sekarang **memblokir cookie
+pihak-ketiga secara default** sekalipun atribut `SameSite`/`Secure`-nya sudah benar —
+fitur "Tracking Protection"/deprecation cookie pihak-ketiga. BeeCoding otomatis
+menambahkan atribut `Partitioned` (CHIPS — cara resmi browser mengizinkan cookie tetap
+jalan di dalam iframe pihak-ketiga tanpa perlu izin manual user, karena storage-nya
+terisolasi per situs induk sehingga tidak bisa dipakai melacak lintas situs). Kalau versi
+BeeCoding-mu sudah termasuk ini tapi masih gagal, pastikan **hapus cookie
+`beecoding.auth` yang lama** dulu (DevTools → Application → Cookies → hapus semua baris
+itu) sebelum tes ulang — cookie lama yang ke-cache dari percobaan sebelum fix ini
+ditambahkan tidak akan otomatis ter-upgrade atributnya.
+
 ---
 
 ## 5B. Multi-tenant: beberapa organisasi/institusi dalam satu deployment
