@@ -35,7 +35,15 @@ async function join() {
 
 <template>
   <div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-bold mb-6">Your boards</h1>
+    <h1 class="text-xl font-bold mb-1">Your boards</h1>
+    <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">
+      A board is shared with a class via a join code — for a class you're not in yet, ask the
+      teacher for their code. Building a personal problem library instead? See
+      <RouterLink v-if="auth.isTeacher" to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">Problem bank</RouterLink>
+      <span v-else>Problem bank (teachers only)</span>.
+      Just want to solve something for XP right now? Try
+      <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+    </p>
 
     <div class="grid sm:grid-cols-2 gap-4 mb-8">
       <div v-if="auth.isTeacher" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
@@ -79,6 +87,22 @@ async function join() {
         </div>
       </RouterLink>
     </div>
-    <p v-if="!boards.length" class="text-slate-400 dark:text-slate-500 text-sm">Nothing here yet.</p>
+    <div v-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
+      <p class="text-slate-500 dark:text-slate-400 text-sm">
+        {{ auth.isTeacher ? "You don't own or belong to any board yet." : "You haven't joined a board yet." }}
+      </p>
+      <p class="text-slate-400 dark:text-slate-500 text-sm mt-1">
+        <template v-if="auth.isTeacher">
+          Create one above to start a class, or
+          <RouterLink to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">build a problem bank</RouterLink>
+          first so you have problems ready to add.
+        </template>
+        <template v-else>
+          Ask your teacher for a join code, or
+          <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">start practicing for XP</RouterLink>
+          on your own in the meantime.
+        </template>
+      </p>
+    </div>
   </div>
 </template>

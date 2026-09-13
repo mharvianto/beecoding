@@ -70,7 +70,8 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
       </div>
     </div>
     <p class="text-sm text-slate-400 dark:text-slate-500 mb-4">
-      Solve anything. Your first full solve of a problem earns XP (Easy 10 · Medium 20 · Hard 40).
+      Solve anything from the public problem bank, independent of any class board. Your first
+      full solve of a problem earns XP (Easy 10 · Medium 20 · Hard 40).
     </p>
 
     <!-- what to do next -->

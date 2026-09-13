@@ -104,7 +104,7 @@ onBeforeUnmount(() => { pollStopped = true; });
 
 <template>
   <div class="max-w-5xl mx-auto px-4 py-8">
-    <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
+    <div class="flex items-center justify-between mb-1 gap-2 flex-wrap">
       <h1 class="text-xl font-bold">Problem bank</h1>
       <div class="flex items-center gap-2">
         <button v-if="aiEnabled" @click="genOpen = !genOpen"
@@ -116,6 +116,12 @@ onBeforeUnmount(() => { pollStopped = true; });
         </RouterLink>
       </div>
     </div>
+    <p class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+      Your reusable problem library — write a problem once here, then pull it into any
+      <RouterLink to="/boards" class="text-amber-600 dark:text-amber-400 hover:underline">board</RouterLink>
+      you own. Mark one public and it also joins the pool everyone solves from in
+      <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+    </p>
 
     <div v-if="genOpen" class="mb-4 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-500/5">
       <p class="text-sm font-semibold text-violet-700 dark:text-violet-300">✨ Generate a problem from an idea</p>
