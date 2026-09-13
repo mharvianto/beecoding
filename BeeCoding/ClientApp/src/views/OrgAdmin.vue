@@ -462,7 +462,10 @@ onMounted(loadOrgs);
       <!-- AI settings -->
       <section v-show="tab === 'ai'" class="max-w-sm space-y-3">
         <p class="text-xs text-slate-400 dark:text-slate-500">
-          Scoped to this organization only — never overrides the platform-wide AI pause.
+          These settings only take effect once your organization has its own AI API key
+          <em>and</em> base URL set below — until then, your members use (and are bound by)
+          the platform's own pause and quota, and this quota field is ignored. Bring your own
+          key and this org becomes independent of the platform's pause entirely.
         </p>
         <template v-if="aiSettings">
           <label class="flex items-center gap-2 text-sm">

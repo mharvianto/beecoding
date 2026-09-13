@@ -10,10 +10,21 @@ public record AiUsageDto(
     int DailyQuota, bool Blocked, string? BlockedReason);
 
 /// <summary>Per-user, per-day rollup of AI token consumption.</summary>
-public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
+public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime, AiProviderRuntime provider)
 {
     private readonly AppDbContext _db = db;
     private readonly AiRuntimeSettings _runtime = runtime;
+    private readonly AiProviderRuntime _provider = provider;
+
+    /// <summary>An org that has set BOTH its own API key and its own base URL is spending its
+    /// own AI budget, not the platform's — see AiRuntimeSettings.Effective for what that
+    /// unlocks (independence from the platform pause + the org's own quota).</summary>
+    private bool OrgHasOwnProvider(int? organizationId)
+    {
+        if (organizationId is not int orgId) return false;
+        var cfg = _provider.Org(orgId);
+        return cfg is { ApiKey: not null, BaseUrl: not null };
+    }
 
     /// <summary>Ban / org-pause / daily-quota check for a user, before an AI call is allowed
     /// to proceed. <paramref name="organizationId"/> scopes the quota/pause to that
@@ -24,7 +35,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
     /// checks it again here too since Effective is cheap and this stays correct standalone.</summary>
     public async Task<(bool Allowed, string? Reason)> CheckGateAsync(int userId, string role, int? organizationId, CancellationToken ct = default)
     {
-        var (blocked, quota, reason) = _runtime.Effective(userId, role, organizationId);
+        var (blocked, quota, reason) = _runtime.Effective(userId, role, organizationId, OrgHasOwnProvider(organizationId));
         if (blocked) return (false, reason);
         if (quota <= 0) return (false, "Your AI access has been disabled by an admin.");
 
@@ -74,7 +85,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime)
             return new AiUsageBucketDto(c, p, k, p + k);
         }
 
-        var (blocked, quota, reason) = _runtime.Effective(userId, role, organizationId);
+        var (blocked, quota, reason) = _runtime.Effective(userId, role, organizationId, OrgHasOwnProvider(organizationId));
         return new AiUsageDto(
             Sum(rows.Where(x => x.Day == today)),
             Sum(rows.Where(x => x.Day >= monthStart)),

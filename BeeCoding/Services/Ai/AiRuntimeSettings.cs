@@ -70,21 +70,41 @@ public class AiRuntimeSettings
 
     /// <summary>Effective (blocked, dailyQuota, reason-if-blocked) for a user with the given
     /// role, acting within <paramref name="organizationId"/> (null = no org context, so the
-    /// platform default applies directly). The platform pause always wins; an org's own
-    /// pause blocks only that org.</summary>
-    public (bool Blocked, int Quota, string? Reason) Effective(int userId, string role, int? organizationId)
+    /// platform default applies directly).
+    ///
+    /// <paramref name="orgHasOwnProvider"/> (see AiProviderRuntime) is the pivot: an org that
+    /// supplies its own AI API key + endpoint isn't spending the platform's budget, so the
+    /// platform's pause AND default quota simply don't apply to it — the org's own pause/
+    /// quota (or a sensible fallback number, if it hasn't set one) governs instead. An org
+    /// still riding on the platform's shared key follows the platform's rules: the
+    /// platform's pause always wins, and its quota number is what's enforced (the org's own
+    /// quota field, if any, is not consulted) — though the org can still narrow further by
+    /// pausing itself, same as before.</summary>
+    public (bool Blocked, int Quota, string? Reason) Effective(int userId, string role, int? organizationId, bool orgHasOwnProvider)
     {
+        Global? org = organizationId is { } orgId && _orgs.TryGetValue(orgId, out var o) ? o : null;
+
+        if (organizationId is not null && orgHasOwnProvider)
+        {
+            if (org is { Paused: true })
+                return (true, 0, org.PausedReason ?? "AI is temporarily paused for your organization.");
+            var quota = string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase)
+                ? (org?.QuotaTeacher ?? _platform.QuotaTeacher)
+                : (org?.QuotaStudent ?? _platform.QuotaStudent);
+            var ov1 = OverrideFor(userId);
+            if (ov1 is { Banned: true }) return (true, 0, "Your AI access has been disabled by an admin.");
+            return (false, ov1?.Quota ?? quota, null);
+        }
+
         if (_platform.Paused)
             return (true, 0, _platform.PausedReason ?? "AI is temporarily paused by an admin.");
+        if (org is { Paused: true })
+            return (true, 0, org.PausedReason ?? "AI is temporarily paused for your organization.");
 
-        var scope = organizationId is { } orgId && _orgs.TryGetValue(orgId, out var org) ? org : _platform;
-        if (scope.Paused)
-            return (true, 0, scope.PausedReason ?? "AI is temporarily paused for your organization.");
-
-        var roleDefault = string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase) ? scope.QuotaTeacher : scope.QuotaStudent;
-        var o = OverrideFor(userId);
-        if (o is { Banned: true }) return (true, 0, "Your AI access has been disabled by an admin.");
-        return (false, o?.Quota ?? roleDefault, null);
+        var roleDefault = string.Equals(role, "Teacher", StringComparison.OrdinalIgnoreCase) ? _platform.QuotaTeacher : _platform.QuotaStudent;
+        var ov = OverrideFor(userId);
+        if (ov is { Banned: true }) return (true, 0, "Your AI access has been disabled by an admin.");
+        return (false, ov?.Quota ?? roleDefault, null);
     }
 
     public record Global(bool Paused, string? PausedReason, int QuotaStudent, int QuotaTeacher);
