@@ -663,7 +663,7 @@ onMounted(async () => {
               <tr v-for="r in dashboard.recentActivity" :key="r.id" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
                 <td class="text-[11px]">{{ r.actorEmail }}</td>
-                <td><span class="text-[11px] px-1.5 py-0.5 rounded-full" :class="actionBadgeClass(r.action)">{{ r.action }}</span></td>
+                <td><span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span></td>
                 <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
               </tr>
               <tr v-if="!dashboard.recentActivity.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No activity yet.</td></tr>
@@ -853,8 +853,8 @@ onMounted(async () => {
                   <option value="Student">Student</option>
                   <option value="Teacher">Teacher</option>
                 </select>
-                <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
-                <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
+                <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
+                <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
@@ -1207,13 +1207,28 @@ onMounted(async () => {
 
     <!-- Audit log -->
     <section v-show="tab === 'audit'">
-      <div class="flex gap-2 mb-3">
+      <div class="flex flex-wrap gap-2 mb-3">
         <input v-model="auditQ" @keyup.enter="searchAudit" placeholder="Search actor, action, or target…"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchAudit" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="loadAudit" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
       </div>
-      <div class="overflow-x-auto">
+
+      <!-- mobile: cards -->
+      <div class="sm:hidden space-y-2">
+        <div v-for="r in auditRows" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
+          </div>
+          <div class="text-xs">{{ r.actorEmail }}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
+        </div>
+        <p v-if="auditRows && !auditRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No activity yet.</p>
+      </div>
+
+      <!-- desktop: table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1226,7 +1241,7 @@ onMounted(async () => {
               <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
               <td class="text-[11px]">{{ r.actorEmail }}</td>
               <td>
-                <span class="text-[11px] px-1.5 py-0.5 rounded-full" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
+                <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
               </td>
               <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
             </tr>
@@ -1254,14 +1269,28 @@ onMounted(async () => {
         for one via <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
         (this page only creates/removes the organization itself).
       </p>
-      <div class="flex gap-2">
+      <div class="flex flex-col sm:flex-row gap-2">
         <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)"
                class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)"
-               class="w-40 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="createOrganization" class="text-sm bg-amber-500 text-white rounded-lg px-4 font-medium">Add</button>
+               class="sm:w-40 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <button @click="createOrganization" class="text-sm bg-amber-500 text-white rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
       </div>
-      <div class="overflow-x-auto">
+
+      <!-- mobile: cards -->
+      <div class="sm:hidden space-y-2">
+        <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="flex items-start justify-between gap-2">
+            <div class="font-medium text-sm">{{ o.name }}</div>
+            <button @click="deleteOrganization(o)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Delete</button>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
+        </div>
+        <p v-if="organizations && !organizations.length" class="text-slate-400 dark:text-slate-500 text-sm">No organizations yet.</p>
+      </div>
+
+      <!-- desktop: table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1351,7 +1380,7 @@ onMounted(async () => {
                 <td class="text-[11px] text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
                 <td class="text-[11px] text-slate-400">{{ p.organizationName || '—' }}</td>
                 <td>
-                  <span class="text-[11px] px-1.5 py-0.5 rounded-full"
+                  <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                         :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
                     {{ p.enabled ? 'enabled' : 'disabled' }}
                   </span>
