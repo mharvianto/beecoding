@@ -8,6 +8,7 @@ import { useUndoToast } from '../stores/undoToast';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
+import MarkdownBlock from '../components/MarkdownBlock.vue';
 
 const auth = useAuth();
 const route = useRoute();
@@ -562,10 +563,10 @@ onMounted(async () => {
   <div class="max-w-5xl mx-auto px-4 py-8">
     <h1 class="text-xl font-bold mb-4">Admin</h1>
 
-    <div class="inline-flex flex-wrap rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-sm mb-4">
+    <div class="flex gap-1 overflow-x-auto -mx-1 px-1 pb-2 mb-4 border-b border-slate-200 dark:border-slate-800 text-sm [scrollbar-width:thin]">
       <button v-for="t in tabDefs" :key="t[0]" @click="switchTab(t[0])"
-              class="px-3 py-1.5"
-              :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              class="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5"
+              :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
         {{ t[1] }}
       </button>
     </div>
@@ -1034,7 +1035,9 @@ onMounted(async () => {
         </div>
 
         <div v-if="expandedReview === row.slug" class="mt-3 space-y-3">
-          <div class="text-sm bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 whitespace-pre-wrap font-mono text-xs max-h-64 overflow-auto">{{ row.statementMarkdown }}</div>
+          <div class="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 max-h-64 overflow-auto">
+            <MarkdownBlock :text="row.statementMarkdown" />
+          </div>
           <div class="grid sm:grid-cols-2 gap-2">
             <div v-for="(t, i) in row.tests" :key="i" class="text-xs border border-slate-100 dark:border-slate-800 rounded-lg p-2">
               <div class="text-slate-400 mb-1">{{ t.isSample ? 'sample' : 'hidden' }} #{{ i + 1 }}</div>
