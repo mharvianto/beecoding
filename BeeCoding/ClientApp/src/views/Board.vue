@@ -83,7 +83,7 @@ async function saveToBank(p) {
   try {
     await api.post(`/api/boards/${props.slug}/problems/${p.id}/to-bank`);
     error.value = '';
-    alert(`"${p.title}" saved to the problem bank.`);
+    undoToast.show(`"${p.title}" saved to the problem bank.`);
   } catch (e) { error.value = e.message; }
 }
 

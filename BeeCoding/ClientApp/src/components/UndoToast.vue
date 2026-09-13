@@ -27,7 +27,7 @@ const secondsLeft = computed(() => Math.max(0, Math.ceil((toast.deadline - now.v
                 bg-slate-800 dark:bg-slate-700 text-white rounded-xl shadow-lg px-4 py-2.5
                 flex items-center gap-3 text-sm max-w-[calc(100vw-2rem)]">
       <span class="truncate">{{ toast.message }}</span>
-      <button @click="toast.undo()"
+      <button v-if="toast.onUndo" @click="toast.undo()"
               class="shrink-0 font-semibold text-amber-300 hover:text-amber-200 underline underline-offset-2">
         Undo ({{ secondsLeft }}s)
       </button>

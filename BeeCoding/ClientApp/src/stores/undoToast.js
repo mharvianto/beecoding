@@ -13,10 +13,12 @@ export const useUndoToast = defineStore('undoToast', {
     onUndo: null,       // async () => void
   }),
   actions: {
-    show(message, onUndo) {
+    // onUndo omitted -> a plain info toast (shorter-lived, no Undo button) instead of a
+    // delete-with-undo one — same component, so every toast in the app looks the same.
+    show(message, onUndo = null, seconds = onUndo ? UNDO_SECONDS : 4) {
       this.message = message;
       this.onUndo = onUndo;
-      this.deadline = Date.now() + UNDO_SECONDS * 1000;
+      this.deadline = Date.now() + seconds * 1000;
       this.visible = true;
     },
     dismiss() {
