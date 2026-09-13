@@ -64,10 +64,26 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         o.Cookie.Name = "beecoding.auth";
         o.Cookie.HttpOnly = true;
-        o.Cookie.SameSite = SameSiteMode.Lax;
+        o.Cookie.SameSite = SameSiteMode.Lax;   // HTTP dev fallback — see OnSigningIn below
         o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;   // Secure when served over HTTPS
         o.ExpireTimeSpan = TimeSpan.FromDays(7);
         o.SlidingExpiration = true;
+        // LTI embeds this app in an iframe on the platform's (a different site's) page —
+        // every fetch()/XHR our SPA makes from inside that iframe is a cross-site request
+        // from the cookie's point of view, and SameSite=Lax is never sent on those (only on
+        // top-level navigations), so every /api/* call 401s even right after a successful
+        // launch. SameSite=None fixes that, but browsers silently drop a None cookie unless
+        // it's also Secure — which requires HTTPS, so this only flips over HTTPS; a plain
+        // HTTP dev server keeps Lax (LTI needs HTTPS anyway, so this never matters there).
+        o.Events.OnSigningIn = ctx =>
+        {
+            if (ctx.Request.IsHttps)
+            {
+                ctx.CookieOptions.SameSite = SameSiteMode.None;
+                ctx.CookieOptions.Secure = true;
+            }
+            return Task.CompletedTask;
+        };
         // API/hub calls should get 401/403, never an HTML redirect.
         o.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
         o.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
