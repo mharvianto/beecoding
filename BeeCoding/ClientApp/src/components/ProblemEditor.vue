@@ -26,7 +26,7 @@ const emit = defineEmits(['save', 'delete', 'cancel', 'regenerate-tests']);
 const blank = () => ({
   title: '', statementMarkdown: '', allowedLanguages: '',
   timeLimitMs: 1000, memoryLimitKb: 32768, position: 0,
-  level: 'Medium', tags: '', isPublic: false, bannedHeaders: '', bannedSymbols: '', testCases: [],
+  level: 'Medium', tags: '', isPublic: false, bannedHeaders: '', bannedSymbols: '', inputFileName: '', testCases: [],
 });
 const form = ref(blank());
 const tab = ref('problem');   // 'problem' | 'tests'
@@ -130,6 +130,18 @@ function removeTest(i) { form.value.testCases.splice(i, 1); }
             <code>&lt;bits/stdc++.h&gt;</code>). <b>Functions</b>: identifiers it may not use — <code>sort</code> also
             catches <code>std::sort</code>; write <code>std::sort</code> to match only the qualified call. A violation
             is reported as a Compile Error, on Run and Submit.
+          </p>
+        </div>
+
+        <div>
+          <label class="flex items-center gap-1 text-sm">Input file (optional)
+            <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin"
+                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+          </label>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+            When set, each test's input is written to this filename in the program's working directory instead of
+            being piped to stdin — for problems that require <code>fopen()</code>-style file I/O. Leave blank for
+            the normal stdin/stdout behavior.
           </p>
         </div>
 

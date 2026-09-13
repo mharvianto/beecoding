@@ -295,7 +295,8 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points)).ToList();
         await _queue.EnqueueGradeAsync(new GradeJob(
             "practice", sub.Id, lang, sub.Code,
-            problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests));
+            problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests,
+            problem.InputFileName));
         return Accepted(new { submissionId = sub.Id });
     }
 

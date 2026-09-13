@@ -144,6 +144,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         p.Level = Mapping.ParseLevel(dto.Level);
         p.BannedHeaders = SourcePolicy.Normalize(dto.BannedHeaders);
         p.BannedSymbols = SourcePolicy.NormalizeSymbols(dto.BannedSymbols);
+        p.InputFileName = InputFilePolicy.Normalize(dto.InputFileName);
         p.TimeLimitMs = Math.Clamp(dto.TimeLimitMs <= 0 ? 1000 : dto.TimeLimitMs, 100, 10_000);
         p.MemoryLimitKb = Math.Clamp(dto.MemoryLimitKb <= 0 ? 32_768 : dto.MemoryLimitKb, 4_096, 512_000);
         p.Position = dto.Position;

@@ -75,7 +75,8 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
         await _db.ListRightPushAsync(_jobsKey, Encode(job));
 
     public async Task<RunResultDto> EnqueueRunAsync(
-        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb, CancellationToken ct = default)
+        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb,
+        string? inputFileName = null, CancellationToken ct = default)
     {
         var id = Guid.NewGuid().ToString("N");
         var tcs = new TaskCompletionSource<RunResultDto>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -85,7 +86,7 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
         try
         {
             await _db.ListRightPushAsync(_jobsKey,
-                Encode(new RunJob(language, code, stdin, timeLimitMs, memoryLimitKb, id)));
+                Encode(new RunJob(language, code, stdin, timeLimitMs, memoryLimitKb, id, inputFileName)));
             return await tcs.Task.WaitAsync(timeout.Token);
         }
         finally { _pendingRuns.TryRemove(id, out _); }

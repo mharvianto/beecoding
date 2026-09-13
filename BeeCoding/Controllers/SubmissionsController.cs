@@ -58,7 +58,8 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points)).ToList();
         await _queue.EnqueueGradeAsync(new GradeJob(
             "board", sub.Id, lang, sub.Code,
-            problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests));
+            problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests,
+            problem.InputFileName));
         return Accepted(new { submissionId = sub.Id });
     }
 

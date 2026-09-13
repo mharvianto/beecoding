@@ -24,7 +24,7 @@ public class NativeSandbox(NativeToolchain tc, ILogger<NativeSandbox> log)
 
     public async Task<ExecResult> ExecuteAsync(
         string workDir, string exePath, string stdin,
-        int timeLimitMs, int memoryLimitKb, CancellationToken ct)
+        int timeLimitMs, int memoryLimitKb, CancellationToken ct, string? inputFileName = null)
     {
         var o = _tc.Options;
         var statPath = Path.Combine(workDir, $"stat_{Guid.NewGuid():N}");
@@ -69,6 +69,11 @@ public class NativeSandbox(NativeToolchain tc, ILogger<NativeSandbox> log)
         psi.Environment["PATH"] = "/usr/bin:/bin";
         psi.Environment["HOME"] = workDir;
 
+        // File-input mode: the program fopen()s this filename from its cwd (= workDir,
+        // bound read-write into the sandbox at the same path) instead of reading stdin.
+        if (!string.IsNullOrEmpty(inputFileName))
+            await File.WriteAllTextAsync(Path.Combine(workDir, inputFileName), stdin, ct);
+
         using var p = new Process { StartInfo = psi };
         p.Start();
 
@@ -77,7 +82,8 @@ public class NativeSandbox(NativeToolchain tc, ILogger<NativeSandbox> log)
 
         try
         {
-            await p.StandardInput.WriteAsync(stdin.AsMemory(), ct);
+            if (string.IsNullOrEmpty(inputFileName))
+                await p.StandardInput.WriteAsync(stdin.AsMemory(), ct);
         }
         catch { /* program may not read stdin */ }
         finally

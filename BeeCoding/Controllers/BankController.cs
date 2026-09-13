@@ -168,6 +168,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
             GeneratedByAi = bank.GeneratedByAi,
             BannedHeaders = bank.BannedHeaders,
             BannedSymbols = bank.BannedSymbols,
+            InputFileName = bank.InputFileName,
             TimeLimitMs = bank.TimeLimitMs,
             MemoryLimitKb = bank.MemoryLimitKb,
             Position = nextPos,
@@ -214,6 +215,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
             GeneratedByAi = p.GeneratedByAi,
             BannedHeaders = p.BannedHeaders,
             BannedSymbols = p.BannedSymbols,
+            InputFileName = p.InputFileName,
             TimeLimitMs = p.TimeLimitMs,
             MemoryLimitKb = p.MemoryLimitKb,
         };
@@ -242,6 +244,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         b.Level = Mapping.ParseLevel(dto.Level);
         b.BannedHeaders = SourcePolicy.Normalize(dto.BannedHeaders);
         b.BannedSymbols = SourcePolicy.NormalizeSymbols(dto.BannedSymbols);
+        b.InputFileName = InputFilePolicy.Normalize(dto.InputFileName);
         b.TimeLimitMs = Math.Clamp(dto.TimeLimitMs <= 0 ? 1000 : dto.TimeLimitMs, 100, 10_000);
         b.MemoryLimitKb = Math.Clamp(dto.MemoryLimitKb <= 0 ? 32_768 : dto.MemoryLimitKb, 4_096, 512_000);
         b.Tags = Mapping.NormalizeTags(dto.Tags);

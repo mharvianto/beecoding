@@ -133,7 +133,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 if (stdin.Length > 16_000) continue;
                 if (!seenStdin.Add(stdin.Replace("\r\n", "\n").Trim())) continue;
                 RunResultDto res;
-                try { res = await queue.EnqueueRunAsync(refLang, gp.ReferenceSolution, stdin, gp.TimeLimitMs, gp.MemoryLimitKb, ct); }
+                try { res = await queue.EnqueueRunAsync(refLang, gp.ReferenceSolution, stdin, gp.TimeLimitMs, gp.MemoryLimitKb, ct: ct); }
                 catch { await Fail("Timed out validating the generated problem."); return; }
 
                 if (!res.CompileOk)
@@ -250,7 +250,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             foreach (var (sIn, sExp) in samples)
             {
                 RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, sIn, problem.TimeLimitMs, problem.MemoryLimitKb, ct); }
+                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, sIn, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
                 catch { await Fail("Timed out validating the new tests."); return; }
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
@@ -267,7 +267,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 if (inp.Length > 16_000) continue;
                 if (!seen.Add(inp.Replace("\r\n", "\n").Trim())) continue;
                 RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct); }
+                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
                 catch { await Fail("Timed out validating the new tests."); return; }
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0) continue;   // skip an input the reference can't handle

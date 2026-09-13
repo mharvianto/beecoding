@@ -1173,7 +1173,8 @@ public class AdminUiController(
             b.BannedHeaders, b.BannedSymbols,
             b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => new AdminProblemTest(t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position))
-                .ToList())).ToList());
+                .ToList(),
+            b.InputFileName)).ToList());
 
         var json = JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = true });
         return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json",
@@ -1214,6 +1215,7 @@ public class AdminUiController(
                 b.Tags = Mapping.NormalizeTags(item.Tags);
                 b.BannedHeaders = SourcePolicy.Normalize(item.BannedHeaders);
                 b.BannedSymbols = SourcePolicy.NormalizeSymbols(item.BannedSymbols);
+                b.InputFileName = InputFilePolicy.Normalize(item.InputFileName);
                 b.TimeLimitMs = Math.Clamp(item.TimeLimitMs <= 0 ? 1000 : item.TimeLimitMs, 100, 10_000);
                 b.MemoryLimitKb = Math.Clamp(item.MemoryLimitKb <= 0 ? 32_768 : item.MemoryLimitKb, 4_096, 512_000);
                 b.IsPublic = item.IsPublic;

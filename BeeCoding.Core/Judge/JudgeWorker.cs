@@ -75,7 +75,7 @@ public sealed class JudgeWorker(
                 return;
             }
 
-            var exec = await _sandbox.ExecuteAsync(dir, compile.ExePath!, job.Stdin ?? "", job.TimeLimitMs, job.MemoryLimitKb, ct);
+            var exec = await _sandbox.ExecuteAsync(dir, compile.ExePath!, job.Stdin ?? "", job.TimeLimitMs, job.MemoryLimitKb, ct, job.InputFileName);
             var verdict = VerdictEvaluator.ClassifyRun(exec, job.TimeLimitMs, job.MemoryLimitKb);
 
             await _source.ReportRunResultAsync(job, new RunResultDto(
@@ -114,7 +114,7 @@ public sealed class JudgeWorker(
 
         foreach (var t in job.Tests)
         {
-            var exec = await _sandbox.ExecuteAsync(dir, compile.ExePath!, t.Stdin ?? "", job.TimeLimitMs, job.MemoryLimitKb, ct);
+            var exec = await _sandbox.ExecuteAsync(dir, compile.ExePath!, t.Stdin ?? "", job.TimeLimitMs, job.MemoryLimitKb, ct, job.InputFileName);
             maxMs = Math.Max(maxMs, exec.WallMs);
             maxKb = Math.Max(maxKb, exec.PeakKb);
 

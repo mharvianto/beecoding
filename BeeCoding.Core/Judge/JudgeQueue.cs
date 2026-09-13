@@ -21,7 +21,8 @@ public sealed record GradeJob(
     int MemoryLimitKb,
     string? BannedHeaders,
     string? BannedSymbols,
-    IReadOnlyList<TestSpec> Tests) : JudgeJob;
+    IReadOnlyList<TestSpec> Tests,
+    string? InputFileName = null) : JudgeJob;
 
 public sealed record TestSpec(string Stdin, string Expected, int Points);
 
@@ -36,7 +37,8 @@ public sealed record GradeResult(
 /// </summary>
 public sealed record RunJob(
     string Language, string Code, string Stdin,
-    int TimeLimitMs, int MemoryLimitKb, string CorrelationId) : JudgeJob;
+    int TimeLimitMs, int MemoryLimitKb, string CorrelationId,
+    string? InputFileName = null) : JudgeJob;
 
 /// <summary>Producer side — used by the web controllers.</summary>
 public interface IJudgeQueue
@@ -46,7 +48,8 @@ public interface IJudgeQueue
 
     /// <summary>Request/response: enqueue an ad-hoc run and await its result.</summary>
     Task<RunResultDto> EnqueueRunAsync(
-        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb, CancellationToken ct = default);
+        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb,
+        string? inputFileName = null, CancellationToken ct = default);
 }
 
 /// <summary>Consumer side — used by <see cref="JudgeWorker"/>.</summary>
@@ -91,14 +94,15 @@ public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeRe
         _jobs.Writer.WriteAsync(job, ct);
 
     public async Task<RunResultDto> EnqueueRunAsync(
-        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb, CancellationToken ct = default)
+        string language, string code, string stdin, int timeLimitMs, int memoryLimitKb,
+        string? inputFileName = null, CancellationToken ct = default)
     {
         var id = Guid.NewGuid().ToString("N");
         var tcs = new TaskCompletionSource<RunResultDto>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pending[id] = tcs;
         try
         {
-            await _jobs.Writer.WriteAsync(new RunJob(language, code, stdin, timeLimitMs, memoryLimitKb, id), ct);
+            await _jobs.Writer.WriteAsync(new RunJob(language, code, stdin, timeLimitMs, memoryLimitKb, id, inputFileName), ct);
             return await tcs.Task.WaitAsync(ct);
         }
         finally { _pending.TryRemove(id, out _); }

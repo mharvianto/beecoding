@@ -165,6 +165,12 @@ public class Problem : IHasSlug
     [MaxLength(300)]
     public string? BannedSymbols { get; set; }
 
+    /// <summary>When set, a submission's stdin content is written to this filename in the
+    /// sandbox work directory instead of being piped to stdin — for problems that require
+    /// fopen()-style file I/O. Null = stdin (the default). See InputFilePolicy.</summary>
+    [MaxLength(64)]
+    public string? InputFileName { get; set; }
+
     public int TimeLimitMs { get; set; } = 1000;
 
     public int MemoryLimitKb { get; set; } = 32768;
@@ -224,6 +230,11 @@ public class BankProblem : IHasSlug
     /// <summary>Comma-separated identifiers a submission may not use, e.g. "std::sort,qsort".</summary>
     [MaxLength(300)]
     public string? BannedSymbols { get; set; }
+
+    /// <summary>When set, a submission's stdin content is written to this filename in the
+    /// sandbox work directory instead of being piped to stdin (see Problem.InputFileName).</summary>
+    [MaxLength(64)]
+    public string? InputFileName { get; set; }
 
     public int TimeLimitMs { get; set; } = 1000;
 

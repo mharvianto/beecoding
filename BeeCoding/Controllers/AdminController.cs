@@ -125,6 +125,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
                 b.Tags = Mapping.NormalizeTags(p.Tags);
                 b.BannedHeaders = SourcePolicy.Normalize(p.BannedHeaders);
                 b.BannedSymbols = SourcePolicy.NormalizeSymbols(p.BannedSymbols);
+                b.InputFileName = InputFilePolicy.Normalize(p.InputFileName);
                 b.TimeLimitMs = Math.Clamp((p.TimeLimitMs ?? 0) <= 0 ? 1000 : p.TimeLimitMs!.Value, 100, 10_000);
                 b.MemoryLimitKb = Math.Clamp((p.MemoryLimitKb ?? 0) <= 0 ? 32_768 : p.MemoryLimitKb!.Value, 4_096, 512_000);
                 b.IsPublic = p.IsPublic ?? true;

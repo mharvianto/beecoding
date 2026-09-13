@@ -244,6 +244,9 @@ function ago(ts) {
         <span v-if="problem.bannedSymbols" class="block">🚫 Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
         <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
       </p>
+      <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
+        📄 This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
+      </p>
 
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
         <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
