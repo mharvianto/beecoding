@@ -657,7 +657,21 @@ onMounted(async () => {
           <h2 class="font-semibold text-sm">Recent activity</h2>
           <button @click="switchTab('audit')" class="text-xs text-slate-400 dark:text-slate-500 hover:underline">view all</button>
         </div>
-        <div class="overflow-x-auto">
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2">
+          <div v-for="r in dashboard.recentActivity" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
+              <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
+            </div>
+            <div class="text-xs">{{ r.actorEmail }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
+          </div>
+          <p v-if="!dashboard.recentActivity.length" class="text-slate-400 dark:text-slate-500 text-sm">No activity yet.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="r in dashboard.recentActivity" :key="r.id" class="border-b border-slate-100 dark:border-slate-800/60">
@@ -742,7 +756,28 @@ onMounted(async () => {
       <!-- Per-user overrides / bans -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-2">Per-user overrides</h2>
-        <div class="overflow-x-auto mb-3">
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2 mb-3">
+          <div v-for="row in aiOverrides" :key="row.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="font-medium text-sm">{{ row.displayName }}</div>
+            <div class="text-[11px] text-slate-400 mb-2">{{ row.email }}</div>
+            <div class="flex items-center gap-3 flex-wrap text-xs">
+              <label class="flex items-center gap-1.5">Quota
+                <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default"
+                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
+              </label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> Banned</label>
+            </div>
+            <div class="mt-2 flex gap-3">
+              <button @click="saveOverride(row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">Save</button>
+              <button @click="clearOverride(row)" class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline">Clear</button>
+            </div>
+          </div>
+          <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-400 dark:text-slate-500 text-sm">No overrides set.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto mb-3">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -790,7 +825,22 @@ onMounted(async () => {
           <h2 class="font-semibold text-sm">Usage</h2>
           <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
         </div>
-        <div class="overflow-x-auto">
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2">
+          <div v-for="r in aiRows" :key="r.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="font-medium text-sm">{{ r.displayName }}</div>
+            <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
+            <div class="text-xs grid grid-cols-3 gap-2 tabular-nums">
+              <div><div class="text-[10px] text-slate-400">Today</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
+              <div><div class="text-[10px] text-slate-400">Month</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
+              <div><div class="text-[10px] text-slate-400">All time</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
+            </div>
+          </div>
+          <p v-if="aiRows && !aiRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage yet.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -828,7 +878,43 @@ onMounted(async () => {
         </button>
       </div>
       <p v-if="userDeleteResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ userDeleteResultMsg }}</p>
-      <div class="overflow-x-auto">
+
+      <!-- mobile: cards -->
+      <div class="sm:hidden space-y-2">
+        <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 px-1">
+          <input type="checkbox" :checked="selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
+                 @change="selectAllUsers($event.target.checked)" /> Select all
+        </label>
+        <div v-for="u in users" :key="u.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <input v-if="u.id !== auth.user?.id" type="checkbox" :checked="selectedUsers.has(u.id)" @change="toggleUserSelect(u.id)" class="mt-1 shrink-0" />
+            <div class="min-w-0 flex-1">
+              <div class="font-medium text-sm truncate">{{ u.displayName }} <span class="text-slate-400 font-normal">#{{ u.id }}</span></div>
+              <div class="text-[11px] text-slate-400 truncate">{{ u.email }}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap mt-2">
+            <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
+                    class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+              <option value="Student">Student</option>
+              <option value="Teacher">Teacher</option>
+            </select>
+            <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
+            <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
+            <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
+          <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
+            <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Make admin</button>
+            <button v-else @click="revokeAdmin(u)" class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline">Revoke admin</button>
+            <button @click="deleteUser(u)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Delete</button>
+          </div>
+        </div>
+        <p v-if="users && !users.length" class="text-slate-400 dark:text-slate-500 text-sm">No users.</p>
+      </div>
+
+      <!-- desktop: table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -953,7 +1039,28 @@ onMounted(async () => {
         </button>
       </div>
       <p v-if="archiveResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ archiveResultMsg }}</p>
-      <div class="overflow-x-auto">
+
+      <!-- mobile: cards -->
+      <div class="sm:hidden space-y-2">
+        <div v-for="b in boards" :key="b.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" class="mt-1 shrink-0" />
+            <div class="min-w-0 flex-1">
+              <RouterLink :to="`/boards/${b.slug}`" class="font-medium text-sm hover:underline">{{ b.title }}</RouterLink>
+              <div class="text-[11px] text-slate-400 font-mono">{{ b.slug }}</div>
+            </div>
+            <button @click="deleteBoard(b)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Delete</button>
+          </div>
+          <div class="text-[11px] text-slate-400 mt-1.5">{{ b.ownerName }} ({{ b.ownerEmail }})</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">
+            {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
+          </div>
+        </div>
+        <p v-if="boards && !boards.length" class="text-slate-400 dark:text-slate-500 text-sm">No boards.</p>
+      </div>
+
+      <!-- desktop: table -->
+      <div class="hidden sm:block overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1164,7 +1271,31 @@ onMounted(async () => {
           </div>
         </div>
         <p v-if="trash[kind].msg" class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-1">{{ trash[kind].msg }}</p>
-        <div class="overflow-x-auto">
+
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-1.5">
+          <label v-if="trash[kind].rows?.length" class="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 px-1">
+            <input type="checkbox" :checked="trash[kind].selected.size === trash[kind].rows.length"
+                   @change="selectAllTrash(kind, $event.target.checked)" /> Select all
+          </label>
+          <div v-for="row in trash[kind].rows" :key="trashKey(kind, row)" class="border border-slate-200 dark:border-slate-800 rounded-lg p-2.5">
+            <div class="flex items-start gap-2">
+              <input type="checkbox" :checked="trash[kind].selected.has(trashKey(kind, row))" @change="toggleTrashSelect(kind, row)" class="mt-1 shrink-0" />
+              <div class="min-w-0 flex-1">
+                <div class="font-medium text-sm truncate">{{ labelFn(row) }}</div>
+                <div class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }} · deleted {{ when(row.deletedAt) }}</div>
+              </div>
+            </div>
+            <div class="mt-1.5 flex gap-3">
+              <button @click="restoreTrash(kind, row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">Restore</button>
+              <button @click="purge(kind, row, labelFn(row))" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Purge</button>
+            </div>
+          </div>
+          <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-400 dark:text-slate-500 text-xs px-1">Empty.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -1364,7 +1495,29 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2">
+          <div v-for="p in ltiPlatforms" :key="p.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="flex items-start justify-between gap-2">
+              <div class="font-medium text-sm">{{ p.name }}</div>
+              <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
+                    :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
+                {{ p.enabled ? 'enabled' : 'disabled' }}
+              </span>
+            </div>
+            <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
+            <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">{{ p.organizationName || 'unaffiliated' }}</div>
+            <div class="mt-2 flex gap-3">
+              <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Edit</button>
+              <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+            </div>
+          </div>
+          <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-400 dark:text-slate-500 text-sm">No platforms registered yet.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">

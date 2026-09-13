@@ -188,7 +188,8 @@ async function deleteAccount(force = false) {
     <!-- AI usage -->
     <section v-if="aiUsage" class="space-y-2">
       <h2 class="font-semibold text-sm">AI tutor usage</h2>
-      <table class="w-full text-sm">
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm min-w-[360px]">
         <thead>
           <tr class="text-xs text-slate-400 dark:text-slate-500 text-left">
             <th class="font-normal py-1"></th><th class="font-normal">Calls</th>
@@ -207,6 +208,7 @@ async function deleteAccount(force = false) {
             <td>{{ fmt(aiUsage.allTime.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.allTime.totalTokens) }}</td></tr>
         </tbody>
       </table>
+      </div>
     </section>
 
     <!-- change password -->

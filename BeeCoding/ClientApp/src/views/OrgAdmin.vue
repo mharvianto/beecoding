@@ -277,16 +277,40 @@ onMounted(loadOrgs);
 
       <!-- Members -->
       <section v-show="tab === 'members'">
-        <div class="flex gap-2 mb-3">
+        <div class="flex flex-wrap gap-2 mb-3">
           <input v-model="newMemberEmail" @keyup.enter="addMember" placeholder="Email of an existing BeeCoding account"
-                 class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+                 class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <select v-model="newMemberRole" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
             <option value="Member">Member</option>
             <option value="Admin">Admin</option>
           </select>
           <button @click="addMember" class="text-sm bg-amber-500 text-white rounded-lg px-4 font-medium">Add</button>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2">
+          <div v-for="m in members" :key="m.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0">
+                <div class="font-medium text-sm truncate">{{ m.displayName }}</div>
+                <div class="text-[11px] text-slate-400 truncate">{{ m.email }}</div>
+              </div>
+              <button @click="removeMember(m)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Remove</button>
+            </div>
+            <div class="flex items-center gap-2 mt-2">
+              <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
+                      class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+                <option value="Member">Member</option>
+                <option value="Admin">Admin</option>
+              </select>
+              <span class="text-[11px] text-slate-400">joined {{ new Date(m.joinedAt).toLocaleDateString() }}</span>
+            </div>
+          </div>
+          <p v-if="members && !members.length" class="text-slate-400 dark:text-slate-500 text-sm">No members yet.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -315,7 +339,20 @@ onMounted(loadOrgs);
 
       <!-- Boards -->
       <section v-show="tab === 'boards'">
-        <div class="overflow-x-auto">
+        <!-- mobile: cards -->
+        <div class="sm:hidden space-y-2">
+          <div v-for="b in boards" :key="b.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="font-medium text-sm">{{ b.title }}</div>
+            <div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
+            </div>
+          </div>
+          <p v-if="boards && !boards.length" class="text-slate-400 dark:text-slate-500 text-sm">No boards yet.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div class="hidden sm:block overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -442,7 +479,28 @@ onMounted(loadOrgs);
             </div>
           </div>
 
-          <div class="overflow-x-auto">
+          <!-- mobile: cards -->
+          <div class="sm:hidden space-y-2">
+            <div v-for="p in ltiPlatforms" :key="p.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="font-medium text-sm">{{ p.name }}</div>
+                <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
+                      :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
+                  {{ p.enabled ? 'enabled' : 'disabled' }}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
+              <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
+              <div class="mt-2 flex gap-3">
+                <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Edit</button>
+                <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+              </div>
+            </div>
+            <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-400 dark:text-slate-500 text-sm">No platforms registered yet.</p>
+          </div>
+
+          <!-- desktop: table -->
+          <div class="hidden sm:block overflow-x-auto">
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
@@ -457,7 +515,7 @@ onMounted(loadOrgs);
                   <td class="text-[11px] text-slate-400 max-w-40 truncate">{{ p.issuer }}</td>
                   <td class="text-[11px] text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
                   <td>
-                    <span class="text-[11px] px-1.5 py-0.5 rounded-full"
+                    <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                           :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
                       {{ p.enabled ? 'enabled' : 'disabled' }}
                     </span>
