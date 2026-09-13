@@ -1,19 +1,25 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useProgress } from '../stores/progress';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 
+const route = useRoute();
+const router = useRouter();
 const progress = useProgress();
 const items = ref([]);
-const q = ref('');
+// Search text and page live in the URL query (?q=...&page=...) so a search is
+// bookmarkable/shareable and survives a refresh or the back button; level/status stay
+// local-only (less commonly worth sharing, keeps the URL shorter).
+const q = ref(route.query.q ? String(route.query.q) : '');
 const level = ref('');
 const status = ref('');
 const error = ref('');
 
-const page = ref(1);
+const page = ref(route.query.page ? Math.max(1, Number(route.query.page) || 1) : 1);
 const pageSize = ref(25);
 const total = ref(0);
 const solvedTotal = ref(0);
@@ -21,15 +27,31 @@ const solvedTotal = ref(0);
 const guide = ref({ topics: [], recommended: [], source: 'heuristic', aiAvailable: false });
 const showAllTopics = ref(false);
 const aiBusy = ref(false);
+const aiElapsed = ref(0);
+let aiTimer = null;
 const shownTopics = computed(() =>
   showAllTopics.value ? guide.value.topics : guide.value.topics.slice(0, 6));
 
 async function loadGuide(useAi = false) {
-  if (useAi) aiBusy.value = true;
+  if (useAi) {
+    aiBusy.value = true;
+    aiElapsed.value = 0;
+    clearInterval(aiTimer);
+    aiTimer = setInterval(() => { aiElapsed.value += 1; }, 1000);
+  }
   try {
     guide.value = await api.get('/api/practice/guide' + (useAi ? '?ai=true' : ''));
   } catch { /* non-critical */ }
-  finally { aiBusy.value = false; }
+  finally {
+    aiBusy.value = false;
+    clearInterval(aiTimer);
+    aiTimer = null;
+  }
+}
+
+function searchTopic(tag) {
+  q.value = tag;
+  search();
 }
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
@@ -51,12 +73,30 @@ async function load() {
   } catch (e) { error.value = e.message; }
 }
 
+function syncUrl() {
+  const query = {};
+  if (q.value.trim()) query.q = q.value.trim();
+  if (page.value > 1) query.page = String(page.value);
+  router.replace({ query });
+}
+
 // filter change -> back to first page
-function search() { page.value = 1; load(); }
+function search() { page.value = 1; syncUrl(); load(); }
 function go(n) {
   const t = Math.min(Math.max(1, n), totalPages.value);
-  if (t !== page.value) { page.value = t; load(); }
+  if (t !== page.value) { page.value = t; syncUrl(); load(); }
 }
+
+// Back/forward navigation changes route.query without going through search()/go() —
+// the equality check also stops this from re-firing right after our own syncUrl() call.
+watch(() => route.query, (query) => {
+  const newQ = query.q ? String(query.q) : '';
+  const newPage = query.page ? Math.max(1, Number(query.page) || 1) : 1;
+  if (newQ === q.value && newPage === page.value) return;
+  q.value = newQ;
+  page.value = newPage;
+  load();
+});
 
 onMounted(() => { load(); loadGuide(); progress.refresh(); });
 </script>
@@ -82,7 +122,7 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
         <span class="ml-auto"></span>
         <button v-if="guide.aiAvailable && guide.source !== 'ai'" @click="loadGuide(true)" :disabled="aiBusy"
                 class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-          {{ aiBusy ? 'Thinking…' : '✨ Let AI pick' }}
+          {{ aiBusy ? `Thinking… ${aiElapsed}s` : '✨ Let AI pick' }}
         </button>
         <button v-else-if="guide.source === 'ai'" @click="loadGuide(false)"
                 class="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600">use heuristic</button>
@@ -111,13 +151,15 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
         </button>
       </div>
       <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
-        <div v-for="t in shownTopics" :key="t.tag" class="flex items-center gap-2 text-xs">
-          <span class="w-24 shrink-0 truncate text-slate-500 dark:text-slate-400">{{ t.tag }}</span>
+        <button v-for="t in shownTopics" :key="t.tag" type="button" @click="searchTopic(t.tag)"
+                class="flex items-center gap-2 text-xs text-left hover:text-amber-600 dark:hover:text-amber-400 group"
+                :title="`Search problems tagged '${t.tag}'`">
+          <span class="w-24 shrink-0 truncate text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:underline">{{ t.tag }}</span>
           <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <span class="block h-full bg-amber-400" :style="{ width: (t.total ? t.solved / t.total * 100 : 0) + '%' }"></span>
           </span>
           <span class="w-12 shrink-0 text-right tabular-nums text-slate-400 dark:text-slate-500">{{ t.solved }}/{{ t.total }}</span>
-        </div>
+        </button>
       </div>
     </div>
 
