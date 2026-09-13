@@ -38,9 +38,10 @@ async function join() {
     <h1 class="text-xl font-bold mb-1">Your boards</h1>
     <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">
       A board is shared with a class via a join code — for a class you're not in yet, ask the
-      teacher for their code. Building a personal problem library instead? See
-      <RouterLink v-if="auth.isTeacher" to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">Problem bank</RouterLink>
-      <span v-else>Problem bank (teachers only)</span>.
+      teacher for their code.
+      <template v-if="auth.isTeacher">Building a personal problem library instead? See
+        <RouterLink to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">Problem bank</RouterLink>.
+      </template>
       Just want to solve something for XP right now? Try
       <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>.
     </p>

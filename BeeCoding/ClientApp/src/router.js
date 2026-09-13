@@ -9,9 +9,9 @@ const routes = [
   { path: '/terms', component: () => import('./views/Terms.vue'), meta: { public: true } },
   { path: '/dashboard', redirect: '/account' },
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
-  { path: '/bank', component: () => import('./views/Bank.vue') },
-  { path: '/bank/new', component: () => import('./views/ProblemEdit.vue') },
-  { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true },
+  { path: '/bank', component: () => import('./views/Bank.vue'), meta: { teacherOnly: true } },
+  { path: '/bank/new', component: () => import('./views/ProblemEdit.vue'), meta: { teacherOnly: true } },
+  { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true, meta: { teacherOnly: true } },
   { path: '/practice', component: () => import('./views/Practice.vue') },
   { path: '/playground', component: () => import('./views/Playground.vue') },
   { path: '/practice/:slug', component: () => import('./views/PracticeSolve.vue'), props: true },
@@ -38,5 +38,6 @@ router.beforeEach(async (to) => {
   if (to.meta.public) return true;                       // privacy / terms — anyone
   if (!to.meta.anon && !auth.user) return { path: '/login', query: { r: to.fullPath } };
   if (to.meta.anon && auth.user) return { path: '/boards' };
+  if (to.meta.teacherOnly && !auth.isTeacher) return { path: '/boards' };
   return true;
 });
