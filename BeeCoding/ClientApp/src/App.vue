@@ -74,8 +74,8 @@ onBeforeUnmount(() => {
       <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <RouterLink to="/boards" class="order-1 font-bold text-lg text-amber-600 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
 
-        <!-- primary nav: own row on mobile, inline after the logo on ≥md -->
-        <nav class="order-3 md:order-2 w-full md:w-auto flex items-center gap-4 text-sm overflow-x-auto whitespace-nowrap
+        <!-- primary nav: own row(s) on mobile (wraps rather than scrolling off-screen), inline after the logo on ≥md -->
+        <nav class="order-3 md:order-2 w-full md:w-auto flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm
                     text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100">
           <RouterLink to="/dashboard">Dashboard</RouterLink>
           <RouterLink to="/practice">Practice</RouterLink>

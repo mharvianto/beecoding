@@ -209,10 +209,10 @@ onMounted(loadOrgs);
         </span>
       </div>
 
-      <div class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-sm mb-4">
+      <div class="flex flex-wrap gap-1 pb-2 mb-4 border-b border-slate-200 dark:border-slate-800 text-sm">
         <button v-for="t in [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['ai', 'AI settings'], ['lti', 'LTI']]" :key="t[0]"
-                @click="switchTab(t[0])" class="px-3 py-1.5"
-                :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+                @click="switchTab(t[0])" class="whitespace-nowrap rounded-lg px-3 py-1.5"
+                :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ t[1] }}
         </button>
       </div>

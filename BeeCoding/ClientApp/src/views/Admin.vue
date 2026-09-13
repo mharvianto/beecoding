@@ -563,9 +563,9 @@ onMounted(async () => {
   <div class="max-w-5xl mx-auto px-4 py-8">
     <h1 class="text-xl font-bold mb-4">Admin</h1>
 
-    <div class="flex gap-1 overflow-x-auto -mx-1 px-1 pb-2 mb-4 border-b border-slate-200 dark:border-slate-800 text-sm [scrollbar-width:thin]">
+    <div class="flex flex-wrap gap-1 pb-2 mb-4 border-b border-slate-200 dark:border-slate-800 text-sm">
       <button v-for="t in tabDefs" :key="t[0]" @click="switchTab(t[0])"
-              class="shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5"
+              class="whitespace-nowrap rounded-lg px-3 py-1.5"
               :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
         {{ t[1] }}
       </button>
