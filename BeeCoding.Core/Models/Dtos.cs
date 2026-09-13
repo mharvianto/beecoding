@@ -311,6 +311,16 @@ public record OrgMemberRow(int UserId, string Email, string DisplayName, string 
 public record OrgAddMemberDto(string Email, string OrgRole);   // "Member" | "Admin"
 public record OrgSetMemberRoleDto(string OrgRole);
 public record OrgBoardRow(int Id, string Slug, string Title, string OwnerEmail, int MemberCount, int ProblemCount, DateTime CreatedAt);
+
+// ---- Org Admin: bulk member add via CSV (existing accounts only — no signup here) ----
+public record OrgMemberImportDto(string Csv);
+public record OrgMemberImportRow(string Email, string OrgRole, bool Added, string? Message);
+public record OrgMemberImportResult(int Added, int Skipped, int Errors, List<OrgMemberImportRow> Rows);
+
+// ---- Org Admin: bulk-create boards, all owned by one existing Teacher, all in this org ----
+public record OrgBulkCreateBoardsDto(string OwnerEmail, List<string> Titles);
+public record OrgBulkCreateBoardsRow(string Title, bool Created, string? Slug, string? Message);
+public record OrgBulkCreateBoardsResult(int Created, int Errors, List<OrgBulkCreateBoardsRow> Rows);
 public record OrgAiSettingsDto(bool Paused, string? PausedReason, int DailyQuotaStudent, int DailyQuotaTeacher);
 public record OrgDashboardDto(
     int TotalMembers, int TeacherCount, int StudentCount, int AdminCount,

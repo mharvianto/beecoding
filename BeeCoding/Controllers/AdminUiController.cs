@@ -258,7 +258,7 @@ public class AdminUiController(
     [HttpPost("users/import")]
     public async Task<ActionResult<AdminUserImportResult>> ImportUsers(AdminUserImportRequest dto)
     {
-        var rows = ParseCsv(dto.Csv ?? "");
+        var rows = CsvParser.Parse(dto.Csv ?? "");
         if (rows.Count < 2) return BadRequest("The CSV needs a header row and at least one data row.");
 
         var header = rows[0].Select(h => h.Trim().ToLowerInvariant()).ToList();
@@ -343,36 +343,6 @@ public class AdminUiController(
     private static string GeneratePassword() =>
         string.Concat(Enumerable.Range(0, 10)
             .Select(_ => "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"[Random.Shared.Next(54)]));
-
-    /// <summary>Minimal RFC-4180-ish CSV parser: quoted fields, "" for an escaped quote.</summary>
-    private static List<string[]> ParseCsv(string text)
-    {
-        var rows = new List<string[]>();
-        foreach (var raw in text.Split('\n'))
-        {
-            var line = raw.TrimEnd('\r');
-            if (line.Length == 0) continue;
-            var fields = new List<string>();
-            var sb = new System.Text.StringBuilder();
-            bool inQuotes = false;
-            for (int i = 0; i < line.Length; i++)
-            {
-                char c = line[i];
-                if (inQuotes)
-                {
-                    if (c == '"' && i + 1 < line.Length && line[i + 1] == '"') { sb.Append('"'); i++; }
-                    else if (c == '"') inQuotes = false;
-                    else sb.Append(c);
-                }
-                else if (c == '"') inQuotes = true;
-                else if (c == ',') { fields.Add(sb.ToString()); sb.Clear(); }
-                else sb.Append(c);
-            }
-            fields.Add(sb.ToString());
-            rows.Add(fields.ToArray());
-        }
-        return rows;
-    }
 
     // ---- browse all boards --------------------------------------------------
     [HttpGet("boards")]

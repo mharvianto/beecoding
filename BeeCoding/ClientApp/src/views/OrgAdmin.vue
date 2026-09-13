@@ -31,6 +31,13 @@ const aiProviderMsg = ref('');
 
 const newMemberEmail = ref('');
 const newMemberRole = ref('Member');
+const importingMembers = ref(false);
+const memberImportResult = ref(null);
+
+const bulkBoardOwnerEmail = ref('');
+const bulkBoardTitles = ref('');
+const bulkBoardBusy = ref(false);
+const bulkBoardResult = ref(null);
 
 const ltiPlatforms = ref(null);
 const ltiToolConfig = ref(null);
@@ -119,9 +126,36 @@ async function removeMember(m) {
   catch (e) { err.value = e.message; }
 }
 
+async function importMembersCsv(ev) {
+  const file = ev.target.files?.[0];
+  ev.target.value = '';
+  if (!file) return;
+  err.value = ''; memberImportResult.value = null; importingMembers.value = true;
+  try {
+    const csv = await file.text();
+    memberImportResult.value = await api.post(`/api/org-admin/${orgId.value}/members/import`, { csv });
+    await loadMembers();
+  } catch (e) { err.value = e.message; }
+  finally { importingMembers.value = false; }
+}
+
 async function loadBoards() {
   err.value = '';
   try { boards.value = await api.get(`/api/org-admin/${orgId.value}/boards`); } catch (e) { err.value = e.message; }
+}
+
+async function bulkCreateBoards() {
+  const titles = bulkBoardTitles.value.split('\n').map((t) => t.trim()).filter(Boolean);
+  if (!bulkBoardOwnerEmail.value.trim() || !titles.length) return;
+  err.value = ''; bulkBoardResult.value = null; bulkBoardBusy.value = true;
+  try {
+    bulkBoardResult.value = await api.post(`/api/org-admin/${orgId.value}/boards/bulk`, {
+      ownerEmail: bulkBoardOwnerEmail.value.trim(), titles,
+    });
+    bulkBoardTitles.value = '';
+    await loadBoards();
+  } catch (e) { err.value = e.message; }
+  finally { bulkBoardBusy.value = false; }
 }
 
 async function loadAiSettings() {
@@ -292,6 +326,26 @@ onMounted(loadOrgs);
           <button @click="addMember" class="text-sm bg-amber-500 text-white rounded-lg px-4 font-medium">Add</button>
         </div>
 
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk add (CSV)</h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+            Header row with an <code>email</code> column (optional <code>role</code>: Member/Admin, default
+            Member). Only existing BeeCoding accounts can be added — have others register first.
+          </p>
+          <input type="file" accept="text/csv,.csv" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
+          <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">Importing…</p>
+          <div v-if="memberImportResult" class="mt-2 text-xs space-y-1">
+            <p class="text-emerald-600 dark:text-emerald-400">
+              Added {{ memberImportResult.added }} · Skipped {{ memberImportResult.skipped }} · Errors {{ memberImportResult.errors }}
+            </p>
+            <ul class="space-y-0.5">
+              <li v-for="(row, i) in memberImportResult.rows.filter((r) => r.message)" :key="i" class="text-slate-400 dark:text-slate-500">
+                {{ row.email }}: {{ row.message }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="m in members" :key="m.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
@@ -344,6 +398,32 @@ onMounted(loadOrgs);
 
       <!-- Boards -->
       <section v-show="tab === 'boards'">
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk-create boards</h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+            One title per line — e.g. 13 session boards for one course. The owner must already have a
+            Teacher account; if they're not a member of this org yet, adding their first board here enrolls them.
+          </p>
+          <input v-model="bulkBoardOwnerEmail" placeholder="Owner's email (existing Teacher account)"
+                 class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+          <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3"
+                    class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
+          <button @click="bulkCreateBoards" :disabled="bulkBoardBusy || !bulkBoardOwnerEmail.trim() || !bulkBoardTitles.trim()"
+                  class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+            {{ bulkBoardBusy ? 'Creating…' : 'Create boards' }}
+          </button>
+          <div v-if="bulkBoardResult" class="mt-2 text-xs space-y-1">
+            <p class="text-emerald-600 dark:text-emerald-400">
+              Created {{ bulkBoardResult.created }} · Errors {{ bulkBoardResult.errors }}
+            </p>
+            <ul class="space-y-0.5">
+              <li v-for="(row, i) in bulkBoardResult.rows.filter((r) => r.message)" :key="i" class="text-slate-400 dark:text-slate-500">
+                {{ row.title }}: {{ row.message }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="b in boards" :key="b.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">

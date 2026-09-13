@@ -21,13 +21,14 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, BoardService boards) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;
     private readonly AuditLog _audit = audit;
     private readonly AiRuntimeSettings _aiRuntime = aiRuntime;
     private readonly AiProviderRuntime _aiProviderRuntime = aiProviderRuntime;
+    private readonly BoardService _boards = boards;
 
     /// <summary>Organizations the caller administers — for the org picker. Empty for a
     /// user who administers none (most users, including most super admins' everyday use).</summary>
@@ -213,6 +214,55 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     private async Task<bool> LastAdminAsync(int orgId, int excludingUserId) =>
         !await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.Role == OrgRole.Admin && m.UserId != excludingUserId);
 
+    /// <summary>Bulk-add EXISTING BeeCoding accounts as members via CSV — same "must already
+    /// have an account" rule as the single-add endpoint, just many at once. Header row
+    /// required with at least an 'email' column; optional 'role' column ('Member'/'Admin',
+    /// default Member).</summary>
+    [HttpPost("{orgId:int}/members/import")]
+    public async Task<ActionResult<OrgMemberImportResult>> ImportMembers(int orgId, OrgMemberImportDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+
+        var rows = CsvParser.Parse(dto.Csv ?? "");
+        if (rows.Count < 2) return BadRequest("The CSV needs a header row and at least one data row.");
+
+        var header = rows[0].Select(h => h.Trim().ToLowerInvariant()).ToList();
+        int emailCol = header.IndexOf("email");
+        int roleCol = header.IndexOf("role");
+        if (emailCol < 0) return BadRequest("The CSV header must include an 'email' column.");
+
+        var resultRows = new List<OrgMemberImportRow>();
+        int added = 0, skipped = 0, errors = 0;
+
+        for (int r = 1; r < rows.Count; r++)
+        {
+            string Get(int col) => col >= 0 && col < rows[r].Length ? rows[r][col].Trim() : "";
+            var email = Get(emailCol).ToLowerInvariant();
+            var roleStr = Get(roleCol);
+            var role = roleStr.Equals("Admin", StringComparison.OrdinalIgnoreCase) ? OrgRole.Admin : OrgRole.Member;
+
+            if (email.Length == 0) continue;   // blank line
+            if (!email.Contains('@'))
+            { resultRows.Add(new(email, role.ToString(), false, "Invalid email")); errors++; continue; }
+
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email && u.DeletedAt == null);
+            if (user is null)
+            { resultRows.Add(new(email, role.ToString(), false, "No account yet — they need to register first")); errors++; continue; }
+
+            var existing = await _db.OrganizationMemberships.FirstOrDefaultAsync(m => m.OrganizationId == orgId && m.UserId == user.Id);
+            if (existing is not null)
+            { resultRows.Add(new(email, role.ToString(), false, "Already a member")); skipped++; continue; }
+
+            _db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = orgId, UserId = user.Id, Role = role });
+            await _db.SaveChangesAsync();
+            resultRows.Add(new(email, role.ToString(), true, null));
+            added++;
+        }
+
+        await _audit.RecordAsync(UserId, ActorEmail, "org-member-bulk-add", "Organization", orgId, $"{added} added, {skipped} skipped, {errors} errors");
+        return new OrgMemberImportResult(added, skipped, errors, resultRows);
+    }
+
     [HttpGet("{orgId:int}/boards")]
     public async Task<ActionResult<List<OrgBoardRow>>> Boards(int orgId)
     {
@@ -223,6 +273,61 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             .Select(b => new OrgBoardRow(b.Id, b.Slug, b.Title, b.Owner != null ? b.Owner.Email : "?",
                 b.Members.Count(m => m.Role == MembershipRole.Student), b.Problems.Count, b.CreatedAt))
             .ToListAsync();
+    }
+
+    /// <summary>Bulk-create boards, all owned by one existing Teacher and all assigned to
+    /// this org in one go — e.g. 13 session boards for one course. The owner must already
+    /// have a Teacher account (this doesn't create one) and does not need to already be an
+    /// org member — creating the first board here auto-enrolls them, same as an LTI launch
+    /// would.</summary>
+    [HttpPost("{orgId:int}/boards/bulk")]
+    public async Task<ActionResult<OrgBulkCreateBoardsResult>> BulkCreateBoards(int orgId, OrgBulkCreateBoardsDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+
+        var email = (dto.OwnerEmail ?? "").Trim().ToLowerInvariant();
+        var owner = await _db.Users.FirstOrDefaultAsync(u => u.Email == email && u.DeletedAt == null);
+        if (owner is null) return NotFound($"No BeeCoding account for '{email}'.");
+        if (owner.Role != UserRole.Teacher) return BadRequest($"'{email}' is not a Teacher account.");
+
+        if (!await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == owner.Id))
+            _db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = orgId, UserId = owner.Id, Role = OrgRole.Member });
+
+        var resultRows = new List<OrgBulkCreateBoardsRow>();
+        int created = 0, errors = 0;
+
+        foreach (var raw in dto.Titles ?? new())
+        {
+            var title = (raw ?? "").Trim();
+            if (title.Length == 0) continue;
+            if (title.Length > 200)
+            { resultRows.Add(new(title, false, null, "Title too long")); errors++; continue; }
+
+            try
+            {
+                var board = new Board
+                {
+                    Title = title,
+                    OwnerId = owner.Id,
+                    OrganizationId = orgId,
+                    JoinCode = await _boards.GenerateJoinCodeAsync(),
+                    Slug = await _boards.GenerateSlugAsync(),
+                };
+                _db.Boards.Add(board);
+                _db.BoardMemberships.Add(new BoardMembership { Board = board, UserId = owner.Id, Role = MembershipRole.Owner });
+                await _db.SaveChangesAsync();
+                resultRows.Add(new(title, true, board.Slug, null));
+                created++;
+            }
+            catch (Exception ex)
+            {
+                resultRows.Add(new(title, false, null, ex.Message));
+                errors++;
+            }
+        }
+
+        await _audit.RecordAsync(UserId, ActorEmail, "org-boards-bulk-create", "Organization", orgId, $"{created} board(s) for {owner.Email}");
+        return new OrgBulkCreateBoardsResult(created, errors, resultRows);
     }
 
     [HttpGet("{orgId:int}/ai-settings")]
