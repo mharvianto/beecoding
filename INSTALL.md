@@ -558,6 +558,117 @@ server {
 
 ---
 
+## 4D. Auto-deploy dengan GitHub Actions self-hosted runner
+
+Melengkapi prosedur update manual di §4A ("Update ke versi baru"). Alih-alih SSH manual
+tiap ada perubahan, runner GitHub Actions dipasang **langsung di VM produksi** dan
+menjalankan 3 perintah update yang sama itu setiap ada push ke `master`.
+
+**Kenapa self-hosted (bukan runner GitHub biasa yang SSH masuk):** runner ini
+long-polling **keluar** ke `github.com` lewat HTTPS, jadi **tidak perlu buka port SSH
+inbound** dari internet ke VM. Log deploy tetap muncul di tab **Actions** repo.
+
+> Repo ini **private** — jangan pernah nyalakan opsi "Allow fork pull requests to run
+> workflows" untuk runner ini. Siapa pun yang bisa push ke `master` efektif bisa
+> menjalankan perintah apa pun di VM lewat isi file workflow.
+
+### 1) Siapkan folder & user (kalau belum ikuti §4A)
+
+Runner dijalankan sebagai user yang sama dengan yang menjalankan `beecoding.service`
+(mis. `harvianto`), supaya bisa `git pull` di `/srv/beecoding` tanpa masalah izin.
+
+### 2) Daftarkan runner dari GitHub
+
+Di halaman repo: **Settings → Actions → Runners → New self-hosted runner**, pilih
+**Linux / x64**. GitHub menampilkan 4 blok perintah unik untuk repo ini (token
+registrasinya kadaluarsa ~1 jam, jadi ambil langsung dari halaman itu, jangan disalin
+dari dokumen ini). Pola umumnya:
+
+```bash
+# di VM produksi, sebagai user harvianto
+mkdir -p ~/actions-runner && cd ~/actions-runner
+curl -o actions-runner-linux-x64.tar.gz -L https://github.com/actions/runner/releases/download/vX.Y.Z/actions-runner-linux-x64-X.Y.Z.tar.gz
+tar xzf ./actions-runner-linux-x64.tar.gz
+
+# token & URL persis dari halaman "New self-hosted runner" tadi
+./config.sh --url https://github.com/<owner>/<repo> --token <TOKEN_DARI_GITHUB>
+```
+
+Nama runner dan label boleh default (`self-hosted`), atau tambah label kustom (mis.
+`beecoding-prod`) kalau nanti mau lebih dari satu runner.
+
+### 3) Jalankan sebagai service (biar hidup setelah SSH ditutup, auto-start saat boot)
+
+```bash
+cd ~/actions-runner
+sudo ./svc.sh install
+sudo ./svc.sh start
+sudo ./svc.sh status
+```
+
+### 4) Izinkan runner me-restart service TANPA password
+
+Runner butuh `sudo systemctl restart beecoding`, tapi **jangan** beri `sudo` penuh —
+scope ke satu perintah itu saja:
+
+```bash
+sudo visudo -f /etc/sudoers.d/beecoding-deploy
+```
+
+Isi dengan (ganti `harvianto` kalau user service-mu beda):
+
+```
+harvianto ALL=(root) NOPASSWD: /bin/systemctl restart beecoding
+```
+
+```bash
+sudo chmod 0440 /etc/sudoers.d/beecoding-deploy
+sudo visudo -c   # validasi syntax sebelum keluar
+```
+
+### 5) Workflow file
+
+Sudah ada di repo ini: [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml).
+Isinya persis prosedur §4A — job ini **tidak** `actions/checkout` (supaya tidak menimpa
+`appsettings.json`/`out/` lokal di server), cukup `git pull` di clone yang sudah ada:
+
+```yaml
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted]
+    steps:
+      - run: cd /srv/beecoding && git pull --ff-only origin master
+      - run: cd /srv/beecoding/BeeCoding && "$HOME/.dotnet/dotnet" publish -c Release -o out
+      - run: sudo systemctl restart beecoding
+      - run: sleep 3 && curl -fsS http://127.0.0.1:8080/health
+```
+
+Sesuaikan path (`/srv/beecoding`), nama service (`beecoding`), dan port health check
+kalau setup-mu beda dari §4A/§4B.
+
+### 6) Uji coba
+
+Push apa saja ke `master`, lalu buka tab **Actions** di GitHub — job `deploy` harus
+muncul, jalan di runner-mu (bukan runner GitHub-hosted), dan hijau kalau `/health`
+membalas 200. Kalau merah di step `git pull`, biasanya ada perubahan lokal tak
+ter-commit di `/srv/beecoding` (mis. `beecoding.db` ikut ke-track tanpa sengaja) —
+bereskan dulu working tree di server sebelum push berikutnya.
+
+### Menghapus runner
+
+```bash
+cd ~/actions-runner
+sudo ./svc.sh stop
+sudo ./svc.sh uninstall
+./config.sh remove --token <TOKEN_REMOVAL_DARI_GITHUB>   # Settings → Actions → Runners
+```
+
+---
+
 ## 5. Konfigurasi
 
 Ubah lewat `BeeCoding/appsettings.json`, `appsettings.Production.json`, atau environment

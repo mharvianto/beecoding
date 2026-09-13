@@ -1,0 +1,24 @@
+name: Deploy to production
+
+# Requires a self-hosted runner registered on the production VM — see INSTALL.md §4D.
+# This job never runs actions/checkout: it updates the existing clone at /srv/beecoding
+# in place, so appsettings.json / the runtime database on the server are never touched.
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: [self-hosted]
+    steps:
+      - name: Pull latest master
+        run: cd /srv/beecoding && git pull --ff-only origin master
+
+      - name: Publish
+        run: cd /srv/beecoding/BeeCoding && "$HOME/.dotnet/dotnet" publish -c Release -o out
+
+      - name: Restart service
+        run: sudo systemctl restart beecoding
+
+      - name: Health check
+        run: sleep 3 && curl -fsS http://127.0.0.1:8080/health
