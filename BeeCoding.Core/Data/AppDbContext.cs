@@ -159,6 +159,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<LtiResourceLink>()
             .HasOne(x => x.Board).WithMany()
             .HasForeignKey(x => x.BoardId).OnDelete(DeleteBehavior.SetNull);
+        b.Entity<LtiResourceLink>()
+            .HasOne(x => x.BankProblem).WithMany()
+            .HasForeignKey(x => x.BankProblemId).OnDelete(DeleteBehavior.SetNull);
 
         b.Entity<LtiPlatform>()
             .HasOne(x => x.Organization).WithMany()

@@ -6,8 +6,9 @@ namespace BeeCoding.Services.Lti;
 
 /// <summary>
 /// Turns a validated launch into a BeeCoding session: find-or-create the User for the
-/// platform's `sub`, find-or-create the Board for the resource_link placement, and make
-/// sure the user is a member with the right role.
+/// platform's `sub`, resolve (or, on the first launch, create) what the resource_link
+/// placement points at — a whole board, or a single Practice/bank problem — and make
+/// sure the user is a member with the right role when it's a board.
 /// </summary>
 public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardService boards)
 {
@@ -105,15 +106,19 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         if (changed) await _db.SaveChangesAsync();
     }
 
-    /// <summary>Null only for a first-ever launch of a placement by a non-instructor —
-    /// there's nothing to auto-create a board from yet.</summary>
-    public async Task<Board?> FindOrCreateBoardAsync(LtiPlatform platform, LtiLaunchClaims claims, User user, bool isInstructor)
+    /// <summary>What a resource-link placement points at — exactly one of the two is
+    /// ever set. Both null only for a first-ever launch of a placement by a
+    /// non-instructor (nothing to auto-create yet), or a Deep-Linking hint pointing at
+    /// something that's since been deleted.</summary>
+    public async Task<(Board? Board, BankProblem? BankProblem)> ResolveResourceLinkAsync(
+        LtiPlatform platform, LtiLaunchClaims claims, User user, bool isInstructor)
     {
-        var link = await _db.LtiResourceLinks.Include(l => l.Board)
+        var link = await _db.LtiResourceLinks.Include(l => l.Board).Include(l => l.BankProblem)
             .FirstOrDefaultAsync(l => l.LtiPlatformId == platform.Id && l.DeploymentId == claims.DeploymentId
                 && l.ContextId == claims.ContextId && l.ResourceLinkId == claims.ResourceLinkId);
 
-        if (link?.Board is { DeletedAt: null })
+        // Already bound from an earlier launch of this exact placement.
+        if (link is not null && (link.BoardId is not null || link.BankProblemId is not null))
         {
             if (claims.AgsLineItemUrl is not null && link.LineItemUrl != claims.AgsLineItemUrl)
             {
@@ -121,20 +126,30 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
                 link.UpdatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
             }
-            return link.Board;
+            var boundBoard = link.BoardId is not null && link.Board is { DeletedAt: null } ? link.Board : null;
+            var boundProblem = link.BankProblemId is not null && link.BankProblem is { DeletedAt: null } ? link.BankProblem : null;
+            return (boundBoard, boundProblem);
         }
 
-        // First-ever launch of this placement. If it was created via the Deep Linking
-        // picker, the board the teacher chose rides along in target_link_uri's query
-        // string (?board=<slug>) — attach to that instead of minting a new board.
-        var hintSlug = TryGetBoardHint(claims.TargetLinkUri);
-        Board? board = hintSlug is not null
-            ? await _db.Boards.FirstOrDefaultAsync(b => b.Slug == hintSlug)
+        // First-ever launch of this placement. What the teacher picked in the Deep
+        // Linking picker rides along in target_link_uri's query string.
+        var practiceSlug = TryGetHint(claims.TargetLinkUri, "practice");
+        if (practiceSlug is not null)
+        {
+            var problem = await _db.BankProblems.FirstOrDefaultAsync(b => b.Slug == practiceSlug);
+            if (problem is null) return (null, null);   // the linked problem was since deleted
+            await BindLinkAsync(link, platform, claims, boardId: null, bankProblemId: problem.Id);
+            return (null, problem);
+        }
+
+        var boardSlug = TryGetHint(claims.TargetLinkUri, "board");
+        Board? board = boardSlug is not null
+            ? await _db.Boards.FirstOrDefaultAsync(b => b.Slug == boardSlug)
             : null;
 
         if (board is null)
         {
-            if (!isInstructor) return null;   // wait for an instructor to launch first
+            if (!isInstructor) return (null, null);   // wait for an instructor to launch first
             board = new Board
             {
                 Title = claims.ResourceLinkTitle ?? claims.ContextTitle ?? "LTI board",
@@ -147,23 +162,29 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
             await _db.SaveChangesAsync();
         }
 
+        await BindLinkAsync(link, platform, claims, boardId: board.Id, bankProblemId: null);
+        return (board, null);
+    }
+
+    private async Task BindLinkAsync(LtiResourceLink? link, LtiPlatform platform, LtiLaunchClaims claims, int? boardId, int? bankProblemId)
+    {
         if (link is null)
         {
             _db.LtiResourceLinks.Add(new LtiResourceLink
             {
                 LtiPlatformId = platform.Id, DeploymentId = claims.DeploymentId,
                 ContextId = claims.ContextId ?? "", ResourceLinkId = claims.ResourceLinkId ?? "",
-                BoardId = board.Id, LineItemUrl = claims.AgsLineItemUrl,
+                BoardId = boardId, BankProblemId = bankProblemId, LineItemUrl = claims.AgsLineItemUrl,
             });
         }
         else
         {
-            link.BoardId = board.Id;
+            link.BoardId = boardId;
+            link.BankProblemId = bankProblemId;
             link.LineItemUrl = claims.AgsLineItemUrl;
             link.UpdatedAt = DateTime.UtcNow;
         }
         await _db.SaveChangesAsync();
-        return board;
     }
 
     public async Task EnsureMembershipAsync(Board board, User user, bool isInstructor)
@@ -184,10 +205,10 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         }
     }
 
-    private static string? TryGetBoardHint(string? targetLinkUri)
+    private static string? TryGetHint(string? targetLinkUri, string key)
     {
         if (targetLinkUri is null || !Uri.TryCreate(targetLinkUri, UriKind.Absolute, out var uri)) return null;
         var q = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query);
-        return q.TryGetValue("board", out var v) && !string.IsNullOrWhiteSpace(v) ? v.ToString() : null;
+        return q.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v.ToString() : null;
     }
 }

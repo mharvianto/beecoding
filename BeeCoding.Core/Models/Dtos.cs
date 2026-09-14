@@ -301,7 +301,7 @@ public record AdminLtiToolConfigDto(
 
 // ---- LTI: deep-linking picker (teacher, mid-launch from the LMS) ----
 public record LtiDeepLinkContextDto(string PlatformName, bool AcceptsResourceLink);
-public record LtiDeepLinkSelectDto(string Token, string BoardSlug);
+public record LtiDeepLinkSelectDto(string Token, string? BoardSlug = null, string? BankProblemSlug = null);
 public record LtiDeepLinkResultDto(string ReturnUrl, string Jwt);
 
 // ---- Organizations (multi-tenant: separate universities/institutions) ----

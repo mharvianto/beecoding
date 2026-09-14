@@ -834,14 +834,19 @@ diatur dari tab **LTI** di [/admin](/admin/lti).
    miliknya sendiri (auth login, auth token, key set/JWKS). Isi ke form "Add platform"
    di tab yang sama.
 3. Selesai — dosen tinggal tambahkan BeeCoding sebagai *activity*/*external tool* di
-   course-nya. Peluncuran pertama oleh dosen otomatis membuat board baru (atau, kalau
-   ditambahkan lewat **Deep Linking**, dosen memilih board yang sudah ada); peluncuran
-   berikutnya — oleh siapa pun di course itu — otomatis masuk ke board yang sama.
+   course-nya. Lewat **Deep Linking**, dosen memilih salah satu dari dua jenis activity:
+   board (siswa lihat seluruh soal di board itu) atau **satu soal tunggal** dari Problem
+   bank-nya (siswa langsung masuk ke halaman solve soal itu, tanpa board). Peluncuran
+   pertama tanpa Deep Linking (dosen langsung menambah URL launch) otomatis membuat board
+   baru; peluncuran berikutnya — oleh siapa pun di course itu — otomatis masuk ke
+   board/soal yang sama.
 
 **Yang didukung:** launch dasar (SSO + auto-provision akun + auto-join board), Deep
-Linking (dosen memilih board dari dalam LMS saat menambah activity), dan grade passback
-(AGS) — skor "soal terpecahkan / total soal" di board terkirim ke gradebook LMS setiap
-kali mahasiswa menyelesaikan soal baru, asal LMS memberi izin *grading* pada activity itu.
+Linking (dosen memilih board **atau satu soal tunggal** dari dalam LMS saat menambah
+activity), dan grade passback (AGS) — untuk activity board, skor "soal terpecahkan /
+total soal" terkirim ke gradebook; untuk activity satu-soal, skor soal itu sendiri
+(0-100%) yang terkirim — keduanya setiap kali mahasiswa menyelesaikan soal baru, asal LMS
+memberi izin *grading* pada activity itu.
 
 **Catatan keamanan:** akun yang dibuat via LTI memakai email asli dari LMS kalau
 platform-nya membagikannya; kalau tidak (mode privasi), dibuatkan email sintetis

@@ -122,7 +122,11 @@ public class LtiController(
             return BadRequest($"Unsupported LTI message_type '{claims.MessageType}'.");
 
         var isInstructor = LtiClaims.IsInstructor(claims.Roles);
-        var board = await _provisioning.FindOrCreateBoardAsync(platform, claims, user, isInstructor);
+        var (board, bankProblem) = await _provisioning.ResolveResourceLinkAsync(platform, claims, user, isInstructor);
+
+        if (bankProblem is not null)
+            return Redirect(Url.Content($"~/practice/{bankProblem.Slug}"));
+
         if (board is null)
             return Content("This activity hasn't been opened by your instructor yet — ask them to launch it from the course first.");
 
@@ -146,8 +150,9 @@ public class LtiController(
         return new LtiDeepLinkContextDto(ctx.PlatformName, true);
     }
 
-    /// <summary>The teacher picked a board in the SPA picker — build the signed Deep
-    /// Linking response JWT; the SPA itself does the actual form-post back to the LMS.</summary>
+    /// <summary>The teacher picked a board or a single bank problem in the SPA picker —
+    /// build the signed Deep Linking response JWT; the SPA itself does the actual
+    /// form-post back to the LMS.</summary>
     [HttpPost("deep-link/select")]
     [Authorize]
     public async Task<ActionResult<LtiDeepLinkResultDto>> DeepLinkSelect(LtiDeepLinkSelectDto dto)
@@ -158,15 +163,30 @@ public class LtiController(
         var platform = await _db.LtiPlatforms.FindAsync(ctx.PlatformId);
         if (platform is null) return NotFound("Platform no longer registered.");
 
-        var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == dto.BoardSlug);
-        if (board is null) return NotFound("Board not found.");
-        if (board.OwnerId != UserId) return Forbid();
+        string title, targetLinkUri;
+        if (!string.IsNullOrEmpty(dto.BankProblemSlug))
+        {
+            var problem = await _db.BankProblems.FirstOrDefaultAsync(b => b.Slug == dto.BankProblemSlug);
+            if (problem is null) return NotFound("Problem not found.");
+            if (problem.OwnerId != UserId) return Forbid();
+            title = problem.Title;
+            // ?practice=<slug> rides along on every future launch of the placement the
+            // platform is about to create, so its very first real launch attaches to
+            // this exact problem instead of falling through to the board flow — see
+            // LtiProvisioningService.ResolveResourceLinkAsync.
+            targetLinkUri = QueryHelpers.AddQueryString(AbsoluteUrl("/lti/launch"), "practice", problem.Slug);
+        }
+        else if (!string.IsNullOrEmpty(dto.BoardSlug))
+        {
+            var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == dto.BoardSlug);
+            if (board is null) return NotFound("Board not found.");
+            if (board.OwnerId != UserId) return Forbid();
+            title = board.Title;
+            targetLinkUri = QueryHelpers.AddQueryString(AbsoluteUrl("/lti/launch"), "board", board.Slug);
+        }
+        else return BadRequest("Pick a board or a problem first.");
 
-        // ?board=<slug> rides along on every future launch of the placement the platform
-        // is about to create, so its very first real launch attaches to this exact board
-        // instead of minting a new one — see LtiProvisioningService.FindOrCreateBoardAsync.
-        var targetLinkUri = QueryHelpers.AddQueryString(AbsoluteUrl("/lti/launch"), "board", board.Slug);
-        var jwt = await _deepLink.BuildResponseJwtAsync(platform, ctx.DeploymentId, ctx.Data, board.Title, targetLinkUri);
+        var jwt = await _deepLink.BuildResponseJwtAsync(platform, ctx.DeploymentId, ctx.Data, title, targetLinkUri);
         return new LtiDeepLinkResultDto(ctx.ReturnUrl, jwt);
     }
 }

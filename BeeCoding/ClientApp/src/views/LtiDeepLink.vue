@@ -13,6 +13,10 @@ const selecting = ref(false);
 const newTitle = ref('');
 const creating = ref(false);
 
+const mode = ref('board');   // 'board' | 'problem'
+const problems = ref(null);
+const problemQ = ref('');
+
 async function load() {
   error.value = '';
   try {
@@ -21,6 +25,19 @@ async function load() {
   } catch (e) { error.value = e.message; }
 }
 onMounted(load);
+
+async function loadProblems() {
+  error.value = '';
+  try {
+    const p = new URLSearchParams({ scope: 'mine' });
+    if (problemQ.value.trim()) p.set('q', problemQ.value.trim());
+    problems.value = await api.get(`/api/bank?${p}`);
+  } catch (e) { error.value = e.message; }
+}
+function setMode(m) {
+  mode.value = m;
+  if (m === 'problem' && problems.value === null) loadProblems();
+}
 
 function submitToLms(returnUrl, jwt) {
   const form = document.createElement('form');
@@ -43,6 +60,14 @@ async function selectBoard(slug) {
   } catch (e) { error.value = e.message; selecting.value = false; }
 }
 
+async function selectProblem(slug) {
+  error.value = ''; selecting.value = true;
+  try {
+    const { returnUrl, jwt } = await api.post('/lti/deep-link/select', { token, bankProblemSlug: slug });
+    submitToLms(returnUrl, jwt);
+  } catch (e) { error.value = e.message; selecting.value = false; }
+}
+
 async function createAndSelect() {
   if (!newTitle.value.trim()) return;
   error.value = ''; creating.value = true;
@@ -55,17 +80,28 @@ async function createAndSelect() {
 
 <template>
   <div class="max-w-lg mx-auto px-4 py-10">
-    <h1 class="text-xl font-bold mb-1">Add a BeeCoding board</h1>
+    <h1 class="text-xl font-bold mb-1">Add a BeeCoding activity</h1>
     <p v-if="context" class="text-sm text-slate-400 dark:text-slate-500 mb-5">
-      Picking a board here links it to this activity in {{ context.platformName }} —
-      everyone who opens it from the course lands on the same board.
+      Picking a board or problem here links it to this activity in {{ context.platformName }} —
+      everyone who opens it from the course lands on the same one.
     </p>
+
+    <div class="flex gap-1 text-sm mb-5">
+      <button @click="setMode('board')" class="rounded-lg px-3 py-1.5"
+              :class="mode === 'board' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+        Board
+      </button>
+      <button @click="setMode('problem')" class="rounded-lg px-3 py-1.5"
+              :class="mode === 'problem' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+        Single problem
+      </button>
+    </div>
 
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
 
     <div v-if="selecting" class="text-sm text-slate-400 dark:text-slate-500">Sending you back to the LMS…</div>
 
-    <template v-else-if="boards">
+    <template v-else-if="mode === 'board' && boards">
       <div class="space-y-2 mb-6">
         <button v-for="b in boards" :key="b.slug" @click="selectBoard(b.slug)"
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 hover:border-amber-400 dark:hover:border-amber-500/60">
@@ -85,6 +121,24 @@ async function createAndSelect() {
             {{ creating ? 'Creating…' : 'Create' }}
           </button>
         </div>
+      </div>
+    </template>
+
+    <template v-else-if="mode === 'problem'">
+      <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+        Students who open this activity go straight to solving this one problem — no board involved.
+      </p>
+      <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search your problems…"
+             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-3" />
+      <div v-if="problems" class="space-y-2">
+        <button v-for="p in problems" :key="p.slug" @click="selectProblem(p.slug)"
+                class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 hover:border-amber-400 dark:hover:border-amber-500/60">
+          <div class="font-medium text-sm">{{ p.title }}</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ p.level }}<span v-if="p.tags"> · {{ p.tags }}</span></div>
+        </button>
+        <p v-if="!problems.length" class="text-sm text-slate-400 dark:text-slate-500">
+          No problems in your bank yet — add one in Problem bank first.
+        </p>
       </div>
     </template>
   </div>

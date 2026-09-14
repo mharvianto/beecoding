@@ -93,6 +93,12 @@ public class LtiResourceLink
     public int? BoardId { get; set; }
     public Board? Board { get; set; }
 
+    /// <summary>Set instead of <see cref="BoardId"/> when the teacher picked a single
+    /// Practice/bank problem in the Deep Linking picker rather than a whole board —
+    /// exactly one of the two is ever set.</summary>
+    public int? BankProblemId { get; set; }
+    public BankProblem? BankProblem { get; set; }
+
     /// <summary>AGS line-item URL for this placement, captured from the most recent
     /// launch's endpoint claim — null if the platform never granted grading scope here.</summary>
     [MaxLength(500)]

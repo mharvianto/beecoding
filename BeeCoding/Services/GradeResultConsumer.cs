@@ -130,6 +130,9 @@ public sealed class GradeResultConsumer(
 
         await notifier.PracticeResultAsync(sub.UserId, Mapping.ToDto(sub));
         if (xp > 0)
+        {
             await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct));
+            await sp.GetRequiredService<LtiGradeSyncService>().SyncPracticeAsync(problem.Id, sub.UserId, ct);
+        }
     }
 }

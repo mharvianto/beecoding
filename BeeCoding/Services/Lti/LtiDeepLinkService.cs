@@ -4,13 +4,14 @@ using BeeCoding.Models;
 namespace BeeCoding.Services.Lti;
 
 /// <summary>Builds the signed JWT a Deep Linking response is sent as — a single
-/// `ltiResourceLink` content item pointing at the board the teacher picked.</summary>
+/// `ltiResourceLink` content item pointing at the board or bank problem the teacher
+/// picked.</summary>
 public class LtiDeepLinkService(LtiToolKeyService keys)
 {
     private readonly LtiToolKeyService _keys = keys;
 
     public async Task<string> BuildResponseJwtAsync(
-        LtiPlatform platform, string deploymentId, string? echoData, string boardTitle, string targetLinkUri)
+        LtiPlatform platform, string deploymentId, string? echoData, string title, string targetLinkUri)
     {
         var creds = await _keys.GetSigningCredentialsAsync();
         var now = DateTimeOffset.UtcNow;
@@ -18,7 +19,7 @@ public class LtiDeepLinkService(LtiToolKeyService keys)
         var contentItem = new Dictionary<string, object?>
         {
             ["type"] = "ltiResourceLink",
-            ["title"] = boardTitle,
+            ["title"] = title,
             ["url"] = targetLinkUri,
         };
 
