@@ -208,6 +208,9 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
         <div class="flex-1 min-w-0">
           <span class="text-sm font-medium truncate block">{{ p.title }}</span>
           <span v-if="p.tags" class="md:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">{{ p.tags }}</span>
+          <span class="sm:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">
+            {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
+          </span>
         </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
         <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ p.tags }}</span>
