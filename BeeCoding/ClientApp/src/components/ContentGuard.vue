@@ -25,13 +25,21 @@ function onBlur() { if (props.active) hidden.value = true; }
 function onFocus() { if (props.active) hidden.value = document.hidden; }
 function onKey(e) {
   if (!props.active) return;
-  const k = (e.key || '').toLowerCase();
-  if ((e.ctrlKey || e.metaKey) && ['c', 'x', 's', 'p', 'a'].includes(k)) e.preventDefault();
   if (e.key === 'PrintScreen') {
     try { navigator.clipboard?.writeText(''); } catch { /* ignore */ }
     hidden.value = true;
     setTimeout(() => { hidden.value = document.hidden; }, 800);
+    return;
   }
+  // The guarded content (an image/canvas) is never itself focusable, so a
+  // keydown while looking at it still targets document.body — there's no
+  // reliable "focus is inside the guard" signal to scope to. Instead carve
+  // out the one legitimate place on these pages that genuinely needs
+  // copy/paste/select-all: the code editor. Everything else keeps the
+  // blanket block.
+  if (e.target?.closest?.('.monaco-editor')) return;
+  const k = (e.key || '').toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && ['c', 'x', 's', 'p', 'a'].includes(k)) e.preventDefault();
 }
 
 onMounted(() => {
