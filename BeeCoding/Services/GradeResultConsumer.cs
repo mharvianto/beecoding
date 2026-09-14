@@ -15,7 +15,10 @@ namespace BeeCoding.Services;
 public sealed class GradeResultConsumer(
     IGradeResultStream stream, IServiceScopeFactory scopes, ILogger<GradeResultConsumer> log) : BackgroundService
 {
-    protected override async Task ExecuteAsync(CancellationToken ct)
+    protected override async Task ExecuteAsync(CancellationToken ct) =>
+        await Task.WhenAll(ConsumeResultsAsync(ct), ConsumeProgressAsync(ct));
+
+    private async Task ConsumeResultsAsync(CancellationToken ct)
     {
         await foreach (var r in stream.ReadResultsAsync(ct))
         {
@@ -27,6 +30,29 @@ public sealed class GradeResultConsumer(
             catch (Exception ex)
             {
                 log.LogError(ex, "failed to apply grade result for {Kind} #{Id}", r.Kind, r.SubmissionId);
+            }
+        }
+    }
+
+    private async Task ConsumeProgressAsync(CancellationToken ct)
+    {
+        await foreach (var p in stream.ReadProgressAsync(ct))
+        {
+            try
+            {
+                using var scope = scopes.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var notifier = scope.ServiceProvider.GetRequiredService<IBoardNotifier>();
+
+                var userId = p.Kind == "practice"
+                    ? await db.BankSubmissions.Where(s => s.Id == p.SubmissionId).Select(s => (int?)s.UserId).FirstOrDefaultAsync(ct)
+                    : await db.Submissions.Where(s => s.Id == p.SubmissionId).Select(s => (int?)s.UserId).FirstOrDefaultAsync(ct);
+                if (userId is int uid)
+                    await notifier.SubmissionProgressAsync(uid, p.Kind, p.SubmissionId, p.Current, p.Total);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "failed to relay grade progress for {Kind} #{Id}", p.Kind, p.SubmissionId);
             }
         }
     }

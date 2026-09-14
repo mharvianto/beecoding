@@ -60,6 +60,8 @@ function setLang(l) {
 const runOut = ref(null);
 const running = ref(false);
 const submitting = ref(false);
+const submittingId = ref(null);
+const testProgress = ref(null);   // { current, total } | null
 const submissions = ref([]);
 const error = ref('');
 const myPost = ref({ postId: null, hiddenByStudent: false });
@@ -132,9 +134,10 @@ async function run() {
 }
 
 async function submit() {
-  error.value = ''; submitting.value = true;
+  error.value = ''; submitting.value = true; testProgress.value = null;
   try {
-    await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value });
+    const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value });
+    submittingId.value = res.submissionId;
     await loadSubs();
   } catch (e) { error.value = e.message; }
   finally { submitting.value = false; }
@@ -177,6 +180,10 @@ onMounted(async () => {
   conn = createBoardConnection();
   conn.on('submissionResult', (dto) => {
     if (dto.problemId === pid.value) { loadSubs(); progress.refresh(); }
+    if (dto.id === submittingId.value) testProgress.value = null;
+  });
+  conn.on('submissionProgress', (p) => {
+    if (p.kind === 'board' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
   });
   conn.on('progressBumped', (p) => { progress.$patch({ ...p, ready: true }); celebrate(); });
   conn.on('boardSettingsChanged', async () => {
@@ -364,6 +371,12 @@ function ago(ts) {
               {{ l === 'c' ? 'C' : 'C++' }}
             </button>
           </span>
+        </div>
+        <div v-if="testProgress" class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <span class="block h-full bg-amber-400" :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
+          </span>
+          <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>

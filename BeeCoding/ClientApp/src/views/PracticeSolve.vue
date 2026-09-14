@@ -53,6 +53,8 @@ function useTemplate() {
 const runOut = ref(null);
 const running = ref(false);
 const submitting = ref(false);
+const submittingId = ref(null);
+const testProgress = ref(null);   // { current, total } | null
 const submissions = ref([]);
 const error = ref('');
 const gained = ref(0);
@@ -91,11 +93,12 @@ async function run() {
 }
 
 async function submit() {
-  error.value = ''; submitting.value = true; gained.value = 0;
+  error.value = ''; submitting.value = true; gained.value = 0; testProgress.value = null;
   try {
     const before = progress.xp;
     const alreadySolved = problem.value.solved;
-    await api.post(`/api/practice/${props.slug}/submit`, { code: code.value, language: solveLang.value });
+    const res = await api.post(`/api/practice/${props.slug}/submit`, { code: code.value, language: solveLang.value });
+    submittingId.value = res.submissionId;
     await loadSubs();
     // give the judge a moment, then reconcile XP
     setTimeout(async () => {
@@ -121,6 +124,10 @@ onMounted(async () => {
   conn = createBoardConnection();
   conn.on('practiceResult', (dto) => {
     if (dto.bankProblemId === pid.value) loadSubs();
+    if (dto.id === submittingId.value) testProgress.value = null;
+  });
+  conn.on('submissionProgress', (p) => {
+    if (p.kind === 'practice' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
   });
   conn.on('progressBumped', (p) => {
     const before = progress.xp;
@@ -230,6 +237,12 @@ onBeforeUnmount(async () => {
               {{ l === 'c' ? 'C' : 'C++' }}
             </button>
           </span>
+        </div>
+        <div v-if="testProgress" class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <span class="block h-full bg-amber-400" :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
+          </span>
+          <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>

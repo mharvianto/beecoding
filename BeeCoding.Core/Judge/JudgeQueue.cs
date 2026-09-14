@@ -31,6 +31,10 @@ public sealed record GradeResult(
     string Kind, int SubmissionId,
     string Verdict, double Score, int RuntimeMs, int MemoryKb, string CompilerOutput);
 
+/// <summary>Progress ping while grading a <see cref="GradeJob"/>: test <see cref="Current"/>
+/// (1-based) of <see cref="Total"/> is about to run.</summary>
+public sealed record GradeProgress(string Kind, int SubmissionId, int Current, int Total);
+
 /// <summary>
 /// An ad-hoc compile+run. <see cref="CorrelationId"/> ties the result (delivered via
 /// <see cref="IJudgeJobSource.ReportRunResultAsync"/>) back to the awaiting producer.
@@ -58,12 +62,14 @@ public interface IJudgeJobSource
     IAsyncEnumerable<JudgeJob> ReadJobsAsync(CancellationToken ct);
     ValueTask ReportRunResultAsync(RunJob job, RunResultDto result);
     ValueTask ReportGradeResultAsync(GradeResult result);
+    ValueTask ReportGradeProgressAsync(GradeProgress progress);
 }
 
 /// <summary>Grade-result side — consumed by the web tier to persist verdicts + notify.</summary>
 public interface IGradeResultStream
 {
     IAsyncEnumerable<GradeResult> ReadResultsAsync(CancellationToken ct);
+    IAsyncEnumerable<GradeProgress> ReadProgressAsync(CancellationToken ct);
 }
 
 /// <summary>
@@ -75,6 +81,8 @@ public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeRe
     private readonly Channel<JudgeJob> _jobs;
     private readonly Channel<GradeResult> _grades =
         Channel.CreateUnbounded<GradeResult>(new UnboundedChannelOptions { SingleReader = true });
+    private readonly Channel<GradeProgress> _progress =
+        Channel.CreateUnbounded<GradeProgress>(new UnboundedChannelOptions { SingleReader = true });
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RunResultDto>> _pending = new();
 
     public InProcessJudgeQueue(IOptions<JudgeOptions> options)
@@ -117,6 +125,8 @@ public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeRe
     }
 
     public ValueTask ReportGradeResultAsync(GradeResult result) => _grades.Writer.WriteAsync(result);
+    public ValueTask ReportGradeProgressAsync(GradeProgress progress) => _progress.Writer.WriteAsync(progress);
 
     public IAsyncEnumerable<GradeResult> ReadResultsAsync(CancellationToken ct) => _grades.Reader.ReadAllAsync(ct);
+    public IAsyncEnumerable<GradeProgress> ReadProgressAsync(CancellationToken ct) => _progress.Reader.ReadAllAsync(ct);
 }

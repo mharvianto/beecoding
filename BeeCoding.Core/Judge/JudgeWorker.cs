@@ -112,8 +112,11 @@ public sealed class JudgeWorker(
         int passedPoints = 0, maxMs = 0, maxKb = 0;
         Verdict verdict = Verdict.Accepted;
 
+        int testIndex = 0;
         foreach (var t in job.Tests)
         {
+            testIndex++;
+            await _source.ReportGradeProgressAsync(new GradeProgress(job.Kind, job.SubmissionId, testIndex, job.Tests.Count));
             var exec = await _sandbox.ExecuteAsync(dir, compile.ExePath!, t.Stdin ?? "", job.TimeLimitMs, job.MemoryLimitKb, ct, job.InputFileName);
             maxMs = Math.Max(maxMs, exec.WallMs);
             maxKb = Math.Max(maxKb, exec.PeakKb);

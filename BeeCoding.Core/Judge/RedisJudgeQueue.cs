@@ -26,8 +26,10 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
     private readonly ILogger<RedisJudgeQueue> _log;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RunResultDto>> _pendingRuns = new();
     private readonly Channel<GradeResult> _grades = Channel.CreateUnbounded<GradeResult>();
+    private readonly Channel<GradeProgress> _progress = Channel.CreateUnbounded<GradeProgress>();
     private readonly RedisChannel _runResults;
     private readonly RedisChannel _gradeResults;
+    private readonly RedisChannel _gradeProgress;
     private readonly string _jobsKey;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -41,6 +43,7 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
         _jobsKey = _o.KeyPrefix + "jobs";
         _runResults = RedisChannel.Literal(_o.KeyPrefix + "run-results");
         _gradeResults = RedisChannel.Literal(_o.KeyPrefix + "grade-results");
+        _gradeProgress = RedisChannel.Literal(_o.KeyPrefix + "grade-progress");
 
         _sub.Subscribe(_runResults, (_, msg) =>
         {
@@ -62,6 +65,16 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
                 if (r is not null) _grades.Writer.TryWrite(r);
             }
             catch (Exception ex) { _log.LogWarning(ex, "bad judge grade-result message"); }
+        });
+
+        _sub.Subscribe(_gradeProgress, (_, msg) =>
+        {
+            try
+            {
+                var p = JsonSerializer.Deserialize<GradeProgress>((string)msg!, Json);
+                if (p is not null) _progress.Writer.TryWrite(p);
+            }
+            catch (Exception ex) { _log.LogWarning(ex, "bad judge grade-progress message"); }
         });
     }
 
@@ -120,8 +133,12 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
     public ValueTask ReportGradeResultAsync(GradeResult result) =>
         new(_sub.PublishAsync(_gradeResults, JsonSerializer.Serialize(result, Json)));
 
+    public ValueTask ReportGradeProgressAsync(GradeProgress progress) =>
+        new(_sub.PublishAsync(_gradeProgress, JsonSerializer.Serialize(progress, Json)));
+
     // ---- grade-result side (web) ---------------------------------------------------
     public IAsyncEnumerable<GradeResult> ReadResultsAsync(CancellationToken ct) => _grades.Reader.ReadAllAsync(ct);
+    public IAsyncEnumerable<GradeProgress> ReadProgressAsync(CancellationToken ct) => _progress.Reader.ReadAllAsync(ct);
 
     private async Task Delay(CancellationToken ct)
     {
@@ -150,5 +167,6 @@ public sealed class RedisJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResult
     {
         try { await _sub.UnsubscribeAsync(_runResults); } catch { /* ignore */ }
         try { await _sub.UnsubscribeAsync(_gradeResults); } catch { /* ignore */ }
+        try { await _sub.UnsubscribeAsync(_gradeProgress); } catch { /* ignore */ }
     }
 }

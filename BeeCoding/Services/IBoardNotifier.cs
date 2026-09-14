@@ -35,4 +35,8 @@ public interface IBoardNotifier
 
     /// <summary>The user's XP total / level changed.</summary>
     Task ProgressBumpedAsync(int userId, ProgressDto progress);
+
+    /// <summary>A submission (board or practice) is mid-grading: test <c>current</c> of
+    /// <c>total</c> is about to run.</summary>
+    Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total);
 }

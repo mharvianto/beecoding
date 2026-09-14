@@ -38,4 +38,8 @@ public class BoardNotifier(IHubContext<BoardHub> hub) : IBoardNotifier
 
     public Task ProgressBumpedAsync(int userId, ProgressDto progress) =>
         _hub.Clients.User(userId.ToString()).SendAsync("progressBumped", progress);
+
+    public Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total) =>
+        _hub.Clients.User(userId.ToString())
+            .SendAsync("submissionProgress", new { kind, submissionId, current, total });
 }
