@@ -612,6 +612,23 @@ async function loadSystemStatus() {
   catch (e) { err.value = e.message; }
 }
 
+// ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
+const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500 });
+const runtimeConfigSaving = ref(false);
+const runtimeConfigMsg = ref('');
+watch(systemStatus, (s) => {
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs };
+});
+async function saveRuntimeConfig() {
+  err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
+  try {
+    const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; }
+    runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
+  } catch (e) { err.value = e.message; }
+  finally { runtimeConfigSaving.value = false; }
+}
+
 async function importProblems(ev) {
   const file = ev.target.files?.[0];
   ev.target.value = '';
@@ -1466,6 +1483,32 @@ onMounted(async () => {
             <span class="text-slate-400 dark:text-slate-500">Checked</span>
             <span class="text-[11px] text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
           </div>
+        </div>
+
+        <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
+            Judge &amp; LSP config <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
+          </h3>
+          <div class="flex flex-wrap items-end gap-4">
+            <label class="flex items-center gap-2 text-sm">
+              <input type="checkbox" v-model="runtimeConfigForm.lspEnabled" />
+              C/C++ IntelliSense (LSP) enabled
+            </label>
+            <label class="flex items-center gap-2 text-sm">
+              <span class="text-slate-500 dark:text-slate-400">Submit/run cooldown</span>
+              <input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
+                     class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+              <span class="text-slate-400 dark:text-slate-500">ms</span>
+            </label>
+            <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"
+                    class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+              {{ runtimeConfigSaving ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
+          <p v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ runtimeConfigMsg }}</p>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+            Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
+          </p>
         </div>
       </div>
     </section>

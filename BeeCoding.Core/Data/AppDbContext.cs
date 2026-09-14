@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+    public DbSet<PlatformRuntimeSettings> PlatformRuntimeSettings => Set<PlatformRuntimeSettings>();
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
     public DbSet<AiProviderConfig> AiProviderConfigs => Set<AiProviderConfig>();
     public DbSet<AiUserSetting> AiUserSettings => Set<AiUserSetting>();

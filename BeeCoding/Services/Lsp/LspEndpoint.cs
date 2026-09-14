@@ -1,6 +1,7 @@
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using BeeCoding.Services;
 using Microsoft.Extensions.Options;
 
 namespace BeeCoding.Services.Lsp;
@@ -12,19 +13,21 @@ namespace BeeCoding.Services.Lsp;
 public class LspEndpoint
 {
     private readonly LspOptions _opt;
+    private readonly PlatformRuntimeConfig _runtime;
     private readonly ILogger<LspEndpoint> _log;
     private readonly SemaphoreSlim _slots;
 
-    public LspEndpoint(IOptions<LspOptions> opt, ILogger<LspEndpoint> log)
+    public LspEndpoint(IOptions<LspOptions> opt, PlatformRuntimeConfig runtime, ILogger<LspEndpoint> log)
     {
         _opt = opt.Value;
+        _runtime = runtime;
         _log = log;
         _slots = new SemaphoreSlim(Math.Max(1, _opt.MaxConcurrent));
     }
 
     public async Task HandleAsync(HttpContext ctx)
     {
-        if (!_opt.Enabled) { ctx.Response.StatusCode = StatusCodes.Status404NotFound; return; }
+        if (!_runtime.LspEnabled) { ctx.Response.StatusCode = StatusCodes.Status404NotFound; return; }
         if (ctx.User?.Identity?.IsAuthenticated != true) { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return; }
         if (!ctx.WebSockets.IsWebSocketRequest) { ctx.Response.StatusCode = StatusCodes.Status400BadRequest; return; }
 

@@ -25,7 +25,7 @@ namespace BeeCoding.Controllers;
 [Route("api/admin-ui")]
 public class AdminUiController(
     AppDbContext db, AdminAccess admin, AuditLog audit, PasswordService pw, AiRuntimeSettings aiRuntime,
-    AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins,
+    AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt, IOptions<RealtimeStoreOptions> realtimeOpt)
     : ApiControllerBase
 {
@@ -36,6 +36,7 @@ public class AdminUiController(
     private readonly AiRuntimeSettings _aiRuntime = aiRuntime;
     private readonly AiProviderRuntime _aiProviderRuntime = aiProviderRuntime;
     private readonly LtiPlatformOriginsCache _ltiOrigins = ltiOrigins;
+    private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
     private readonly NativeToolchain _toolchain = toolchain;
     private readonly IJudgeQueue _judgeQueue = judgeQueue;
     private readonly JudgeOptions _judgeOpt = judgeOpt.Value;
@@ -443,7 +444,30 @@ public class AdminUiController(
             _toolchain.BwrapUsable, _judgeOpt.RequireSandbox,
             judgeBackend, realtimeBackend, redisConfigured, redisConnected,
             pendingJobs, dbOk, DateTime.UtcNow,
-            _toolchain.GccVersion, _toolchain.GppVersion);
+            _toolchain.GccVersion, _toolchain.GppVersion,
+            _runtimeConfig.LspEnabled, _runtimeConfig.JudgeRateLimitMs);
+    }
+
+    /// <summary>The handful of judge/LSP knobs that are safe to flip without a restart (see
+    /// PlatformRuntimeSettings/PlatformRuntimeConfig) — everything else in JudgeOptions/
+    /// LspOptions (queue backend, concurrency limits, RequireSandbox) stays
+    /// appsettings.json-only, since those are process-topology decisions fixed at startup.</summary>
+    [HttpPut("runtime-config")]
+    public async Task<ActionResult<AdminRuntimeConfigDto>> SetRuntimeConfig(AdminRuntimeConfigDto dto)
+    {
+        var rateLimitMs = Math.Clamp(dto.JudgeRateLimitMs, 0, 60_000);
+
+        var row = await _db.PlatformRuntimeSettings.FindAsync(1);
+        if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
+        row.LspEnabled = dto.LspEnabled;
+        row.JudgeRateLimitMs = rateLimitMs;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _runtimeConfig.Set(row.LspEnabled, row.JudgeRateLimitMs);
+        await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs);
     }
 
     // ---- trash: browse + restore/purge soft-deleted rows ---------------------

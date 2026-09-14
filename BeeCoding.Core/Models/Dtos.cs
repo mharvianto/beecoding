@@ -183,7 +183,11 @@ public record AdminSystemStatusDto(
     string JudgeQueueBackend, string RealtimeBackend,
     bool RedisConfigured, bool? RedisConnected,
     long? PendingJudgeJobs, bool DatabaseOk, DateTime CheckedAt,
-    string GccVersion, string GppVersion);
+    string GccVersion, string GppVersion,
+    bool LspEnabled, int JudgeRateLimitMs);
+
+/// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
+public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs);
 
 // ---- Admin: AI-generated problem review queue ----
 public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSample);

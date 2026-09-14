@@ -601,3 +601,25 @@ public class AuditLogEntry
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// Platform-wide runtime overrides for the handful of judge/LSP knobs that are actually
+/// safe to flip without a restart — the rest of JudgeOptions/LspOptions (queue backend,
+/// concurrency limits sized into a semaphore at startup, RequireSandbox's fail-fast check)
+/// stays appsettings.json-only since those are process-topology decisions, not live-tunable
+/// values. Single row, Id fixed at 1 — seeded at startup from whatever appsettings.json
+/// already says (see Program.cs), then edited from /admin/reports from then on.
+/// </summary>
+public class PlatformRuntimeSettings
+{
+    public int Id { get; set; }
+
+    /// <summary>Master switch for the clangd bridge (completion/hover/format). Checked live
+    /// on every /api/lsp/enabled call and every /lsp/cpp connection attempt.</summary>
+    public bool LspEnabled { get; set; }
+
+    /// <summary>Minimum spacing (ms) between a user's run/submit requests — see RateLimiter.</summary>
+    public int JudgeRateLimitMs { get; set; } = 1500;
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

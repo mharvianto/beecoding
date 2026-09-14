@@ -224,6 +224,7 @@ else
 
 builder.Services.AddSingleton<StatementImageService>();
 builder.Services.AddSingleton<RateLimiter>();
+builder.Services.AddSingleton<PlatformRuntimeConfig>();
 builder.Services.AddSingleton<SubmitCooldown>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
@@ -321,6 +322,25 @@ using (var scope = app.Services.CreateScope())
     // LtiPlatformOriginsCache) — every enabled LTI platform's issuer.
     var ltiOrigins = scope.ServiceProvider.GetRequiredService<LtiPlatformOriginsCache>();
     ltiOrigins.Set(await db.LtiPlatforms.Where(p => p.Enabled).Select(p => p.Issuer).ToListAsync());
+
+    // Same warm-up for the judge/LSP runtime overrides editable from /admin/reports (see
+    // PlatformRuntimeConfig) — first run seeds the row from appsettings.json so shipping
+    // this feature doesn't silently change existing behavior; every run after that, the DB
+    // row (not appsettings.json) is the live source of truth for these two fields.
+    var runtimeConfig = scope.ServiceProvider.GetRequiredService<PlatformRuntimeConfig>();
+    var platformRuntime = await db.PlatformRuntimeSettings.FindAsync(1);
+    if (platformRuntime is null)
+    {
+        var seedJudgeOpt = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JudgeOptions>>().Value;
+        var seedLspOpt = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LspOptions>>().Value;
+        platformRuntime = new BeeCoding.Models.PlatformRuntimeSettings
+        {
+            Id = 1, LspEnabled = seedLspOpt.Enabled, JudgeRateLimitMs = seedJudgeOpt.RateLimitMs,
+        };
+        db.PlatformRuntimeSettings.Add(platformRuntime);
+        await db.SaveChangesAsync();
+    }
+    runtimeConfig.Set(platformRuntime.LspEnabled, platformRuntime.JudgeRateLimitMs);
 }
 
 // Build the sandbox runner + probe capabilities before serving traffic.
@@ -435,8 +455,9 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 app.MapGet("/lsp/cpp", (HttpContext c, LspEndpoint ep) => ep.HandleAsync(c)).RequireAuthorization();
 
 // Lets the editor skip the WebSocket attempt (and its console error) when the bridge is off.
-app.MapGet("/api/lsp/enabled", (Microsoft.Extensions.Options.IOptions<LspOptions> o) =>
-    Results.Ok(new { enabled = o.Value.Enabled }));
+// Live-toggleable from /admin/reports (see PlatformRuntimeConfig) — not appsettings-fixed.
+app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
+    Results.Ok(new { enabled = cfg.LspEnabled }));
 
 app.MapFallbackToFile("index.html");
 
