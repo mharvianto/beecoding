@@ -169,7 +169,8 @@ public record AdminSystemStatusDto(
     string SandboxMode, bool BwrapUsable, bool SandboxRequired,
     string JudgeQueueBackend, string RealtimeBackend,
     bool RedisConfigured, bool? RedisConnected,
-    long? PendingJudgeJobs, bool DatabaseOk, DateTime CheckedAt);
+    long? PendingJudgeJobs, bool DatabaseOk, DateTime CheckedAt,
+    string GccVersion, string GppVersion);
 
 // ---- Admin: AI-generated problem review queue ----
 public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSample);

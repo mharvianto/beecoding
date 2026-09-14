@@ -14,6 +14,8 @@ public class NativeToolchain(IOptions<JudgeOptions> options, ILogger<NativeToolc
 
     public string GccPath { get; private set; } = "gcc";
     public string GppPath { get; private set; } = "g++";
+    public string GccVersion { get; private set; } = "";
+    public string GppVersion { get; private set; } = "";
     public string RunnerPath { get; private set; } = "";
     public bool BwrapUsable { get; private set; }
     public string BwrapPath { get; private set; } = "bwrap";
@@ -28,6 +30,8 @@ public class NativeToolchain(IOptions<JudgeOptions> options, ILogger<NativeToolc
 
         GccPath = Which("gcc") ?? throw new InvalidOperationException("gcc not found on PATH");
         GppPath = Which("g++") ?? throw new InvalidOperationException("g++ not found on PATH");
+        GccVersion = QueryVersion(GccPath);
+        GppVersion = QueryVersion(GppPath);
 
         // Build the runner helper.
         var srcPath = Path.Combine(Options.WorkRoot, "runner.c");
@@ -103,6 +107,27 @@ public class NativeToolchain(IOptions<JudgeOptions> options, ILogger<NativeToolc
             return p.HasExited && p.ExitCode == 0;
         }
         catch { return false; }
+    }
+
+    /// <summary>First line of `&lt;path&gt; --version`, e.g. "gcc (Ubuntu 13.3.0-...) 13.3.0" —
+    /// shown in the admin Reports tab so an implicit-declaration-as-error report (gcc's
+    /// default for this flips between versions/distros) can be traced to the exact
+    /// toolchain in use without shelling in.</summary>
+    private static string QueryVersion(string path)
+    {
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo(path, "--version")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            })!;
+            var firstLine = p.StandardOutput.ReadLine() ?? "";
+            p.WaitForExit(5_000);
+            return firstLine.Trim();
+        }
+        catch { return "unknown"; }
     }
 
     private static string? Which(string exe)

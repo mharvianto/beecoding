@@ -406,7 +406,8 @@ public class AdminUiController(
             _toolchain.BwrapUsable ? "bubblewrap + rlimits" : "rlimits only",
             _toolchain.BwrapUsable, _judgeOpt.RequireSandbox,
             judgeBackend, realtimeBackend, redisConfigured, redisConnected,
-            pendingJobs, dbOk, DateTime.UtcNow);
+            pendingJobs, dbOk, DateTime.UtcNow,
+            _toolchain.GccVersion, _toolchain.GppVersion);
     }
 
     // ---- trash: browse + restore/purge soft-deleted rows ---------------------

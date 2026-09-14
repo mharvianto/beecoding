@@ -1252,6 +1252,14 @@ onMounted(async () => {
             <span class="text-slate-400 dark:text-slate-500">Sandbox required (fail closed)</span>
             <span>{{ systemStatus.sandboxRequired ? 'yes' : 'no' }}</span>
           </div>
+          <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500 shrink-0">gcc (C)</span>
+            <span class="text-right font-mono text-xs">{{ systemStatus.gccVersion }}</span>
+          </div>
+          <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500 shrink-0">g++ (C++)</span>
+            <span class="text-right font-mono text-xs">{{ systemStatus.gppVersion }}</span>
+          </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
             <span class="text-slate-400 dark:text-slate-500">Judge queue backend</span>
             <span>{{ systemStatus.judgeQueueBackend }}</span>
