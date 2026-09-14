@@ -5,7 +5,7 @@ let running = false;
 
 // `force` runs even if a burst is already on screen (e.g. a level-up landing on
 // the same solve that already popped a smaller burst).
-export function celebrate({ count = 150, duration = 2800, force = false } = {}) {
+export function celebrate({ count = 150, duration = 4200, force = false } = {}) {
   if (typeof window === 'undefined') return;
   if (running && !force) return;
   if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
@@ -48,7 +48,7 @@ export function celebrate({ count = 150, duration = 2800, force = false } = {}) 
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     const fade = t > duration - 700 ? Math.max(0, (duration - t) / 700) : 1;
     for (const p of parts) {
-      p.vy += 0.3;
+      p.vy += 0.18;
       p.vx *= 0.99;
       p.x += p.vx;
       p.y += p.vy;
