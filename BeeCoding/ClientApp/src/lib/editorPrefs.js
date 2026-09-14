@@ -7,11 +7,15 @@ import * as monaco from 'monaco-editor';
 
 const THEME_KEY = 'beecoding.editor.theme';
 const FONT_KEY = 'beecoding.editor.fontFamily';
+const CPP_FORMAT_KEY = 'beecoding.editor.cppFormatStyle';
 
 /** 'auto' (follow site light/dark) | a Monaco theme id (built-in or custom-defined below) */
 export const editorThemePref = ref(localStorage.getItem(THEME_KEY) || 'auto');
 /** '' (Monaco's built-in default stack) | a CSS font-family value */
 export const editorFontFamily = ref(localStorage.getItem(FONT_KEY) || '');
+/** clang-format BasedOnStyle for "Format Document" on C/C++ — must match
+ * ClangdSession.FormatStyles on the server (an allowlist, not free text). */
+export const cppFormatStyle = ref(localStorage.getItem(CPP_FORMAT_KEY) || 'LLVM');
 
 export function setEditorTheme(id) {
   editorThemePref.value = id;
@@ -21,6 +25,21 @@ export function setEditorFontFamily(family) {
   editorFontFamily.value = family;
   try { localStorage.setItem(FONT_KEY, family); } catch { /* ignore */ }
 }
+export function setCppFormatStyle(style) {
+  cppFormatStyle.value = style;
+  try { localStorage.setItem(CPP_FORMAT_KEY, style); } catch { /* ignore */ }
+}
+
+// Keep in sync with ClangdSession.FormatStyles server-side.
+export const CPP_FORMAT_STYLE_OPTIONS = [
+  { id: 'LLVM', label: 'LLVM' },
+  { id: 'Google', label: 'Google' },
+  { id: 'Chromium', label: 'Chromium' },
+  { id: 'Mozilla', label: 'Mozilla' },
+  { id: 'WebKit', label: 'WebKit' },
+  { id: 'Microsoft', label: 'Microsoft' },
+  { id: 'GNU', label: 'GNU' },
+];
 
 export const THEME_OPTIONS = [
   { id: 'auto', label: 'Follow site theme (default)' },

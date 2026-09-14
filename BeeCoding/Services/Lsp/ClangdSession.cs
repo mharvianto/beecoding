@@ -30,7 +30,12 @@ public sealed class ClangdSession : IAsyncDisposable
         MainFilePath = mainFilePath;
     }
 
-    public static async Task<ClangdSession> StartAsync(LspOptions opt, string language, ILogger log)
+    /// <summary>clang-format's built-in style presets — an allowlist, since this name ends
+    /// up written verbatim into a config file clang-format parses (never accept arbitrary
+    /// user-supplied YAML here).</summary>
+    public static readonly string[] FormatStyles = { "LLVM", "Google", "Chromium", "Mozilla", "WebKit", "Microsoft", "GNU" };
+
+    public static async Task<ClangdSession> StartAsync(LspOptions opt, string language, ILogger log, string? formatStyle = null)
     {
         var dir = Path.Combine(Path.GetTempPath(), "beecoding-lsp", "s_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -40,6 +45,12 @@ public sealed class ClangdSession : IAsyncDisposable
         await File.WriteAllTextAsync(mainFile, "");
         await File.WriteAllTextAsync(Path.Combine(dir, "compile_flags.txt"),
             isC ? "-xc\n-std=gnu11\n" : "-xc++\n-std=gnu++17\n");
+
+        // clang-format (used by clangd for textDocument/formatting) picks this up by
+        // searching upward from the file being formatted — one file per session is plenty,
+        // no need to re-write it per request.
+        var style = FormatStyles.Contains(formatStyle, StringComparer.OrdinalIgnoreCase) ? formatStyle! : "LLVM";
+        await File.WriteAllTextAsync(Path.Combine(dir, ".clang-format"), $"BasedOnStyle: {style}\n");
 
         var args = new List<string>
         {

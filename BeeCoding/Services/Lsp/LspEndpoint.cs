@@ -30,6 +30,7 @@ public class LspEndpoint
 
         var lang = ctx.Request.Query["lang"].ToString();
         if (lang is not ("c" or "cpp")) lang = "cpp";
+        var style = ctx.Request.Query["style"].ToString();
 
         if (!await _slots.WaitAsync(TimeSpan.FromSeconds(2), ctx.RequestAborted))
         {
@@ -42,7 +43,7 @@ public class LspEndpoint
         ClangdSession? session = null;
         try
         {
-            session = await ClangdSession.StartAsync(_opt, lang, _log);
+            session = await ClangdSession.StartAsync(_opt, lang, _log, style);
 
             var sendLock = new SemaphoreSlim(1, 1);
             async Task ToClientAsync(string json)

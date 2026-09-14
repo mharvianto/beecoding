@@ -8,6 +8,7 @@ import {
   editorThemePref, editorFontFamily, setEditorTheme, setEditorFontFamily,
   THEME_OPTIONS, FONT_OPTIONS, resolveEditorTheme, defineCustomThemesOnce,
   importVscodeTheme, hasCustomTheme, customThemeLabel,
+  cppFormatStyle, setCppFormatStyle, CPP_FORMAT_STYLE_OPTIONS,
 } from '../lib/editorPrefs';
 
 defineCustomThemesOnce();
@@ -93,6 +94,7 @@ const COMPLETION_KIND = {           // LSP CompletionItemKind -> monaco
 const MARKER_SEV = { 1: 8, 2: 4, 3: 2, 4: 1 };   // LSP DiagnosticSeverity -> monaco.MarkerSeverity
 
 const toLspPos = (p) => ({ line: p.lineNumber - 1, character: p.column - 1 });
+const toMonacoRange = (r) => new monaco.Range(r.start.line + 1, r.start.character + 1, r.end.line + 1, r.end.character + 1);
 const asText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map(asText).join('\n\n') : (c?.value ?? ''));
 
 function toMonacoCompletion(it, fallbackRange) {
@@ -123,7 +125,7 @@ async function initLsp() {
   if (lang !== 'c' && lang !== 'cpp') return;
 
   try {
-    lspClient = new CppLsp(lang);
+    lspClient = new CppLsp(lang, cppFormatStyle.value);
     await lspClient.connect();
     await lspClient.open(editor.getValue());
   } catch {
@@ -178,6 +180,14 @@ async function initLsp() {
         },
         dispose() {},
       };
+    },
+  }));
+
+  lspDisposables.push(monaco.languages.registerDocumentFormattingEditProvider(props.language, {
+    async provideDocumentFormattingEdits(model, options) {
+      if (!mine() || model !== editor.getModel()) return [];
+      const edits = await lspClient.formatting(options.tabSize, options.insertSpaces);
+      return (edits || []).map((e) => ({ range: toMonacoRange(e.range), text: e.newText }));
     },
   }));
 
@@ -296,6 +306,12 @@ onMounted(() => {
         contextMenuGroupId: 'zz_beecoding', contextMenuOrder: 4,
         run: () => toggleLsp(),
       });
+      // clang-format's style pickers a fresh clangd session — the .clang-format file is
+      // written once when the session's workspace is created (see ClangdSession.cs).
+      CPP_FORMAT_STYLE_OPTIONS.forEach((s) => editor?.addAction({
+        id: `beecoding.cppFormatStyle.${s.id}`, label: `Editor: C/C++ Format Style — ${s.label}`,
+        run: () => { setCppFormatStyle(s.id); disposeLsp(); if (!props.readOnly) initLsp(); },
+      }));
       if (!props.readOnly) initLsp();
     });
   }

@@ -6,8 +6,9 @@ import { withBase } from './base';
  * signature help, and a diagnostics callback. Silent no-op if the bridge is off.
  */
 export class CppLsp {
-  constructor(language = 'cpp') {
+  constructor(language = 'cpp', formatStyle = 'LLVM') {
     this.language = language === 'c' ? 'c' : 'cpp';
+    this.formatStyle = formatStyle;
     this._id = 0;
     this._pending = new Map();
     this._version = 1;
@@ -27,7 +28,8 @@ export class CppLsp {
         ? (import.meta.env.VITE_BACKEND_URL || 'http://localhost:5048').replace(/^http/, 'ws')
         : (location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host;
       try {
-        this.ws = new WebSocket(`${base}${withBase('/lsp/cpp')}?lang=${this.language}`);
+        this.ws = new WebSocket(
+          `${base}${withBase('/lsp/cpp')}?lang=${this.language}&style=${encodeURIComponent(this.formatStyle)}`);
       } catch (e) { return reject(e); }
 
       const timer = setTimeout(() => { if (!settled) { settled = true; this.close(); reject(new Error('lsp timeout')); } }, timeoutMs);
@@ -91,6 +93,7 @@ export class CppLsp {
           hover: { contentFormat: ['markdown', 'plaintext'] },
           signatureHelp: { signatureInformation: { documentationFormat: ['markdown', 'plaintext'] } },
           publishDiagnostics: {},
+          formatting: {},
         },
       },
     });
@@ -119,6 +122,12 @@ export class CppLsp {
   }
   hover(pos) { return this.request('textDocument/hover', { textDocument: { uri: this.uri }, position: pos }); }
   signatureHelp(pos) { return this.request('textDocument/signatureHelp', { textDocument: { uri: this.uri }, position: pos }); }
+  formatting(tabSize = 4, insertSpaces = true) {
+    return this.request('textDocument/formatting', {
+      textDocument: { uri: this.uri },
+      options: { tabSize, insertSpaces },
+    });
+  }
 
   onDiagnostics(cb) { this._diagCb = cb; }
 
