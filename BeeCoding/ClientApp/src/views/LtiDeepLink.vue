@@ -16,6 +16,7 @@ const creating = ref(false);
 const mode = ref('board');   // 'board' | 'problem'
 const problems = ref(null);
 const problemQ = ref('');
+const problemScope = ref('mine');   // 'mine' | 'public' | 'all'
 
 async function load() {
   error.value = '';
@@ -29,7 +30,7 @@ onMounted(load);
 async function loadProblems() {
   error.value = '';
   try {
-    const p = new URLSearchParams({ scope: 'mine' });
+    const p = new URLSearchParams({ scope: problemScope.value });
     if (problemQ.value.trim()) p.set('q', problemQ.value.trim());
     problems.value = await api.get(`/api/bank?${p}`);
   } catch (e) { error.value = e.message; }
@@ -128,16 +129,26 @@ async function createAndSelect() {
       <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
         Students who open this activity go straight to solving this one problem — no board involved.
       </p>
-      <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search your problems…"
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-3" />
+      <div class="flex gap-2 mb-3">
+        <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search problems…"
+               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <select v-model="problemScope" @change="loadProblems"
+                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+          <option value="mine">Mine</option>
+          <option value="public">Shared by others</option>
+          <option value="all">All</option>
+        </select>
+      </div>
       <div v-if="problems" class="space-y-2">
         <button v-for="p in problems" :key="p.slug" @click="selectProblem(p.slug)"
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 hover:border-amber-400 dark:hover:border-amber-500/60">
           <div class="font-medium text-sm">{{ p.title }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ p.level }}<span v-if="p.tags"> · {{ p.tags }}</span></div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500">
+            {{ p.level }}<span v-if="p.tags"> · {{ p.tags }}</span><span v-if="!p.mine"> · by {{ p.ownerName }}</span>
+          </div>
         </button>
         <p v-if="!problems.length" class="text-sm text-slate-400 dark:text-slate-500">
-          No problems in your bank yet — add one in Problem bank first.
+          No problems found — try a different scope, or add one in Problem bank first.
         </p>
       </div>
     </template>

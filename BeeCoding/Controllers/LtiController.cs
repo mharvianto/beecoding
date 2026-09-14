@@ -168,7 +168,7 @@ public class LtiController(
         {
             var problem = await _db.BankProblems.FirstOrDefaultAsync(b => b.Slug == dto.BankProblemSlug);
             if (problem is null) return NotFound("Problem not found.");
-            if (problem.OwnerId != UserId) return Forbid();
+            if (problem.OwnerId != UserId && !problem.IsPublic) return Forbid();
             title = problem.Title;
             // ?practice=<slug> rides along on every future launch of the placement the
             // platform is about to create, so its very first real launch attaches to
