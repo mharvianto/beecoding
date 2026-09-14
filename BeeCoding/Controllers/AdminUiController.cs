@@ -93,14 +93,70 @@ public class AdminUiController(
             aiToday, aiMonth, recentActivity);
     }
 
-    /// <summary>Weekly active-users + submissions, for the dashboard's trend chart —
-    /// same aggregation as the Reports tab's weekly-engagement export.</summary>
-    [HttpGet("dashboard/weekly")]
-    public async Task<ActionResult<List<AdminWeeklyStatDto>>> DashboardWeekly([FromQuery] int weeks = 12)
+    /// <summary>Active-users + submissions over time, for the dashboard's trend chart, with
+    /// a selectable bucket size (hour/day/week) — board and bank submissions carry a
+    /// precise timestamp, so this can go down to the hour. Same underlying aggregation as
+    /// the Reports tab's weekly-engagement export at granularity=week.</summary>
+    [HttpGet("dashboard/engagement")]
+    public async Task<ActionResult<List<AdminEngagementPointDto>>> DashboardEngagement(
+        [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
     {
-        var agg = await EngagementAggAsync(weeks);
-        return agg.Select(a => new AdminWeeklyStatDto(a.WeekStart.ToString("yyyy-MM-dd"), a.ActiveUsers, a.Submissions)).ToList();
+        var g = NormalizeGranularity(granularity);
+        periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
+
+        var boardActivity = await _db.Submissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var bankActivity = await _db.BankSubmissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var all = boardActivity.Select(x => (x.UserId, x.CreatedAt)).Concat(bankActivity.Select(x => (x.UserId, x.CreatedAt)));
+
+        return all.GroupBy(x => BucketStart(x.CreatedAt, g))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminEngagementPointDto(
+                FormatPeriodStart(x.Key, g), x.Select(y => y.UserId).Distinct().Count(), x.Count()))
+            .ToList();
     }
+
+    /// <summary>AI calls + total tokens over time, with a selectable bucket size — unlike
+    /// <see cref="DashboardEngagement"/>, hourly isn't available here: AiUsage is only ever
+    /// rolled up per calendar day (see AiUsageService.RecordAsync), so "hour" silently
+    /// falls back to "day".</summary>
+    [HttpGet("dashboard/ai-engagement")]
+    public async Task<ActionResult<List<AdminAiEngagementPointDto>>> DashboardAiEngagement(
+        [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
+    {
+        var g = NormalizeGranularity(granularity);
+        if (g == "hour") g = "day";
+        periods = Math.Clamp(periods, 1, g == "day" ? 90 : 52);
+
+        var rows = await _db.AiUsages.Select(x => new { x.Day, x.Calls, x.PromptTokens, x.CompletionTokens }).ToListAsync();
+
+        DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
+
+        return rows.GroupBy(x => BucketDay(x.Day))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminAiEngagementPointDto(
+                x.Key.ToString("yyyy-MM-dd"), x.Sum(y => y.Calls), x.Sum(y => y.PromptTokens) + x.Sum(y => y.CompletionTokens)))
+            .ToList();
+    }
+
+    private static string NormalizeGranularity(string? g) =>
+        (g ?? "week").Trim().ToLowerInvariant() is "hour" or "day" ? g!.Trim().ToLowerInvariant() : "week";
+
+    private static DateTime BucketStart(DateTime dt, string granularity) => granularity switch
+    {
+        "hour" => new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, 0, 0, DateTimeKind.Utc),
+        "day" => new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Utc),
+        _ => WeekStartUtc(dt),
+    };
+
+    private static DateTime WeekStartUtc(DateTime dt)
+    {
+        var d = DateOnly.FromDateTime(dt);
+        var monday = d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
+        return monday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+    }
+
+    private static string FormatPeriodStart(DateTime dt, string granularity) =>
+        granularity == "hour" ? dt.ToString("o") : dt.ToString("yyyy-MM-dd");
 
     /// <summary>Top tags by attempts, for the dashboard's ranking chart — same
     /// aggregation as the Reports tab's topic-solve-rate export.</summary>

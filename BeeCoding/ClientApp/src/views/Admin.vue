@@ -84,24 +84,54 @@ watch(() => route.params.tab, (t) => {
 
 // ---- dashboard: at-a-glance overview, the default landing tab ----
 const dashboard = ref(null);
-const weeklyStats = ref(null);
 const topicStats = ref(null);
+const engagementGranularity = ref('week');   // 'hour' | 'day' | 'week'
+const engagementStats = ref(null);
+const aiGranularity = ref('week');           // 'day' | 'week' — AiUsage has no finer data than a day
+const aiEngagementStats = ref(null);
+
 async function loadDashboard() {
   err.value = '';
   try {
-    const [d, weekly, topics] = await Promise.all([
+    const [d, topics] = await Promise.all([
       api.get('/api/admin-ui/dashboard'),
-      api.get('/api/admin-ui/dashboard/weekly?weeks=12'),
       api.get('/api/admin-ui/dashboard/topics?take=8'),
     ]);
     dashboard.value = d;
-    weeklyStats.value = weekly;
     topicStats.value = topics;
+    await Promise.all([loadEngagement(), loadAiEngagement()]);
   } catch (e) { err.value = e.message; }
 }
+
+function periodsFor(granularity) {
+  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
+}
+async function loadEngagement() {
+  err.value = '';
+  try {
+    engagementStats.value = await api.get(
+      `/api/admin-ui/dashboard/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
+  } catch (e) { err.value = e.message; }
+}
+function setEngagementGranularity(g) { engagementGranularity.value = g; loadEngagement(); }
+
+async function loadAiEngagement() {
+  err.value = '';
+  try {
+    aiEngagementStats.value = await api.get(
+      `/api/admin-ui/dashboard/ai-engagement?granularity=${aiGranularity.value}&periods=${periodsFor(aiGranularity.value)}`);
+  } catch (e) { err.value = e.message; }
+}
+function setAiGranularity(g) { aiGranularity.value = g; loadAiEngagement(); }
+
 const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-const activeUserPoints = () => (weeklyStats.value || []).map((w) => ({ label: shortDate(w.weekStart), value: w.activeUsers }));
-const submissionPoints = () => (weeklyStats.value || []).map((w) => ({ label: shortDate(w.weekStart), value: w.submissions }));
+const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });
+const engagementLabel = (s) => (engagementGranularity.value === 'hour' ? shortHour(s) : shortDate(s));
+
+const activeUserPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.activeUsers }));
+const submissionPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.submissions }));
+const aiCallPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.calls }));
+const aiTokenPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.totalTokens }));
 const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
 // ---- AI settings: kill-switch, quotas, per-user overrides ----
@@ -659,9 +689,40 @@ onMounted(async () => {
       </div>
       <p v-else-if="!dashboard" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
 
-      <div v-if="weeklyStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MiniLineChart title="Active users / week" :points="activeUserPoints()" />
-        <MiniLineChart title="Submissions / week" :points="submissionPoints()" />
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="font-semibold text-sm">Engagement</h3>
+          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                    @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
+                    :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              {{ g[1] }}
+            </button>
+          </span>
+        </div>
+        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MiniLineChart :title="`Active users / ${engagementGranularity}`" :points="activeUserPoints()" />
+          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
+        </div>
+        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <h3 class="font-semibold text-sm">AI usage</h3>
+          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                    @click="setAiGranularity(g[0])" class="px-2.5 py-1"
+                    :class="aiGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              {{ g[1] }}
+            </button>
+          </span>
+        </div>
+        <div v-if="aiEngagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
+          <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
+        </div>
+        <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage yet.</p>
       </div>
 
       <div v-if="topicStats">

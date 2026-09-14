@@ -142,6 +142,11 @@ public record AdminDashboardDto(
 public record AdminWeeklyStatDto(string WeekStart, int ActiveUsers, int Submissions);
 public record AdminTopicStatDto(string Tag, int Attempts, int Accepted, double AcceptRate);
 
+// ---- Admin: dashboard engagement/AI-usage charts with a selectable granularity ----
+// PeriodStart is "yyyy-MM-dd" for week/day, or a full ISO datetime (UTC, on the hour) for hour.
+public record AdminEngagementPointDto(string PeriodStart, int ActiveUsers, int Submissions);
+public record AdminAiEngagementPointDto(string PeriodStart, int Calls, long TotalTokens);
+
 // ---- Student: personal dashboard, aggregated across every board + practice/bank ----
 public record StudentDashboardDto(
     int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount,
