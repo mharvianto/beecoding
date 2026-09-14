@@ -91,26 +91,27 @@ public sealed class JudgeWorker(
         var dir = NewWorkDir();
         try
         {
-            var (verdict, score, ms, kb, compilerOut) = await GradeAsync(dir, job, ct);
+            var (verdict, score, ms, kb, compilerOut, failedTest) = await GradeAsync(dir, job, ct);
             await _source.ReportGradeResultAsync(new GradeResult(
-                job.Kind, job.SubmissionId, verdict.ToString(), score, ms, kb, compilerOut));
+                job.Kind, job.SubmissionId, verdict.ToString(), score, ms, kb, compilerOut, failedTest));
         }
         finally { CleanUp(dir); }
     }
 
-    private async Task<(Verdict Verdict, double Score, int MaxMs, int MaxKb, string CompilerOutput)> GradeAsync(
+    private async Task<(Verdict Verdict, double Score, int MaxMs, int MaxKb, string CompilerOutput, string? FailedTest)> GradeAsync(
         string dir, GradeJob job, CancellationToken ct)
     {
         if (SourcePolicy.Violation(job.Code, job.BannedHeaders, job.BannedSymbols) is { } denied)
-            return (Verdict.CompileError, 0, 0, 0, denied);
+            return (Verdict.CompileError, 0, 0, 0, denied, null);
 
         var compile = await _compiler.CompileAsync(dir, job.Language, job.Code, ct);
         if (!compile.Ok)
-            return (Verdict.CompileError, 0, 0, 0, compile.Output);
+            return (Verdict.CompileError, 0, 0, 0, compile.Output, null);
 
         int totalPoints = Math.Max(1, job.Tests.Sum(t => Math.Max(0, t.Points)));
         int passedPoints = 0, maxMs = 0, maxKb = 0;
         Verdict verdict = Verdict.Accepted;
+        string? failedTest = null;
 
         int testIndex = 0;
         foreach (var t in job.Tests)
@@ -122,12 +123,33 @@ public sealed class JudgeWorker(
             maxKb = Math.Max(maxKb, exec.PeakKb);
 
             var cls = VerdictEvaluator.ClassifyRun(exec, job.TimeLimitMs, job.MemoryLimitKb);
-            if (cls != Verdict.Accepted) { verdict = cls; break; }
-            if (!VerdictEvaluator.OutputMatches(exec.Stdout, t.Expected)) { verdict = Verdict.WrongAnswer; break; }
+            if (cls != Verdict.Accepted)
+            {
+                verdict = cls;
+                var actual = exec.Stdout + (string.IsNullOrEmpty(exec.Stderr) ? "" : "\n[stderr]\n" + exec.Stderr);
+                failedTest = FormatFailedTest(testIndex, job.Tests.Count, t, actual);
+                break;
+            }
+            if (!VerdictEvaluator.OutputMatches(exec.Stdout, t.Expected))
+            {
+                verdict = Verdict.WrongAnswer;
+                failedTest = FormatFailedTest(testIndex, job.Tests.Count, t, exec.Stdout);
+                break;
+            }
             passedPoints += Math.Max(0, t.Points);
         }
 
         double score = verdict == Verdict.Accepted ? 1.0 : (double)passedPoints / totalPoints;
-        return (verdict, score, maxMs, maxKb, "");
+        return (verdict, score, maxMs, maxKb, "", failedTest);
+    }
+
+    private static string FormatFailedTest(int index, int total, TestSpec t, string actual)
+    {
+        const int Cap = 2000;
+        static string Trunc(string s) => s.Length > Cap ? s[..Cap] + "\n… (truncated)" : s;
+        return $"Test {index} of {total} ({(t.IsSample ? "sample" : "hidden")})\n" +
+               $"--- input ---\n{Trunc(t.Stdin)}\n" +
+               $"--- expected ---\n{Trunc(t.Expected)}\n" +
+               $"--- your output ---\n{Trunc(actual)}";
     }
 }

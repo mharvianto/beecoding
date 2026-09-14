@@ -292,7 +292,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         await _db.SaveChangesAsync();
 
         var tests = problem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
-            .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points)).ToList();
+            .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points, t.IsSample)).ToList();
         await _queue.EnqueueGradeAsync(new GradeJob(
             "practice", sub.Id, lang, sub.Code,
             problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests,

@@ -229,7 +229,8 @@ public record SubmissionDto(
     int Id, int ProblemId, int UserId, string AuthorName,
     string Status, string Verdict, int RuntimeMs, int MemoryKb, double Score,
     bool HiddenByStudent, bool Mine, string? Code, string CompilerOutput,
-    DateTime CreatedAt, DateTime? JudgedAt, string Language);
+    DateTime CreatedAt, DateTime? JudgedAt, string Language,
+    string? FailedTest = null);   // staff-only — see Mapping.ToDto
 
 // ---- Live board / progress grid ----
 public record ProgressCellDto(

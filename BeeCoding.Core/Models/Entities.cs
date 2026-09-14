@@ -323,6 +323,11 @@ public class Submission
 
     public string CompilerOutput { get; set; } = "";
 
+    /// <summary>"Test N of M / input / expected / your output" for the first testcase that
+    /// didn't pass — null on Accepted or CompileError. Staff-only once served over the API
+    /// (see Mapping.ToDto), since it can reveal a hidden test's expected output.</summary>
+    public string? FailedTest { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? JudgedAt { get; set; }

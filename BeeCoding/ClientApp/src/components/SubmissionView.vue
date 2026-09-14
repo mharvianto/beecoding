@@ -40,6 +40,10 @@ watch(() => props.submissionId, load, { immediate: true });
                          :filename="`${sub.authorName}-submission-${sub.id}`" />
         </div>
         <pre v-if="sub.compilerOutput" class="shrink-0 max-h-32 overflow-auto bg-slate-900 text-slate-100 dark:bg-black text-xs font-mono px-4 py-2 whitespace-pre-wrap">{{ sub.compilerOutput }}</pre>
+        <div v-if="sub.failedTest" class="shrink-0 max-h-56 overflow-auto border-t border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-4 py-2">
+          <div class="text-[11px] font-medium text-amber-700 dark:text-amber-300 mb-1">Failed test detail — staff only</div>
+          <pre class="text-xs font-mono text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{{ sub.failedTest }}</pre>
+        </div>
       </template>
     </div>
   </div>

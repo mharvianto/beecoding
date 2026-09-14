@@ -55,7 +55,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         await _db.SaveChangesAsync();
 
         var tests = problem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
-            .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points)).ToList();
+            .Select(t => new TestSpec(t.Stdin, t.ExpectedStdout, t.Points, t.IsSample)).ToList();
         await _queue.EnqueueGradeAsync(new GradeJob(
             "board", sub.Id, lang, sub.Code,
             problem.TimeLimitMs, problem.MemoryLimitKb, problem.BannedHeaders, problem.BannedSymbols, tests,
@@ -87,13 +87,13 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         {
             if (s.UserId == UserId)
             {
-                result.Add(Mapping.ToDto(s, UserId, canSeeCode: true, viewer.User!.DisplayName));
+                result.Add(Mapping.ToDto(s, UserId, canSeeCode: true, viewer.User!.DisplayName, isStaff: staff));
                 continue;
             }
             if (!membersById.TryGetValue(s.UserId, out var author)) continue;
             if (!_vis.CanSeePeerRow(UserId, staff, board, author)) continue;
             bool full = _vis.CanSeePeerSubmission(UserId, staff, board, author, s);
-            result.Add(Mapping.ToDto(s, UserId, full, author.User!.DisplayName));
+            result.Add(Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff));
         }
         return result;
     }
@@ -105,23 +105,29 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             .FirstOrDefaultAsync(x => x.Id == id);
         if (s is null) return NotFound();
 
-        if (s.UserId == UserId)
-            return Mapping.ToDto(s, UserId, canSeeCode: true, s.User!.DisplayName);
+        // The problem (or its board) may since have been soft-deleted — nothing left to
+        // check staff-ness against then, but the author can still see their own basics.
+        Board? board = null;
+        bool staff = false;
+        if (s.Problem is not null)
+        {
+            board = await _db.Boards.Include(b => b.Members).ThenInclude(m => m.User)
+                .FirstOrDefaultAsync(b => b.Id == s.Problem.BoardId);
+            var selfMembership = board?.Members.FirstOrDefault(m => m.UserId == UserId);
+            staff = selfMembership is not null && _vis.IsStaff(selfMembership.Role);
+        }
 
-        // The problem (or its board) may since have been soft-deleted — a peer/staff
-        // viewer has nothing to check visibility against then.
-        if (s.Problem is null) return NotFound();
-        var board = await _db.Boards.Include(b => b.Members).ThenInclude(m => m.User)
-            .FirstOrDefaultAsync(b => b.Id == s.Problem.BoardId);
+        if (s.UserId == UserId)
+            return Mapping.ToDto(s, UserId, canSeeCode: true, s.User!.DisplayName, isStaff: staff);
+
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
         if (viewer is null) return Forbid();
-        bool staff = _vis.IsStaff(viewer.Role);
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
         if (author is null || !_vis.CanSeePeerRow(UserId, staff, board, author)) return Forbid();
         bool full = _vis.CanSeePeerSubmission(UserId, staff, board, author, s);
-        return Mapping.ToDto(s, UserId, full, author.User!.DisplayName);
+        return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff);
     }
 
     /// <summary>Feature 4: a student hides/unhides their own submission from other students.</summary>

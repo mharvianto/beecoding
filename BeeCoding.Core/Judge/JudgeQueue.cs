@@ -24,12 +24,17 @@ public sealed record GradeJob(
     IReadOnlyList<TestSpec> Tests,
     string? InputFileName = null) : JudgeJob;
 
-public sealed record TestSpec(string Stdin, string Expected, int Points);
+public sealed record TestSpec(string Stdin, string Expected, int Points, bool IsSample = false);
 
-/// <summary>The judge's verdict for a <see cref="GradeJob"/> — the ONLY thing it sends back.</summary>
+/// <summary>The judge's verdict for a <see cref="GradeJob"/> — the ONLY thing it sends back.
+/// <see cref="FailedTest"/> is a formatted "test N of M / input / expected / your output"
+/// block for the first test that didn't pass (null on Accepted or CompileError, where
+/// there's no per-test comparison to show) — staff-only once it reaches the web tier, since
+/// it can reveal a hidden test's expected output.</summary>
 public sealed record GradeResult(
     string Kind, int SubmissionId,
-    string Verdict, double Score, int RuntimeMs, int MemoryKb, string CompilerOutput);
+    string Verdict, double Score, int RuntimeMs, int MemoryKb, string CompilerOutput,
+    string? FailedTest = null);
 
 /// <summary>Progress ping while grading a <see cref="GradeJob"/>: test <see cref="Current"/>
 /// (1-based) of <see cref="Total"/> is about to run.</summary>

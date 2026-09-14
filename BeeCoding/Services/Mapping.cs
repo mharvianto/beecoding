@@ -14,7 +14,7 @@ public static class Mapping
             .Distinct()
             .Take(12));
 
-    public static SubmissionDto ToDto(Submission s, int viewerUserId, bool canSeeCode, string authorName)
+    public static SubmissionDto ToDto(Submission s, int viewerUserId, bool canSeeCode, string authorName, bool isStaff = false)
     {
         bool mine = s.UserId == viewerUserId;
         return new SubmissionDto(
@@ -24,7 +24,10 @@ public static class Mapping
             s.HiddenByStudent, mine,
             (mine || canSeeCode) ? s.Code : null,
             (mine || canSeeCode) ? s.CompilerOutput : "",
-            s.CreatedAt, s.JudgedAt, s.Language ?? "");
+            s.CreatedAt, s.JudgedAt, s.Language ?? "",
+            // Staff-only, and *not* granted just by "mine" — a hidden test's expected
+            // output must never reach the student whose submission it is either.
+            isStaff ? s.FailedTest : null);
     }
 
     public static TestCaseDto ToDto(TestCase t) =>
