@@ -205,6 +205,28 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         }
     }
 
+    /// <summary>What a placement is ALREADY bound to, without creating anything — used by
+    /// Submission Review, where "nothing bound yet" just means there's nothing to review.</summary>
+    public async Task<(Board? Board, BankProblem? BankProblem)> FindBoundResourceLinkAsync(LtiPlatform platform, LtiLaunchClaims claims)
+    {
+        var link = await _db.LtiResourceLinks.Include(l => l.Board).Include(l => l.BankProblem)
+            .FirstOrDefaultAsync(l => l.LtiPlatformId == platform.Id && l.DeploymentId == claims.DeploymentId
+                && l.ContextId == claims.ContextId && l.ResourceLinkId == claims.ResourceLinkId);
+        var board = link?.BoardId is not null && link.Board is { DeletedAt: null } ? link.Board : null;
+        var bankProblem = link?.BankProblemId is not null && link.BankProblem is { DeletedAt: null } ? link.BankProblem : null;
+        return (board, bankProblem);
+    }
+
+    /// <summary>The local account already linked to this platform subject, or null if that
+    /// person has never launched the tool — used by Submission Review to find the student
+    /// being reviewed (`for_user.user_id`) without provisioning an account for them.</summary>
+    public async Task<User?> FindLinkedUserAsync(LtiPlatform platform, string subject)
+    {
+        var link = await _db.LtiUserLinks.Include(l => l.User)
+            .FirstOrDefaultAsync(l => l.LtiPlatformId == platform.Id && l.Subject == subject);
+        return link?.User is { DeletedAt: null } u ? u : null;
+    }
+
     private static string? TryGetHint(string? targetLinkUri, string key)
     {
         if (targetLinkUri is null || !Uri.TryCreate(targetLinkUri, UriKind.Absolute, out var uri)) return null;

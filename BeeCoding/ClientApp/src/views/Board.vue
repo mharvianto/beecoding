@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
 import { useAuth } from '../stores/auth';
@@ -15,11 +15,22 @@ import VerdictBadge from '../components/VerdictBadge.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import QrCode from '../components/QrCode.vue';
+import SubmissionView from '../components/SubmissionView.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
+const route = useRoute();
 const router = useRouter();
 const undoToast = useUndoToast();
+
+// Deep link from an LTI "review submission" launch (?viewSubmission=<id>, see LtiController)
+// — open it once on load, then drop the query param so a refresh doesn't reopen it.
+const ltiSubmissionId = ref(route.query.viewSubmission ? Number(route.query.viewSubmission) : null);
+if (ltiSubmissionId.value) {
+  const q = { ...route.query };
+  delete q.viewSubmission;
+  router.replace({ query: q });
+}
 
 const view = ref(localStorage.getItem('beecoding.boardView') || 'wall');
 function setView(v) { view.value = v; localStorage.setItem('beecoding.boardView', v); }
@@ -325,5 +336,7 @@ onBeforeUnmount(async () => {
     <BankPicker v-if="picking"
       :board-slug="board.slug"
       @added="onBankAdded" @cancel="picking = false" />
+
+    <SubmissionView v-if="ltiSubmissionId" :submission-id="ltiSubmissionId" @close="ltiSubmissionId = null" />
   </div>
 </template>

@@ -25,6 +25,10 @@ public sealed class LtiLaunchClaims
     public string? DeepLinkReturnUrl { get; init; }
     public string? DeepLinkData { get; init; }
     public string? TargetLinkUri { get; init; }
+    /// <summary>Only present on a Submission Review launch (message_type
+    /// LtiSubmissionReviewRequest) — the platform `sub` of the student whose work an
+    /// instructor clicked "review" on, e.g. from the LMS gradebook.</summary>
+    public string? ForUserId { get; init; }
 
     public static LtiLaunchClaims Parse(JwtSecurityToken jwt)
     {
@@ -67,6 +71,10 @@ public sealed class LtiLaunchClaims
             dlData = Str(dlEl, "data");
         }
 
+        string? forUserId = null;
+        if (root.TryGetProperty(LtiClaims.ForUser, out var fuEl) && fuEl.ValueKind == JsonValueKind.Object)
+            forUserId = Str(fuEl, "user_id");
+
         return new LtiLaunchClaims
         {
             MessageType = RootStr(LtiClaims.MessageType) ?? "",
@@ -85,6 +93,7 @@ public sealed class LtiLaunchClaims
             DeepLinkReturnUrl = dlReturn,
             DeepLinkData = dlData,
             TargetLinkUri = RootStr(LtiClaims.TargetLinkUri),
+            ForUserId = forUserId,
         };
     }
 }

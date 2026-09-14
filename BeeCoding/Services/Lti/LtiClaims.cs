@@ -14,9 +14,11 @@ public static class LtiClaims
     public const string DeepLinkingSettings = "https://purl.imsglobal.org/spec/lti-dl/claim/deep_linking_settings";
     public const string DeepLinkingContentItems = "https://purl.imsglobal.org/spec/lti-dl/claim/content_items";
     public const string DeepLinkingData = "https://purl.imsglobal.org/spec/lti-dl/claim/data";
+    public const string ForUser = "https://purl.imsglobal.org/spec/lti/claim/for_user";
 
     public const string MessageTypeResourceLink = "LtiResourceLinkRequest";
     public const string MessageTypeDeepLinking = "LtiDeepLinkingRequest";
+    public const string MessageTypeSubmissionReview = "LtiSubmissionReviewRequest";
 
     /// <summary>Any of these role URNs (case-insensitive substring on the last segment)
     /// counts as course staff — granted a Board's Teacher membership, not Student.</summary>

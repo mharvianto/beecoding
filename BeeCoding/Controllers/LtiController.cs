@@ -108,6 +108,7 @@ public class LtiController(
 
         var user = await _provisioning.FindOrCreateUserAsync(platform, claims);
         await CookieSignIn.SignInAsync(HttpContext, user);
+        var isInstructor = LtiClaims.IsInstructor(claims.Roles);
 
         if (claims.MessageType == LtiClaims.MessageTypeDeepLinking)
         {
@@ -118,10 +119,37 @@ public class LtiController(
             return Redirect($"{Url.Content("~/lti/deep-link")}?token={Uri.EscapeDataString(token)}");
         }
 
+        // An instructor clicked "review submission" on a student's grade in the LMS
+        // gradebook for this activity. Land them straight on that student's most recent
+        // submission on the bound board (see BoardsController's admin-view bypass for the
+        // staff visibility this relies on — an instructor here is board staff either way).
+        if (claims.MessageType == LtiClaims.MessageTypeSubmissionReview)
+        {
+            if (!isInstructor) return Content("Only instructors can review a student's submission from here.");
+
+            var (reviewBoard, reviewBankProblem) = await _provisioning.FindBoundResourceLinkAsync(platform, claims);
+            if (reviewBankProblem is not null)
+                return Content("Submission review isn't available for practice activities yet — open Practice directly instead.");
+            if (reviewBoard is null)
+                return Content("This activity hasn't been opened yet, so there's nothing to review.");
+
+            await _provisioning.EnsureMembershipAsync(reviewBoard, user, isInstructor);
+
+            var target = string.IsNullOrEmpty(claims.ForUserId) ? null
+                : await _provisioning.FindLinkedUserAsync(platform, claims.ForUserId);
+            var boardUrl = Url.Content($"~/boards/{reviewBoard.Slug}");
+            if (target is null) return Redirect(boardUrl);   // that student never launched — nothing to jump to yet
+
+            var latest = await _db.Submissions
+                .Where(s => s.UserId == target.Id && s.Problem!.BoardId == reviewBoard.Id)
+                .OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
+                .FirstOrDefaultAsync();
+            return Redirect(latest is null ? boardUrl : $"{boardUrl}?viewSubmission={latest.Id}");
+        }
+
         if (claims.MessageType != LtiClaims.MessageTypeResourceLink)
             return BadRequest($"Unsupported LTI message_type '{claims.MessageType}'.");
 
-        var isInstructor = LtiClaims.IsInstructor(claims.Roles);
         var (board, bankProblem) = await _provisioning.ResolveResourceLinkAsync(platform, claims, user, isInstructor);
 
         if (bankProblem is not null)
