@@ -784,8 +784,11 @@ public class AdminUiController(
 
     // ---- AI usage --------------------------------------------------------------
     [HttpGet("ai-usage")]
-    public async Task<ActionResult<IEnumerable<AdminAiUsageRow>>> AiUsage()
+    public async Task<ActionResult<AdminAiUsagePageDto>> AiUsage([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 200);
+
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
 
@@ -798,7 +801,7 @@ public class AdminUiController(
             return new AdminAiUsageBucket(c, p, k, p + k);
         }
 
-        return rows.GroupBy(x => x.UserId)
+        var all = rows.GroupBy(x => x.UserId)
             .Select(g => new AdminAiUsageRow(
                 g.Key,
                 g.First().User?.Email ?? "?",
@@ -808,6 +811,9 @@ public class AdminUiController(
                 Sum(g)))
             .OrderByDescending(r => r.AllTime.TotalTokens)
             .ToList();
+
+        var pageRows = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new AdminAiUsagePageDto(pageRows, all.Count, page, pageSize);
     }
 
     // ---- AI kill-switch, quotas, per-user overrides -------------------------

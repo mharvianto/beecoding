@@ -100,6 +100,7 @@ public record AdminUserPageDto(List<AdminUserRow> Rows, int Total, int Page, int
 public record AdminAiUsageBucket(int Calls, long PromptTokens, long CompletionTokens, long TotalTokens);
 public record AdminAiUsageRow(int UserId, string Email, string DisplayName,
     AdminAiUsageBucket Today, AdminAiUsageBucket Month, AdminAiUsageBucket AllTime);
+public record AdminAiUsagePageDto(List<AdminAiUsageRow> Rows, int Total, int Page, int PageSize);
 
 public record AdminProblemTest(string Stdin, string ExpectedStdout, bool IsSample, int Points, int Position);
 public record AdminProblemItem(

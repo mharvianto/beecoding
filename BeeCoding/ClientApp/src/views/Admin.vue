@@ -27,6 +27,9 @@ const tab = ref(tabDefs.some((t) => t[0] === route.params.tab) ? route.params.ta
 const err = ref('');
 
 const aiRows = ref(null);
+const aiPage = ref(1);
+const aiPageSize = ref(25);
+const aiTotal = ref(0);
 const users = ref(null);
 const userQ = ref('');
 const usersPage = ref(1);
@@ -203,9 +206,15 @@ async function rejectAiReview(row) {
 
 async function loadAi() {
   err.value = '';
-  try { aiRows.value = await api.get('/api/admin-ui/ai-usage'); }
-  catch (e) { err.value = e.message; }
+  try {
+    const p = new URLSearchParams({ page: String(aiPage.value), pageSize: String(aiPageSize.value) });
+    const result = await api.get(`/api/admin-ui/ai-usage?${p}`);
+    aiRows.value = result.rows;
+    aiTotal.value = result.total;
+  } catch (e) { err.value = e.message; }
 }
+function aiPrevPage() { if (aiPage.value > 1) { aiPage.value--; loadAi(); } }
+function aiNextPage() { if (aiPage.value * aiPageSize.value < aiTotal.value) { aiPage.value++; loadAi(); } }
 async function loadUsers() {
   err.value = '';
   selectedUsers.value = new Set();
@@ -868,6 +877,17 @@ onMounted(async () => {
               <tr v-if="aiRows && !aiRows.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No AI usage yet.</td></tr>
             </tbody>
           </table>
+        </div>
+        <div v-if="aiTotal" class="flex items-center gap-3 mt-3 text-sm">
+          <span class="text-slate-400 dark:text-slate-500">
+            {{ (aiPage - 1) * aiPageSize + 1 }}–{{ Math.min(aiPage * aiPageSize, aiTotal) }} of {{ aiTotal }}
+          </span>
+          <div class="ml-auto flex gap-2">
+            <button @click="aiPrevPage" :disabled="aiPage === 1"
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+            <button @click="aiNextPage" :disabled="aiPage * aiPageSize >= aiTotal"
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+          </div>
         </div>
       </div>
     </section>
