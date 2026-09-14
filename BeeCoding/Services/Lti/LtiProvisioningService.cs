@@ -19,7 +19,11 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
     {
         var link = await _db.LtiUserLinks.Include(l => l.User)
             .FirstOrDefaultAsync(l => l.LtiPlatformId == platform.Id && l.Subject == claims.Subject);
-        if (link?.User is { DeletedAt: null } existing) return existing;
+        if (link?.User is { DeletedAt: null } existing)
+        {
+            await BackfillIdentityAsync(existing, claims);
+            return existing;
+        }
 
         // Email is optional in LTI (a platform can withhold PII) — synthesize a stable,
         // non-routable one keyed by platform+subject so User.Email's unique index still holds.
@@ -68,6 +72,37 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         }
 
         return user;
+    }
+
+    /// <summary>A first launch before the platform shared PII leaves the user with a
+    /// synthesized "lti-...@lti.invalid" email and/or a "LTI user" display name (see
+    /// above). If a later launch does carry real values — e.g. an admin turned on
+    /// "share name/email with tool" in the platform's LTI privacy settings after the
+    /// account already existed — adopt them now instead of leaving the placeholder
+    /// forever. Never overwrites a name/email the user already has for real, and never
+    /// claims an email another account is already using.</summary>
+    private async Task BackfillIdentityAsync(User user, LtiLaunchClaims claims)
+    {
+        var changed = false;
+
+        if (user.DisplayName == "LTI user" && !string.IsNullOrWhiteSpace(claims.Name))
+        {
+            user.DisplayName = claims.Name!;
+            changed = true;
+        }
+
+        if (user.Email.EndsWith("@lti.invalid", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(claims.Email))
+        {
+            var real = claims.Email!.Trim().ToLowerInvariant();
+            var taken = await _db.Users.AnyAsync(u => u.Id != user.Id && u.Email == real);
+            if (!taken)
+            {
+                user.Email = real;
+                changed = true;
+            }
+        }
+
+        if (changed) await _db.SaveChangesAsync();
     }
 
     /// <summary>Null only for a first-ever launch of a placement by a non-instructor —
