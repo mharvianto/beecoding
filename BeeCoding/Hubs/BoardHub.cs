@@ -9,12 +9,13 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Hubs;
 
 [Authorize]
-public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore drafts, ILectureStore lectures) : Hub
+public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore drafts, ILectureStore lectures, AdminAccess admin) : Hub
 {
     private readonly AppDbContext _db = db;
     private readonly IPresenceTracker _presence = presence;
     private readonly IDraftStore _drafts = drafts;
     private readonly ILectureStore _lectures = lectures;
+    private readonly AdminAccess _admin = admin;
 
     private int UserId => int.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -25,10 +26,11 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     {
         var membership = await _db.BoardMemberships
             .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == UserId);
-        if (membership is null) throw new HubException("Not a member of this board");
+        bool isAdmin = membership is null && _admin.IsAdminEmail(Context.User!.FindFirstValue(ClaimTypes.Email));
+        if (membership is null && !isAdmin) throw new HubException("Not a member of this board");
 
         var name = Context.User!.FindFirstValue(ClaimTypes.Name) ?? "user";
-        bool isStaff = membership.Role is MembershipRole.Owner or MembershipRole.Teacher;
+        bool isStaff = isAdmin || membership!.Role is MembershipRole.Owner or MembershipRole.Teacher;
 
         await Groups.AddToGroupAsync(Context.ConnectionId, BoardGroup(boardId));
         if (isStaff) await Groups.AddToGroupAsync(Context.ConnectionId, StaffGroup(boardId));

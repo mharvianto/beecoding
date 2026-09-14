@@ -26,7 +26,8 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var boardId = await _boards.ResolveBoardIdAsync(slug);
         if (boardId is null) return NotFound();
         var me = await _boards.GetMembershipAsync(boardId.Value, UserId);
-        if (me is null) return Forbid();
+        bool isAdmin = IsAdminUser(_admin);
+        if (me is null && !isAdmin) return Forbid();
 
         var problems = await _db.Problems
             .Where(p => p.BoardId == boardId.Value)
@@ -34,7 +35,8 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
             .OrderBy(p => p.Position).ThenBy(p => p.Id)
             .ToListAsync();
 
-        return _vis.IsStaff(me.Role)
+        bool staff = me is not null ? _vis.IsStaff(me.Role) : isAdmin;
+        return staff
             ? problems.Select(Mapping.ToOwnerDto).ToList()
             : problems.Select(Mapping.ToStudentDto).ToList();
     }
@@ -45,14 +47,15 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var boardId = await _boards.ResolveBoardIdAsync(slug);
         if (boardId is null) return NotFound();
         var me = await _boards.GetMembershipAsync(boardId.Value, UserId);
-        if (me is null) return Forbid();
+        if (me is null && !IsAdminUser(_admin)) return Forbid();
 
         var p = await _db.Problems
             .Include(x => x.TestCases)
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId.Value);
         if (p is null) return NotFound();
 
-        return _vis.IsStaff(me.Role) ? Mapping.ToOwnerDto(p) : Mapping.ToStudentDto(p);
+        bool staff = me is not null ? _vis.IsStaff(me.Role) : IsAdminUser(_admin);
+        return staff ? Mapping.ToOwnerDto(p) : Mapping.ToStudentDto(p);
     }
 
     [HttpPost]

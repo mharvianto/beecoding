@@ -112,8 +112,8 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         if (board is null) return NotFound();
 
         var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (membership is null) return Forbid();
-        return ToDto(board, membership.Role);
+        if (membership is null && !IsAdminUser(_admin)) return Forbid();
+        return ToDto(board, membership?.Role ?? MembershipRole.Teacher);
     }
 
     [HttpPatch("{slug}")]
@@ -139,7 +139,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     {
         var boardId = await _boards.ResolveBoardIdAsync(slug);
         if (boardId is null) return NotFound();
-        var progress = await _boards.BuildProgressAsync(boardId.Value, UserId);
+        var progress = await _boards.BuildProgressAsync(boardId.Value, UserId, IsAdminUser(_admin));
         return progress is null ? Forbid() : progress;
     }
 
@@ -154,7 +154,8 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
         if (board is null) return NotFound();
         var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (membership is null || membership.Role == MembershipRole.Student) return Forbid();
+        bool isAdmin = IsAdminUser(_admin);
+        if (!isAdmin && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
 
         var totalStudents = board.Members.Count(m => m.Role == MembershipRole.Student);
         var totalProblems = await _db.Problems.CountAsync(p => p.BoardId == board.Id);

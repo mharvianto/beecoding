@@ -43,7 +43,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
     public async Task<int?> ResolveBoardIdAsync(string slug) =>
         await _db.Boards.Where(b => b.Slug == slug).Select(b => (int?)b.Id).FirstOrDefaultAsync();
 
-    public async Task<ProgressBoardDto?> BuildProgressAsync(int boardId, int viewerUserId)
+    public async Task<ProgressBoardDto?> BuildProgressAsync(int boardId, int viewerUserId, bool viewerIsAdmin = false)
     {
         var board = await _db.Boards
             .Include(b => b.Members).ThenInclude(m => m.User)
@@ -52,8 +52,8 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         if (board is null) return null;
 
         var viewer = board.Members.FirstOrDefault(m => m.UserId == viewerUserId);
-        if (viewer is null) return null;
-        bool viewerIsStaff = _vis.IsStaff(viewer.Role);
+        if (viewer is null && !viewerIsAdmin) return null;
+        bool viewerIsStaff = viewerIsAdmin || (viewer is not null && _vis.IsStaff(viewer.Role));
 
         var problems = board.Problems.OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
         var problemIds = problems.Select(p => p.Id).ToList();

@@ -11,7 +11,7 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 public class SubmissionsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IJudgeQueue queue, RateLimiter rate, IBoardNotifier notifier) : ApiControllerBase
+    IJudgeQueue queue, RateLimiter rate, IBoardNotifier notifier, AdminAccess admin) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -19,6 +19,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     private readonly IJudgeQueue _queue = queue;
     private readonly RateLimiter _rate = rate;
     private readonly IBoardNotifier _notifier = notifier;
+    private readonly AdminAccess _admin = admin;
 
     [HttpPost("api/problems/{problemId:int}/submit")]
     public async Task<ActionResult<object>> Submit(int problemId, SubmitDto dto)
@@ -73,8 +74,9 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             .FirstOrDefaultAsync(b => b.Id == problem.BoardId);
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (viewer is null) return Forbid();
-        bool staff = _vis.IsStaff(viewer.Role);
+        bool isAdmin = IsAdminUser(_admin);
+        if (viewer is null && !isAdmin) return Forbid();
+        bool staff = viewer is not null ? _vis.IsStaff(viewer.Role) : isAdmin;
 
         var subs = await _db.Submissions
             .Where(s => s.ProblemId == problemId)
@@ -87,7 +89,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         {
             if (s.UserId == UserId)
             {
-                result.Add(Mapping.ToDto(s, UserId, canSeeCode: true, viewer.User!.DisplayName, isStaff: staff));
+                result.Add(Mapping.ToDto(s, UserId, canSeeCode: true, viewer?.User?.DisplayName ?? "You", isStaff: staff));
                 continue;
             }
             if (!membersById.TryGetValue(s.UserId, out var author)) continue;
@@ -114,7 +116,8 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             board = await _db.Boards.Include(b => b.Members).ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(b => b.Id == s.Problem.BoardId);
             var selfMembership = board?.Members.FirstOrDefault(m => m.UserId == UserId);
-            staff = selfMembership is not null && _vis.IsStaff(selfMembership.Role);
+            bool isAdminForBoard = IsAdminUser(_admin);
+            staff = (selfMembership is not null && _vis.IsStaff(selfMembership.Role)) || isAdminForBoard;
         }
 
         if (s.UserId == UserId)
@@ -122,7 +125,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
 
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (viewer is null) return Forbid();
+        if (viewer is null && !IsAdminUser(_admin)) return Forbid();
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
         if (author is null || !_vis.CanSeePeerRow(UserId, staff, board, author)) return Forbid();
