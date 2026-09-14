@@ -324,7 +324,7 @@ function ago(ts) {
               :stderr="runOut?.stderr || ''" />
 
       <h3 class="font-semibold text-sm mt-5 mb-2">Submissions</h3>
-      <div class="space-y-1">
+      <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
         <div v-for="s in submissions" :key="s.id"
              class="flex items-center gap-2 text-sm border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1.5">
           <VerdictBadge :verdict="s.status === 'Done' ? s.verdict : s.status" small />
