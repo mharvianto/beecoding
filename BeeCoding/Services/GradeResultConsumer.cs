@@ -88,6 +88,8 @@ public sealed class GradeResultConsumer(
         int xp = 0;
         if (sub.Verdict == Verdict.Accepted && sub.Score >= 1.0)
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.KeyForBoardProblem(problem), problem.Level, ct);
+        sub.XpAwarded = xp;
+        await db.SaveChangesAsync(ct);
 
         await notifier.ProgressChangedAsync(problem.BoardId, problem.Id, sub.UserId);
         await notifier.WallChangedAsync(problem.BoardId);
@@ -129,6 +131,8 @@ public sealed class GradeResultConsumer(
         int xp = 0;
         if (sub.Verdict == Verdict.Accepted && sub.Score >= 1.0)
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.BankKey(problem.Id), problem.Level, ct);
+        sub.XpAwarded = xp;
+        await db.SaveChangesAsync(ct);
 
         await notifier.PracticeResultAsync(sub.UserId, Mapping.ToDto(sub));
         if (xp > 0)

@@ -15,6 +15,7 @@ import SplitPane from '../components/SplitPane.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
 import { loadDraft, saveDraft, clearDraft } from '../lib/draft';
 import { celebrate } from '../lib/confetti';
+import { alreadyCelebrated, markCelebrated } from '../lib/celebration';
 
 const props = defineProps({ slug: { type: String, required: true }, problemSlug: { type: String, required: true } });
 const auth = useAuth();
@@ -133,6 +134,16 @@ async function loadSubs() {
     const match = submissions.value.find((s) => s.id === submittingId.value);
     if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
   }
+  // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
+  // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
+  // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
+  // solved; the localStorage marker stops a later revisit from re-celebrating it.
+  const mineLatest = submissions.value.find((s) => s.mine);
+  if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted' && mineLatest.xpAwarded > 0
+      && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
+    celebrate();
+    markCelebrated(auth.user?.id, draftScope.value, mineLatest.id);
+  }
 }
 
 async function run() {
@@ -195,7 +206,7 @@ onMounted(async () => {
   conn.on('submissionProgress', (p) => {
     if (p.kind === 'board' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
   });
-  conn.on('progressBumped', (p) => { progress.$patch({ ...p, ready: true }); celebrate(); });
+  conn.on('progressBumped', (p) => { progress.$patch({ ...p, ready: true }); });
   conn.on('boardSettingsChanged', async () => {
     try { board.value = await api.get(`/api/boards/${props.slug}`); } catch { /* ignore */ }
   });

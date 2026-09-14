@@ -328,6 +328,12 @@ public class Submission
     /// (see Mapping.ToDto), since it can reveal a hidden test's expected output.</summary>
     public string? FailedTest { get; set; }
 
+    /// <summary>XP this specific submission earned — only >0 the one time a problem is
+    /// newly, fully solved (see ProgressService.AwardSolveAsync). Lets the client tell a
+    /// genuine first-time solve apart from a repeat Accepted, so it can celebrate even when
+    /// discovered on reload/reopen rather than via the live SignalR push.</summary>
+    public int XpAwarded { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? JudgedAt { get; set; }
@@ -434,6 +440,9 @@ public class BankSubmission
     public int MemoryKb { get; set; }
     public double Score { get; set; }
     public string CompilerOutput { get; set; } = "";
+
+    /// <summary>XP this specific submission earned — see Submission.XpAwarded.</summary>
+    public int XpAwarded { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? JudgedAt { get; set; }

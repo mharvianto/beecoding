@@ -27,7 +27,8 @@ public static class Mapping
             s.CreatedAt, s.JudgedAt, s.Language ?? "",
             // Staff-only, and *not* granted just by "mine" — a hidden test's expected
             // output must never reach the student whose submission it is either.
-            isStaff ? s.FailedTest : null);
+            isStaff ? s.FailedTest : null,
+            s.XpAwarded);
     }
 
     public static TestCaseDto ToDto(TestCase t) =>
@@ -71,7 +72,7 @@ public static class Mapping
     public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true) => new(
         s.Id, s.BankProblemId, s.Status.ToString(), s.Verdict.ToString(),
         s.RuntimeMs, s.MemoryKb, s.Score, s.CompilerOutput,
-        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "");
+        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded);
 
     // Practice statements are always served as an encrypted image, so the statement text
     // and expected outputs are never sent as JSON (see StatementController.PracticeProblem).

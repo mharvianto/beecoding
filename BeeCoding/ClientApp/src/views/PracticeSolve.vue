@@ -14,6 +14,7 @@ import SplitPane from '../components/SplitPane.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
 import { loadDraft, saveDraft, clearDraft } from '../lib/draft';
 import { celebrate } from '../lib/confetti';
+import { alreadyCelebrated, markCelebrated } from '../lib/celebration';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
@@ -92,6 +93,17 @@ async function loadSubs() {
     const match = submissions.value.find((s) => s.id === submittingId.value);
     if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
   }
+  // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
+  // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
+  // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
+  // solved; the localStorage marker stops a later revisit from re-celebrating it.
+  const latest = submissions.value[0];
+  if (latest?.status === 'Done' && latest.verdict === 'Accepted' && latest.xpAwarded > 0
+      && !alreadyCelebrated(auth.user?.id, draftScope.value, latest.id)) {
+    gained.value = latest.xpAwarded;
+    celebrate();
+    markCelebrated(auth.user?.id, draftScope.value, latest.id);
+  }
 }
 
 async function run() {
@@ -105,17 +117,9 @@ async function run() {
 async function submit() {
   error.value = ''; submitting.value = true; gained.value = 0; testProgress.value = null;
   try {
-    const before = progress.xp;
-    const alreadySolved = problem.value.solved;
     const res = await api.post(`/api/practice/${props.slug}/submit`, { code: code.value, language: solveLang.value });
     submittingId.value = res.submissionId;
     await loadSubs();
-    // give the judge a moment, then reconcile XP
-    setTimeout(async () => {
-      await loadSubs();
-      await progress.refresh();
-      if (!alreadySolved && progress.xp > before) gained.value = progress.xp - before;
-    }, 1500);
   } catch (e) { error.value = e.message; }
   finally { submitting.value = false; }
 }
@@ -125,7 +129,6 @@ watch(code, () => {
   saveTimer = setTimeout(saveDraftNow, 500);
 });
 watch(solveLang, saveDraftNow);
-watch(gained, (v) => { if (v > 0) celebrate(); });
 
 onMounted(async () => {
   try { await load(); } catch (e) { error.value = e.message; return; }
@@ -139,11 +142,7 @@ onMounted(async () => {
   conn.on('submissionProgress', (p) => {
     if (p.kind === 'practice' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
   });
-  conn.on('progressBumped', (p) => {
-    const before = progress.xp;
-    progress.$patch({ ...p, ready: true });
-    if (p.xp > before) gained.value = p.xp - before;
-  });
+  conn.on('progressBumped', (p) => { progress.$patch({ ...p, ready: true }); });
   try { await conn.start(); } catch { /* realtime best-effort */ }
 });
 onBeforeUnmount(async () => {
