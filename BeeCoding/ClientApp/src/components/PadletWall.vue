@@ -1,8 +1,8 @@
 <script setup>
 import { ref, watch, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
+import SubmissionView from './SubmissionView.vue';
 
 const props = defineProps({
   boardSlug: { type: String, required: true },
@@ -10,14 +10,13 @@ const props = defineProps({
   refreshSignal: { type: Number, default: 0 },
   drafts: { type: Object, default: () => ({}) },   // "problemId:userId" -> { code, updatedAt, authorName }
 });
-const router = useRouter();
-
 const wall = ref({ problems: [], posts: [], examMode: false, viewerIsStaff: false });
 const activeProblem = ref(null);
 const noteDraft = ref({});          // postId -> string while editing
 const commentDraft = ref({});       // postId -> string
 const openComments = ref({});       // postId -> bool
 const error = ref('');
+const viewSubmissionId = ref(null); // set to open the full-code viewer modal
 
 const EMOJIS = ['👍', '⭐', '🎉', '🔥', '👀'];
 
@@ -122,8 +121,8 @@ async function delComment(post, c) {
 }
 
 function openPost(post) {
-  const pr = wall.value.problems.find((x) => x.id === post.problemId);
-  if (pr?.slug) router.push(`/boards/${props.boardSlug}/problems/${pr.slug}`);
+  if (post.latestSubmissionId) { viewSubmissionId.value = post.latestSubmissionId; return; }
+  error.value = 'No submission yet for this problem.';
 }
 
 async function toggleHiddenByStudent(post) {
@@ -264,5 +263,7 @@ async function toggleHiddenByStudent(post) {
     <p v-if="!visiblePosts.length" class="text-slate-400 dark:text-slate-500 text-sm">
       No posts yet — a card appears here when a student runs their first submission.
     </p>
+
+    <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />
   </div>
 </template>

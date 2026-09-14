@@ -271,6 +271,7 @@ public record WallPostDto(
     int MemoryKb,
     string Language,
     string? CodePreview,      // first lines of latest submission, null when not visible
+    int? LatestSubmissionId,  // fetch GET /api/submissions/{id} for the full, untruncated code
     DateTime UpdatedAt,
     List<ReactionDto> Reactions,
     List<CommentDto> Comments);
