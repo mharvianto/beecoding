@@ -168,7 +168,7 @@ onBeforeUnmount(async () => {
     </div>
 
     <!-- Staff controls -->
-    <div v-if="isStaff" class="flex items-center gap-3 my-4">
+    <div v-if="isStaff" class="flex flex-wrap items-center gap-2 my-4">
       <button @click="toggleExam"
               class="px-3 py-1.5 rounded-lg text-sm font-medium border"
               :class="progress.examMode
@@ -209,7 +209,7 @@ onBeforeUnmount(async () => {
         📊 Statistics
       </button>
       <button v-if="board.isOwner" @click="deleteBoard"
-              class="ml-auto px-3 py-1.5 rounded-lg text-sm font-medium border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+              class="sm:ml-auto px-3 py-1.5 rounded-lg text-sm font-medium border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
         🗑️ Delete board
       </button>
     </div>
