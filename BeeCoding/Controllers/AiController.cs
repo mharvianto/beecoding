@@ -303,6 +303,116 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         }
     }
 
+    /// <summary>
+    /// Teacher-only, own bank problem. Leave every existing test (samples + hidden) untouched
+    /// and APPEND a small batch of new hidden tests that are all extreme/boundary cases —
+    /// for a problem that predates the extreme-test requirement, or just got unlucky.
+    /// </summary>
+    [HttpPost("add-extreme-tests/{bankProblemId:int}")]
+    public async Task<IActionResult> AddExtremeTests(int bankProblemId, [FromQuery] int? count)
+    {
+        var orgId = await _orgs.ForUserAsync(UserId);
+        _ai.UseOrganization(orgId);
+        if (!_ai.Available) return NotFound();
+        if (CurrentRole != "Teacher") return StatusCode(StatusCodes.Status403Forbidden, "Teachers only.");
+        if (RateLimited()) return StatusCode(StatusCodes.Status429TooManyRequests, "Give the AI a few seconds.");
+        var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
+        if (!allowed) return StatusCode(StatusCodes.Status429TooManyRequests, reason);
+        if (await _jobs.RunningForAsync(UserId) >= 2)
+            return StatusCode(StatusCodes.Status429TooManyRequests, "You already have generations running — wait for those to finish.");
+
+        var owns = await _db.BankProblems.AnyAsync(b => b.Id == bankProblemId && b.OwnerId == UserId);
+        if (!owns) return NotFound();
+
+        var job = await _jobs.CreateAsync(UserId);
+        var n = count is >= 1 and <= 8 ? count.Value : 0;
+        _ = Task.Run(() => RunAddExtremeAsync(job.Id, UserId, bankProblemId, n, orgId));
+        return Accepted(new { jobId = job.Id });
+    }
+
+    private async Task RunAddExtremeAsync(string jobId, int userId, int bankProblemId, int count, int? organizationId)
+    {
+        Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
+            _jobs.FailAsync(jobId, msg, compilerOutput, stderr);
+
+        try
+        {
+            using var scope = _scopes.CreateScope();
+            var sp = scope.ServiceProvider;
+            var db = sp.GetRequiredService<AppDbContext>();
+            var ai = sp.GetRequiredService<AiTutorService>();
+            ai.UseOrganization(organizationId);
+            var usage = sp.GetRequiredService<AiUsageService>();
+            var queue = sp.GetRequiredService<IJudgeQueue>();
+            var ct = CancellationToken.None;
+
+            var problem = await db.BankProblems.Include(b => b.TestCases).Include(b => b.Owner)
+                .FirstOrDefaultAsync(b => b.Id == bankProblemId && b.OwnerId == userId, ct);
+            if (problem is null) { await Fail("Problem not found."); return; }
+
+            var refLang = Languages.Default(problem.AllowedLanguages);
+            var existing = problem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
+                .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
+            if (existing.Count == 0) { await Fail("This problem has no tests to check the reference against yet."); return; }
+            var want = count > 0 ? count : Math.Clamp((int)Math.Round(existing.Count * 0.2, MidpointRounding.AwayFromZero), 1, 5);
+
+            AiTutorService.AiRegenResult gen;
+            try { gen = await ai.AddExtremeTestsAsync(problem.StatementMarkdown, refLang, existing, want, ct); }
+            catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
+            await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
+
+            // 1) the new reference must reproduce every existing test (samples + hidden)
+            foreach (var (eIn, eExp) in existing)
+            {
+                RunResultDto r;
+                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, eIn, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
+                catch { await Fail("Timed out validating the new tests."); return; }
+                if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
+                if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
+                { await Fail("The AI's reference solution crashed on an existing test — try again.", stderr: r.Stderr); return; }
+                if (!VerdictEvaluator.OutputMatches(r.Stdout ?? "", eExp))
+                { await Fail("The AI's reference disagrees with an existing test — try again."); return; }
+            }
+
+            // 2) run the new extreme inputs through the (now trusted) reference for expected output
+            var seen = existing.Select(s => s.Stdin.Replace("\r\n", "\n").Trim()).ToHashSet();
+            var fresh = new List<(string Stdin, string Expected)>();
+            foreach (var inp in gen.Inputs.Take(8))
+            {
+                if (inp.Length > 16_000) continue;
+                if (!seen.Add(inp.Replace("\r\n", "\n").Trim())) continue;
+                RunResultDto r;
+                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
+                catch { await Fail("Timed out validating the new tests."); return; }
+                if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
+                if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0) continue;   // skip an input the reference can't handle
+                fresh.Add((inp, r.Stdout ?? ""));
+            }
+            if (fresh.Count < 1) { await Fail("The AI didn't produce any usable extreme tests — try again."); return; }
+
+            // append at the end — every existing test (samples + hidden) stays untouched
+            int pos = problem.TestCases.Select(t => t.Position).DefaultIfEmpty(-1).Max() + 1;
+            foreach (var (stdin, expected) in fresh)
+                problem.TestCases.Add(new BankTestCase
+                {
+                    Stdin = stdin,
+                    ExpectedStdout = expected,
+                    IsSample = false,
+                    Points = 1,
+                    Position = pos++,
+                });
+            problem.UpdatedAt = DateTime.UtcNow;
+            await db.SaveChangesAsync(ct);
+
+            await _jobs.CompleteAsync(jobId, Mapping.ToDto(problem, userId));
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "add-extreme-tests job {Job} failed", jobId);
+            await Fail("Adding extreme tests failed unexpectedly — try again.");
+        }
+    }
+
     /// <summary>Forget the progressive-hint level for one problem — the next hint starts gentle again.</summary>
     [HttpPost("hint-progress/reset")]
     public async Task<IActionResult> ResetHintProgress(AiHintDto dto)

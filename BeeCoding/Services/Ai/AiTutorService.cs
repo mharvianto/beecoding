@@ -572,6 +572,74 @@ Shape:
     public sealed record AiRegenResult(string ReferenceSolution, List<string> Inputs, int PromptTokens, int CompletionTokens);
 
     /// <summary>
+    /// For an EXISTING problem that may predate the extreme-test requirement (or just got
+    /// unlucky): ask for a fresh reference solution + a small batch of ADDITIONAL hidden
+    /// tests that are ALL extreme/boundary cases, to append after the problem's current
+    /// tests without touching them. Same verification shape as RegenerateTestsAsync — the
+    /// caller checks the reference against the known tests, then runs it on the new inputs.
+    /// </summary>
+    public async Task<AiRegenResult> AddExtremeTestsAsync(
+        string statementMarkdown, string language, IReadOnlyList<(string Stdin, string Expected)> existingTests,
+        int count, CancellationToken ct)
+    {
+        count = Math.Clamp(count, 1, 8);
+        var sys = $$"""
+You are a test-data setter for a C/C++ online judge. You are given an EXISTING problem
+statement (do NOT change or reinterpret it) and its CURRENT tests. Produce:
+1. "referenceSolution": a CORRECT {{language}} program that reads the stated stdin format and
+   prints exactly the required output. It MUST agree with every current test below.
+2. "tests": EXACTLY {{count}} NEW hidden test inputs (stdin only, no outputs) to ADD to the
+   problem — every one of them MUST be an EXTREME/boundary case, distinct from the current
+   tests and from each other: the stated minimum allowed size/count, the stated maximum
+   allowed size/count, the smallest value the stated numeric range permits, the largest
+   value it permits, a value right at an overflow/precision edge for the type in use, or an
+   empty/singleton input if the constraints allow it. Do NOT produce ordinary/typical tests
+   — every one of these {{count}} must push a stated constraint to its edge. Keep every
+   stdin under ~1 KB.
+
+Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
+{"referenceSolution":"...","tests":[{"stdin":"..."},{"stdin":"..."}]}
+""";
+        var u = new StringBuilder();
+        u.AppendLine("## Problem statement\n" + Trunc(statementMarkdown, 6000) + "\n");
+        u.AppendLine("## Current tests (the reference MUST reproduce these; new tests must differ from these)");
+        foreach (var (inp, exp) in existingTests.Take(10))
+            u.AppendLine($"- stdin:\n```\n{Trunc(inp, 800)}\n```\n  expected stdout:\n```\n{Trunc(exp, 800)}\n```");
+
+        AiUnavailableException? last = null;
+        for (int attempt = 1; attempt <= 2; attempt++)
+        {
+            using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
+                maxTokens: Math.Max(6000, _opt.MaxTokens), thinking: false, model: GenModel,
+                jsonObject: true, reasoningEffort: "low"));
+            var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + u,
+                _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
+
+            try
+            {
+                using var doc = ParseJsonObjectLoose(content, "add-extreme-tests");
+                var r = doc.RootElement;
+                var reference = r.TryGetProperty("referenceSolution", out var rs) ? (rs.GetString() ?? "") : "";
+                var inputs = new List<string>();
+                if (r.TryGetProperty("tests", out var te) && te.ValueKind == JsonValueKind.Array)
+                    foreach (var t in te.EnumerateArray())
+                        if (t.TryGetProperty("stdin", out var se) && se.GetString() is { } s)
+                            inputs.Add(s);
+
+                if (string.IsNullOrWhiteSpace(reference) || inputs.Count < 1)
+                    throw new AiUnavailableException("The AI didn't return a usable reference + tests — try again.");
+                return new AiRegenResult(reference, inputs, pt, ctk);
+            }
+            catch (AiUnavailableException ex)
+            {
+                last = ex;
+                _log.LogWarning("AI add-extreme-tests attempt {N}/2 unusable ({Len} chars): {Msg}", attempt, content.Length, ex.Message);
+            }
+        }
+        throw last ?? new AiUnavailableException("The AI didn't return a usable reference + tests — try again.");
+    }
+
+    /// <summary>
     /// For an EXISTING problem: ask for a fresh reference solution + a new, diverse set of
     /// hidden test inputs. The caller compiles the reference, checks it against the known
     /// sample outputs, then runs it to get each new input's expected output.

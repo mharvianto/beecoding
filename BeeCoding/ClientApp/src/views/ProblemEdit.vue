@@ -24,6 +24,7 @@ const error = ref('');
 const busy = ref(false);
 const aiEnabled = ref(false);
 const regenBusy = ref(false);
+const addExtremeBusy = ref(false);
 
 async function load() {
   error.value = '';
@@ -83,6 +84,27 @@ async function regenerateTests() {
   finally { regenBusy.value = false; }
 }
 
+// append a few AI-written extreme/boundary tests — bank problems only (background job, poll)
+async function addExtremeTests() {
+  if (isBoard.value || !problem.value?.id) return;
+  error.value = ''; addExtremeBusy.value = true;
+  try {
+    const { jobId } = await api.post(`/api/ai/add-extreme-tests/${problem.value.id}`);
+    for (let n = 0; n < 240; n++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      let r;
+      try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
+      catch (e) { if (e.status === 404) { error.value = 'The job expired.'; break; } continue; }
+      if (r.status === 'running') continue;
+      if (r.status === 'done') problem.value = r.problem;
+      else error.value = (r.message || 'Adding extreme tests failed.') +
+        (r.compilerOutput ? '\n\n' + r.compilerOutput : '') + (r.stderr ? '\n\n' + r.stderr : '');
+      break;
+    }
+  } catch (e) { error.value = e.message; }
+  finally { addExtremeBusy.value = false; }
+}
+
 onMounted(async () => {
   await load();
   if (!isBoard.value) {
@@ -101,6 +123,8 @@ onMounted(async () => {
       :busy="busy"
       :can-regen-tests="!isBoard && aiEnabled && !!editSlug"
       :regen-busy="regenBusy"
-      @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests" />
+      :add-extreme-busy="addExtremeBusy"
+      @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"
+      @add-extreme-tests="addExtremeTests" />
   </div>
 </template>
