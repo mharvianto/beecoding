@@ -105,7 +105,8 @@ public class BoardService(AppDbContext db, VisibilityService vis)
                         agg.Attempts,
                         Redacted: false,
                         Latest: agg.Latest.Verdict == Verdict.Accepted,
-                        LastAt: agg.Latest.CreatedAt));
+                        LastAt: agg.Latest.CreatedAt,
+                        LatestSubmissionId: agg.Latest.Id));
                 }
                 else
                 {

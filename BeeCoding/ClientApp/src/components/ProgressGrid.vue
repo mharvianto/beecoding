@@ -1,6 +1,7 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
+import SubmissionView from './SubmissionView.vue';
 
 const props = defineProps({
   students: Array,
@@ -10,6 +11,8 @@ const props = defineProps({
   currentUserId: Number,
 });
 const emit = defineEmits(['toggle-hide']);
+
+const viewSubmissionId = ref(null);
 
 const cellMap = computed(() => {
   const m = {};
@@ -53,6 +56,11 @@ function solvedCount(userId) {
             <template v-if="cell(s.userId, p.id)">
               <span v-if="cell(s.userId, p.id).redacted"
                     class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" title="attempted (hidden)"></span>
+              <button v-else-if="cell(s.userId, p.id).latestSubmissionId"
+                      @click="viewSubmissionId = cell(s.userId, p.id).latestSubmissionId"
+                      class="rounded hover:ring-2 hover:ring-amber-400 transition" title="View submission">
+                <VerdictBadge :verdict="cell(s.userId, p.id).verdict" small />
+              </button>
               <VerdictBadge v-else :verdict="cell(s.userId, p.id).verdict" small />
               <div v-if="!cell(s.userId, p.id).redacted && cell(s.userId, p.id).attempts > 1"
                    class="text-[10px] text-slate-400 dark:text-slate-500">×{{ cell(s.userId, p.id).attempts }}</div>
@@ -70,5 +78,7 @@ function solvedCount(userId) {
         </tr>
       </tbody>
     </table>
+
+    <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />
   </div>
 </template>
