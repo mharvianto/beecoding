@@ -184,7 +184,10 @@ public record AdminSystemStatusDto(
     bool RedisConfigured, bool? RedisConnected,
     long? PendingJudgeJobs, bool DatabaseOk, DateTime CheckedAt,
     string GccVersion, string GppVersion,
-    bool LspEnabled, int JudgeRateLimitMs);
+    bool LspEnabled, int JudgeRateLimitMs,
+    // Read-only — fixed at deploy time (appsettings.json), shown for visibility only.
+    int JudgeMaxConcurrent, int JudgeCompileTimeoutMs, int JudgeQueueCapacity,
+    int LspMaxConcurrent, int LspIdleTimeoutSeconds, int LspMemoryLimitMb);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs);

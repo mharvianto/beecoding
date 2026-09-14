@@ -1463,6 +1463,18 @@ onMounted(async () => {
             <span>{{ systemStatus.pendingJudgeJobs ?? 'n/a' }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">Judge max concurrent</span>
+            <span>{{ systemStatus.judgeMaxConcurrent }}</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">Judge compile timeout</span>
+            <span>{{ systemStatus.judgeCompileTimeoutMs }}ms</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">Judge queue capacity</span>
+            <span>{{ systemStatus.judgeQueueCapacity }}</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
             <span class="text-slate-400 dark:text-slate-500">Realtime backend</span>
             <span>{{ systemStatus.realtimeBackend }}</span>
           </div>
@@ -1478,6 +1490,18 @@ onMounted(async () => {
             <span :class="systemStatus.databaseOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
               {{ systemStatus.databaseOk ? 'reachable' : 'unreachable' }}
             </span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">LSP max concurrent sessions</span>
+            <span>{{ systemStatus.lspMaxConcurrent }}</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">LSP idle timeout</span>
+            <span>{{ systemStatus.lspIdleTimeoutSeconds }}s</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">LSP memory limit</span>
+            <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : 'unset' }}</span>
           </div>
           <div class="flex justify-between py-1">
             <span class="text-slate-400 dark:text-slate-500">Checked</span>

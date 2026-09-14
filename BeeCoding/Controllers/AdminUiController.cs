@@ -5,6 +5,7 @@ using BeeCoding.Models;
 using BeeCoding.Services;
 using BeeCoding.Services.Ai;
 using BeeCoding.Services.Judge;
+using BeeCoding.Services.Lsp;
 using BeeCoding.Services.Realtime;
 using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,8 @@ namespace BeeCoding.Controllers;
 public class AdminUiController(
     AppDbContext db, AdminAccess admin, AuditLog audit, PasswordService pw, AiRuntimeSettings aiRuntime,
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
-    NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt, IOptions<RealtimeStoreOptions> realtimeOpt)
+    NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
+    IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt)
     : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
@@ -40,6 +42,7 @@ public class AdminUiController(
     private readonly NativeToolchain _toolchain = toolchain;
     private readonly IJudgeQueue _judgeQueue = judgeQueue;
     private readonly JudgeOptions _judgeOpt = judgeOpt.Value;
+    private readonly LspOptions _lspOpt = lspOpt.Value;
     private readonly RealtimeStoreOptions _realtimeOpt = realtimeOpt.Value;
 
     // ---- dashboard: at-a-glance overview, the default landing tab -----------
@@ -445,7 +448,9 @@ public class AdminUiController(
             judgeBackend, realtimeBackend, redisConfigured, redisConnected,
             pendingJobs, dbOk, DateTime.UtcNow,
             _toolchain.GccVersion, _toolchain.GppVersion,
-            _runtimeConfig.LspEnabled, _runtimeConfig.JudgeRateLimitMs);
+            _runtimeConfig.LspEnabled, _runtimeConfig.JudgeRateLimitMs,
+            _judgeOpt.MaxConcurrent, _judgeOpt.CompileTimeoutMs, _judgeOpt.QueueCapacity,
+            _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb);
     }
 
     /// <summary>The handful of judge/LSP knobs that are safe to flip without a restart (see
