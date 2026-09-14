@@ -129,11 +129,12 @@ public record AdminPageDto<T>(List<T> Rows, int Total, int Page, int PageSize);
 public record AdminAuditLogRow(int Id, DateTime CreatedAt, string ActorEmail, string Action,
     string TargetType, int TargetId, string TargetLabel);
 
-// ---- Admin: all board submissions, platform-wide (/admin/submissions) ----
+// ---- Admin: every submission, platform-wide (/admin/submissions) — board AND practice ----
 public record AdminSubmissionRow(int Id, DateTime CreatedAt, string Verdict, double Score,
     int RuntimeMs, int MemoryKb, string? Language,
     int UserId, string UserEmail, string UserDisplayName,
-    string ProblemTitle, string BoardSlug, string BoardTitle);
+    string ProblemTitle, string? BoardSlug, string? BoardTitle,
+    string Source = "Board");   // "Board" | "Practice" — Practice has no BoardSlug/BoardTitle
 
 // ---- Admin: dashboard (overview landing tab) ----
 public record AdminDashboardDto(

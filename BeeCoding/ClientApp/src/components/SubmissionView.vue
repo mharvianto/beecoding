@@ -4,7 +4,13 @@ import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
 import MonacoEditor from './MonacoEditor.vue';
 
-const props = defineProps({ submissionId: { type: Number, required: true } });
+const props = defineProps({
+  submissionId: { type: Number, required: true },
+  source: { type: String, default: 'board' },   // 'board' | 'practice'
+  // Practice submissions have no author name of their own (practice is solo, not scoped to
+  // a board with peers) — pass it in when the caller already knows it (e.g. admin listing).
+  authorName: { type: String, default: '' },
+});
 const emit = defineEmits(['close']);
 
 const sub = ref(null);
@@ -13,7 +19,11 @@ const showFailedTest = ref(false);
 
 async function load() {
   error.value = ''; sub.value = null; showFailedTest.value = false;
-  try { sub.value = await api.get(`/api/submissions/${props.submissionId}`); }
+  try {
+    sub.value = props.source === 'practice'
+      ? await api.get(`/api/practice/submissions/${props.submissionId}`)
+      : await api.get(`/api/submissions/${props.submissionId}`);
+  }
   catch (e) { error.value = e.message; }
 }
 watch(() => props.submissionId, load, { immediate: true });
@@ -24,7 +34,7 @@ watch(() => props.submissionId, load, { immediate: true });
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
       <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
-          <span v-if="sub" class="font-semibold text-sm truncate">{{ sub.authorName }}</span>
+          <span v-if="sub" class="font-semibold text-sm truncate">{{ authorName || sub.authorName }}</span>
           <VerdictBadge v-if="sub" :verdict="sub.status === 'Done' ? sub.verdict : sub.status" small />
           <span v-if="sub?.status === 'Done'" class="text-xs text-slate-400 dark:text-slate-500">
             {{ sub.runtimeMs }}ms · {{ sub.memoryKb }}KB · {{ Math.round(sub.score * 100) }}%
@@ -38,7 +48,7 @@ watch(() => props.submissionId, load, { immediate: true });
       <template v-else>
         <div class="flex-1 min-h-0">
           <MonacoEditor :model-value="sub.code || ''" :language="sub.language" :read-only="true"
-                         :filename="`${sub.authorName}-submission-${sub.id}`" />
+                         :filename="`${authorName || sub.authorName || 'submission'}-${sub.id}`" />
         </div>
         <pre v-if="sub.compilerOutput" class="shrink-0 max-h-32 overflow-auto bg-slate-900 text-slate-100 dark:bg-black text-xs font-mono px-4 py-2 whitespace-pre-wrap">{{ sub.compilerOutput }}</pre>
         <div v-if="sub.failedTest" class="shrink-0 border-t border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">

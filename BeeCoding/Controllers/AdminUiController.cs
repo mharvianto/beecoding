@@ -819,37 +819,59 @@ public class AdminUiController(
         return new AdminPageDto<AdminAuditLogRow>(rows, total, page, pageSize);
     }
 
-    // ---- Submissions, platform-wide (every board, not just ones the admin belongs to) ----
+    // ---- Submissions, platform-wide — every board (not just ones the admin belongs to)
+    // AND every practice/bank submission, since practice has no board to be a member of.
     [HttpGet("submissions")]
     public async Task<ActionResult<AdminPageDto<AdminSubmissionRow>>> Submissions(
-        [FromQuery] string? q, [FromQuery] string? verdict,
+        [FromQuery] string? q, [FromQuery] string? verdict, [FromQuery] string? source,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 500);
+        var n = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+        Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;
+        var src = source?.Trim().ToLowerInvariant();
 
-        var query = _db.Submissions.Where(s => s.Problem != null && s.Problem.Board != null);
-        if (!string.IsNullOrWhiteSpace(q))
+        var rows = new List<AdminSubmissionRow>();
+
+        if (src is null or "board")
         {
-            var n = q.Trim();
-            query = query.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
-                || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+            var boardQuery = _db.Submissions.Where(s => s.Problem != null && s.Problem.Board != null);
+            if (n is not null)
+                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                    || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
+                    || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+            if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
+            rows.AddRange(await boardQuery
+                .Select(s => new AdminSubmissionRow(
+                    s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                    s.UserId, s.User!.Email, s.User.DisplayName,
+                    s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title, "Board"))
+                .ToListAsync());
         }
-        if (!string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var v))
-            query = query.Where(s => s.Verdict == v);
 
-        var total = await query.CountAsync();
-        var rows = await query.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
-            .Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(s => new AdminSubmissionRow(
-                s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
-                s.UserId, s.User!.Email, s.User.DisplayName,
-                s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title))
-            .ToListAsync();
+        if (src is null or "practice")
+        {
+            var bankQuery = _db.BankSubmissions.Where(s => s.BankProblem != null);
+            if (n is not null)
+                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                    || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
+            if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
+            rows.AddRange(await bankQuery
+                .Select(s => new AdminSubmissionRow(
+                    s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                    s.UserId, s.User!.Email, s.User.DisplayName,
+                    s.BankProblem!.Title, null, null, "Practice"))
+                .ToListAsync());
+        }
 
-        return new AdminPageDto<AdminSubmissionRow>(rows, total, page, pageSize);
+        var total = rows.Count;
+        var pageRows = rows.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        return new AdminPageDto<AdminSubmissionRow>(pageRows, total, page, pageSize);
     }
 
     // ---- AI usage --------------------------------------------------------------

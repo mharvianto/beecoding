@@ -471,14 +471,15 @@ async function purgeSelectedTrash(kind) {
   } catch (e) { err.value = e.message; }
 }
 
-// ---- submissions: every board's submissions, platform-wide ----
+// ---- submissions: every submission, platform-wide — board AND practice ----
 const submissionRows = ref(null);
 const submissionQ = ref('');
 const submissionVerdict = ref('');
+const submissionSource = ref('');
 const submissionsPage = ref(1);
 const submissionsPageSize = ref(50);
 const submissionsTotal = ref(0);
-const viewSubmissionId = ref(null);
+const viewSubmission = ref(null);   // { id, source, authorName } | null
 
 async function loadSubmissions() {
   err.value = '';
@@ -486,6 +487,7 @@ async function loadSubmissions() {
     const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize.value) });
     if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
     if (submissionVerdict.value) p.set('verdict', submissionVerdict.value);
+    if (submissionSource.value) p.set('source', submissionSource.value);
     const result = await api.get(`/api/admin-ui/submissions?${p}`);
     submissionRows.value = result.rows;
     submissionsTotal.value = result.total;
@@ -494,6 +496,7 @@ async function loadSubmissions() {
 function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
 function submissionsPrevPage() { if (submissionsPage.value > 1) { submissionsPage.value--; loadSubmissions(); } }
 function submissionsNextPage() { if (submissionsPage.value * submissionsPageSize.value < submissionsTotal.value) { submissionsPage.value++; loadSubmissions(); } }
+function openSubmission(s) { viewSubmission.value = { id: s.id, source: s.source.toLowerCase(), authorName: s.userDisplayName }; }
 
 // ---- audit log ----
 const auditRows = ref(null);
@@ -1243,11 +1246,17 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- Submissions: every board's submissions, platform-wide (not just boards the admin owns/joined) -->
+    <!-- Submissions: every submission platform-wide — board (not just ones the admin owns/joined) AND practice -->
     <section v-show="tab === 'submissions'">
       <div class="flex flex-wrap gap-2 mb-3">
         <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
                class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <select v-model="submissionSource" @change="searchSubmissions"
+                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+          <option value="">Board + Practice</option>
+          <option value="board">Board only</option>
+          <option value="practice">Practice only</option>
+        </select>
         <select v-model="submissionVerdict" @change="searchSubmissions"
                 class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option value="">Any verdict</option>
@@ -1264,14 +1273,16 @@ onMounted(async () => {
 
       <!-- mobile: cards -->
       <div v-if="tableView === 'card'" class="space-y-2">
-        <button v-for="s in submissionRows" :key="s.id" @click="viewSubmissionId = s.id"
+        <button v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-center justify-between gap-2 mb-1">
             <VerdictBadge :verdict="s.verdict" small />
             <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</span>
           </div>
           <div class="text-sm font-medium">{{ s.problemTitle }}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">{{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.boardTitle }}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">
+            {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
+          </div>
         </button>
         <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
       </div>
@@ -1282,18 +1293,18 @@ onMounted(async () => {
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
-              <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board</th>
+              <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board / Source</th>
               <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
               <th class="font-normal pr-3">Runtime</th><th class="font-normal pr-3">Lang</th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
-            <tr v-for="s in submissionRows" :key="s.id" @click="viewSubmissionId = s.id"
+            <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
                 class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</td>
               <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
               <td>{{ s.problemTitle }}</td>
-              <td class="text-[11px] text-slate-400">{{ s.boardTitle }}</td>
+              <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : 'Practice' }}</td>
               <td><VerdictBadge :verdict="s.verdict" small /></td>
               <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
               <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
@@ -1315,7 +1326,8 @@ onMounted(async () => {
         </div>
       </div>
 
-      <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />
+      <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :source="viewSubmission.source"
+                      :author-name="viewSubmission.authorName" @close="viewSubmission = null" />
     </section>
 
     <!-- AI review: AI-generated bank problems held back until approved -->
