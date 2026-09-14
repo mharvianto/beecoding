@@ -9,6 +9,9 @@ const loading = ref(false);
 const orgs = ref([]);
 const scope = ref('global');   // 'global' | orgId (number, as string while in the select)
 const period = ref('all');     // 'all' | '1y' | '6m' | '1m'
+const page = ref(1);
+const pageSize = 20;
+const total = ref(0);
 
 const periods = [['all', 'All time'], ['1y', '1 year'], ['6m', '6 months'], ['1m', '1 month']];
 
@@ -19,12 +22,18 @@ async function loadOrgs() {
 async function load() {
   loading.value = true; error.value = '';
   try {
-    const params = new URLSearchParams({ limit: '100', period: period.value });
+    const params = new URLSearchParams({ page: String(page.value), pageSize: String(pageSize), period: period.value });
     if (scope.value !== 'global') params.set('organizationId', scope.value);
-    rows.value = await api.get(`/api/leaderboard?${params}`);
+    const result = await api.get(`/api/leaderboard?${params}`);
+    rows.value = result.rows;
+    total.value = result.total;
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 }
+function setScope(s) { scope.value = s; page.value = 1; load(); }
+function setPeriod(p) { period.value = p; page.value = 1; load(); }
+function prevPage() { if (page.value > 1) { page.value--; load(); } }
+function nextPage() { if (page.value * pageSize < total.value) { page.value++; load(); } }
 
 onMounted(async () => { await loadOrgs(); await load(); });
 
@@ -37,18 +46,18 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
 
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <div class="flex gap-1 text-sm">
-        <button @click="scope = 'global'; load()" class="rounded-lg px-3 py-1.5"
+        <button @click="setScope('global')" class="rounded-lg px-3 py-1.5"
                 :class="scope === 'global' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           Global
         </button>
-        <button v-for="o in orgs" :key="o.id" @click="scope = String(o.id); load()"
+        <button v-for="o in orgs" :key="o.id" @click="setScope(String(o.id))"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
                 :class="scope === String(o.id) ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ o.name }}
         </button>
       </div>
       <div class="flex gap-1 text-sm sm:ml-auto">
-        <button v-for="p in periods" :key="p[0]" @click="period = p[0]; load()"
+        <button v-for="p in periods" :key="p[0]" @click="setPeriod(p[0])"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
                 :class="period === p[0] ? 'bg-amber-500 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ p[1] }}
@@ -76,6 +85,17 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
         No XP earned{{ period === 'all' ? ' yet' : ' in this period' }}.
         <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> some problems.
       </p>
+    </div>
+    <div v-if="total" class="flex items-center gap-3 mt-3 text-sm">
+      <span class="text-slate-400 dark:text-slate-500">
+        {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, total) }} of {{ total }}
+      </span>
+      <div class="ml-auto flex gap-2">
+        <button @click="prevPage" :disabled="page === 1"
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+        <button @click="nextPage" :disabled="page * pageSize >= total"
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+      </div>
     </div>
   </div>
 </template>

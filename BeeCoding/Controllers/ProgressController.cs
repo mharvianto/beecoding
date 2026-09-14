@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Controllers;
 
 public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me);
+public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
 public record MyOrgDto(int Id, string Name, string Slug);
 
 [ApiController]
@@ -121,10 +122,13 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
     /// to that org's own members; the caller must belong to it (any role) — leaderboard rows
     /// name real students, so this is an org data-isolation boundary like everywhere else.</summary>
     [HttpGet("api/leaderboard")]
-    public async Task<ActionResult<IEnumerable<LeaderRowDto>>> Leaderboard(
-        [FromQuery] int limit = 50, [FromQuery] string period = "all", [FromQuery] int? organizationId = null)
+    public async Task<ActionResult<LeaderboardPageDto>> Leaderboard(
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
+        [FromQuery] string period = "all", [FromQuery] int? organizationId = null)
     {
-        limit = Math.Clamp(limit, 1, 200);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var skip = (page - 1) * pageSize;
 
         if (organizationId is int orgId
             && !await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == UserId))
@@ -132,16 +136,18 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
 
         if (organizationId is null && period == "all")
         {
-            var top = await _db.Users
-                .Where(u => u.Xp > 0)
+            var query = _db.Users.Where(u => u.Xp > 0);
+            var total = await query.CountAsync();
+            var top = await query
                 .OrderByDescending(u => u.Xp).ThenBy(u => u.Id)
-                .Take(limit)
+                .Skip(skip).Take(pageSize)
                 .Select(u => new { u.Id, u.DisplayName, u.Role, u.Xp })
                 .ToListAsync();
 
-            return top.Select((u, i) => new LeaderRowDto(
-                i + 1, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
+            var rows = top.Select((u, i) => new LeaderRowDto(
+                skip + i + 1, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
                 ProgressService.LevelForXp(u.Xp), u.Id == UserId)).ToList();
+            return new LeaderboardPageDto(rows, total, page, pageSize);
         }
 
         DateTime? cutoff = period switch
@@ -160,19 +166,17 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
             records = records.Where(r => memberIds.Contains(r.UserId));
         }
 
-        var ranked = await records
-            .GroupBy(r => r.UserId)
-            .Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) })
-            .OrderByDescending(x => x.Xp)
-            .Take(limit)
-            .ToListAsync();
+        var grouped = records.GroupBy(r => r.UserId).Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) });
+        var groupedTotal = await grouped.CountAsync();
+        var ranked = await grouped.OrderByDescending(x => x.Xp).Skip(skip).Take(pageSize).ToListAsync();
 
         var userIds = ranked.Select(r => r.UserId).ToList();
         var users = await _db.Users.Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
 
-        return ranked.Select((r, i) => new LeaderRowDto(
-            i + 1, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
+        var rankedRows = ranked.Select((r, i) => new LeaderRowDto(
+            skip + i + 1, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
             ProgressService.LevelForXp(r.Xp), r.UserId == UserId)).ToList();
+        return new LeaderboardPageDto(rankedRows, groupedTotal, page, pageSize);
     }
 }
