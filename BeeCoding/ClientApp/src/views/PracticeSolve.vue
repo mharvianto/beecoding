@@ -78,10 +78,20 @@ async function load() {
 
   if (problem.value.sampleTests?.[0]) stdin.value = problem.value.sampleTests[0].stdin;
   await loadSubs();
+  // Resume tracking a still-grading submission across a refresh/reopen — otherwise the
+  // progress bar only ever shows up for the exact submit() call that started it.
+  const latest = submissions.value[0];
+  if (latest && latest.status !== 'Done') submittingId.value = latest.id;
 }
 async function loadSubs() {
   submissions.value = await api.get(`/api/practice/${props.slug}/submissions`);
   problem.value.solved = submissions.value.some((s) => s.verdict === 'Accepted' && s.score >= 1);
+  // Self-heal if a practiceResult push was ever missed (e.g. a dropped connection) —
+  // otherwise "Still checking…" could get stuck showing after grading actually finished.
+  if (submittingId.value) {
+    const match = submissions.value.find((s) => s.id === submittingId.value);
+    if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
+  }
 }
 
 async function run() {
@@ -124,7 +134,7 @@ onMounted(async () => {
   conn = createBoardConnection();
   conn.on('practiceResult', (dto) => {
     if (dto.bankProblemId === pid.value) loadSubs();
-    if (dto.id === submittingId.value) testProgress.value = null;
+    if (dto.id === submittingId.value) { testProgress.value = null; submittingId.value = null; }
   });
   conn.on('submissionProgress', (p) => {
     if (p.kind === 'practice' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
@@ -243,6 +253,9 @@ onBeforeUnmount(async () => {
             <span class="block h-full bg-amber-400" :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
           </span>
           <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
+        </div>
+        <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500">
+          Still checking your last submission…
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
