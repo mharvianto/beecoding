@@ -450,6 +450,8 @@ Reply with ONLY compact JSON and nothing else:
         string idea, string level, string language, int count, string lang, CancellationToken ct)
     {
         count = Math.Clamp(count, 3, 15);
+        int minExtreme = Math.Max(1, (int)Math.Round(count * 0.10, MidpointRounding.AwayFromZero));
+        int maxExtreme = Math.Max(minExtreme, (int)Math.Round(count * 0.30, MidpointRounding.AwayFromZero));
         var sys = $$"""
 You are a problem setter for a C/C++ online judge. From the teacher's idea, produce ONE
 complete, self-contained problem.
@@ -465,6 +467,12 @@ Rules:
   a single element, the stated maximum size, already in the target order, reverse order,
   random order, all values equal, negatives mixed with positives, zeros, duplicates, the
   extreme values allowed by the constraints. AT MOST ONE "all the same value" test.
+- REQUIRED: between {{minExtreme}} and {{maxExtreme}} of the {{count}} tests (roughly
+  10–30%) MUST be EXTREME tests — hidden tests that push the constraints stated in the
+  problem to their boundary: the minimum and maximum allowed size/count, the smallest and
+  largest values the stated numeric range permits, values right at an overflow/precision
+  edge for the chosen type, or an empty/singleton input if the constraints allow it. These
+  must be distinguishable from the "typical" tests, not just a bigger version of one.
 - This is for teaching, NOT stress-testing: keep sizes modest (e.g. array length <= 50 for
   most tests, the largest maybe near the stated bound) and EVERY test's stdin under ~1 KB.
   Never emit hundreds of identical numbers.
@@ -573,6 +581,8 @@ Shape:
         int count, CancellationToken ct)
     {
         count = Math.Clamp(count, 3, 15);
+        int minExtreme = Math.Max(1, (int)Math.Round(count * 0.10, MidpointRounding.AwayFromZero));
+        int maxExtreme = Math.Max(minExtreme, (int)Math.Round(count * 0.30, MidpointRounding.AwayFromZero));
         var sys = $$"""
 You are a test-data setter for a C/C++ online judge. You are given an EXISTING problem
 statement (do NOT change or reinterpret it). Produce:
@@ -584,6 +594,10 @@ statement (do NOT change or reinterpret it). Produce:
    the target order, reverse order, random order, all values equal (AT MOST ONE), negatives
    mixed with positives, zeros, duplicates, the extreme allowed values. Keep every stdin
    under ~1 KB; sizes modest (mostly <= 50), largest maybe near the stated bound.
+   REQUIRED: between {{minExtreme}} and {{maxExtreme}} of the {{count}} tests (roughly
+   10–30%) MUST be EXTREME tests pushing the stated constraints to their boundary — the
+   minimum/maximum allowed size or value, the smallest/largest value the stated numeric
+   range permits, or an empty/singleton input if allowed. Not just a bigger "typical" test.
 
 Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
 {"referenceSolution":"...","tests":[{"stdin":"..."},{"stdin":"..."}]}
