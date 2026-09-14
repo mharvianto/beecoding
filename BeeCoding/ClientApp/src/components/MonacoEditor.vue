@@ -4,11 +4,17 @@ import * as monaco from 'monaco-editor';
 import { theme as appTheme } from '../lib/theme';
 import { CppLsp } from '../lib/cpplsp';
 import { withBase } from '../lib/base';
+import {
+  editorThemePref, editorFontFamily, setEditorTheme, setEditorFontFamily,
+  THEME_OPTIONS, FONT_OPTIONS, resolveEditorTheme, defineCustomThemesOnce,
+} from '../lib/editorPrefs';
+
+defineCustomThemesOnce();
 
 function editorTheme() {
   const dark = appTheme.value === 'dark'
     || (appTheme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-  return dark ? 'vs-dark' : 'vs';
+  return resolveEditorTheme(dark);
 }
 
 const props = defineProps({
@@ -205,6 +211,7 @@ onMounted(() => {
     language: props.language,
     theme: editorTheme(),
     fontSize: fontSize.value,
+    fontFamily: editorFontFamily.value || undefined,
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     automaticLayout: true,
@@ -250,6 +257,18 @@ onMounted(() => {
     contextMenuGroupId: 'zz_beecoding', contextMenuOrder: 3,
     run: () => applyFont(DEFAULT_FONT),
   });
+  // Theme + font family: command palette only (F1) — deliberately not toolbar buttons,
+  // there are enough of those already. Each choice is its own palette entry since the
+  // standalone monaco-editor package has no quick-pick API to show a sub-menu from a
+  // single action.
+  THEME_OPTIONS.forEach((t) => editor.addAction({
+    id: `beecoding.theme.${t.id}`, label: `Editor: Theme — ${t.label}`,
+    run: () => setEditorTheme(t.id),
+  }));
+  FONT_OPTIONS.forEach((f) => editor.addAction({
+    id: `beecoding.font.${f.label}`, label: `Editor: Font — ${f.label}`,
+    run: () => setEditorFontFamily(f.id),
+  }));
   if (lspCapable() && !props.readOnly) {
     probeServerLsp().then((ok) => {
       serverLsp.value = ok;
@@ -285,6 +304,8 @@ watch(() => props.language, (l) => {
   initLsp();
 });
 watch(appTheme, () => monaco.editor.setTheme(editorTheme()));
+watch(editorThemePref, () => monaco.editor.setTheme(editorTheme()));
+watch(editorFontFamily, (f) => editor?.updateOptions({ fontFamily: f || undefined }));
 
 onBeforeUnmount(() => { disposeLsp(); editor?.dispose(); });
 
