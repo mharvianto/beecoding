@@ -214,7 +214,8 @@ public record AdminUserImportResult(int Created, int Existing, int Errors, List<
 // ---- Practice (students solve bank problems) ----
 public record PracticeSummaryDto(
     int Id, string Slug, string Title, string AllowedLanguages, string Level, string Tags,
-    string MyVerdict, double MyBestScore, bool Solved);
+    string MyVerdict, double MyBestScore, bool Solved,
+    int SubmissionCount = 0, double AcRate = 0);   // across every user, not just the caller
 
 public record PracticePageDto(
     int Total, int Solved, int Page, int PageSize, List<PracticeSummaryDto> Items);

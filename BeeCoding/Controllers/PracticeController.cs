@@ -34,6 +34,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     [HttpGet]
     public async Task<ActionResult<PracticePageDto>> List(
         [FromQuery] string? q, [FromQuery] string? tag, [FromQuery] string? level, [FromQuery] string? status,
+        [FromQuery] string? sort = null,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         page = Math.Max(1, page);
@@ -74,14 +75,31 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             .ToListAsync();
         var byId = mine.ToDictionary(m => m.BankProblemId);
 
+        // Global stats (every user, not just the caller) — how many have attempted each
+        // problem and what fraction of those attempts were a full Accepted.
+        var stats = await _db.BankSubmissions
+            .Where(s => ids.Contains(s.BankProblemId) && s.Status == SubmissionStatus.Done)
+            .GroupBy(s => s.BankProblemId)
+            .Select(g => new
+            {
+                BankProblemId = g.Key,
+                Total = g.Count(),
+                Accepted = g.Count(x => x.Verdict == Verdict.Accepted && x.Score >= 1.0),
+            })
+            .ToListAsync();
+        var statsById = stats.ToDictionary(s => s.BankProblemId);
+
         var list = problems.Select(p =>
         {
             byId.TryGetValue(p.Id, out var m);
+            statsById.TryGetValue(p.Id, out var st);
             return new PracticeSummaryDto(
                 p.Id, p.Slug, p.Title, p.AllowedLanguages, p.Level.ToString(), p.Tags,
                 m?.Latest.ToString() ?? "None",
                 m?.Best ?? 0,
-                m?.Solved ?? false);
+                m?.Solved ?? false,
+                st?.Total ?? 0,
+                st is { Total: > 0 } ? (double)st.Accepted / st.Total : 0);
         });
 
         list = status?.ToLowerInvariant() switch
@@ -90,6 +108,14 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             "unsolved" => list.Where(x => !x.Solved),
             "attempted" => list.Where(x => x.MyVerdict != "None" && !x.Solved),
             _ => list,
+        };
+
+        list = sort?.ToLowerInvariant() switch
+        {
+            "submissions" => list.OrderByDescending(x => x.SubmissionCount).ThenBy(x => x.Title),
+            "acrate" => list.OrderByDescending(x => x.AcRate).ThenBy(x => x.Title),
+            "acrate_asc" => list.OrderBy(x => x.SubmissionCount == 0 ? 2.0 : x.AcRate).ThenBy(x => x.Title),
+            _ => list,   // default: already Level, Title from the query above
         };
 
         var all = list.ToList();

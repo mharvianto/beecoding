@@ -17,6 +17,7 @@ const items = ref([]);
 const q = ref(route.query.q ? String(route.query.q) : '');
 const level = ref('');
 const status = ref('');
+const sort = ref('');
 const error = ref('');
 
 const page = ref(route.query.page ? Math.max(1, Number(route.query.page) || 1) : 1);
@@ -63,6 +64,7 @@ async function load() {
     if (q.value.trim()) p.set('q', q.value.trim());
     if (level.value) p.set('level', level.value);
     if (status.value) p.set('status', status.value);
+    if (sort.value) p.set('sort', sort.value);
     p.set('page', page.value);
     p.set('pageSize', pageSize.value);
     const res = await api.get(`/api/practice?${p}`);
@@ -178,6 +180,13 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
         <option value="attempted">Attempted</option>
         <option value="solved">Solved</option>
       </select>
+      <select v-model="sort" @change="search"
+              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+        <option value="">Sort: default</option>
+        <option value="submissions">Most submissions</option>
+        <option value="acrate">Highest AC rate</option>
+        <option value="acrate_asc">Lowest AC rate</option>
+      </select>
       <button @click="search" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
     </div>
 
@@ -202,6 +211,10 @@ onMounted(() => { load(); loadGuide(); progress.refresh(); });
         </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
         <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ p.tags }}</span>
+        <span class="hidden sm:block text-[11px] text-slate-400 dark:text-slate-500 w-24 text-right tabular-nums"
+              :title="`${p.submissionCount} submission(s) across every user`">
+          {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
+        </span>
         <LevelBadge :level="p.level" />
         <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>
