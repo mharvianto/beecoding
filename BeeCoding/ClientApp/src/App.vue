@@ -37,7 +37,7 @@ watch(
   ([ready, lvl]) => {
     if (!ready) { levelBaseline = null; return; }
     if (levelBaseline == null) { levelBaseline = lvl; return; }
-    if (lvl > levelBaseline) celebrate({ count: 260, duration: 5200, force: true });
+    if (lvl > levelBaseline) celebrate({ count: 260, duration: 3800, waves: 5, force: true });
     levelBaseline = lvl;
   },
 );
