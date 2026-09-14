@@ -15,12 +15,13 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/practice")]
-public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter rate,
+public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown,
     Services.Ai.AiTutorService ai, Services.Ai.AiUsageService aiUsage, OrgResolver orgs) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly IJudgeQueue _queue = queue;
     private readonly RateLimiter _rate = rate;
+    private readonly SubmitCooldown _submitCooldown = submitCooldown;
     private readonly Services.Ai.AiTutorService _ai = ai;
     private readonly Services.Ai.AiUsageService _aiUsage = aiUsage;
     private readonly OrgResolver _orgs = orgs;
@@ -302,6 +303,8 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
         if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
+        if (!_submitCooldown.TryAcquire(UserId))
+            return StatusCode(429, $"Please wait {Math.Ceiling(_submitCooldown.SecondsRemaining(UserId))}s before submitting again.");
 
         var lang = dto.Language is "c" or "cpp" ? dto.Language : Languages.Default(problem.AllowedLanguages);
         if (!Languages.Allows(problem.AllowedLanguages, lang))

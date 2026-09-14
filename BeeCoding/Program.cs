@@ -224,6 +224,7 @@ else
 
 builder.Services.AddSingleton<StatementImageService>();
 builder.Services.AddSingleton<RateLimiter>();
+builder.Services.AddSingleton<SubmitCooldown>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 

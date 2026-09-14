@@ -61,6 +61,16 @@ function setLang(l) {
 const runOut = ref(null);
 const running = ref(false);
 const submitting = ref(false);
+const submitCooldown = ref(0);   // seconds left before another submit is allowed
+let submitCooldownTimer = null;
+function startSubmitCooldown(seconds) {
+  submitCooldown.value = Math.ceil(seconds);
+  clearInterval(submitCooldownTimer);
+  submitCooldownTimer = setInterval(() => {
+    submitCooldown.value -= 1;
+    if (submitCooldown.value <= 0) { submitCooldown.value = 0; clearInterval(submitCooldownTimer); }
+  }, 1000);
+}
 const submittingId = ref(null);
 const testProgress = ref(null);   // { current, total } | null
 const submissions = ref([]);
@@ -125,6 +135,12 @@ async function load() {
   // progress bar only ever shows up for the exact submit() call that started it.
   const myLatest = submissions.value.find((s) => s.mine);
   if (myLatest && myLatest.status !== 'Done') submittingId.value = myLatest.id;
+  // Same for the submit cooldown — the server enforces it regardless, but without this the
+  // button would look enabled for a few seconds after a reload right after submitting.
+  if (myLatest) {
+    const secondsSince = (Date.now() - new Date(myLatest.createdAt + (myLatest.createdAt.endsWith('Z') ? '' : 'Z')).getTime()) / 1000;
+    if (secondsSince < 10) startSubmitCooldown(10 - secondsSince);
+  }
 }
 async function loadSubs() {
   submissions.value = await api.get(`/api/problems/${pid.value}/submissions`);
@@ -155,10 +171,12 @@ async function run() {
 }
 
 async function submit() {
+  if (submitCooldown.value > 0) return;
   error.value = ''; submitting.value = true; testProgress.value = null;
   try {
     const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value });
     submittingId.value = res.submissionId;
+    startSubmitCooldown(10);
     await loadSubs();
   } catch (e) { error.value = e.message; }
   finally { submitting.value = false; }
@@ -240,6 +258,7 @@ onBeforeUnmount(async () => {
   clearTimeout(draftTimer);
   clearTimeout(saveTimer);
   clearTimeout(lectureTimer);
+  clearInterval(submitCooldownTimer);
   saveDraftNow();
   window.removeEventListener('beforeunload', saveDraftNow);
   try { await conn?.stop(); } catch {}
@@ -379,9 +398,9 @@ function ago(ts) {
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ running ? 'Running…' : 'Run' }}
           </button>
-          <button @click="submit" :disabled="submitting"
+          <button @click="submit" :disabled="submitting || submitCooldown > 0"
                   class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ submitting ? 'Submitting…' : 'Submit' }}
+            {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
           </button>
           <span v-if="langs.length > 1" class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="l in langs" :key="l" @click="setLang(l)"

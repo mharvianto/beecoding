@@ -11,13 +11,14 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 public class SubmissionsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IJudgeQueue queue, RateLimiter rate, IBoardNotifier notifier, AdminAccess admin) : ApiControllerBase
+    IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown, IBoardNotifier notifier, AdminAccess admin) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
     private readonly VisibilityService _vis = vis;
     private readonly IJudgeQueue _queue = queue;
     private readonly RateLimiter _rate = rate;
+    private readonly SubmitCooldown _submitCooldown = submitCooldown;
     private readonly IBoardNotifier _notifier = notifier;
     private readonly AdminAccess _admin = admin;
 
@@ -32,6 +33,8 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
         if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
+        if (!_submitCooldown.TryAcquire(UserId))
+            return StatusCode(429, $"Please wait {Math.Ceiling(_submitCooldown.SecondsRemaining(UserId))}s before submitting again.");
 
         var lang = dto.Language is "c" or "cpp" ? dto.Language : Languages.Default(problem.AllowedLanguages);
         if (!Languages.Allows(problem.AllowedLanguages, lang))
