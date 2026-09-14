@@ -7,6 +7,7 @@ import { withBase } from '../lib/base';
 import {
   editorThemePref, editorFontFamily, setEditorTheme, setEditorFontFamily,
   THEME_OPTIONS, FONT_OPTIONS, resolveEditorTheme, defineCustomThemesOnce,
+  importVscodeTheme, hasCustomTheme, customThemeLabel,
 } from '../lib/editorPrefs';
 
 defineCustomThemesOnce();
@@ -269,6 +270,23 @@ onMounted(() => {
     id: `beecoding.font.${f.label}`, label: `Editor: Font — ${f.label}`,
     run: () => setEditorFontFamily(f.id),
   }));
+  editor.addAction({
+    id: 'beecoding.theme.import', label: 'Editor: Theme — Import from URL or JSON…',
+    run: async () => {
+      const input = window.prompt(
+        'Paste a VS Code theme\'s raw JSON URL, or paste the theme JSON itself.\n' +
+        'Fidelity is best-effort — editor colors carry over well, syntax highlighting is approximate.');
+      if (!input) return;
+      try { await importVscodeTheme(input); }
+      catch (e) { window.alert(`Couldn't import that theme: ${e.message}`); }
+    },
+  });
+  if (hasCustomTheme()) {
+    editor.addAction({
+      id: 'beecoding.theme.custom', label: `Editor: Theme — ${customThemeLabel()}`,
+      run: () => setEditorTheme('bc-custom'),
+    });
+  }
   if (lspCapable() && !props.readOnly) {
     probeServerLsp().then((ok) => {
       serverLsp.value = ok;
