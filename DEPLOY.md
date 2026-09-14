@@ -1,7 +1,8 @@
 # BeeCoding — Deployment: Azure Web App, Kubernetes, Scale-out
 
-Panduan ini melengkapi [INSTALL.md](INSTALL.md) (deploy single-VM). Isinya jawaban untuk
-tiga pertanyaan:
+Panduan ini melengkapi [INSTALL.md](INSTALL.md) (deploy single-VM) dan
+[CONTAINERS.md](CONTAINERS.md) (langkah antara: Podman/Docker Swarm sebagai jembatan
+konsep sebelum ke Kubernetes). Isinya jawaban untuk tiga pertanyaan:
 
 1. Bisakah deploy di **Azure Web App (App Service)**?
 2. Apa yang harus disiapkan untuk **Kubernetes**?
