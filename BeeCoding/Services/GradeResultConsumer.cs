@@ -93,12 +93,13 @@ public sealed class GradeResultConsumer(
         await notifier.SubmissionResultAsync(sub.UserId,
             Mapping.ToDto(sub, sub.UserId, canSeeCode: true, authorName));
         if (xp > 0)
-        {
             await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct));
-            // A newly-solved problem is the only time the board-level score (solved/total)
-            // can have moved — no point re-syncing on every wrong attempt.
-            await sp.GetRequiredService<LtiGradeSyncService>().SyncBoardAsync(problem.BoardId, sub.UserId, ct);
-        }
+        // Sync on every judged submission, not just a newly-solved problem — the LMS
+        // gradebook then reflects current progress (and "InProgress" status) even before
+        // anything is fully solved. Safe to call unconditionally: the sync itself
+        // recomputes solved-count fresh from the DB, so a failing/partial submission on
+        // this or any other problem never regresses an already-reported score.
+        await sp.GetRequiredService<LtiGradeSyncService>().SyncBoardAsync(problem.BoardId, sub.UserId, ct);
     }
 
     private async Task ApplyPracticeAsync(GradeResult r, CancellationToken ct)
@@ -130,9 +131,11 @@ public sealed class GradeResultConsumer(
 
         await notifier.PracticeResultAsync(sub.UserId, Mapping.ToDto(sub));
         if (xp > 0)
-        {
             await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct));
-            await sp.GetRequiredService<LtiGradeSyncService>().SyncPracticeAsync(problem.Id, sub.UserId, ct);
-        }
+        // Sync on every judged submission (not just a full solve) so partial credit shows
+        // up in the LMS gradebook as the student improves — safe unconditionally, since
+        // the sync takes the MAX score across all of this student's submissions, so a
+        // worse later attempt never regresses an already-reported score.
+        await sp.GetRequiredService<LtiGradeSyncService>().SyncPracticeAsync(problem.Id, sub.UserId, ct);
     }
 }
