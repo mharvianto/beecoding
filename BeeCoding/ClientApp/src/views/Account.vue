@@ -168,12 +168,12 @@ async function deleteAccount(force = false) {
       </div>
     </section>
 
-    <div class="max-w-md space-y-10">
+    <div class="space-y-10">
     <!-- display name -->
     <section class="space-y-3">
       <h2 class="font-semibold text-sm">Display name</h2>
       <p class="text-xs text-slate-400 dark:text-slate-500">Shown on the board, wall cards and leaderboard.</p>
-      <div class="flex gap-2">
+      <div class="flex gap-2 max-w-sm">
         <input v-model="name" maxlength="40" placeholder="Your name" @keyup.enter="saveName"
                class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
@@ -229,23 +229,25 @@ async function deleteAccount(force = false) {
     <!-- change password -->
     <section class="space-y-3">
       <h2 class="font-semibold text-sm">Change password</h2>
-      <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <input v-model="next" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password"
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
-             @keyup.enter="changePassword"
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
-      <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
-      <button @click="changePassword" :disabled="pwBusy || !cur || !next"
-              class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-        {{ pwBusy ? '…' : 'Update password' }}
-      </button>
+      <div class="max-w-sm space-y-3">
+        <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <input v-model="next" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
+               @keyup.enter="changePassword"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+        <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+        <button @click="changePassword" :disabled="pwBusy || !cur || !next"
+                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+          {{ pwBusy ? '…' : 'Update password' }}
+        </button>
+      </div>
     </section>
 
     <!-- delete account -->
-    <section class="space-y-3 border border-red-200 dark:border-red-500/30 rounded-xl p-4">
+    <section class="space-y-3 max-w-md border border-red-200 dark:border-red-500/30 rounded-xl p-4">
       <h2 class="font-semibold text-sm text-red-600 dark:text-red-400">Delete account</h2>
       <p class="text-sm text-slate-500 dark:text-slate-400">
         Permanently removes your account, your submissions, and your practice progress.
