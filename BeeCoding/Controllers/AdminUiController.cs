@@ -790,6 +790,16 @@ public class AdminUiController(
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
+        var all = await AiUsageAllRowsAsync();
+        var pageRows = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        return new AdminAiUsagePageDto(pageRows, all.Count, page, pageSize);
+    }
+
+    [HttpGet("analytics/ai-usage.csv")]
+    public async Task<IActionResult> AiUsageCsv() => CsvFile(await AiUsageRowsAsync(), "ai-usage.csv");
+
+    private async Task<List<AdminAiUsageRow>> AiUsageAllRowsAsync()
+    {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
 
@@ -802,7 +812,7 @@ public class AdminUiController(
             return new AdminAiUsageBucket(c, p, k, p + k);
         }
 
-        var all = rows.GroupBy(x => x.UserId)
+        return rows.GroupBy(x => x.UserId)
             .Select(g => new AdminAiUsageRow(
                 g.Key,
                 g.First().User?.Email ?? "?",
@@ -812,9 +822,29 @@ public class AdminUiController(
                 Sum(g)))
             .OrderByDescending(r => r.AllTime.TotalTokens)
             .ToList();
+    }
 
-        var pageRows = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        return new AdminAiUsagePageDto(pageRows, all.Count, page, pageSize);
+    private async Task<List<string[]>> AiUsageRowsAsync()
+    {
+        var all = await AiUsageAllRowsAsync();
+        var rows = new List<string[]>
+        {
+            new[]
+            {
+                "UserId", "Email", "DisplayName",
+                "TodayCalls", "TodayPromptTokens", "TodayCompletionTokens", "TodayTotalTokens",
+                "MonthCalls", "MonthPromptTokens", "MonthCompletionTokens", "MonthTotalTokens",
+                "AllTimeCalls", "AllTimePromptTokens", "AllTimeCompletionTokens", "AllTimeTotalTokens",
+            },
+        };
+        rows.AddRange(all.Select(r => new[]
+        {
+            r.UserId.ToString(), r.Email, r.DisplayName,
+            r.Today.Calls.ToString(), r.Today.PromptTokens.ToString(), r.Today.CompletionTokens.ToString(), r.Today.TotalTokens.ToString(),
+            r.Month.Calls.ToString(), r.Month.PromptTokens.ToString(), r.Month.CompletionTokens.ToString(), r.Month.TotalTokens.ToString(),
+            r.AllTime.Calls.ToString(), r.AllTime.PromptTokens.ToString(), r.AllTime.CompletionTokens.ToString(), r.AllTime.TotalTokens.ToString(),
+        }));
+        return rows;
     }
 
     // ---- AI kill-switch, quotas, per-user overrides -------------------------
@@ -1016,6 +1046,7 @@ public class AdminUiController(
         WriteSheet(wb, "Topics", await TopicsRowsAsync());
         WriteSheet(wb, "Users", await UsersRowsAsync());
         WriteSheet(wb, "Weekly engagement", await EngagementRowsAsync(weeks));
+        WriteSheet(wb, "AI usage", await AiUsageRowsAsync());
         using var ms = new MemoryStream();
         wb.SaveAs(ms);
         return File(ms.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "beecoding-report.xlsx");

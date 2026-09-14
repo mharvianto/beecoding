@@ -841,6 +841,8 @@ onMounted(async () => {
         <div class="flex items-center gap-2 mb-2">
           <h2 class="font-semibold text-sm">Usage</h2>
           <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+          <button @click="downloadFile('/api/admin-ui/analytics/ai-usage.csv', 'ai-usage.csv')"
+                  class="text-xs text-slate-500 dark:text-slate-400 ml-auto">⬇ export CSV</button>
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
