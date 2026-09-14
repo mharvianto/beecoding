@@ -16,8 +16,11 @@ public sealed class LoginThrottle
     }
 
     private static readonly long Window = TimeSpan.FromMinutes(15).Ticks;
-    private const int IpCap = 5000;        // very generous: a whole classroom can share one NAT/wifi
-    private const int AccountCap = 1000;   // one account should not see many failures
+    private const int IpCap = 5000;   // very generous: a whole classroom can share one NAT/wifi
+    // A single account being wrong 1000 times in 15 minutes isn't a real cap — that's enough
+    // attempts for a scripted brute force to get well into a small wordlist. One account is
+    // never shared the way an IP is, so this can be strict without punishing real students.
+    private const int AccountCap = 10;
 
     private readonly ConcurrentDictionary<string, Bucket> _byIp = new();
     private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();

@@ -29,7 +29,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     {
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         if (email.Length < 3 || !email.Contains('@')) return BadRequest("Invalid email.");
-        if ((dto.Password ?? "").Length < 6) return BadRequest("Password must be at least 6 characters.");
+        if (PasswordPolicy.Validate(dto.Password, email) is string pwErr) return BadRequest(pwErr);
         if (string.IsNullOrWhiteSpace(dto.DisplayName)) return BadRequest("Display name is required.");
 
         // Self-service registration only creates Students. A Teacher account requires the
@@ -138,8 +138,8 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         if (!_pw.Verify(user, dto.CurrentPassword ?? ""))
             return BadRequest("Current password is wrong.");
-        if ((dto.NewPassword ?? "").Length < 6)
-            return BadRequest("New password must be at least 6 characters.");
+        if (PasswordPolicy.Validate(dto.NewPassword, user.Email) is string pwErr)
+            return BadRequest(pwErr);
 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         await _db.SaveChangesAsync();

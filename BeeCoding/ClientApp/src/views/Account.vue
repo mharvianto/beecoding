@@ -91,7 +91,7 @@ const pwBusy = ref(false);
 
 async function changePassword() {
   pwMsg.value = ''; pwErr.value = '';
-  if (next.value.length < 6) { pwErr.value = 'New password must be at least 6 characters.'; return; }
+  if (next.value.length < 8) { pwErr.value = 'New password must be at least 8 characters.'; return; }
   if (next.value !== next2.value) { pwErr.value = 'New passwords do not match.'; return; }
   pwBusy.value = true;
   try {
@@ -259,7 +259,7 @@ async function deleteAccount(force = false) {
       <div class="max-w-sm space-y-3">
         <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="next" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password"
+        <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
                @keyup.enter="changePassword"
