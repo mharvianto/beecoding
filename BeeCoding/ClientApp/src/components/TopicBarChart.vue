@@ -1,27 +1,85 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { Chart, BarController, BarElement, LinearScale, CategoryScale } from 'chart.js';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { theme as appTheme } from '../lib/theme';
+
+Chart.register(BarController, BarElement, LinearScale, CategoryScale, ChartDataLabels);
 
 // Ranking / magnitude chart — one sequential hue, values direct-labeled (no hover
-// layer needed since nothing is hidden behind it).
+// layer needed since nothing is hidden behind it), built on Chart.js.
 const props = defineProps({
   items: { type: Array, required: true },   // [{ label, value, rate }] — rate is 0..1
   color: { type: String, default: '#f59e0b' },
 });
 
-const maxValue = computed(() => Math.max(1, ...props.items.map((i) => i.value)));
-const pct = (v) => Math.max(2, (v / maxValue.value) * 100);
+const canvasEl = ref(null);
+let chart = null;
+
+function tickColor() {
+  const dark = appTheme.value === 'dark'
+    || (appTheme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  return dark ? '#94a3b8' : '#64748b';
+}
+
 const fmt = (n) => (n ?? 0).toLocaleString();
+
+function build() {
+  if (!canvasEl.value || !props.items.length) { chart?.destroy(); chart = null; return; }
+  chart?.destroy();
+  chart = new Chart(canvasEl.value, {
+    type: 'bar',
+    data: {
+      labels: props.items.map((i) => i.label),
+      datasets: [{
+        data: props.items.map((i) => i.value),
+        backgroundColor: props.color,
+        borderRadius: 3,
+        barThickness: 14,
+        maxBarThickness: 16,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      layout: { padding: { right: 56 } },
+      scales: {
+        x: { display: false, beginAtZero: true },
+        y: {
+          grid: { display: false },
+          ticks: { autoSkip: false, color: tickColor(), font: { size: 11 } },
+        },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { enabled: false },
+        datalabels: {
+          anchor: 'end',
+          align: 'end',
+          color: tickColor(),
+          font: { size: 10, weight: 'normal' },
+          formatter: (value, ctx) => {
+            const rate = props.items[ctx.dataIndex]?.rate ?? 0;
+            return `${fmt(value)}  ${Math.round(rate * 100)}%`;
+          },
+        },
+      },
+    },
+  });
+}
+
+onMounted(build);
+watch(() => [props.items, props.color], build, { deep: true });
+watch(appTheme, build);
+onBeforeUnmount(() => chart?.destroy());
 </script>
 
 <template>
-  <div class="space-y-1.5">
-    <div v-for="it in items" :key="it.label" class="flex items-center gap-2 text-xs">
-      <div class="w-20 sm:w-24 truncate text-slate-500 dark:text-slate-400 shrink-0" :title="it.label">{{ it.label }}</div>
-      <div class="flex-1 h-4 rounded bg-slate-100 dark:bg-slate-800/60 relative overflow-hidden">
-        <div class="absolute inset-y-0 left-0 rounded-r" :style="{ width: pct(it.value) + '%', backgroundColor: color }"></div>
-      </div>
-      <div class="w-10 text-right tabular-nums font-medium shrink-0">{{ fmt(it.value) }}</div>
-      <div class="w-9 text-right tabular-nums text-slate-400 dark:text-slate-500 shrink-0">{{ Math.round(it.rate * 100) }}%</div>
+  <div>
+    <div :style="{ height: Math.max(90, items.length * 26) + 'px' }">
+      <canvas ref="canvasEl"></canvas>
     </div>
     <p v-if="!items.length" class="text-slate-400 dark:text-slate-500 text-xs">No data yet.</p>
   </div>
