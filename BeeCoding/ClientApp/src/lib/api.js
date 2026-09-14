@@ -15,8 +15,8 @@ async function request(method, url, body) {
   const text = await res.text();
   const data = text ? tryParse(text) : null;
   if (!res.ok) {
-    const msg = typeof data === 'string' ? data : data?.message || data?.title || data?.detail || res.statusText;
-    const err = new Error(msg || `HTTP ${res.status}`);
+    const msg = friendlyMessage(res.status, data) || res.statusText || `HTTP ${res.status}`;
+    const err = new Error(msg);
     err.status = res.status;
     err.body = data;
     if (data && typeof data === 'object') Object.assign(err, data);
@@ -27,6 +27,15 @@ async function request(method, url, body) {
 
 function tryParse(t) {
   try { return JSON.parse(t); } catch { return t; }
+}
+
+function friendlyMessage(status, data) {
+  if (typeof data === 'string' && /^\s*<(!doctype|html)/i.test(data)) {
+    if (status === 429) return 'Too many requests — please wait a moment and try again.';
+    if (status >= 500) return 'Server error — please try again shortly.';
+    return `Request failed (HTTP ${status}).`;
+  }
+  return typeof data === 'string' ? data : data?.message || data?.title || data?.detail;
 }
 
 export const api = {
