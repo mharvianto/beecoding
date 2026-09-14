@@ -44,25 +44,40 @@ public static class CookieSignIn
     /// PathBase path (observed directly). Also can't use HttpResponse.Cookies.Delete() twice
     /// for the same cookie NAME even with different Path values — it replaces rather than
     /// adds a second Set-Cookie header (also observed directly). Appending a hand-built
-    /// Set-Cookie header instead sidesteps both quirks.</summary>
+    /// Set-Cookie header instead sidesteps both quirks.
+    ///
+    /// On HTTPS (see Program.cs's OnSigningIn), the live cookie also carries the Partitioned
+    /// (CHIPS) attribute — a Partitioned cookie lives in a browser-level jar entirely separate
+    /// from an unpartitioned one with the same name/domain/path, so a plain deletion cookie
+    /// never reaches it and it's left behind exactly as if logout had done nothing. Send a
+    /// Partitioned deletion variant alongside the plain one for every path so whichever jar
+    /// the real cookie is actually sitting in gets cleared.</summary>
     public static async Task SignOutAsync(HttpContext ctx)
     {
         await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         var pathBase = ctx.Request.PathBase.HasValue ? ctx.Request.PathBase.Value! : "/";
-        AppendExpiredCookie(ctx, pathBase);
-        if (pathBase != "/") AppendExpiredCookie(ctx, "/");
+        AppendExpiredCookie(ctx, pathBase, partitioned: false);
+        AppendExpiredCookie(ctx, pathBase, partitioned: true);
+        if (pathBase != "/")
+        {
+            AppendExpiredCookie(ctx, "/", partitioned: false);
+            AppendExpiredCookie(ctx, "/", partitioned: true);
+        }
     }
 
-    private static void AppendExpiredCookie(HttpContext ctx, string path)
+    private static void AppendExpiredCookie(HttpContext ctx, string path, bool partitioned)
     {
-        var header = new SetCookieHeaderValue(CookieName, string.Empty)
+        var value = new SetCookieHeaderValue(CookieName, string.Empty)
         {
             Path = path,
             Expires = DateTimeOffset.UnixEpoch,
             HttpOnly = true,
-            Secure = ctx.Request.IsHttps,
-            SameSite = Microsoft.Net.Http.Headers.SameSiteMode.Lax,
-        }.ToString();
-        ctx.Response.Headers.Append(HeaderNames.SetCookie, header);
+            Secure = partitioned || ctx.Request.IsHttps,
+            // Partitioned cookies require SameSite=None per spec — a plain unpartitioned
+            // deletion still uses Lax, matching the non-HTTPS/non-CHIPS cookie it targets.
+            SameSite = partitioned ? Microsoft.Net.Http.Headers.SameSiteMode.None : Microsoft.Net.Http.Headers.SameSiteMode.Lax,
+        };
+        if (partitioned) value.Extensions.Add("Partitioned");
+        ctx.Response.Headers.Append(HeaderNames.SetCookie, value.ToString());
     }
 }
