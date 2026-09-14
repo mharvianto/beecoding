@@ -10,6 +10,8 @@ import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
+import SubmissionView from '../components/SubmissionView.vue';
+import VerdictBadge from '../components/VerdictBadge.vue';
 import { tableView } from '../lib/tableView';
 
 const auth = useAuth();
@@ -19,8 +21,8 @@ const confirmDialog = useConfirmDialog();
 const undoToast = useUndoToast();
 const tabDefs = [
   ['dashboard', 'Dashboard'], ['ai', 'AI'], ['users', 'Users'], ['boards', 'Boards'], ['problems', 'Problems'],
-  ['review', 'AI review'], ['reports', 'Reports'], ['trash', 'Trash'], ['audit', 'Audit log'],
-  ['organizations', 'Organizations'], ['lti', 'LTI'],
+  ['submissions', 'Submissions'], ['review', 'AI review'], ['reports', 'Reports'], ['trash', 'Trash'],
+  ['audit', 'Audit log'], ['organizations', 'Organizations'], ['lti', 'LTI'],
 ];
 // Deep-linkable: /admin/users etc. — reload/share/bookmark lands on the same tab.
 const tab = ref(tabDefs.some((t) => t[0] === route.params.tab) ? route.params.tab : 'dashboard');
@@ -56,6 +58,7 @@ function loadTabData(id) {
     if (!users.value) loadUsers();
     if (!boards.value) loadBoards();   // populates the CSV-import board picker too
   } else if (id === 'boards' && !boards.value) loadBoards();
+  else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
   else if (id === 'review') loadAiReview();   // queue changes often — always refresh
   else if (id === 'reports' && !systemStatus.value) loadSystemStatus();
   else if (id === 'trash') loadTrash();     // state changes often — always refresh
@@ -467,6 +470,30 @@ async function purgeSelectedTrash(kind) {
     trash[kind].msg = `Purged ${result.count}.` + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
   } catch (e) { err.value = e.message; }
 }
+
+// ---- submissions: every board's submissions, platform-wide ----
+const submissionRows = ref(null);
+const submissionQ = ref('');
+const submissionVerdict = ref('');
+const submissionsPage = ref(1);
+const submissionsPageSize = ref(50);
+const submissionsTotal = ref(0);
+const viewSubmissionId = ref(null);
+
+async function loadSubmissions() {
+  err.value = '';
+  try {
+    const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize.value) });
+    if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
+    if (submissionVerdict.value) p.set('verdict', submissionVerdict.value);
+    const result = await api.get(`/api/admin-ui/submissions?${p}`);
+    submissionRows.value = result.rows;
+    submissionsTotal.value = result.total;
+  } catch (e) { err.value = e.message; }
+}
+function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
+function submissionsPrevPage() { if (submissionsPage.value > 1) { submissionsPage.value--; loadSubmissions(); } }
+function submissionsNextPage() { if (submissionsPage.value * submissionsPageSize.value < submissionsTotal.value) { submissionsPage.value++; loadSubmissions(); } }
 
 // ---- audit log ----
 const auditRows = ref(null);
@@ -1214,6 +1241,81 @@ onMounted(async () => {
           </ul>
         </div>
       </div>
+    </section>
+
+    <!-- Submissions: every board's submissions, platform-wide (not just boards the admin owns/joined) -->
+    <section v-show="tab === 'submissions'">
+      <div class="flex flex-wrap gap-2 mb-3">
+        <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
+               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <select v-model="submissionVerdict" @change="searchSubmissions"
+                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+          <option value="">Any verdict</option>
+          <option value="Accepted">Accepted</option>
+          <option value="WrongAnswer">Wrong answer</option>
+          <option value="TimeLimit">Time limit</option>
+          <option value="MemoryLimit">Memory limit</option>
+          <option value="RuntimeError">Runtime error</option>
+          <option value="CompileError">Compile error</option>
+        </select>
+        <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+        <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+      </div>
+
+      <!-- mobile: cards -->
+      <div v-if="tableView === 'card'" class="space-y-2">
+        <button v-for="s in submissionRows" :key="s.id" @click="viewSubmissionId = s.id"
+                class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <VerdictBadge :verdict="s.verdict" small />
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</span>
+          </div>
+          <div class="text-sm font-medium">{{ s.problemTitle }}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">{{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.boardTitle }}</div>
+        </button>
+        <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
+      </div>
+
+      <!-- desktop: table -->
+      <div v-if="tableView === 'table'" class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
+              <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board</th>
+              <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
+              <th class="font-normal pr-3">Runtime</th><th class="font-normal pr-3">Lang</th>
+            </tr>
+          </thead>
+          <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
+            <tr v-for="s in submissionRows" :key="s.id" @click="viewSubmissionId = s.id"
+                class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
+              <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</td>
+              <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
+              <td>{{ s.problemTitle }}</td>
+              <td class="text-[11px] text-slate-400">{{ s.boardTitle }}</td>
+              <td><VerdictBadge :verdict="s.verdict" small /></td>
+              <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
+              <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
+              <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
+            </tr>
+            <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-400 dark:text-slate-500 py-3">No submissions.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="submissionsTotal" class="flex items-center gap-3 mt-3 text-sm">
+        <span class="text-slate-400 dark:text-slate-500">
+          {{ (submissionsPage - 1) * submissionsPageSize + 1 }}–{{ Math.min(submissionsPage * submissionsPageSize, submissionsTotal) }} of {{ submissionsTotal }}
+        </span>
+        <div class="ml-auto flex gap-2">
+          <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+          <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+        </div>
+      </div>
+
+      <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />
     </section>
 
     <!-- AI review: AI-generated bank problems held back until approved -->

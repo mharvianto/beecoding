@@ -819,6 +819,39 @@ public class AdminUiController(
         return new AdminPageDto<AdminAuditLogRow>(rows, total, page, pageSize);
     }
 
+    // ---- Submissions, platform-wide (every board, not just ones the admin belongs to) ----
+    [HttpGet("submissions")]
+    public async Task<ActionResult<AdminPageDto<AdminSubmissionRow>>> Submissions(
+        [FromQuery] string? q, [FromQuery] string? verdict,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+
+        var query = _db.Submissions.Where(s => s.Problem != null && s.Problem.Board != null);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var n = q.Trim();
+            query = query.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
+                || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+        }
+        if (!string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var v))
+            query = query.Where(s => s.Verdict == v);
+
+        var total = await query.CountAsync();
+        var rows = await query.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(s => new AdminSubmissionRow(
+                s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                s.UserId, s.User!.Email, s.User.DisplayName,
+                s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title))
+            .ToListAsync();
+
+        return new AdminPageDto<AdminSubmissionRow>(rows, total, page, pageSize);
+    }
+
     // ---- AI usage --------------------------------------------------------------
     [HttpGet("ai-usage")]
     public async Task<ActionResult<AdminAiUsagePageDto>> AiUsage([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
