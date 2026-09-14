@@ -564,7 +564,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto px-4 py-8">
     <div class="flex items-center gap-3 mb-4">
       <h1 class="text-xl font-bold">Admin</h1>
       <TableViewToggle class="ml-auto" />

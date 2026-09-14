@@ -17,6 +17,8 @@ const props = defineProps({
   // when set to 'c' | 'cpp', connect the clangd LSP bridge for this editor
   lsp: { type: [String, Boolean], default: false },
   readOnly: { type: Boolean, default: false },
+  // base filename (no extension) offered when downloading this editor's content
+  filename: { type: String, default: 'code' },
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -209,6 +211,9 @@ onMounted(() => {
     tabSize: 4,
     readOnly: props.readOnly,
     experimentalEditContext: hasEditContext,
+    // on touch devices the font-size/LSP overlay is always visible (no hover to
+    // reveal it), so give line 1 room to clear it instead of sitting underneath.
+    padding: coarse ? { top: 26 } : undefined,
     ...(coarse ? {
       wordWrap: 'on',
       autoClosingBrackets: 'never',
@@ -287,6 +292,17 @@ const showLspBtn = lspCapable() && !props.readOnly;
 const btnCls =
   'px-1.5 py-0.5 rounded bg-white/85 dark:bg-slate-800/85 border border-slate-300 dark:border-slate-600 ' +
   'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-700 shadow-sm leading-none';
+
+function download() {
+  const ext = props.language === 'c' ? 'c' : props.language === 'cpp' ? 'cpp' : 'txt';
+  const blob = new Blob([editor?.getValue() ?? props.modelValue], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${props.filename}.${ext}`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 </script>
 
 <template>
@@ -303,6 +319,7 @@ const btnCls =
               @click="toggleLsp()">
         LSP&nbsp;{{ lspEnabled ? 'on' : 'off' }}
       </button>
+      <button type="button" :class="btnCls" title="Download as a file" @click="download()">&#8681;</button>
     </div>
   </div>
 </template>

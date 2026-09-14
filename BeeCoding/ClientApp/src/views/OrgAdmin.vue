@@ -226,7 +226,7 @@ onMounted(loadOrgs);
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto px-4 py-8">
     <div class="flex items-center gap-3 mb-4">
       <h1 class="text-xl font-bold">Organization</h1>
       <TableViewToggle class="ml-auto" />
@@ -272,7 +272,7 @@ onMounted(loadOrgs);
       <section v-show="tab === 'dashboard'" class="space-y-5">
         <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
 
-        <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <button type="button" @click="switchTab('members')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
             <div class="text-xs text-slate-400 dark:text-slate-500">Members</div>
             <div class="text-2xl font-bold">{{ fmt(dashboard.totalMembers) }}</div>

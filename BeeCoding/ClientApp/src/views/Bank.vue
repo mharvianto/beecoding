@@ -103,7 +103,7 @@ onBeforeUnmount(() => { pollStopped = true; });
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-1 gap-2 flex-wrap">
       <h1 class="text-xl font-bold">Problem bank</h1>
       <div class="flex items-center gap-2">
@@ -160,9 +160,9 @@ onBeforeUnmount(() => { pollStopped = true; });
       </div>
     </div>
 
-    <div class="flex gap-2 mb-4">
+    <div class="flex gap-2 mb-4 flex-wrap">
       <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…"
-             class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+             class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-model="scope" @change="load"
               class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="mine">Mine</option>

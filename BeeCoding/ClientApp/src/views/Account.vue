@@ -108,7 +108,7 @@ async function deleteAccount(force = false) {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-10 space-y-10">
+  <div class="max-w-6xl mx-auto px-4 py-10 space-y-10">
     <div>
       <h1 class="text-xl font-bold mb-1">Account</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">

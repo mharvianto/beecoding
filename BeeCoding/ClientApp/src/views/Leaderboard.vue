@@ -32,7 +32,7 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto px-4 py-8">
+  <div class="max-w-6xl mx-auto px-4 py-8">
     <h1 class="text-xl font-bold mb-4">Leaderboard</h1>
 
     <div class="flex flex-wrap items-center gap-2 mb-4">

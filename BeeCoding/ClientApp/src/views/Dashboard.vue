@@ -80,8 +80,8 @@ async function join() {
           </span>
         </div>
         <div class="text-sm text-slate-500 dark:text-slate-400 mt-2 flex gap-4">
-          <span>{{ b.problemCount }} problems</span>
-          <span>{{ b.memberCount }} students</span>
+          <span>{{ b.problemCount }} problem{{ b.problemCount === 1 ? '' : 's' }}</span>
+          <span>{{ b.memberCount }} student{{ b.memberCount === 1 ? '' : 's' }}</span>
         </div>
         <div v-if="b.role !== 'Student'" class="text-xs text-slate-400 dark:text-slate-500 mt-2">
           Code: <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ b.joinCode }}</span>

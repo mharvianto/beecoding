@@ -52,7 +52,7 @@ function removeTest(i) { form.value.testCases.splice(i, 1); }
 
 <template>
   <div class="text-slate-900 dark:text-slate-100">
-    <div class="max-w-5xl mx-auto px-4 py-6">
+    <div class="max-w-6xl mx-auto px-4 py-6">
       <div class="flex items-center gap-3 flex-wrap mb-4">
         <h2 class="font-bold text-lg">{{ props.problem?.id ? 'Edit' : 'New' }} problem</h2>
         <span v-if="props.problem?.generatedByAi"
