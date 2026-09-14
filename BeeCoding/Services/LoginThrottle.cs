@@ -16,8 +16,8 @@ public sealed class LoginThrottle
     }
 
     private static readonly long Window = TimeSpan.FromMinutes(15).Ticks;
-    private const int IpCap = 25;        // generous: many students can share one NAT
-    private const int AccountCap = 8;    // one account should not see many failures
+    private const int IpCap = 1000;        // generous: many students can share one NAT
+    private const int AccountCap = 500;    // one account should not see many failures
 
     private readonly ConcurrentDictionary<string, Bucket> _byIp = new();
     private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();
