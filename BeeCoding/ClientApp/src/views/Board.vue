@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import { withBase } from '../lib/base';
 import { useAuth } from '../stores/auth';
 import { createBoardConnection } from '../lib/signalr';
 import { langLabel } from '../lib/templates';
@@ -13,6 +14,7 @@ import LevelBadge from '../components/LevelBadge.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
+import QrCode from '../components/QrCode.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
@@ -32,6 +34,9 @@ let conn = null;
 let refreshTimer = null;
 
 const isStaff = computed(() => board.value && board.value.role !== 'Student');
+const showQr = ref(false);
+const joinUrl = computed(() =>
+  board.value ? `${window.location.origin}${withBase('/join/' + board.value.joinCode)}` : '');
 
 async function loadAll() {
   board.value = await api.get(`/api/boards/${props.slug}`);
@@ -144,10 +149,23 @@ onBeforeUnmount(async () => {
       <h1 class="text-xl font-bold">{{ board.title }}</h1>
       <div class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-3">
         <span v-if="presence.length">🟢 {{ presence.length }} online</span>
-        <span v-if="isStaff">Join code: <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ board.joinCode }}</span></span>
+        <span v-if="isStaff" class="flex items-center gap-2">
+          Join code: <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ board.joinCode }}</span>
+          <button @click="showQr = !showQr"
+                  class="text-xs px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500">
+            {{ showQr ? 'Hide QR' : 'Show QR' }}
+          </button>
+        </span>
       </div>
     </div>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
+
+    <div v-if="isStaff && showQr" class="flex flex-col items-center gap-2 my-4">
+      <QrCode :text="joinUrl" />
+      <p class="text-xs text-slate-400 dark:text-slate-500">
+        Scan to join instantly — or enter code <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ board.joinCode }}</span> manually
+      </p>
+    </div>
 
     <!-- Staff controls -->
     <div v-if="isStaff" class="flex items-center gap-3 my-4">

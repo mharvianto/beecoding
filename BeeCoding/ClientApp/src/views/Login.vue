@@ -43,7 +43,7 @@ async function submit() {
       </button>
     </form>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-      No account? <RouterLink to="/register" class="text-amber-600 dark:text-amber-400">Register</RouterLink>
+      No account? <RouterLink :to="{ path: '/register', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-600 dark:text-amber-400">Register</RouterLink>
     </p>
   </div>
 </template>

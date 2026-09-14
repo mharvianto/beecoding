@@ -1,11 +1,12 @@
 <script setup>
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 const auth = useAuth();
 const router = useRouter();
+const route = useRoute();
 const form = ref({ displayName: '', email: '', password: '', role: 'Student', teacherCode: '' });
 const error = ref('');
 const busy = ref(false);
@@ -15,7 +16,7 @@ async function submit() {
   busy.value = true;
   try {
     await auth.register(form.value);
-    router.push('/boards');
+    router.push(route.query.r || '/boards');
   } catch (e) {
     error.value = e.message;
   } finally {
@@ -63,7 +64,7 @@ async function submit() {
       and <RouterLink to="/privacy" class="text-amber-600 dark:text-amber-400">Privacy Policy</RouterLink>.
     </p>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-      Have an account? <RouterLink to="/login" class="text-amber-600 dark:text-amber-400">Sign in</RouterLink>
+      Have an account? <RouterLink :to="{ path: '/login', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-600 dark:text-amber-400">Sign in</RouterLink>
     </p>
   </div>
 </template>
