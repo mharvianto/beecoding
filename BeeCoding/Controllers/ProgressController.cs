@@ -45,29 +45,30 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
             rank, rankedUsers, boardsJoined, totalAttempts, accepted);
     }
 
-    /// <summary>Weekly attempts + solves (first-time accepts, matching XP awards) across
-    /// every board + practice/bank.</summary>
-    [HttpGet("api/me/dashboard/weekly")]
-    public async Task<ActionResult<List<MyWeeklyStatDto>>> DashboardWeekly([FromQuery] int weeks = 12)
+    /// <summary>Attempts + solves (first-time accepts, matching XP awards) across every
+    /// board + practice/bank, with a selectable bucket size (hour/day/week) — same
+    /// bucketing as the admin dashboard's engagement chart (see TimeBucketing).</summary>
+    [HttpGet("api/me/dashboard/engagement")]
+    public async Task<ActionResult<List<MyEngagementPointDto>>> DashboardEngagement(
+        [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
     {
-        weeks = Math.Clamp(weeks, 1, 52);
+        var g = TimeBucketing.NormalizeGranularity(granularity);
+        periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
+
         var boardDates = await _db.Submissions.Where(s => s.UserId == UserId).Select(s => s.CreatedAt).ToListAsync();
         var bankDates = await _db.BankSubmissions.Where(s => s.UserId == UserId).Select(s => s.CreatedAt).ToListAsync();
         var solveDates = await _db.SolveRecords.Where(s => s.UserId == UserId).Select(s => s.CreatedAt).ToListAsync();
 
-        DateOnly WeekStart(DateTime dt)
-        {
-            var d = DateOnly.FromDateTime(dt);
-            return d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
-        }
-        var attemptsByWeek = boardDates.Concat(bankDates).GroupBy(WeekStart).ToDictionary(g => g.Key, g => g.Count());
-        var solvedByWeek = solveDates.GroupBy(WeekStart).ToDictionary(g => g.Key, g => g.Count());
+        var attemptsByBucket = boardDates.Concat(bankDates)
+            .GroupBy(dt => TimeBucketing.BucketStart(dt, g)).ToDictionary(x => x.Key, x => x.Count());
+        var solvedByBucket = solveDates
+            .GroupBy(dt => TimeBucketing.BucketStart(dt, g)).ToDictionary(x => x.Key, x => x.Count());
 
-        var weekKeys = attemptsByWeek.Keys.Union(solvedByWeek.Keys)
-            .OrderByDescending(k => k).Take(weeks).OrderBy(k => k);
+        var keys = attemptsByBucket.Keys.Union(solvedByBucket.Keys)
+            .OrderByDescending(k => k).Take(periods).OrderBy(k => k);
 
-        return weekKeys.Select(k => new MyWeeklyStatDto(k.ToString("yyyy-MM-dd"),
-            attemptsByWeek.GetValueOrDefault(k), solvedByWeek.GetValueOrDefault(k))).ToList();
+        return keys.Select(k => new MyEngagementPointDto(TimeBucketing.FormatPeriodStart(k, g),
+            attemptsByBucket.GetValueOrDefault(k), solvedByBucket.GetValueOrDefault(k))).ToList();
     }
 
     /// <summary>Topics ordered by lowest accept rate first ("what you're struggling with"),

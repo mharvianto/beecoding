@@ -22,26 +22,41 @@ const fmt = (n) => (n ?? 0).toLocaleString();
 
 // ---- personal dashboard: progress across every board + practice/bank ----
 const dashboard = ref(null);
-const weeklyStats = ref(null);
 const topicStats = ref(null);
 const dashErr = ref('');
+const engagementGranularity = ref('week');   // 'hour' | 'day' | 'week'
+const engagementStats = ref(null);
 
 async function loadDashboard() {
   dashErr.value = '';
   try {
-    const [d, weekly, topics] = await Promise.all([
+    const [d, topics] = await Promise.all([
       api.get('/api/me/dashboard'),
-      api.get('/api/me/dashboard/weekly?weeks=12'),
       api.get('/api/me/dashboard/topics?take=8'),
     ]);
     dashboard.value = d;
-    weeklyStats.value = weekly;
     topicStats.value = topics;
+    await loadEngagement();
   } catch (e) { dashErr.value = e.message; }
 }
+
+function periodsFor(granularity) {
+  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
+}
+async function loadEngagement() {
+  dashErr.value = '';
+  try {
+    engagementStats.value = await api.get(
+      `/api/me/dashboard/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
+  } catch (e) { dashErr.value = e.message; }
+}
+function setEngagementGranularity(g) { engagementGranularity.value = g; loadEngagement(); }
+
 const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-const attemptPoints = () => (weeklyStats.value || []).map((w) => ({ label: shortDate(w.weekStart), value: w.attempts }));
-const solvedPoints = () => (weeklyStats.value || []).map((w) => ({ label: shortDate(w.weekStart), value: w.solved }));
+const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });
+const engagementLabel = (s) => (engagementGranularity.value === 'hour' ? shortHour(s) : shortDate(s));
+const attemptPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.attempts }));
+const solvedPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.solved }));
 const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
 onMounted(() => { progress.refresh(); loadDashboard(); });
@@ -156,9 +171,21 @@ async function deleteAccount(force = false) {
       </div>
       <p v-else-if="!dashErr" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
 
-      <div v-if="weeklyStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MiniLineChart title="Submissions / week" :points="attemptPoints()" />
-        <MiniLineChart title="Problems solved / week" :points="solvedPoints()" />
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                    @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
+                    :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              {{ g[1] }}
+            </button>
+          </span>
+        </div>
+        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
+          <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
+        </div>
+        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
       </div>
 
       <div v-if="topicStats?.length">

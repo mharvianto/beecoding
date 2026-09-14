@@ -152,6 +152,7 @@ public record StudentDashboardDto(
     int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount,
     int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts);
 public record MyWeeklyStatDto(string WeekStart, int Attempts, int Solved);
+public record MyEngagementPointDto(string PeriodStart, int Attempts, int Solved);
 
 // ---- Teacher: one board's own stats (Board.vue staff panel) ----
 public record BoardStatsDto(
