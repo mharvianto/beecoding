@@ -243,7 +243,131 @@ kredensial tidak pernah masuk ke image atau `docker-compose.yml`.
 
 ---
 
-## 4. Ringkasan — pilih yang mana?
+## 4. Pisahkan `BeeCoding.Judge` jadi image sendiri (opsional)
+
+Ini persis pola yang dijelaskan [DEPLOY.md §2.1](DEPLOY.md#21-tier--sudah-dipecah-jadi-3-project-di-repo):
+`BeeCoding.Judge` itu host console minimal — cuma broker Redis + toolchain native +
+`JudgeWorker`, **tanpa** `AppDbContext`, SignalR, cookie auth, atau `Ai__ApiKey`. Manfaat
+langsungnya begitu dipisah: **image web jadi lebih kecil** (tidak perlu `gcc`/`g++`/
+`bubblewrap` lagi — itu semua pindah ke image judge), dan judge bisa di-scale independen
+dari web.
+
+Dicek langsung dari `BeeCoding.Judge/Program.cs` dan `appsettings.json`-nya — dua hal wajib
+yang beda dari web:
+
+- **`Judge__Queue__Backend=redis` wajib** — proyek ini langsung `throw` saat start kalau
+  backend-nya bukan redis (tidak ada mode `inproc` di sini sama sekali).
+- **`Judge__Queue__RedisConnectionString` wajib diisi eksplisit** — beda dari web yang boleh
+  `null` (nanti numpang multiplexer punya `Realtime`), judge berdiri sendiri jadi tidak ada
+  yang dinumpangi.
+- Default `Judge__RequireSandbox=true` (beda dari web yang defaultnya `false`) — artinya
+  kalau `bwrap` tidak bisa jalan di container (lihat catatan §1), **image judge akan
+  menolak start** kecuali kamu set `Judge__RequireSandbox=false` secara eksplisit.
+
+### 4.1 Dockerfile — dua target dari satu file
+
+Perluas Dockerfile di §1: publish **dua** project dari stage `build` yang sama, lalu pisah
+jadi dua stage runtime:
+
+```dockerfile
+# --- build: publish DUA project ---
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+WORKDIR /src
+COPY . .
+RUN dotnet publish BeeCoding/BeeCoding.csproj -c Release -o /app/web
+RUN dotnet publish BeeCoding.Judge/BeeCoding.Judge.csproj -c Release -o /app/judge
+
+# --- runtime: web (tidak lagi butuh gcc/g++/bubblewrap!) ---
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS web
+WORKDIR /app
+COPY --from=build /app/web .
+ENV ASPNETCORE_URLS=http://+:8080
+USER app
+EXPOSE 8080
+ENTRYPOINT ["dotnet", "BeeCoding.dll"]
+
+# --- runtime: judge (toolchain-nya pindah ke sini) ---
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS judge
+RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ bubblewrap \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /app/judge .
+ENTRYPOINT ["dotnet", "BeeCoding.Judge.dll"]
+```
+
+```bash
+podman build --target web -t beecoding-web:latest .
+podman build --target judge -t beecoding-judge:latest .
+# docker: ganti "podman" -> "docker", sama persis
+```
+
+### 4.2 Podman — tambah ke pod yang sudah ada (§2.2)
+
+```bash
+podman run -d --pod beecoding-pod --name beecoding-web \
+  -v beecoding-data:/app/data \
+  -e ConnectionStrings__Default="Data Source=/app/data/beecoding.db" \
+  -e Judge__Queue__Backend=redis \
+  -e Judge__Queue__RedisConnectionString=localhost:6379 \
+  -e Ai__ApiKey="..." \
+  beecoding-web:latest
+
+podman run -d --pod beecoding-pod --name beecoding-judge \
+  -e Judge__Queue__RedisConnectionString=localhost:6379 \
+  -e Judge__RequireSandbox=false \
+  --security-opt seccomp=unconfined \
+  beecoding-judge:latest
+```
+
+(`Judge__RequireSandbox=false` di sini mengikuti asumsi pesimis dari §1 — kalau `bwrap`
+ternyata jalan di server kamu, hapus baris ini dan biarkan default `true` yang lebih aman.)
+
+### 4.3 Docker Swarm — tambah service ke stack yang sudah ada (§3.2)
+
+```yaml
+services:
+  redis:
+    image: redis:7-alpine
+  beecoding:
+    image: beecoding-web:latest
+    ports: ["8080:8080"]
+    volumes: ["beecoding-data:/app/data"]
+    environment:
+      ConnectionStrings__Default: "Data Source=/app/data/beecoding.db"
+      Judge__Queue__Backend: redis
+      Judge__Queue__RedisConnectionString: redis:6379
+      Ai__ApiKey: "..."
+  beecoding-judge:
+    image: beecoding-judge:latest
+    environment:
+      Judge__Queue__RedisConnectionString: redis:6379
+      Judge__RequireSandbox: "false"
+    deploy:
+      replicas: 2   # aman di-scale — judge tidak nyimpan state, beda dari web!
+
+volumes:
+  beecoding-data:
+```
+
+Ini justru contoh **paling sehat** untuk `docker service scale` (atau naikkan `replicas` di
+atas): service `beecoding-judge` **tidak menyentuh** SQLite atau SignalR sama sekali —
+murni proses compute yang ambil job dari Redis, jalankan, kirim balik hasilnya. Beda dari
+menaikkan replika `beecoding` (web) yang langsung kena masalah state di §3.3.
+
+### 4.4 Cara memastikan sudah nyambung
+
+```bash
+podman logs -f beecoding-judge     # atau: docker service logs beecoding_beecoding-judge -f
+```
+Submit kode dari UI BeeCoding seperti biasa — kalau judge sudah kekonek ke broker yang
+benar, log ini akan menunjukkan job masuk & verdict keluar. Kalau macet di status
+`Queued` selamanya, cek `Judge__Queue__RedisConnectionString` di **kedua** container
+sama-sama menunjuk Redis yang sama.
+
+---
+
+## 5. Ringkasan — pilih yang mana?
 
 | Situasi | Pilihan |
 |---|---|
