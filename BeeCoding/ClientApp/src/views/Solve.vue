@@ -384,11 +384,12 @@ function ago(ts) {
         </div>
         <div v-if="testProgress" class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-            <span class="block h-full bg-amber-400" :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
+            <span class="block h-full bg-amber-400 transition-all duration-300 ease-out"
+                  :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
           </span>
           <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
-        <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500">
+        <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
           Still checking your last submission…
         </div>
         <div class="grid grid-cols-2 gap-2">
