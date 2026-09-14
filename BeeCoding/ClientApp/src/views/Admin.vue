@@ -643,6 +643,9 @@ onMounted(async () => {
         <button type="button" @click="switchTab('ai')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
           <div class="text-xs text-slate-400 dark:text-slate-500">AI calls today / this month</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.aiToday.calls) }} / {{ fmt(dashboard.aiMonth.calls) }}</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+            {{ fmt(dashboard.aiToday.totalTokens) }} / {{ fmt(dashboard.aiMonth.totalTokens) }} tokens
+          </div>
         </button>
       </div>
       <p v-else-if="!dashboard" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
