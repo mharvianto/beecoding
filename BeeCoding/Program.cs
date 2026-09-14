@@ -120,7 +120,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             if (row is null || row.DeletedAt is not null)
             {
                 ctx.RejectPrincipal();
-                await ctx.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                await CookieSignIn.SignOutAsync(ctx.HttpContext);
                 return;
             }
 

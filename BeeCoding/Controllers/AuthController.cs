@@ -88,11 +88,15 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         return await MeDtoAsync(user);
     }
 
+    // Deliberately not [Authorize]: logging out must always succeed, even when the current
+    // cookie state is already broken (e.g. an old pre-PathBase cookie at Path=/ conflicting
+    // with the current one — ASP.NET Core can fail to parse either and treat the request as
+    // unauthenticated, which would make an [Authorize]'d logout 401 instead of clearing
+    // anything). Clearing cookies is safe and idempotent regardless of auth state.
     [HttpPost("logout")]
-    [Authorize]
     public async Task<IActionResult> Logout()
     {
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await CookieSignIn.SignOutAsync(HttpContext);
         return NoContent();
     }
 
@@ -168,7 +172,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();   // cascades memberships, submissions, posts, bank problems, solve records
 
-        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await CookieSignIn.SignOutAsync(HttpContext);
         return NoContent();
     }
 
