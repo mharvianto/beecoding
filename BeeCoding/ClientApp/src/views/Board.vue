@@ -130,15 +130,6 @@ const aiCallPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: 
 const aiTokenPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.totalTokens }));
 const topicBarItems = () => (stats.value?.topics || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
-
-async function saveToBank(p) {
-  try {
-    await api.post(`/api/boards/${props.slug}/problems/${p.id}/to-bank`);
-    error.value = '';
-    undoToast.show(`"${p.title}" saved to the problem bank.`);
-  } catch (e) { error.value = e.message; }
-}
-
 async function toggleHidden(p) {
   try {
     const updated = await api.patch(`/api/boards/${props.slug}/problems/${p.slug}/hidden`, { hidden: !p.hidden });
@@ -365,9 +356,6 @@ onBeforeUnmount(async () => {
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'"
                   class="row-action-btn">
             <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span>{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
-          </button>
-          <button v-if="isStaff" @click="saveToBank(p)" title="Save to problem bank" class="row-action-btn">
-            <span>📚</span><span>Bank</span>
           </button>
           <button v-if="isStaff" @click="router.push(`/boards/${props.slug}/problems/${p.slug}/edit`)" class="row-action-btn">
             <span>✏️</span><span>Edit</span>
