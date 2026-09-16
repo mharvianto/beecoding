@@ -7,7 +7,8 @@ const error = ref('');
 const loading = ref(false);
 
 const orgs = ref([]);
-const scope = ref('global');   // 'global' | orgId (number, as string while in the select)
+const boards = ref([]);
+const scope = ref('global');   // 'global' | `org:<id>` | `board:<id>`
 const period = ref('all');     // 'all' | '1y' | '6m' | '1m'
 const page = ref(1);
 const pageSize = 20;
@@ -18,12 +19,16 @@ const periods = [['all', 'All time'], ['1y', '1 year'], ['6m', '6 months'], ['1m
 async function loadOrgs() {
   try { orgs.value = await api.get('/api/me/organizations'); } catch { /* not fatal — just no org tab */ }
 }
+async function loadBoards() {
+  try { boards.value = await api.get('/api/me/boards-brief'); } catch { /* not fatal — just no board picker */ }
+}
 
 async function load() {
   loading.value = true; error.value = '';
   try {
     const params = new URLSearchParams({ page: String(page.value), pageSize: String(pageSize), period: period.value });
-    if (scope.value !== 'global') params.set('organizationId', scope.value);
+    if (scope.value.startsWith('org:')) params.set('organizationId', scope.value.slice(4));
+    else if (scope.value.startsWith('board:')) params.set('boardId', scope.value.slice(6));
     const result = await api.get(`/api/leaderboard?${params}`);
     rows.value = result.rows;
     total.value = result.total;
@@ -31,11 +36,12 @@ async function load() {
   finally { loading.value = false; }
 }
 function setScope(s) { scope.value = s; page.value = 1; load(); }
+function setBoardScope(e) { setScope(e.target.value ? `board:${e.target.value}` : 'global'); }
 function setPeriod(p) { period.value = p; page.value = 1; load(); }
 function prevPage() { if (page.value > 1) { page.value--; load(); } }
 function nextPage() { if (page.value * pageSize < total.value) { page.value++; load(); } }
 
-onMounted(async () => { await loadOrgs(); await load(); });
+onMounted(async () => { await Promise.all([loadOrgs(), loadBoards()]); await load(); });
 
 const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '');
 </script>
@@ -50,11 +56,16 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
                 :class="scope === 'global' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           Global
         </button>
-        <button v-for="o in orgs" :key="o.id" @click="setScope(String(o.id))"
+        <button v-for="o in orgs" :key="o.id" @click="setScope(`org:${o.id}`)"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
-                :class="scope === String(o.id) ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+                :class="scope === `org:${o.id}` ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ o.name }}
         </button>
+        <select v-if="boards.length" :value="scope.startsWith('board:') ? scope.slice(6) : ''" @change="setBoardScope"
+                class="rounded-lg px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm">
+          <option value="">This board…</option>
+          <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
+        </select>
       </div>
       <div class="flex gap-1 text-sm sm:ml-auto">
         <button v-for="p in periods" :key="p[0]" @click="setPeriod(p[0])"
@@ -73,6 +84,13 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
            class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900"
            :class="{ 'bg-amber-50 dark:bg-amber-500/10': r.me }">
         <span class="w-8 text-center text-sm text-slate-400 dark:text-slate-500">{{ medal(r.rank) || r.rank }}</span>
+        <span class="w-9 text-xs font-medium tabular-nums shrink-0"
+              :class="r.rankDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : r.rankDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-600'"
+              :title="r.rankDelta ? `${r.rankDelta > 0 ? 'Up' : 'Down'} ${Math.abs(r.rankDelta)} since yesterday` : (r.rankDelta === 0 ? 'Unchanged since yesterday' : '')">
+          <template v-if="r.rankDelta > 0">▲{{ r.rankDelta }}</template>
+          <template v-else-if="r.rankDelta < 0">▼{{ -r.rankDelta }}</template>
+          <template v-else-if="r.rankDelta === 0">–</template>
+        </span>
         <span class="flex-1 text-sm font-medium truncate">
           {{ r.displayName }}
           <span v-if="r.me" class="text-xs text-amber-600 dark:text-amber-400"> (you)</span>

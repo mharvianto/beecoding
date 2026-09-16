@@ -4,19 +4,25 @@ using BeeCoding.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace BeeCoding.Controllers;
 
-public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me);
+// RankDelta: yesterday's rank minus today's rank in the SAME scope, "all time" period only
+// (see ProgressController.GetYesterdayRanksAsync) — positive = moved up, negative = moved
+// down, null = not computed (a windowed period) or the user has no solves before today.
+public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null);
 public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
 public record MyOrgDto(int Id, string Name, string Slug);
+public record MyBoardDto(int Id, string Slug, string Title);
 
 [ApiController]
 [Authorize]
-public class ProgressController(AppDbContext db, ProgressService progress) : ApiControllerBase
+public class ProgressController(AppDbContext db, ProgressService progress, IMemoryCache cache) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly ProgressService _progress = progress;
+    private readonly IMemoryCache _cache = cache;
 
     private static DateOnly? ParseLocalDay(string? s) =>
         DateOnly.TryParseExact(s, "yyyy-MM-dd", out var d) ? d : null;
@@ -120,15 +126,27 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
             .Select(m => new MyOrgDto(m.Organization!.Id, m.Organization.Name, m.Organization.Slug))
             .ToListAsync();
 
+    /// <summary>Boards the caller belongs to (any role) — for the leaderboard's "this
+    /// board" scope picker.</summary>
+    [HttpGet("api/me/boards-brief")]
+    public async Task<ActionResult<List<MyBoardDto>>> MyBoards() =>
+        await _db.BoardMemberships.Where(m => m.UserId == UserId)
+            .OrderBy(m => m.Board!.Title)
+            .Select(m => new MyBoardDto(m.Board!.Id, m.Board.Slug, m.Board.Title))
+            .ToListAsync();
+
     /// <summary>Ranked by XP. `period` narrows to XP earned within a window (via
     /// SolveRecord, since Xp itself is a lifetime total with no history) — "all" uses the
-    /// fast denormalized User.Xp column when also unscoped by org. `organizationId` narrows
-    /// to that org's own members; the caller must belong to it (any role) — leaderboard rows
-    /// name real students, so this is an org data-isolation boundary like everywhere else.</summary>
+    /// fast denormalized User.Xp column when also unscoped. `organizationId`/`boardId` narrow
+    /// to that org's/board's own members (mutually exclusive — pass at most one); the caller
+    /// must belong to it (any role) — leaderboard rows name real students, so this is a data
+    /// isolation boundary like everywhere else. On the "all time" view, each row also gets
+    /// RankDelta vs. yesterday (see GetYesterdayRanksAsync) — not computed for a windowed
+    /// period, where "since yesterday" isn't a meaningful comparison.</summary>
     [HttpGet("api/leaderboard")]
     public async Task<ActionResult<LeaderboardPageDto>> Leaderboard(
-        [FromQuery] int page = 1, [FromQuery] int pageSize = 20,
-        [FromQuery] string period = "all", [FromQuery] int? organizationId = null)
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string period = "all",
+        [FromQuery] int? organizationId = null, [FromQuery] int? boardId = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -137,8 +155,10 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
         if (organizationId is int orgId
             && !await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == UserId))
             return Forbid();
+        if (boardId is int bId0 && !await _db.BoardMemberships.AnyAsync(m => m.BoardId == bId0 && m.UserId == UserId))
+            return Forbid();
 
-        if (organizationId is null && period == "all")
+        if (organizationId is null && boardId is null && period == "all")
         {
             var query = _db.Users.Where(u => u.Xp > 0);
             var total = await query.CountAsync();
@@ -148,9 +168,14 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
                 .Select(u => new { u.Id, u.DisplayName, u.Role, u.Xp })
                 .ToListAsync();
 
-            var rows = top.Select((u, i) => new LeaderRowDto(
-                skip + i + 1, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
-                ProgressService.LevelForXp(u.Xp), u.Id == UserId)).ToList();
+            var yesterday = await GetYesterdayRanksAsync(null, null);
+            var rows = top.Select((u, i) =>
+            {
+                int rank = skip + i + 1;
+                int? delta = yesterday.TryGetValue(u.Id, out var y) ? y - rank : null;
+                return new LeaderRowDto(rank, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
+                    ProgressService.LevelForXp(u.Xp), u.Id == UserId, delta);
+            }).ToList();
             return new LeaderboardPageDto(rows, total, page, pageSize);
         }
 
@@ -169,6 +194,11 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
             var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == oid).Select(m => m.UserId);
             records = records.Where(r => memberIds.Contains(r.UserId));
         }
+        if (boardId is int bId1)
+        {
+            var memberIds = _db.BoardMemberships.Where(m => m.BoardId == bId1).Select(m => m.UserId);
+            records = records.Where(r => memberIds.Contains(r.UserId));
+        }
 
         var grouped = records.GroupBy(r => r.UserId).Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) });
         var groupedTotal = await grouped.CountAsync();
@@ -178,9 +208,51 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
         var users = await _db.Users.Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
 
-        var rankedRows = ranked.Select((r, i) => new LeaderRowDto(
-            skip + i + 1, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
-            ProgressService.LevelForXp(r.Xp), r.UserId == UserId)).ToList();
+        var yesterdayRanked = cutoff is null ? await GetYesterdayRanksAsync(organizationId, boardId) : null;
+        var rankedRows = ranked.Select((r, i) =>
+        {
+            int rank = skip + i + 1;
+            int? delta = yesterdayRanked is not null && yesterdayRanked.TryGetValue(r.UserId, out var y) ? y - rank : null;
+            return new LeaderRowDto(rank, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
+                ProgressService.LevelForXp(r.Xp), r.UserId == UserId, delta);
+        }).ToList();
         return new LeaderboardPageDto(rankedRows, groupedTotal, page, pageSize);
+    }
+
+    /// <summary>Each user's rank (1 = best) in the given scope, as of the start of today UTC
+    /// — i.e. excluding anything earned today, so "today vs. this" is a same-day-apples
+    /// comparison for RankDelta. Computed from SolveRecord (an append-only ledger), so no
+    /// separate snapshot table is needed; cached in memory per scope until the next UTC
+    /// midnight, since re-ranking every user on every leaderboard request would be wasteful
+    /// when "yesterday" only changes once a day.</summary>
+    private async Task<Dictionary<int, int>> GetYesterdayRanksAsync(int? organizationId, int? boardId)
+    {
+        var cutoff = DateTime.UtcNow.Date;
+        var cacheKey = $"leaderboard:yesterday:org={organizationId}:board={boardId}:asof={cutoff:yyyy-MM-dd}";
+        if (_cache.TryGetValue(cacheKey, out Dictionary<int, int>? cached) && cached is not null)
+            return cached;
+
+        var records = _db.SolveRecords.Where(r => r.CreatedAt < cutoff);
+        if (organizationId is int oid)
+        {
+            var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == oid).Select(m => m.UserId);
+            records = records.Where(r => memberIds.Contains(r.UserId));
+        }
+        if (boardId is int bid)
+        {
+            var memberIds = _db.BoardMemberships.Where(m => m.BoardId == bid).Select(m => m.UserId);
+            records = records.Where(r => memberIds.Contains(r.UserId));
+        }
+
+        var grouped = await records.GroupBy(r => r.UserId)
+            .Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) })
+            .OrderByDescending(x => x.Xp)
+            .ToListAsync();
+
+        var map = new Dictionary<int, int>(grouped.Count);
+        for (int i = 0; i < grouped.Count; i++) map[grouped[i].UserId] = i + 1;
+
+        _cache.Set(cacheKey, map, new DateTimeOffset(cutoff.AddDays(1)));
+        return map;
     }
 }

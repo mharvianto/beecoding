@@ -37,6 +37,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 
 builder.Services.AddControllers();
 builder.Services.AddSignalR();
+builder.Services.AddMemoryCache();
 
 // /health = liveness (process is up); /health/ready = readiness (DB reachable).
 builder.Services.AddHealthChecks()
