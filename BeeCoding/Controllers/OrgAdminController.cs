@@ -77,26 +77,52 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             Sum(usage.Where(x => x.Day == today)), Sum(usage));
     }
 
-    /// <summary>Weekly active-users + submissions, scoped to this org's boards only (bank/
-    /// practice activity isn't org-scopable — a bank problem belongs to a user, not an org).</summary>
-    [HttpGet("{orgId:int}/dashboard/weekly")]
-    public async Task<ActionResult<List<AdminWeeklyStatDto>>> DashboardWeekly(int orgId, [FromQuery] int weeks = 12)
+    /// <summary>Active-users + submissions over time, scoped to this org's boards only
+    /// (bank/practice activity isn't org-scopable — a bank problem belongs to a user, not
+    /// an org), with a selectable bucket size (hour/day/week) — same TimeBucketing helper
+    /// as the platform admin dashboard.</summary>
+    [HttpGet("{orgId:int}/dashboard/engagement")]
+    public async Task<ActionResult<List<AdminEngagementPointDto>>> DashboardEngagement(
+        int orgId, [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
-        weeks = Math.Clamp(weeks, 1, 52);
+        var g = TimeBucketing.NormalizeGranularity(granularity);
+        periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
 
         var activity = await _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId)
             .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
 
-        DateOnly WeekStart(DateTime dt)
-        {
-            var d = DateOnly.FromDateTime(dt);
-            return d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
-        }
+        return activity.GroupBy(x => TimeBucketing.BucketStart(x.CreatedAt, g))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminEngagementPointDto(
+                TimeBucketing.FormatPeriodStart(x.Key, g), x.Select(y => y.UserId).Distinct().Count(), x.Count()))
+            .ToList();
+    }
 
-        return activity.GroupBy(x => WeekStart(x.CreatedAt))
-            .OrderByDescending(g => g.Key).Take(weeks).OrderBy(g => g.Key)
-            .Select(g => new AdminWeeklyStatDto(g.Key.ToString("yyyy-MM-dd"), g.Select(x => x.UserId).Distinct().Count(), g.Count()))
+    /// <summary>AI calls + total tokens over time, summed across this org's members (AiUsage
+    /// is per-user, not per-org — same proxy as Dashboard() above). Hourly isn't available
+    /// (AiUsage only ever rolls up per calendar day), so "hour" silently falls back to
+    /// "day" — same as the platform admin's AI usage chart.</summary>
+    [HttpGet("{orgId:int}/dashboard/ai-engagement")]
+    public async Task<ActionResult<List<AdminAiEngagementPointDto>>> DashboardAiEngagement(
+        int orgId, [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var g = TimeBucketing.NormalizeGranularity(granularity);
+        if (g == "hour") g = "day";
+        periods = Math.Clamp(periods, 1, g == "day" ? 90 : 52);
+
+        var memberIds = await _db.OrganizationMemberships.Where(m => m.OrganizationId == orgId)
+            .Select(m => m.UserId).ToListAsync();
+        var rows = await _db.AiUsages.Where(x => memberIds.Contains(x.UserId))
+            .Select(x => new { x.Day, x.Calls, x.PromptTokens, x.CompletionTokens }).ToListAsync();
+
+        DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
+
+        return rows.GroupBy(x => BucketDay(x.Day))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminAiEngagementPointDto(
+                x.Key.ToString("yyyy-MM-dd"), x.Sum(y => y.Calls), x.Sum(y => y.PromptTokens) + x.Sum(y => y.CompletionTokens)))
             .ToList();
     }
 
