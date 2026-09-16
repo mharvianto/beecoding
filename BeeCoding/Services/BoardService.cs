@@ -55,7 +55,9 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         if (viewer is null && !viewerIsAdmin) return null;
         bool viewerIsStaff = viewerIsAdmin || (viewer is not null && _vis.IsStaff(viewer.Role));
 
-        var problems = board.Problems.OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        // Hidden problems (see Problem.Hidden) are excluded from Live progress entirely —
+        // same "not currently active" treatment as the student-facing list/wall.
+        var problems = board.Problems.Where(p => !p.Hidden).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
         var problemIds = problems.Select(p => p.Id).ToList();
 
         var subs = await _db.Submissions

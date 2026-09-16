@@ -61,7 +61,9 @@ public class WallService(AppDbContext db, VisibilityService vis)
         if (viewer is null) return null;
         bool staff = _vis.IsStaff(viewer.Role);
 
-        var problems = board.Problems.OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        // Hidden problems (see Problem.Hidden) are excluded from the wall entirely — same
+        // "not currently active" treatment as the student-facing list and the progress grid.
+        var problems = board.Problems.Where(p => !p.Hidden).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
         var problemIds = problems.Select(p => p.Id).ToHashSet();
         var langByProblem = problems.ToDictionary(p => p.Id, p => Languages.Default(p.AllowedLanguages));
 
