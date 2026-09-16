@@ -153,14 +153,14 @@ async function loadSubs() {
     const match = submissions.value.find((s) => s.id === submittingId.value);
     if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
   }
-  // Celebrate every Accepted solve (not just a fresh first-time one) as soon as we see
-  // it — whether that's via a live push or discovered here on reload/reopen after grading
-  // finished while unwatched (e.g. the tab was closed mid-grading). The localStorage marker
-  // (keyed by submission id) stops a later revisit from re-celebrating the same submission.
+  // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
+  // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
+  // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
+  // solved; the localStorage marker stops a later revisit from re-celebrating it.
   const mineLatest = submissions.value.find((s) => s.mine);
   if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted') {
     markDraftAccepted(auth.user?.id, draftScope.value);
-    if (!alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
+    if (mineLatest.xpAwarded > 0 && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
       await progress.refresh();
       celebrate({ waves: Math.min(8, progress.solvedToday + 2) });
       celebrationToast.show({
