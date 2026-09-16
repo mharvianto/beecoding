@@ -3,6 +3,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { useProgress } from '../stores/progress';
+import { useCelebrationToast } from '../stores/celebrationToast';
 import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
@@ -20,6 +21,7 @@ import { localDayKey } from '../lib/localDay';
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
 const progress = useProgress();
+const celebrationToast = useCelebrationToast();
 
 const problem = ref(null);
 // internal id of the loaded problem — for API calls / SignalR that key by int id
@@ -69,7 +71,6 @@ const submittingId = ref(null);
 const testProgress = ref(null);   // { current, total } | null
 const submissions = ref([]);
 const error = ref('');
-const gained = ref(0);
 let conn = null;
 
 async function load() {
@@ -110,16 +111,19 @@ async function loadSubs() {
     const match = submissions.value.find((s) => s.id === submittingId.value);
     if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
   }
-  // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
-  // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
-  // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
-  // solved; the localStorage marker stops a later revisit from re-celebrating it.
+  // Celebrate every Accepted solve (not just a fresh first-time one) as soon as we see
+  // it — whether that's via a live push or discovered here on reload/reopen after grading
+  // finished while unwatched (e.g. the tab was closed mid-grading). The localStorage marker
+  // (keyed by submission id) stops a later revisit from re-celebrating the same submission.
   const latest = submissions.value[0];
   if (latest?.status === 'Done' && latest.verdict === 'Accepted') {
     markDraftAccepted(auth.user?.id, draftScope.value);
-    if (latest.xpAwarded > 0 && !alreadyCelebrated(auth.user?.id, draftScope.value, latest.id)) {
-      gained.value = latest.xpAwarded;
-      celebrate();
+    if (!alreadyCelebrated(auth.user?.id, draftScope.value, latest.id)) {
+      await progress.refresh();
+      celebrate({ waves: Math.min(8, progress.solvedToday + 2) });
+      celebrationToast.show({
+        xpGained: latest.xpAwarded, level: progress.level, xp: progress.xp, solvedToday: progress.solvedToday,
+      });
       markCelebrated(auth.user?.id, draftScope.value, latest.id);
     }
   }
@@ -135,7 +139,7 @@ async function run() {
 
 async function submit() {
   if (submitCooldown.value > 0) return;
-  error.value = ''; submitting.value = true; gained.value = 0; testProgress.value = null;
+  error.value = ''; submitting.value = true; testProgress.value = null;
   try {
     const res = await api.post(`/api/practice/${props.slug}/submit`, { code: code.value, language: solveLang.value, localDay: localDayKey() });
     submittingId.value = res.submissionId;
@@ -207,9 +211,6 @@ onBeforeUnmount(async () => {
         <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss">✕</button>
       </div>
 
-      <div v-if="gained" class="mb-3 text-sm bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200 rounded-lg px-3 py-2">
-        🎉 +{{ gained }} XP! Now Lv {{ progress.level }} · {{ progress.xp }} XP
-      </div>
 
       <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
         🔒 Protected problem — served as an encrypted image watermarked with your identity.

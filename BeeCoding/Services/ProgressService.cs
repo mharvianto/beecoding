@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Services;
 
-public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount, int Streak);
+public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount, int Streak, int SolvedToday);
 
 /// <summary>
 /// XP / leveling. XP is awarded once per distinct problem the first time a student
@@ -90,9 +90,11 @@ public class ProgressService(AppDbContext db)
 
     /// <summary>
     /// <paramref name="localDay"/> is the CALLER's current local day (from the client making
-    /// this request), used only to detect a streak that's gone stale since the user's last
+    /// this request), used to (1) detect a streak that's gone stale since the user's last
     /// solve — the stored CurrentStreak isn't reset until their next solve, so without this
-    /// check a broken streak would still display as alive until then.
+    /// check a broken streak would still display as alive until then — and (2) count today's
+    /// Accepted solves (board + practice combined) for the celebration toast. Left at 0 if
+    /// omitted, since without it "today" is undefined.
     /// </summary>
     public async Task<ProgressDto> GetAsync(int userId, DateOnly? localDay = null, CancellationToken ct = default)
     {
@@ -106,6 +108,20 @@ public class ProgressService(AppDbContext db)
             && today.DayNumber - last.DayNumber > 1)
             streak = 0;
 
-        return new ProgressDto(user?.Xp ?? 0, level, LevelStartXp(level), LevelStartXp(level + 1), solved, streak);
+        int solvedToday = localDay is DateOnly day ? await CountSolvedOnLocalDayAsync(userId, day, ct) : 0;
+
+        return new ProgressDto(user?.Xp ?? 0, level, LevelStartXp(level), LevelStartXp(level + 1), solved, streak, solvedToday);
+    }
+
+    /// <summary>Accepted, fully-scored solves (board + practice combined, repeats included —
+    /// this counts solve EVENTS, not distinct problems) on one of the student's local days.
+    /// Powers the "N solved today" celebration toast.</summary>
+    public async Task<int> CountSolvedOnLocalDayAsync(int userId, DateOnly localDay, CancellationToken ct = default)
+    {
+        var board = await _db.Submissions.CountAsync(
+            s => s.UserId == userId && s.LocalDay == localDay && s.Verdict == Verdict.Accepted && s.Score >= 1.0, ct);
+        var practice = await _db.BankSubmissions.CountAsync(
+            s => s.UserId == userId && s.LocalDay == localDay && s.Verdict == Verdict.Accepted && s.Score >= 1.0, ct);
+        return board + practice;
     }
 }

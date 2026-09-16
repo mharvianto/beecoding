@@ -3,6 +3,7 @@ import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { useProgress } from '../stores/progress';
+import { useCelebrationToast } from '../stores/celebrationToast';
 import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
@@ -16,10 +17,12 @@ import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/temp
 import { loadDraft, saveDraft, clearDraft, markDraftAccepted } from '../lib/draft';
 import { celebrate } from '../lib/confetti';
 import { alreadyCelebrated, markCelebrated } from '../lib/celebration';
+import { localDayKey } from '../lib/localDay';
 
 const props = defineProps({ slug: { type: String, required: true }, problemSlug: { type: String, required: true } });
 const auth = useAuth();
 const progress = useProgress();
+const celebrationToast = useCelebrationToast();
 
 const board = ref(null);
 const problem = ref(null);
@@ -150,15 +153,19 @@ async function loadSubs() {
     const match = submissions.value.find((s) => s.id === submittingId.value);
     if (match && match.status === 'Done') { submittingId.value = null; testProgress.value = null; }
   }
-  // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
-  // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
-  // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
-  // solved; the localStorage marker stops a later revisit from re-celebrating it.
+  // Celebrate every Accepted solve (not just a fresh first-time one) as soon as we see
+  // it — whether that's via a live push or discovered here on reload/reopen after grading
+  // finished while unwatched (e.g. the tab was closed mid-grading). The localStorage marker
+  // (keyed by submission id) stops a later revisit from re-celebrating the same submission.
   const mineLatest = submissions.value.find((s) => s.mine);
   if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted') {
     markDraftAccepted(auth.user?.id, draftScope.value);
-    if (mineLatest.xpAwarded > 0 && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
-      celebrate();
+    if (!alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
+      await progress.refresh();
+      celebrate({ waves: Math.min(8, progress.solvedToday + 2) });
+      celebrationToast.show({
+        xpGained: mineLatest.xpAwarded, level: progress.level, xp: progress.xp, solvedToday: progress.solvedToday,
+      });
       markCelebrated(auth.user?.id, draftScope.value, mineLatest.id);
     }
   }
@@ -176,7 +183,7 @@ async function submit() {
   if (submitCooldown.value > 0) return;
   error.value = ''; submitting.value = true; testProgress.value = null;
   try {
-    const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value });
+    const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value, localDay: localDayKey() });
     submittingId.value = res.submissionId;
     startSubmitCooldown(10);
     await loadSubs();

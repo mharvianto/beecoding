@@ -40,6 +40,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (!Languages.Allows(problem.AllowedLanguages, lang))
             return BadRequest($"This problem only accepts {Languages.Label(problem.AllowedLanguages)}.");
 
+        DateOnly? localDay = DateOnly.TryParseExact(dto.LocalDay, "yyyy-MM-dd", out var ld) ? ld : null;
         var sub = new Submission
         {
             ProblemId = problemId,
@@ -47,6 +48,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             Code = dto.Code,
             Language = lang,
             Status = SubmissionStatus.Queued,
+            LocalDay = localDay,
         };
         _db.Submissions.Add(sub);
 

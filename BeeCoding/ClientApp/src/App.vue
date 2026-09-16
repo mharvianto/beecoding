@@ -7,6 +7,7 @@ import ThemeToggle from './components/ThemeToggle.vue';
 import AppFooter from './components/AppFooter.vue';
 import UndoToast from './components/UndoToast.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
+import CelebrationToast from './components/CelebrationToast.vue';
 import { celebrate } from './lib/confetti';
 
 const auth = useAuth();
@@ -137,5 +138,6 @@ onBeforeUnmount(() => {
     </main>
     <UndoToast />
     <ConfirmDialog />
+    <CelebrationToast />
   </div>
 </template>

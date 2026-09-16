@@ -341,6 +341,11 @@ public class Submission
     /// discovered on reload/reopen rather than via the live SignalR push.</summary>
     public int XpAwarded { get; set; }
 
+    /// <summary>Client's local calendar day at submit time — see BankSubmission.LocalDay
+    /// (same field, same purpose: daily-streak/solved-today bucketing by the student's
+    /// local day, not server UTC). Null for submissions made before this existed.</summary>
+    public DateOnly? LocalDay { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? JudgedAt { get; set; }
