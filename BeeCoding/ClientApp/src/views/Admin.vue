@@ -88,9 +88,11 @@ watch(() => route.params.tab, (t) => {
 // ---- dashboard: at-a-glance overview, the default landing tab ----
 const dashboard = ref(null);
 const topicStats = ref(null);
-const engagementGranularity = ref('week');   // 'hour' | 'day' | 'week'
+const ENGAGEMENT_GRANULARITY_KEY = 'beecoding.admin.engagementGranularity';
+const AI_GRANULARITY_KEY = 'beecoding.admin.aiGranularity';
+const engagementGranularity = ref(localStorage.getItem(ENGAGEMENT_GRANULARITY_KEY) || 'week');   // 'hour' | 'day' | 'week'
 const engagementStats = ref(null);
-const aiGranularity = ref('week');           // 'day' | 'week' — AiUsage has no finer data than a day
+const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');                    // 'day' | 'week' — AiUsage has no finer data than a day
 const aiEngagementStats = ref(null);
 
 async function loadDashboard() {
@@ -116,7 +118,11 @@ async function loadEngagement() {
       `/api/admin-ui/dashboard/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
   } catch (e) { err.value = e.message; }
 }
-function setEngagementGranularity(g) { engagementGranularity.value = g; loadEngagement(); }
+function setEngagementGranularity(g) {
+  engagementGranularity.value = g;
+  try { localStorage.setItem(ENGAGEMENT_GRANULARITY_KEY, g); } catch { /* ignore */ }
+  loadEngagement();
+}
 
 async function loadAiEngagement() {
   err.value = '';
@@ -125,7 +131,11 @@ async function loadAiEngagement() {
       `/api/admin-ui/dashboard/ai-engagement?granularity=${aiGranularity.value}&periods=${periodsFor(aiGranularity.value)}`);
   } catch (e) { err.value = e.message; }
 }
-function setAiGranularity(g) { aiGranularity.value = g; loadAiEngagement(); }
+function setAiGranularity(g) {
+  aiGranularity.value = g;
+  try { localStorage.setItem(AI_GRANULARITY_KEY, g); } catch { /* ignore */ }
+  loadAiEngagement();
+}
 
 const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });

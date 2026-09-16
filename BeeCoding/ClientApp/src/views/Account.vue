@@ -25,7 +25,8 @@ const fmt = (n) => (n ?? 0).toLocaleString();
 const dashboard = ref(null);
 const topicStats = ref(null);
 const dashErr = ref('');
-const engagementGranularity = ref('week');   // 'hour' | 'day' | 'week'
+const ENGAGEMENT_GRANULARITY_KEY = 'beecoding.account.engagementGranularity';
+const engagementGranularity = ref(localStorage.getItem(ENGAGEMENT_GRANULARITY_KEY) || 'week');   // 'hour' | 'day' | 'week'
 const engagementStats = ref(null);
 
 async function loadDashboard() {
@@ -51,7 +52,11 @@ async function loadEngagement() {
       `/api/me/dashboard/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
   } catch (e) { dashErr.value = e.message; }
 }
-function setEngagementGranularity(g) { engagementGranularity.value = g; loadEngagement(); }
+function setEngagementGranularity(g) {
+  engagementGranularity.value = g;
+  try { localStorage.setItem(ENGAGEMENT_GRANULARITY_KEY, g); } catch { /* ignore */ }
+  loadEngagement();
+}
 
 const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });
