@@ -4,6 +4,9 @@ import { router } from './router';
 import App from './App.vue';
 import './style.css';
 import './lib/theme';
+import { pruneDrafts } from './lib/draft';
+
+pruneDrafts();
 
 // Monaco: use its bundled workers via Vite ?worker imports (no CDN).
 import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';

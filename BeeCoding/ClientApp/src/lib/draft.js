@@ -4,6 +4,8 @@
 const key = (uid, scope) => `beecoding.draft.${uid || 0}.${scope}`;
 const INDEX = 'beecoding.draft.index';
 const MAX_DRAFTS = 50;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const WEEK_MS = 7 * DAY_MS;
 
 export function loadDraft(uid, scope) {
   try {
@@ -23,6 +25,43 @@ export function saveDraft(uid, scope, code, lang) {
     touchIndex(k);
   } catch {
     /* quota exceeded / private mode — nothing we can do */
+  }
+}
+
+// Marks a draft as solved so the retention pass below can expire it sooner.
+export function markDraftAccepted(uid, scope) {
+  try {
+    const k = key(uid, scope);
+    const raw = localStorage.getItem(k);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (!d || typeof d.code !== 'string') return;
+    d.acAt = Date.now();
+    localStorage.setItem(k, JSON.stringify(d));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Retention pass: drop drafts for already-solved problems after 1 day, unsolved after 1
+// week. Meant to run once per app load, not on every save.
+export function pruneDrafts() {
+  try {
+    const idx = JSON.parse(localStorage.getItem(INDEX) || '[]');
+    const now = Date.now();
+    const kept = [];
+    for (const k of idx) {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      let d;
+      try { d = JSON.parse(raw); } catch { localStorage.removeItem(k); continue; }
+      const expired = d?.acAt ? now - d.acAt > DAY_MS : now - (d?.ts || 0) > WEEK_MS;
+      if (expired) localStorage.removeItem(k);
+      else kept.push(k);
+    }
+    localStorage.setItem(INDEX, JSON.stringify(kept));
+  } catch {
+    /* ignore */
   }
 }
 
