@@ -18,16 +18,19 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
     private readonly AppDbContext _db = db;
     private readonly ProgressService _progress = progress;
 
+    private static DateOnly? ParseLocalDay(string? s) =>
+        DateOnly.TryParseExact(s, "yyyy-MM-dd", out var d) ? d : null;
+
     [HttpGet("api/me/progress")]
-    public Task<ProgressDto> Mine() => _progress.GetAsync(UserId);
+    public Task<ProgressDto> Mine([FromQuery] string? localDay = null) => _progress.GetAsync(UserId, ParseLocalDay(localDay));
 
     /// <summary>Personal dashboard: progress aggregated across every board the user has
     /// joined plus practice/bank activity — not scoped to any one board (see
     /// BoardsController.Stats for the teacher's per-board equivalent).</summary>
     [HttpGet("api/me/dashboard")]
-    public async Task<ActionResult<StudentDashboardDto>> Dashboard()
+    public async Task<ActionResult<StudentDashboardDto>> Dashboard([FromQuery] string? localDay = null)
     {
-        var p = await _progress.GetAsync(UserId);
+        var p = await _progress.GetAsync(UserId, ParseLocalDay(localDay));
         var rankedUsers = await _db.Users.CountAsync(u => u.Xp > 0);
         var higher = await _db.Users.CountAsync(u => u.Xp > p.Xp);
         var rank = p.Xp > 0 ? higher + 1 : 0;
@@ -42,7 +45,7 @@ public class ProgressController(AppDbContext db, ProgressService progress) : Api
                      + bankVerdicts.Count(x => x.Verdict == Verdict.Accepted && x.Score >= 1.0);
 
         return new StudentDashboardDto(p.Xp, p.Level, p.LevelStartXp, p.NextLevelXp, p.SolvedCount,
-            rank, rankedUsers, boardsJoined, totalAttempts, accepted);
+            rank, rankedUsers, boardsJoined, totalAttempts, accepted, p.Streak);
     }
 
     /// <summary>Attempts + solves (first-time accepts, matching XP awards) across every

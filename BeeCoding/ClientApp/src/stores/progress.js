@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { api } from '../lib/api';
+import { localDayKey } from '../lib/localDay';
 
 export const useProgress = defineStore('progress', {
-  state: () => ({ xp: 0, level: 1, levelStartXp: 0, nextLevelXp: 50, solvedCount: 0, ready: false }),
+  state: () => ({ xp: 0, level: 1, levelStartXp: 0, nextLevelXp: 50, solvedCount: 0, streak: 0, ready: false }),
   getters: {
     // 0..1 fill of the current level's bar
     pct: (s) => {
@@ -14,12 +15,12 @@ export const useProgress = defineStore('progress', {
   actions: {
     async refresh() {
       try {
-        const p = await api.get('/api/me/progress');
+        const p = await api.get(`/api/me/progress?localDay=${localDayKey()}`);
         this.$patch({ ...p, ready: true });
       } catch { /* not logged in yet */ }
     },
     reset() {
-      this.$patch({ xp: 0, level: 1, levelStartXp: 0, nextLevelXp: 50, solvedCount: 0, ready: false });
+      this.$patch({ xp: 0, level: 1, levelStartXp: 0, nextLevelXp: 50, solvedCount: 0, streak: 0, ready: false });
     },
   },
 });

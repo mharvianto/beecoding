@@ -157,7 +157,7 @@ public record AdminAiEngagementPointDto(string PeriodStart, int Calls, long Tota
 // ---- Student: personal dashboard, aggregated across every board + practice/bank ----
 public record StudentDashboardDto(
     int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount,
-    int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts);
+    int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts, int Streak);
 public record MyWeeklyStatDto(string WeekStart, int Attempts, int Solved);
 public record MyEngagementPointDto(string PeriodStart, int Attempts, int Solved);
 
@@ -245,7 +245,8 @@ public record BankSubmissionDto(
     DateTime CreatedAt, DateTime? JudgedAt, string? Code, string Language, int XpAwarded = 0);
 
 // ---- Submissions ----
-public record SubmitDto(string Code, string? Language = null);   // Language: "c" | "cpp" override
+// Language: "c" | "cpp" override. LocalDay: client's local calendar day ("yyyy-MM-dd"), for daily-streak bucketing.
+public record SubmitDto(string Code, string? Language = null, string? LocalDay = null);
 public record UpdateSubmissionDto(bool HiddenByStudent);
 public record SubmissionDto(
     int Id, int ProblemId, int UserId, string AuthorName,

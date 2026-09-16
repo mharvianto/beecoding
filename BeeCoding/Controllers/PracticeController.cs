@@ -311,12 +311,14 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         if (!Languages.Allows(problem.AllowedLanguages, lang))
             return BadRequest($"This problem only accepts {Languages.Label(problem.AllowedLanguages)}.");
 
+        DateOnly? localDay = DateOnly.TryParseExact(dto.LocalDay, "yyyy-MM-dd", out var ld) ? ld : null;
         var sub = new BankSubmission
         {
             BankProblemId = problem.Id,
             UserId = UserId,
             Code = dto.Code,
             Language = lang,
+            LocalDay = localDay,
         };
         _db.BankSubmissions.Add(sub);
         await _db.SaveChangesAsync();

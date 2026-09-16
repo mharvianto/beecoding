@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth';
 import { useProgress } from '../stores/progress';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
+import { localDayKey } from '../lib/localDay';
 
 const auth = useAuth();
 const progress = useProgress();
@@ -31,7 +32,7 @@ async function loadDashboard() {
   dashErr.value = '';
   try {
     const [d, topics] = await Promise.all([
-      api.get('/api/me/dashboard'),
+      api.get(`/api/me/dashboard?localDay=${localDayKey()}`),
       api.get('/api/me/dashboard/topics?take=8'),
     ]);
     dashboard.value = d;
@@ -166,6 +167,14 @@ async function deleteAccount(force = false) {
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalAttempts) }}</div>
           <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
             {{ dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }}% accepted
+          </div>
+        </div>
+
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-slate-400 dark:text-slate-500">Practice streak</div>
+          <div class="text-2xl font-bold">{{ dashboard.streak > 0 ? `🔥 ${fmt(dashboard.streak)}` : '—' }}</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+            {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
           </div>
         </div>
       </div>

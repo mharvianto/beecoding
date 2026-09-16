@@ -13,7 +13,7 @@ import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
 import SplitPane from '../components/SplitPane.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
-import { loadDraft, saveDraft, clearDraft } from '../lib/draft';
+import { loadDraft, saveDraft, clearDraft, markDraftAccepted } from '../lib/draft';
 import { celebrate } from '../lib/confetti';
 import { alreadyCelebrated, markCelebrated } from '../lib/celebration';
 
@@ -155,10 +155,12 @@ async function loadSubs() {
   // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
   // solved; the localStorage marker stops a later revisit from re-celebrating it.
   const mineLatest = submissions.value.find((s) => s.mine);
-  if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted' && mineLatest.xpAwarded > 0
-      && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
-    celebrate();
-    markCelebrated(auth.user?.id, draftScope.value, mineLatest.id);
+  if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted') {
+    markDraftAccepted(auth.user?.id, draftScope.value);
+    if (mineLatest.xpAwarded > 0 && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
+      celebrate();
+      markCelebrated(auth.user?.id, draftScope.value, mineLatest.id);
+    }
   }
 }
 
@@ -285,6 +287,7 @@ function ago(ts) {
       </div>
       <div class="text-xs text-slate-400 dark:text-slate-500 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
+        <span v-if="progress.streak > 0">· 🔥 {{ progress.streak }}-day practice streak</span>
       </div>
       <p v-if="problem.bannedHeaders || problem.bannedSymbols" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2 space-y-0.5">
         <span v-if="problem.bannedHeaders" class="block">🚫 Banned headers: <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">bits/stdc++.h</span>).</span>

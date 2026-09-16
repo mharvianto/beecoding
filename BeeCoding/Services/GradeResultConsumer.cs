@@ -96,7 +96,7 @@ public sealed class GradeResultConsumer(
         await notifier.SubmissionResultAsync(sub.UserId,
             Mapping.ToDto(sub, sub.UserId, canSeeCode: true, authorName));
         if (xp > 0)
-            await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct));
+            await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct: ct));
         // Sync on every judged submission, not just a newly-solved problem — the LMS
         // gradebook then reflects current progress (and "InProgress" status) even before
         // anything is fully solved. Safe to call unconditionally: the sync itself
@@ -129,14 +129,21 @@ public sealed class GradeResultConsumer(
         await db.SaveChangesAsync(ct);
 
         int xp = 0;
-        if (sub.Verdict == Verdict.Accepted && sub.Score >= 1.0)
+        bool solvedNow = sub.Verdict == Verdict.Accepted && sub.Score >= 1.0;
+        if (solvedNow)
+        {
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.BankKey(problem.Id), problem.Level, ct);
+            await progress.UpdateStreakAsync(sub.UserId, sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        }
         sub.XpAwarded = xp;
         await db.SaveChangesAsync(ct);
 
         await notifier.PracticeResultAsync(sub.UserId, Mapping.ToDto(sub));
-        if (xp > 0)
-            await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct));
+        // Push on every solve (not just a fresh xp>0 one) so a repeat Accepted still refreshes
+        // the client's live streak count — the frontend's own xpAwarded>0 check still gates
+        // the "first solve" celebration separately.
+        if (solvedNow)
+            await notifier.ProgressBumpedAsync(sub.UserId, await progress.GetAsync(sub.UserId, ct: ct));
         // Sync on every judged submission (not just a full solve) so partial credit shows
         // up in the LMS gradebook as the student improves — safe unconditionally, since
         // the sync takes the MAX score across all of this student's submissions, so a

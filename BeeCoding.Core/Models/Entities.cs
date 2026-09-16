@@ -48,6 +48,13 @@ public class User
     /// <summary>Total experience points earned by solving problems (see <see cref="SolveRecord"/>).</summary>
     public int Xp { get; set; }
 
+    /// <summary>Consecutive local-calendar days (client-reported, not server UTC) with at
+    /// least one Accepted practice solve. See ProgressService.UpdateStreakAsync.</summary>
+    public int CurrentStreak { get; set; }
+
+    /// <summary>Last local day that counted toward <see cref="CurrentStreak"/>.</summary>
+    public DateOnly? StreakLocalDay { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Soft-delete marker (admin-only action). Not a global query filter — the
@@ -443,6 +450,11 @@ public class BankSubmission
 
     /// <summary>XP this specific submission earned — see Submission.XpAwarded.</summary>
     public int XpAwarded { get; set; }
+
+    /// <summary>Client's local calendar day at submit time, e.g. "2026-09-16" — used for
+    /// daily-streak bucketing, since a streak day means the student's local day, not
+    /// server UTC. Null for submissions made before this existed.</summary>
+    public DateOnly? LocalDay { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? JudgedAt { get; set; }

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Services;
 
-public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount);
+public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount, int Streak);
 
 /// <summary>
 /// XP / leveling. XP is awarded once per distinct problem the first time a student
@@ -64,11 +64,48 @@ public class ProgressService(AppDbContext db)
         return xp;
     }
 
-    public async Task<ProgressDto> GetAsync(int userId, CancellationToken ct = default)
+    /// <summary>
+    /// Bumps the daily practice streak for a fresh Accepted solve. <paramref name="localDay"/>
+    /// is the client's local calendar day (captured at submit time), not server UTC — a
+    /// streak day means "the student's day", so it can't be computed from CreatedAt alone.
+    /// Consecutive days increment; a gap (or the same day again) restarts/no-ops.
+    /// </summary>
+    public async Task UpdateStreakAsync(int userId, DateOnly localDay, CancellationToken ct = default)
     {
-        var xp = await _db.Users.Where(u => u.Id == userId).Select(u => u.Xp).FirstOrDefaultAsync(ct);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return;
+
+        if (user.StreakLocalDay is not DateOnly last)
+            user.CurrentStreak = 1;
+        else if (last == localDay)
+            return;   // already counted today
+        else if (last.AddDays(1) == localDay)
+            user.CurrentStreak++;
+        else
+            user.CurrentStreak = 1;   // missed a day (or clock skew) — restart
+
+        user.StreakLocalDay = localDay;
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// <paramref name="localDay"/> is the CALLER's current local day (from the client making
+    /// this request), used only to detect a streak that's gone stale since the user's last
+    /// solve — the stored CurrentStreak isn't reset until their next solve, so without this
+    /// check a broken streak would still display as alive until then.
+    /// </summary>
+    public async Task<ProgressDto> GetAsync(int userId, DateOnly? localDay = null, CancellationToken ct = default)
+    {
+        var user = await _db.Users.Where(u => u.Id == userId)
+            .Select(u => new { u.Xp, u.CurrentStreak, u.StreakLocalDay }).FirstOrDefaultAsync(ct);
         var solved = await _db.SolveRecords.CountAsync(r => r.UserId == userId, ct);
-        int level = LevelForXp(xp);
-        return new ProgressDto(xp, level, LevelStartXp(level), LevelStartXp(level + 1), solved);
+        int level = LevelForXp(user?.Xp ?? 0);
+
+        int streak = user?.CurrentStreak ?? 0;
+        if (streak > 0 && localDay is DateOnly today && user?.StreakLocalDay is DateOnly last
+            && today.DayNumber - last.DayNumber > 1)
+            streak = 0;
+
+        return new ProgressDto(user?.Xp ?? 0, level, LevelStartXp(level), LevelStartXp(level + 1), solved, streak);
     }
 }
