@@ -34,12 +34,15 @@ public record UpsertProblemDto(
     string? BannedSymbols = null,         // comma-separated identifiers it may not use
     string? InputFileName = null);        // set => stdin is written to this file instead of piped
 
+public record UpdateProblemVisibilityDto(bool Hidden);
+
 /// <summary>Full problem view for the board owner/teacher.</summary>
 public record ProblemDto(
     int Id, string Slug, int BoardId, string Title, string StatementMarkdown, string AllowedLanguages,
     int TimeLimitMs, int MemoryLimitKb, int Position,
     string Tags, string Level, bool GeneratedByAi,
-    List<TestCaseDto> TestCases, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null);
+    List<TestCaseDto> TestCases, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
+    bool Hidden = false);
 
 /// <summary>Problem view for a student: only sample tests exposed.</summary>
 public record StudentProblemDto(
@@ -146,7 +149,6 @@ public record AdminDashboardDto(
     List<AdminAuditLogRow> RecentActivity);
 
 // ---- Admin: dashboard charts ----
-public record AdminWeeklyStatDto(string WeekStart, int ActiveUsers, int Submissions);
 public record AdminTopicStatDto(string Tag, int Attempts, int Accepted, double AcceptRate);
 
 // ---- Admin: dashboard engagement/AI-usage charts with a selectable granularity ----
@@ -164,7 +166,7 @@ public record MyEngagementPointDto(string PeriodStart, int Attempts, int Solved)
 // ---- Teacher: one board's own stats (Board.vue staff panel) ----
 public record BoardStatsDto(
     int TotalStudents, int TotalProblems, int TotalSubmissions, int AcceptedSubmissions,
-    List<AdminWeeklyStatDto> Weekly, List<AdminTopicStatDto> Topics);
+    List<AdminTopicStatDto> Topics);
 
 // ---- Admin: role / admin-flag management ----
 public record AdminChangeRoleDto(string Role);   // "Teacher" | "Student"

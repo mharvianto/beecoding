@@ -165,16 +165,6 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var totalSubmissions = subs.Count;
         var accepted = subs.Count(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0);
 
-        DateOnly WeekStart(DateTime dt)
-        {
-            var d = DateOnly.FromDateTime(dt);
-            return d.AddDays(-(((int)d.DayOfWeek + 6) % 7));
-        }
-        var weekly = subs.GroupBy(s => WeekStart(s.CreatedAt))
-            .OrderByDescending(g => g.Key).Take(12).OrderBy(g => g.Key)
-            .Select(g => new AdminWeeklyStatDto(g.Key.ToString("yyyy-MM-dd"), g.Select(x => x.UserId).Distinct().Count(), g.Count()))
-            .ToList();
-
         var byTag = new Dictionary<string, (int Attempts, int Accepted)>();
         static IEnumerable<string> TagsOf(string? t) =>
             (t ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -194,7 +184,63 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
                 kv.Value.Attempts > 0 ? kv.Value.Accepted / (double)kv.Value.Attempts : 0))
             .ToList();
 
-        return new BoardStatsDto(totalStudents, totalProblems, totalSubmissions, accepted, weekly, topics);
+        return new BoardStatsDto(totalStudents, totalProblems, totalSubmissions, accepted, topics);
+    }
+
+    /// <summary>Staff-only engagement trend for this one board, granularity-selectable
+    /// (hour/day/week) — same shape as the Org Admin / platform Admin dashboards, scoped to
+    /// this board's own problems/submissions only (bank/practice activity excluded, same as
+    /// those dashboards, since a bank problem belongs to a user, not a board).</summary>
+    [HttpGet("{slug}/stats/engagement")]
+    public async Task<ActionResult<List<AdminEngagementPointDto>>> StatsEngagement(
+        string slug, [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
+    {
+        var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
+        if (!IsAdminUser(_admin) && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
+
+        var g = TimeBucketing.NormalizeGranularity(granularity);
+        periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
+
+        var activity = await _db.Submissions.Where(s => s.Problem!.BoardId == board.Id)
+            .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+
+        return activity.GroupBy(x => TimeBucketing.BucketStart(x.CreatedAt, g))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminEngagementPointDto(
+                TimeBucketing.FormatPeriodStart(x.Key, g), x.Select(y => y.UserId).Distinct().Count(), x.Count()))
+            .ToList();
+    }
+
+    /// <summary>Staff-only AI usage trend for this one board. AiUsage isn't tracked per-board
+    /// (only per user/day) — proxied by summing across this board's current members, same
+    /// approach as the Org Admin dashboard's AI chart. A user on several boards shows up
+    /// under each.</summary>
+    [HttpGet("{slug}/stats/ai-engagement")]
+    public async Task<ActionResult<List<AdminAiEngagementPointDto>>> StatsAiEngagement(
+        string slug, [FromQuery] string granularity = "week", [FromQuery] int periods = 12)
+    {
+        var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
+        if (!IsAdminUser(_admin) && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
+
+        var g = TimeBucketing.NormalizeGranularity(granularity);
+        if (g == "hour") g = "day";
+        periods = Math.Clamp(periods, 1, g == "day" ? 90 : 52);
+
+        var memberIds = board.Members.Select(m => m.UserId).ToList();
+        var rows = await _db.AiUsages.Where(x => memberIds.Contains(x.UserId))
+            .Select(x => new { x.Day, x.Calls, x.PromptTokens, x.CompletionTokens }).ToListAsync();
+
+        DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
+
+        return rows.GroupBy(x => BucketDay(x.Day))
+            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
+            .Select(x => new AdminAiEngagementPointDto(
+                x.Key.ToString("yyyy-MM-dd"), x.Sum(y => y.Calls), x.Sum(y => y.PromptTokens) + x.Sum(y => y.CompletionTokens)))
+            .ToList();
     }
 
     /// <summary>Soft-delete (owner or admin). Owner undo is time-boxed to

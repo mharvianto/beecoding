@@ -28,7 +28,8 @@ const board = ref(null);
 const problem = ref(null);
 // internal id of the loaded problem — used for API calls / SignalR that key by int id
 const pid = computed(() => problem.value?.id);
-const protectOn = computed(() => !!board.value?.protectContent && auth.user?.role === 'Student');
+// Content protection is always on for students — there's no longer a per-board opt-out.
+const protectOn = computed(() => auth.user?.role === 'Student');
 const watermark = computed(() =>
   `${auth.user?.email || auth.user?.displayName || ''} · ${new Date().toLocaleString()}`);
 const code = ref('');

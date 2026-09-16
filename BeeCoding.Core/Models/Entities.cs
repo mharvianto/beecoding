@@ -184,6 +184,12 @@ public class Problem : IHasSlug
 
     public int Position { get; set; }
 
+    /// <summary>Teacher-hidden: excluded from the student-facing problem list/wall and
+    /// can't be opened or submitted to by a student, while staff still see and can edit it.
+    /// For a draft/not-ready problem — distinct from <see cref="DeletedAt"/>, which removes
+    /// it for everyone including staff.</summary>
+    public bool Hidden { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Provenance when this problem was copied in from the bank.</summary>

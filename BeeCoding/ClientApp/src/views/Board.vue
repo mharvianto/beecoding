@@ -69,9 +69,6 @@ async function toggleExam() {
   board.value = await api.patch(`/api/boards/${props.slug}`, { examMode: !progress.value.examMode });
   await loadProgress();
 }
-async function toggleProtect() {
-  board.value = await api.patch(`/api/boards/${props.slug}`, { protectContent: !board.value.protectContent });
-}
 async function toggleLecturing() {
   board.value = await api.patch(`/api/boards/${props.slug}`, { lecturingMode: !board.value.lecturingMode });
 }
@@ -83,15 +80,54 @@ async function toggleHide(student) {
 const picking = ref(false);
 const stats = ref(null);
 const statsOpen = ref(false);
+const ENGAGEMENT_GRANULARITY_KEY = 'beecoding.board.stats.engagementGranularity';
+const AI_GRANULARITY_KEY = 'beecoding.board.stats.aiGranularity';
+const engagementGranularity = ref(localStorage.getItem(ENGAGEMENT_GRANULARITY_KEY) || 'week');   // 'hour' | 'day' | 'week'
+const engagementStats = ref(null);
+const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');                    // 'day' | 'week'
+const aiEngagementStats = ref(null);
+
+function periodsFor(granularity) {
+  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
+}
 async function toggleStats() {
   statsOpen.value = !statsOpen.value;
   if (statsOpen.value && !stats.value) {
-    try { stats.value = await api.get(`/api/boards/${props.slug}/stats`); } catch (e) { error.value = e.message; }
+    try {
+      stats.value = await api.get(`/api/boards/${props.slug}/stats`);
+      await Promise.all([loadEngagement(), loadAiEngagement()]);
+    } catch (e) { error.value = e.message; }
   }
 }
+async function loadEngagement() {
+  try {
+    engagementStats.value = await api.get(
+      `/api/boards/${props.slug}/stats/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
+  } catch (e) { error.value = e.message; }
+}
+function setEngagementGranularity(g) {
+  engagementGranularity.value = g;
+  try { localStorage.setItem(ENGAGEMENT_GRANULARITY_KEY, g); } catch { /* ignore */ }
+  loadEngagement();
+}
+async function loadAiEngagement() {
+  try {
+    aiEngagementStats.value = await api.get(
+      `/api/boards/${props.slug}/stats/ai-engagement?granularity=${aiGranularity.value}&periods=${periodsFor(aiGranularity.value)}`);
+  } catch (e) { error.value = e.message; }
+}
+function setAiGranularity(g) {
+  aiGranularity.value = g;
+  try { localStorage.setItem(AI_GRANULARITY_KEY, g); } catch { /* ignore */ }
+  loadAiEngagement();
+}
 const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-const weeklyActiveUsers = () => (stats.value?.weekly || []).map((w) => ({ label: shortDate(w.weekStart), value: w.activeUsers }));
-const weeklySubmissions = () => (stats.value?.weekly || []).map((w) => ({ label: shortDate(w.weekStart), value: w.submissions }));
+const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });
+const engagementLabel = (s) => (engagementGranularity.value === 'hour' ? shortHour(s) : shortDate(s));
+const activeUserPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.activeUsers }));
+const submissionPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.submissions }));
+const aiCallPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.calls }));
+const aiTokenPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.totalTokens }));
 const topicBarItems = () => (stats.value?.topics || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
 
@@ -100,6 +136,13 @@ async function saveToBank(p) {
     await api.post(`/api/boards/${props.slug}/problems/${p.id}/to-bank`);
     error.value = '';
     undoToast.show(`"${p.title}" saved to the problem bank.`);
+  } catch (e) { error.value = e.message; }
+}
+
+async function toggleHidden(p) {
+  try {
+    const updated = await api.patch(`/api/boards/${props.slug}/problems/${p.slug}/hidden`, { hidden: !p.hidden });
+    p.hidden = updated.hidden;
   } catch (e) { error.value = e.message; }
 }
 
@@ -187,13 +230,6 @@ onBeforeUnmount(async () => {
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
         {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : 'Exam mode off' }}
       </button>
-      <button @click="toggleProtect"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-              :class="board.protectContent
-                ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
-        {{ board.protectContent ? '🔒 Content protected' : 'Protect content' }}
-      </button>
       <button @click="toggleLecturing"
               class="px-3 py-1.5 rounded-lg text-sm font-medium border"
               :class="board.lecturingMode
@@ -258,9 +294,40 @@ onBeforeUnmount(async () => {
       </div>
       <p v-else class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
 
-      <div v-if="stats?.weekly?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MiniLineChart title="Active students / week" :points="weeklyActiveUsers()" />
-        <MiniLineChart title="Submissions / week" :points="weeklySubmissions()" />
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <h2 class="font-semibold text-sm">Engagement</h2>
+          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                    @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
+                    :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              {{ g[1] }}
+            </button>
+          </span>
+        </div>
+        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MiniLineChart :title="`Active students / ${engagementGranularity}`" :points="activeUserPoints()" />
+          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
+        </div>
+        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
+      </div>
+
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <h2 class="font-semibold text-sm">AI usage</h2>
+          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                    @click="setAiGranularity(g[0])" class="px-2.5 py-1"
+                    :class="aiGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+              {{ g[1] }}
+            </button>
+          </span>
+        </div>
+        <div v-if="aiEngagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
+          <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
+        </div>
+        <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage in this window yet.</p>
       </div>
 
       <div v-if="stats?.topics?.length">
@@ -288,12 +355,16 @@ onBeforeUnmount(async () => {
           <div class="font-medium flex items-center gap-2 flex-wrap">
             {{ p.title }}
             <LevelBadge :level="p.level" />
+            <span v-if="p.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
             <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
                   class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
           </div>
           <div class="text-xs text-slate-400 dark:text-slate-500">{{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB</div>
         </div>
         <div class="flex items-center gap-2">
+          <button v-if="isStaff" @click="toggleHidden(p)"
+                  class="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
+                  :title="p.hidden ? 'Unhide from students' : 'Hide from students'">{{ p.hidden ? '🙈' : '👁️' }}</button>
           <button v-if="isStaff" @click="saveToBank(p)"
                   class="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
                   title="Save to problem bank">📚</button>

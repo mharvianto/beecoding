@@ -37,7 +37,8 @@ public static class Mapping
     public static ProblemDto ToOwnerDto(Problem p) => new(
         p.Id, p.Slug, p.BoardId, p.Title, p.StatementMarkdown, p.AllowedLanguages,
         p.TimeLimitMs, p.MemoryLimitKb, p.Position, p.Tags, p.Level.ToString(), p.GeneratedByAi,
-        p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(ToDto).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName);
+        p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(ToDto).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName,
+        p.Hidden);
 
     public static StudentProblemDto ToStudentDto(Problem p) => new(
         p.Id, p.Slug, p.BoardId, p.Title, p.StatementMarkdown, p.AllowedLanguages,

@@ -30,6 +30,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
 
         var membership = await _boards.GetMembershipAsync(problem.BoardId, UserId);
         if (membership is null) return Forbid();
+        if (problem.Hidden && !_vis.IsStaff(membership.Role) && !IsAdminUser(_admin)) return NotFound();
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
         if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");

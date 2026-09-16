@@ -38,7 +38,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         bool staff = me is not null ? _vis.IsStaff(me.Role) : isAdmin;
         return staff
             ? problems.Select(Mapping.ToOwnerDto).ToList()
-            : problems.Select(Mapping.ToStudentDto).ToList();
+            : problems.Where(p => !p.Hidden).Select(Mapping.ToStudentDto).ToList();
     }
 
     [HttpGet("{problemSlug}")]
@@ -55,7 +55,26 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         if (p is null) return NotFound();
 
         bool staff = me is not null ? _vis.IsStaff(me.Role) : IsAdminUser(_admin);
+        if (!staff && p.Hidden) return NotFound();
         return staff ? Mapping.ToOwnerDto(p) : Mapping.ToStudentDto(p);
+    }
+
+    /// <summary>Owner-only: hide/unhide a problem from students (draft/not-ready), without
+    /// touching its data or existing submissions — see Problem.Hidden.</summary>
+    [HttpPatch("{problemSlug}/hidden")]
+    public async Task<ActionResult<ProblemDto>> SetHidden(string slug, string problemSlug, UpdateProblemVisibilityDto dto)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var p = await _db.Problems.Include(x => x.TestCases)
+            .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
+        if (p is null) return NotFound();
+
+        p.Hidden = dto.Hidden;
+        await _db.SaveChangesAsync();
+        await _notifier.ProblemChangedAsync(boardId!.Value);
+        return Mapping.ToOwnerDto(p);
     }
 
     [HttpPost]
