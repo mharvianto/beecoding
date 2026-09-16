@@ -206,9 +206,8 @@ onBeforeUnmount(() => { pollStopped = true; });
             {{ t }}
           </span>
         </div>
-        <RouterLink v-if="b.mine" :to="`/bank/${b.slug}/edit`"
-                    class="mt-3 inline-block text-xs text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-          edit
+        <RouterLink v-if="b.mine" :to="`/bank/${b.slug}/edit`" class="row-action-btn mt-3 -ml-2">
+          <span>✏️</span><span>Edit</span>
         </RouterLink>
       </div>
     </div>

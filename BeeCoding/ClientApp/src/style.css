@@ -27,3 +27,25 @@ body {
 @media print {
   html.protected body { display: none !important; }
 }
+
+/* Shared low-emphasis row action ("edit", "hide", "delete", ...): icon+label or label-only,
+   consistent hit area and hover treatment everywhere a list/table row has secondary actions
+   next to a primary button (or in place of one, e.g. admin lists). Pick one color modifier;
+   the default (no modifier) is neutral. */
+.row-action-btn {
+  @apply inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors
+         text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100
+         hover:bg-slate-100 dark:hover:bg-slate-800;
+}
+.row-action-btn--accent {
+  @apply text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300
+         hover:bg-violet-50 dark:hover:bg-violet-500/10;
+}
+.row-action-btn--success {
+  @apply text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300
+         hover:bg-emerald-50 dark:hover:bg-emerald-500/10;
+}
+.row-action-btn--danger {
+  @apply text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300
+         hover:bg-rose-50 dark:hover:bg-rose-500/10;
+}

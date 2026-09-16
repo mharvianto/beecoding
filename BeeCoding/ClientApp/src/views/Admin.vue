@@ -790,7 +790,7 @@ onMounted(async () => {
       <div v-if="dashboard">
         <div class="flex items-center gap-2 mb-1.5">
           <h2 class="font-semibold text-sm">Recent activity</h2>
-          <button @click="switchTab('audit')" class="text-xs text-slate-400 dark:text-slate-500 hover:underline">view all</button>
+          <button @click="switchTab('audit')" class="row-action-btn">view all</button>
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
@@ -871,7 +871,7 @@ onMounted(async () => {
             <div class="flex gap-2">
               <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key"
                      class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-              <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="text-xs text-rose-600 dark:text-rose-400 hover:underline shrink-0">Clear</button>
+              <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
             </div>
           </label>
           <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)"
@@ -904,8 +904,8 @@ onMounted(async () => {
               <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> Banned</label>
             </div>
             <div class="mt-2 flex gap-3">
-              <button @click="saveOverride(row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">Save</button>
-              <button @click="clearOverride(row)" class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline">Clear</button>
+              <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success">Save</button>
+              <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
             </div>
           </div>
           <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-400 dark:text-slate-500 text-sm">No overrides set.</p>
@@ -929,8 +929,8 @@ onMounted(async () => {
                 </td>
                 <td><input type="checkbox" v-model="row.banned" /></td>
                 <td class="whitespace-nowrap">
-                  <button @click="saveOverride(row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline mr-3">Save</button>
-                  <button @click="clearOverride(row)" class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline">Clear</button>
+                  <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success mr-1">Save</button>
+                  <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
                 </td>
               </tr>
               <tr v-if="aiOverrides && !aiOverrides.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No overrides set.</td></tr>
@@ -1053,9 +1053,9 @@ onMounted(async () => {
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
           <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
-            <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Make admin</button>
-            <button v-else @click="revokeAdmin(u)" class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline">Revoke admin</button>
-            <button @click="deleteUser(u)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Delete</button>
+            <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="row-action-btn row-action-btn--accent">Make admin</button>
+            <button v-else @click="revokeAdmin(u)" class="row-action-btn">Revoke admin</button>
+            <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
           </div>
         </div>
         <p v-if="users && !users.length" class="text-slate-400 dark:text-slate-500 text-sm">No users.</p>
@@ -1097,10 +1097,10 @@ onMounted(async () => {
               <td class="whitespace-nowrap">
                 <template v-if="u.id !== auth.user?.id">
                   <button v-if="!u.isAdmin" @click="grantAdmin(u)"
-                          class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline mr-3">Make admin</button>
+                          class="row-action-btn row-action-btn--accent mr-1">Make admin</button>
                   <button v-else @click="revokeAdmin(u)"
-                          class="text-[11px] text-slate-500 dark:text-slate-400 hover:underline mr-3">Revoke admin</button>
-                  <button @click="deleteUser(u)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Delete</button>
+                          class="row-action-btn mr-1">Revoke admin</button>
+                  <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
                 </template>
               </td>
             </tr>
@@ -1178,7 +1178,7 @@ onMounted(async () => {
         <label class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">Select boards created before
           <input type="date" v-model="archiveBeforeDate" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
         </label>
-        <button @click="selectBoardsBeforeDate" class="text-xs text-slate-500 dark:text-slate-400 hover:underline">select</button>
+        <button @click="selectBoardsBeforeDate" class="row-action-btn">select</button>
       </div>
       <div v-if="selectedBoards.size" class="flex items-center gap-2 mb-2 text-sm">
         <span>{{ selectedBoards.size }} selected</span>
@@ -1197,7 +1197,7 @@ onMounted(async () => {
               <RouterLink :to="`/boards/${b.slug}`" class="font-medium text-sm hover:underline">{{ b.title }}</RouterLink>
               <div class="text-[11px] text-slate-400 font-mono">{{ b.slug }}</div>
             </div>
-            <button @click="deleteBoard(b)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Delete</button>
+            <button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger shrink-0">Delete</button>
           </div>
           <div class="text-[11px] text-slate-400 mt-1.5">{{ b.ownerName }} ({{ b.ownerEmail }})</div>
           <div class="text-[11px] text-slate-400 mt-0.5">
@@ -1230,7 +1230,7 @@ onMounted(async () => {
               <td class="tabular-nums">{{ b.memberCount }}</td>
               <td class="tabular-nums">{{ b.problemCount }}</td>
               <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
-              <td><button @click="deleteBoard(b)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Delete</button></td>
+              <td><button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger">Delete</button></td>
             </tr>
             <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-400 dark:text-slate-500 py-3">No boards.</td></tr>
           </tbody>
@@ -1376,7 +1376,7 @@ onMounted(async () => {
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <button @click="expandedReview = expandedReview === row.slug ? null : row.slug"
-                    class="text-xs text-slate-500 dark:text-slate-400 hover:underline">
+                    class="row-action-btn">
               {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
             </button>
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
@@ -1556,8 +1556,8 @@ onMounted(async () => {
           <h2 class="font-semibold text-sm">{{ label }} · {{ trash[kind].total }}</h2>
           <div v-if="trash[kind].selected.size" class="flex items-center gap-2 text-xs">
             <span>{{ trash[kind].selected.size }} selected</span>
-            <button @click="restoreSelectedTrash(kind)" class="text-emerald-600 dark:text-emerald-400 hover:underline">Restore selected</button>
-            <button @click="purgeSelectedTrash(kind)" class="text-rose-600 dark:text-rose-400 hover:underline">Purge selected</button>
+            <button @click="restoreSelectedTrash(kind)" class="row-action-btn row-action-btn--success">Restore selected</button>
+            <button @click="purgeSelectedTrash(kind)" class="row-action-btn row-action-btn--danger">Purge selected</button>
           </div>
         </div>
         <p v-if="trash[kind].msg" class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-1">{{ trash[kind].msg }}</p>
@@ -1577,8 +1577,8 @@ onMounted(async () => {
               </div>
             </div>
             <div class="mt-1.5 flex gap-3">
-              <button @click="restoreTrash(kind, row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline">Restore</button>
-              <button @click="purge(kind, row, labelFn(row))" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Purge</button>
+              <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success">Restore</button>
+              <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
             </div>
           </div>
           <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-400 dark:text-slate-500 text-xs px-1">Empty.</p>
@@ -1603,8 +1603,8 @@ onMounted(async () => {
                 <td class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }}</td>
                 <td class="text-[11px] text-slate-400">deleted {{ when(row.deletedAt) }}</td>
                 <td class="text-right">
-                  <button @click="restoreTrash(kind, row)" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline mr-3">Restore</button>
-                  <button @click="purge(kind, row, labelFn(row))" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Purge</button>
+                  <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success mr-1">Restore</button>
+                  <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
                 </td>
               </tr>
               <tr v-if="trash[kind].rows && !trash[kind].rows.length"><td colspan="5" class="text-slate-400 dark:text-slate-500 py-1.5 text-xs">Empty.</td></tr>
@@ -1703,7 +1703,7 @@ onMounted(async () => {
         <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-start justify-between gap-2">
             <div class="font-medium text-sm">{{ o.name }}</div>
-            <button @click="deleteOrganization(o)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Delete</button>
+            <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger shrink-0">Delete</button>
           </div>
           <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
         </div>
@@ -1724,7 +1724,7 @@ onMounted(async () => {
               <td class="font-medium">{{ o.name }}</td>
               <td class="text-[11px] text-slate-400">{{ o.slug }}</td>
               <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
-              <td><button @click="deleteOrganization(o)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Delete</button></td>
+              <td><button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button></td>
             </tr>
             <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No organizations yet.</td></tr>
           </tbody>
@@ -1799,8 +1799,8 @@ onMounted(async () => {
             <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
             <div class="text-[11px] text-slate-400 mt-0.5">{{ p.organizationName || 'unaffiliated' }}</div>
             <div class="mt-2 flex gap-3">
-              <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Edit</button>
-              <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+              <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">Edit</button>
+              <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
             </div>
           </div>
           <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-400 dark:text-slate-500 text-sm">No platforms registered yet.</p>
@@ -1829,8 +1829,8 @@ onMounted(async () => {
                   </span>
                 </td>
                 <td class="whitespace-nowrap">
-                  <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline mr-3">Edit</button>
-                  <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+                  <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
+                  <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
                 </td>
               </tr>
               <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="6" class="text-slate-400 dark:text-slate-500 py-3">No platforms registered yet.</td></tr>

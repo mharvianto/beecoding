@@ -361,16 +361,19 @@ onBeforeUnmount(async () => {
           </div>
           <div class="text-xs text-slate-400 dark:text-slate-500">{{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB</div>
         </div>
-        <div class="flex items-center gap-2">
-          <button v-if="isStaff" @click="toggleHidden(p)"
-                  class="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                  :title="p.hidden ? 'Unhide from students' : 'Hide from students'">{{ p.hidden ? '🙈' : '👁️' }}</button>
-          <button v-if="isStaff" @click="saveToBank(p)"
-                  class="text-sm text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100"
-                  title="Save to problem bank">📚</button>
-          <button v-if="isStaff" @click="router.push(`/boards/${props.slug}/problems/${p.slug}/edit`)" class="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">edit</button>
+        <div class="flex items-center gap-1">
+          <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'"
+                  class="row-action-btn">
+            <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span>{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
+          </button>
+          <button v-if="isStaff" @click="saveToBank(p)" title="Save to problem bank" class="row-action-btn">
+            <span>📚</span><span>Bank</span>
+          </button>
+          <button v-if="isStaff" @click="router.push(`/boards/${props.slug}/problems/${p.slug}/edit`)" class="row-action-btn">
+            <span>✏️</span><span>Edit</span>
+          </button>
           <RouterLink :to="`/boards/${board.slug}/problems/${p.slug}`"
-                      class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5">
+                      class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5 ml-1">
             {{ isStaff ? 'View' : 'Solve' }}
           </RouterLink>
         </div>

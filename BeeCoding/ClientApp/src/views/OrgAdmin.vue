@@ -430,7 +430,7 @@ onMounted(loadOrgs);
                 <div class="font-medium text-sm truncate">{{ m.displayName }}</div>
                 <div class="text-[11px] text-slate-400 truncate">{{ m.email }}</div>
               </div>
-              <button @click="removeMember(m)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline shrink-0">Remove</button>
+              <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger shrink-0">Remove</button>
             </div>
             <div class="flex items-center gap-2 mt-2">
               <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
@@ -464,7 +464,7 @@ onMounted(loadOrgs);
                   </select>
                 </td>
                 <td class="text-[11px] text-slate-400">{{ new Date(m.joinedAt).toLocaleDateString() }}</td>
-                <td><button @click="removeMember(m)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button></td>
+                <td><button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button></td>
               </tr>
               <tr v-if="members && !members.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No members yet.</td></tr>
             </tbody>
@@ -576,7 +576,7 @@ onMounted(loadOrgs);
               <div class="flex gap-2">
                 <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key"
                        class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-                <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="text-xs text-rose-600 dark:text-rose-400 hover:underline shrink-0">Clear</button>
+                <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
               </div>
             </label>
             <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = platform default)"
@@ -656,8 +656,8 @@ onMounted(loadOrgs);
               <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
               <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
               <div class="mt-2 flex gap-3">
-                <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline">Edit</button>
-                <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+                <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">Edit</button>
+                <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
               </div>
             </div>
             <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-400 dark:text-slate-500 text-sm">No platforms registered yet.</p>
@@ -685,8 +685,8 @@ onMounted(loadOrgs);
                     </span>
                   </td>
                   <td class="whitespace-nowrap">
-                    <button @click="startEditLtiPlatform(p)" class="text-[11px] text-violet-600 dark:text-violet-400 hover:underline mr-3">Edit</button>
-                    <button @click="deleteLtiPlatform(p)" class="text-[11px] text-rose-600 dark:text-rose-400 hover:underline">Remove</button>
+                    <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
+                    <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
                   </td>
                 </tr>
                 <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="5" class="text-slate-400 dark:text-slate-500 py-3">No platforms registered yet.</td></tr>
