@@ -265,7 +265,8 @@ public record BankSubmissionDto(
     int Id, int BankProblemId, string Status, string Verdict,
     int RuntimeMs, int MemoryKb, double Score, string CompilerOutput,
     DateTime CreatedAt, DateTime? JudgedAt, string? Code, string Language, int XpAwarded = 0,
-    int? PreviousSubmissionId = null);   // this author's previous attempt at the same problem, if any
+    int? PreviousSubmissionId = null,   // this author's previous attempt at the same problem, if any
+    int? NextSubmissionId = null);      // ...and the one right after this one, if any
 
 // ---- Submissions ----
 // Language: "c" | "cpp" override. LocalDay: client's local calendar day ("yyyy-MM-dd"), for daily-streak bucketing.
@@ -278,7 +279,8 @@ public record SubmissionDto(
     DateTime CreatedAt, DateTime? JudgedAt, string Language,
     string? FailedTest = null,   // staff-only — see Mapping.ToDto
     int XpAwarded = 0,
-    int? PreviousSubmissionId = null);   // this author's previous attempt at the same problem, if any
+    int? PreviousSubmissionId = null,   // this author's previous attempt at the same problem, if any
+    int? NextSubmissionId = null);      // ...and the one right after this one, if any
 
 // ---- Live board / progress grid ----
 public record ProgressCellDto(

@@ -18,17 +18,27 @@ const sub = ref(null);
 const error = ref('');
 const showFailedTest = ref(false);
 const comparingPrevious = ref(false);
+// Which submission is actually displayed — starts at the prop, but ◀/▶ step it through the
+// same author's other attempts at this problem without the parent knowing or caring (every
+// SubmissionView caller would otherwise need to handle a "navigate" event itself).
+const activeId = ref(props.submissionId);
 
 async function load() {
   error.value = ''; sub.value = null; showFailedTest.value = false; comparingPrevious.value = false;
   try {
     sub.value = props.source === 'practice'
-      ? await api.get(`/api/practice/submissions/${props.submissionId}`)
-      : await api.get(`/api/submissions/${props.submissionId}`);
+      ? await api.get(`/api/practice/submissions/${activeId.value}`)
+      : await api.get(`/api/submissions/${activeId.value}`);
   }
   catch (e) { error.value = e.message; }
 }
-watch(() => props.submissionId, load, { immediate: true });
+watch(() => props.submissionId, (id) => { activeId.value = id; load(); }, { immediate: true });
+
+function goTo(id) {
+  if (!id) return;
+  activeId.value = id;
+  load();
+}
 </script>
 
 <template>
@@ -36,6 +46,8 @@ watch(() => props.submissionId, load, { immediate: true });
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
       <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center gap-2 min-w-0">
+          <button v-if="sub?.previousSubmissionId" @click="goTo(sub.previousSubmissionId)"
+                  class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Older attempt by the same author">◀</button>
           <span v-if="sub" class="font-semibold text-sm truncate">{{ authorName || sub.authorName }}</span>
           <VerdictBadge v-if="sub" :verdict="sub.status === 'Done' ? sub.verdict : sub.status" small />
           <span v-if="sub?.status === 'Done'" class="text-xs text-slate-400 dark:text-slate-500">
@@ -44,6 +56,8 @@ watch(() => props.submissionId, load, { immediate: true });
           <button v-if="sub?.previousSubmissionId" @click="comparingPrevious = true" class="row-action-btn shrink-0">
             <span>⇄</span><span>Compare with previous</span>
           </button>
+          <button v-if="sub?.nextSubmissionId" @click="goTo(sub.nextSubmissionId)"
+                  class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Newer attempt by the same author">▶</button>
         </div>
         <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
       </div>

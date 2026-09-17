@@ -14,7 +14,7 @@ public static class Mapping
             .Distinct()
             .Take(12));
 
-    public static SubmissionDto ToDto(Submission s, int viewerUserId, bool canSeeCode, string authorName, bool isStaff = false, int? previousSubmissionId = null)
+    public static SubmissionDto ToDto(Submission s, int viewerUserId, bool canSeeCode, string authorName, bool isStaff = false, int? previousSubmissionId = null, int? nextSubmissionId = null)
     {
         bool mine = s.UserId == viewerUserId;
         return new SubmissionDto(
@@ -28,7 +28,7 @@ public static class Mapping
             // Staff-only, and *not* granted just by "mine" — a hidden test's expected
             // output must never reach the student whose submission it is either.
             isStaff ? s.FailedTest : null,
-            s.XpAwarded, previousSubmissionId);
+            s.XpAwarded, previousSubmissionId, nextSubmissionId);
     }
 
     public static TestCaseDto ToDto(TestCase t) =>
@@ -70,10 +70,10 @@ public static class Mapping
     public static ProblemSummaryDto ToSummary(Problem p) =>
         new(p.Id, p.Slug, p.Title, p.Position, p.TimeLimitMs, p.MemoryLimitKb, p.AllowedLanguages, p.Tags, p.Level.ToString());
 
-    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, int? previousSubmissionId = null) => new(
+    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, int? previousSubmissionId = null, int? nextSubmissionId = null) => new(
         s.Id, s.BankProblemId, s.Status.ToString(), s.Verdict.ToString(),
         s.RuntimeMs, s.MemoryKb, s.Score, s.CompilerOutput,
-        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded, previousSubmissionId);
+        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded, previousSubmissionId, nextSubmissionId);
 
     // Practice statements are always served as an encrypted image, so the statement text
     // and expected outputs are never sent as JSON (see StatementController.PracticeProblem).

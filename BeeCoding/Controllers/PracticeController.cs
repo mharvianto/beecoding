@@ -360,6 +360,11 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             .OrderByDescending(x => x.Id)
             .Select(x => (int?)x.Id)
             .FirstOrDefaultAsync();
-        return Mapping.ToDto(s, previousSubmissionId: previousId);
+        var nextId = await _db.BankSubmissions
+            .Where(x => x.UserId == s.UserId && x.BankProblemId == s.BankProblemId && x.Id > s.Id)
+            .OrderBy(x => x.Id)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync();
+        return Mapping.ToDto(s, previousSubmissionId: previousId, nextSubmissionId: nextId);
     }
 }
