@@ -70,10 +70,10 @@ public static class Mapping
     public static ProblemSummaryDto ToSummary(Problem p) =>
         new(p.Id, p.Slug, p.Title, p.Position, p.TimeLimitMs, p.MemoryLimitKb, p.AllowedLanguages, p.Tags, p.Level.ToString());
 
-    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true) => new(
+    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, int? previousSubmissionId = null) => new(
         s.Id, s.BankProblemId, s.Status.ToString(), s.Verdict.ToString(),
         s.RuntimeMs, s.MemoryKb, s.Score, s.CompilerOutput,
-        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded);
+        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded, previousSubmissionId);
 
     // Practice statements are always served as an encrypted image, so the statement text
     // and expected outputs are never sent as JSON (see StatementController.PracticeProblem).

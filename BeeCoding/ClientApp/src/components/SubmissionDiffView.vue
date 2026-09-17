@@ -10,6 +10,7 @@ defineCustomThemesOnce();
 const props = defineProps({
   submissionAId: { type: Number, required: true },
   submissionBId: { type: Number, required: true },
+  source: { type: String, default: 'board' },   // 'board' | 'practice' — both sides always the same source
   // Header labels — default to each submission's own author name when not given.
   labelA: { type: String, default: '' },
   labelB: { type: String, default: '' },
@@ -31,9 +32,10 @@ function editorTheme() {
 
 onMounted(async () => {
   try {
+    const base = props.source === 'practice' ? '/api/practice/submissions' : '/api/submissions';
     [subA.value, subB.value] = await Promise.all([
-      api.get(`/api/submissions/${props.submissionAId}`),
-      api.get(`/api/submissions/${props.submissionBId}`),
+      api.get(`${base}/${props.submissionAId}`),
+      api.get(`${base}/${props.submissionBId}`),
     ]);
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }

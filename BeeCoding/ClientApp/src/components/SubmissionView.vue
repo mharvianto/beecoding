@@ -68,6 +68,6 @@ watch(() => props.submissionId, load, { immediate: true });
     </div>
 
     <SubmissionDiffView v-if="comparingPrevious" :submission-a-id="sub.previousSubmissionId" :submission-b-id="sub.id"
-                        label-a="Previous attempt" label-b="This attempt" @close="comparingPrevious = false" />
+                        :source="source" label-a="Previous attempt" label-b="This attempt" @close="comparingPrevious = false" />
   </div>
 </template>

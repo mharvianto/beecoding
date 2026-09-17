@@ -354,6 +354,12 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         if (s.UserId != UserId && !IsAdminUser(_admin)
             && !await _orgAccess.CanManageMemberAsync(UserId, ActorEmail, s.UserId))
             return Forbid();
-        return Mapping.ToDto(s);
+
+        var previousId = await _db.BankSubmissions
+            .Where(x => x.UserId == s.UserId && x.BankProblemId == s.BankProblemId && x.Id < s.Id)
+            .OrderByDescending(x => x.Id)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync();
+        return Mapping.ToDto(s, previousSubmissionId: previousId);
     }
 }
