@@ -243,6 +243,43 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
             .ToList();
     }
 
+    /// <summary>Staff-only, searchable submission history for this one board — every
+    /// submission on any of its problems, not just the latest-per-student shown on the
+    /// progress grid. `userId` narrows to one student (the roster's "Submissions" link).</summary>
+    [HttpGet("{slug}/submissions")]
+    public async Task<ActionResult<AdminPageDto<AdminSubmissionRow>>> Submissions(
+        string slug, [FromQuery] string? q, [FromQuery] string? verdict,
+        [FromQuery] int? userId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
+        if (!IsAdminUser(_admin) && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+        var n = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+        Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;
+
+        var query = _db.Submissions.Where(s => s.Problem!.BoardId == board.Id);
+        if (userId is int uid) query = query.Where(s => s.UserId == uid);
+        if (n is not null)
+            query = query.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                || EF.Functions.Like(s.Problem!.Title, $"%{n}%"));
+        if (v is Verdict bv) query = query.Where(s => s.Verdict == bv);
+
+        var total = await query.CountAsync();
+        var rows = await query.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize)
+            .Select(s => new AdminSubmissionRow(
+                s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                s.UserId, s.User!.Email, s.User.DisplayName, s.Problem!.Title, board.Slug, board.Title, "Board"))
+            .ToListAsync();
+
+        return new AdminPageDto<AdminSubmissionRow>(rows, total, page, pageSize);
+    }
+
     /// <summary>Soft-delete (owner or admin). Owner undo is time-boxed to
     /// <see cref="SoftDelete.UndoWindow"/>; an admin can restore any time (see the admin
     /// trash view).</summary>
