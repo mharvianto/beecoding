@@ -10,8 +10,9 @@ defineCustomThemesOnce();
 const props = defineProps({
   submissionAId: { type: Number, required: true },
   submissionBId: { type: Number, required: true },
-  userAName: { type: String, default: '' },
-  userBName: { type: String, default: '' },
+  // Header labels — default to each submission's own author name when not given.
+  labelA: { type: String, default: '' },
+  labelB: { type: String, default: '' },
 });
 const emit = defineEmits(['close']);
 
@@ -65,9 +66,9 @@ onBeforeUnmount(() => {
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-6xl my-8 flex flex-col overflow-hidden" style="height: 85vh">
       <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center gap-3 text-sm font-medium min-w-0">
-          <span class="truncate">{{ userAName || subA?.authorName }}</span>
+          <span class="truncate">{{ labelA || subA?.authorName }}</span>
           <span class="text-slate-300 dark:text-slate-600">↔</span>
-          <span class="truncate">{{ userBName || subB?.authorName }}</span>
+          <span class="truncate">{{ labelB || subB?.authorName }}</span>
         </div>
         <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
       </div>
