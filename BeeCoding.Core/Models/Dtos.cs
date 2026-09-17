@@ -189,7 +189,13 @@ public record AdminSystemStatusDto(
     bool LspEnabled, int JudgeRateLimitMs,
     // Read-only — fixed at deploy time (appsettings.json), shown for visibility only.
     int JudgeMaxConcurrent, int JudgeCompileTimeoutMs, int JudgeQueueCapacity,
-    int LspMaxConcurrent, int LspIdleTimeoutSeconds, int LspMemoryLimitMb);
+    int LspMaxConcurrent, int LspIdleTimeoutSeconds, int LspMemoryLimitMb,
+    // Host-local only — see SysstatService's doc comment on the multi-instance caveat.
+    bool SysstatInstalled, string Hostname);
+
+// ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
+public record SysstatPointDto(string Time, double Value);
+public record SysstatResultDto(string Hostname, string Metric, List<SysstatPointDto> Points);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs);

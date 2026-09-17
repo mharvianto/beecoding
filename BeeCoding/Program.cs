@@ -173,6 +173,7 @@ builder.Services.AddScoped<LtiGradeSyncService>();
 
 builder.Services.AddSingleton<PasswordService>();
 builder.Services.AddSingleton<NativeToolchain>();
+builder.Services.AddSingleton<SysstatService>();
 builder.Services.AddSingleton<NativeCompiler>();
 builder.Services.AddSingleton<NativeSandbox>();
 

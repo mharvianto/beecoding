@@ -618,9 +618,25 @@ const exportProblems = () => downloadFile('/api/admin-ui/problems/export', 'beec
 const systemStatus = ref(null);
 async function loadSystemStatus() {
   err.value = '';
-  try { systemStatus.value = await api.get('/api/admin-ui/system-status'); }
-  catch (e) { err.value = e.message; }
+  try {
+    systemStatus.value = await api.get('/api/admin-ui/system-status');
+    if (systemStatus.value.sysstatInstalled) loadSysstat();
+  } catch (e) { err.value = e.message; }
 }
+
+// ---- sysstat (sar) CPU/memory history — this one instance's own host only ----
+const sysstatMetric = ref('cpu');   // 'cpu' | 'mem'
+const sysstatResult = ref(null);
+const sysstatErr = ref('');
+async function loadSysstat() {
+  sysstatErr.value = '';
+  try {
+    sysstatResult.value = await api.get(`/api/admin-ui/system/sysstat?metric=${sysstatMetric.value}`);
+  } catch (e) { sysstatErr.value = e.message; }
+}
+function setSysstatMetric(m) { sysstatMetric.value = m; loadSysstat(); }
+const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
 const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500 });
@@ -1513,10 +1529,44 @@ onMounted(async () => {
             <span class="text-slate-400 dark:text-slate-500">LSP memory limit</span>
             <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : 'unset' }}</span>
           </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">Host (this instance)</span>
+            <span class="font-mono text-xs">{{ systemStatus.hostname }}</span>
+          </div>
+          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
+            <span class="text-slate-400 dark:text-slate-500">sysstat (sar)</span>
+            <span :class="systemStatus.sysstatInstalled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
+              {{ systemStatus.sysstatInstalled ? 'installed' : 'not installed' }}
+            </span>
+          </div>
           <div class="flex justify-between py-1">
             <span class="text-slate-400 dark:text-slate-500">Checked</span>
             <span class="text-[11px] text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
           </div>
+        </div>
+
+        <div v-if="systemStatus?.sysstatInstalled" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
+              CPU / memory — today, host <span class="font-mono">{{ sysstatResult?.hostname }}</span> only
+            </h3>
+            <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+              <button v-for="m in [['cpu', 'CPU'], ['mem', 'Memory']]" :key="m[0]"
+                      @click="setSysstatMetric(m[0])" class="px-2.5 py-1"
+                      :class="sysstatMetric === m[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+                {{ m[1] }}
+              </button>
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+            Host-local only — a load-balanced or split (web/judge) deployment has more than one
+            machine, and this only ever shows whichever one answered this request. For a
+            fleet-wide view, use a dedicated stack (e.g. Prometheus + node_exporter + Grafana).
+          </p>
+          <p v-if="sysstatErr" class="text-sm text-red-600 dark:text-red-400">{{ sysstatErr }}</p>
+          <MiniLineChart v-else-if="sysstatResult?.points?.length"
+                         :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
+          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data yet for today.</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">

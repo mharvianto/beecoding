@@ -28,9 +28,10 @@ public class AdminUiController(
     AppDbContext db, AdminAccess admin, AuditLog audit, PasswordService pw, AiRuntimeSettings aiRuntime,
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
-    IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt)
+    IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat)
     : ApiControllerBase
 {
+    private readonly SysstatService _sysstat = sysstat;
     private readonly AppDbContext _db = db;
     private readonly AdminAccess _admin = admin;
     private readonly AuditLog _audit = audit;
@@ -441,6 +442,7 @@ public class AdminUiController(
         };
 
         bool dbOk = await _db.Database.CanConnectAsync();
+        bool sysstatInstalled = await _sysstat.IsInstalledAsync();
 
         return new AdminSystemStatusDto(
             _toolchain.BwrapUsable ? "bubblewrap + rlimits" : "rlimits only",
@@ -450,7 +452,43 @@ public class AdminUiController(
             _toolchain.GccVersion, _toolchain.GppVersion,
             _runtimeConfig.LspEnabled, _runtimeConfig.JudgeRateLimitMs,
             _judgeOpt.MaxConcurrent, _judgeOpt.CompileTimeoutMs, _judgeOpt.QueueCapacity,
-            _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb);
+            _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb,
+            sysstatInstalled, Environment.MachineName);
+    }
+
+    /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
+    /// from sysstat — see SysstatService's doc comment: this is ONE instance's own data
+    /// only, never an aggregate across a multi-VM deployment. The Hostname field is there so
+    /// the UI can make that visible rather than implying a fleet-wide view.</summary>
+    [HttpGet("system/sysstat")]
+    public async Task<ActionResult<SysstatResultDto>> Sysstat([FromQuery] string metric = "cpu")
+    {
+        metric = metric == "mem" ? "mem" : "cpu";
+        if (!await _sysstat.IsInstalledAsync()) return NotFound("sysstat is not installed on this host.");
+
+        var doc = await _sysstat.GetTodayAsync(metric);
+        if (doc is null) return StatusCode(502, "Could not read sysstat data for today yet.");
+
+        try
+        {
+            var host = doc.RootElement.GetProperty("sysstat").GetProperty("hosts")[0];
+            var hostname = host.GetProperty("nodename").GetString() ?? Environment.MachineName;
+            var points = new List<SysstatPointDto>();
+            foreach (var stat in host.GetProperty("statistics").EnumerateArray())
+            {
+                var ts = stat.GetProperty("timestamp");
+                var time = $"{ts.GetProperty("date").GetString()}T{ts.GetProperty("time").GetString()}Z";
+                double value = metric == "mem"
+                    ? stat.GetProperty("memory").GetProperty("memused-percent").GetDouble()
+                    : Math.Round(100 - stat.GetProperty("cpu-load")[0].GetProperty("idle").GetDouble(), 2);
+                points.Add(new SysstatPointDto(time, value));
+            }
+            return new SysstatResultDto(hostname, metric, points);
+        }
+        catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or IndexOutOfRangeException)
+        {
+            return StatusCode(502, "sysstat's output didn't match the expected shape (version mismatch?).");
+        }
     }
 
     /// <summary>The handful of judge/LSP knobs that are safe to flip without a restart (see
