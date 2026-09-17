@@ -16,7 +16,8 @@ namespace BeeCoding.Controllers;
 [Authorize]
 [Route("api/practice")]
 public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown,
-    Services.Ai.AiTutorService ai, Services.Ai.AiUsageService aiUsage, OrgResolver orgs, AdminAccess admin) : ApiControllerBase
+    Services.Ai.AiTutorService ai, Services.Ai.AiUsageService aiUsage, OrgResolver orgs, AdminAccess admin,
+    OrgAccess orgAccess) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly IJudgeQueue _queue = queue;
@@ -26,6 +27,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     private readonly Services.Ai.AiUsageService _aiUsage = aiUsage;
     private readonly OrgResolver _orgs = orgs;
     private readonly AdminAccess _admin = admin;
+    private readonly OrgAccess _orgAccess = orgAccess;
 
     // per-user cache of AI picks (they cost a model call); short TTL.
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, (long Ts, List<RecommendationDto> Recs)> _aiCache = new();
@@ -349,7 +351,9 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     {
         var s = await _db.BankSubmissions.FirstOrDefaultAsync(x => x.Id == sid);
         if (s is null) return NotFound();
-        if (s.UserId != UserId && !IsAdminUser(_admin)) return Forbid();
+        if (s.UserId != UserId && !IsAdminUser(_admin)
+            && !await _orgAccess.CanManageMemberAsync(UserId, ActorEmail, s.UserId))
+            return Forbid();
         return Mapping.ToDto(s);
     }
 }

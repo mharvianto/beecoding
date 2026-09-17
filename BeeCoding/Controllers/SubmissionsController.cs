@@ -11,7 +11,8 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 public class SubmissionsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown, IBoardNotifier notifier, AdminAccess admin) : ApiControllerBase
+    IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown, IBoardNotifier notifier,
+    AdminAccess admin, OrgAccess orgAccess) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -21,6 +22,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     private readonly SubmitCooldown _submitCooldown = submitCooldown;
     private readonly IBoardNotifier _notifier = notifier;
     private readonly AdminAccess _admin = admin;
+    private readonly OrgAccess _orgAccess = orgAccess;
 
     [HttpPost("api/problems/{problemId:int}/submit")]
     public async Task<ActionResult<object>> Submit(int problemId, SubmitDto dto)
@@ -117,13 +119,17 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         // check staff-ness against then, but the author can still see their own basics.
         Board? board = null;
         bool staff = false;
+        bool orgManages = false;
         if (s.Problem is not null)
         {
             board = await _db.Boards.Include(b => b.Members).ThenInclude(m => m.User)
                 .FirstOrDefaultAsync(b => b.Id == s.Problem.BoardId);
             var selfMembership = board?.Members.FirstOrDefault(m => m.UserId == UserId);
             bool isAdminForBoard = IsAdminUser(_admin);
-            staff = (selfMembership is not null && _vis.IsStaff(selfMembership.Role)) || isAdminForBoard;
+            orgManages = board is not null && await _orgAccess.CanManageBoardAsync(UserId, ActorEmail, board.Id);
+            // An org admin sees this board's submissions the way staff do (full code, not
+            // just the peer-redacted view) — same reasoning as the platform super admin.
+            staff = (selfMembership is not null && _vis.IsStaff(selfMembership.Role)) || isAdminForBoard || orgManages;
         }
 
         if (s.UserId == UserId)
@@ -131,7 +137,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
 
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (viewer is null && !IsAdminUser(_admin)) return Forbid();
+        if (viewer is null && !IsAdminUser(_admin) && !orgManages) return Forbid();
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
         if (author is null || !_vis.CanSeePeerRow(UserId, staff, board, author)) return Forbid();

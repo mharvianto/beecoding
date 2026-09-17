@@ -31,4 +31,28 @@ public class OrgAccess(AppDbContext db, AdminAccess admin)
         return await _db.OrganizationMemberships.Where(m => m.UserId == userId && m.Role == OrgRole.Admin)
             .Select(m => m.Organization!).OrderBy(o => o.Name).ToListAsync();
     }
+
+    /// <summary>True if the caller manages the organization that owns this board (or is a
+    /// platform super admin) — lets an org admin open a submission on a board they don't
+    /// belong to, same as they can already see it aggregated on their org dashboard.
+    /// False for a board with no organization (nobody manages an unaffiliated board here).</summary>
+    public async Task<bool> CanManageBoardAsync(int userId, string? actorEmail, int boardId)
+    {
+        if (_admin.IsAdminEmail(actorEmail)) return true;
+        var orgId = await _db.Boards.Where(b => b.Id == boardId).Select(b => (int?)b.OrganizationId).FirstOrDefaultAsync();
+        return orgId is int oid && await CanManageAsync(userId, actorEmail, oid);
+    }
+
+    /// <summary>True if the caller manages any organization targetUserId belongs to (or is a
+    /// platform super admin) — practice submissions have no board/org of their own, so this
+    /// is the same "proxy via current membership" used for the org AI-usage dashboard.</summary>
+    public async Task<bool> CanManageMemberAsync(int userId, string? actorEmail, int targetUserId)
+    {
+        if (_admin.IsAdminEmail(actorEmail)) return true;
+        var managedOrgIds = await _db.OrganizationMemberships
+            .Where(m => m.UserId == userId && m.Role == OrgRole.Admin)
+            .Select(m => m.OrganizationId).ToListAsync();
+        if (managedOrgIds.Count == 0) return false;
+        return await _db.OrganizationMemberships.AnyAsync(m => m.UserId == targetUserId && managedOrgIds.Contains(m.OrganizationId));
+    }
 }

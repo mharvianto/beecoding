@@ -162,6 +162,68 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             .ToList();
     }
 
+    /// <summary>Submissions across this org's own boards, plus — same "proxy via current
+    /// membership" as the AI-usage dashboard, since a bank problem belongs to a user, not
+    /// an org — practice submissions by this org's members. `userId` narrows to one member
+    /// (the Members tab's "view submissions" link); `q` is a free-text fallback search.</summary>
+    [HttpGet("{orgId:int}/submissions")]
+    public async Task<ActionResult<AdminPageDto<AdminSubmissionRow>>> Submissions(
+        int orgId, [FromQuery] string? q, [FromQuery] string? verdict, [FromQuery] string? source,
+        [FromQuery] int? userId = null, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 500);
+        var n = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
+        Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;
+        var src = source?.Trim().ToLowerInvariant();
+
+        var rows = new List<AdminSubmissionRow>();
+
+        if (src is null or "board")
+        {
+            var boardQuery = _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId);
+            if (userId is int uid0) boardQuery = boardQuery.Where(s => s.UserId == uid0);
+            if (n is not null)
+                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                    || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
+                    || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+            if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
+            rows.AddRange(await boardQuery
+                .Select(s => new AdminSubmissionRow(
+                    s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                    s.UserId, s.User!.Email, s.User.DisplayName,
+                    s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title, "Board"))
+                .ToListAsync());
+        }
+
+        if (src is null or "practice")
+        {
+            var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == orgId).Select(m => m.UserId);
+            var bankQuery = _db.BankSubmissions.Where(s => memberIds.Contains(s.UserId));
+            if (userId is int uid1) bankQuery = bankQuery.Where(s => s.UserId == uid1);
+            if (n is not null)
+                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
+                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
+                    || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
+            if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
+            rows.AddRange(await bankQuery
+                .Select(s => new AdminSubmissionRow(
+                    s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
+                    s.UserId, s.User!.Email, s.User.DisplayName,
+                    s.BankProblem!.Title, null, null, "Practice"))
+                .ToListAsync());
+        }
+
+        var total = rows.Count;
+        var pageRows = rows.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
+            .Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        return new AdminPageDto<AdminSubmissionRow>(pageRows, total, page, pageSize);
+    }
+
     [HttpGet("{orgId:int}/summary")]
     public async Task<ActionResult<OrgSummaryDto>> Summary(int orgId)
     {

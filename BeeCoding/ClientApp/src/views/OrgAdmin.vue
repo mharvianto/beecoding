@@ -5,13 +5,15 @@ import { useConfirmDialog } from '../stores/confirmDialog';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
+import VerdictBadge from '../components/VerdictBadge.vue';
+import SubmissionView from '../components/SubmissionView.vue';
 import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
 
 const orgs = ref(null);
 const orgId = ref(null);
-const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['ai', 'AI settings'], ['lti', 'LTI']];
+const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['submissions', 'Submissions'], ['ai', 'AI settings'], ['lti', 'LTI']];
 const tab = ref('dashboard');
 const mobileTabsOpen = ref(false);
 const err = ref('');
@@ -77,6 +79,7 @@ function loadTab(id) {
   if (id === 'dashboard' && !dashboard.value) loadDashboard();
   else if (id === 'members' && !members.value) loadMembers();
   else if (id === 'boards' && !boards.value) loadBoards();
+  else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
   else if (id === 'ai') {
     if (!aiSettings.value) loadAiSettings();
     if (!aiProvider.value) loadAiProvider();
@@ -185,6 +188,44 @@ async function importMembersCsv(ev) {
 async function loadBoards() {
   err.value = '';
   try { boards.value = await api.get(`/api/org-admin/${orgId.value}/boards`); } catch (e) { err.value = e.message; }
+}
+
+// ---- submissions: this org's boards, plus practice submissions by this org's members ----
+const submissionRows = ref(null);
+const submissionQ = ref('');
+const submissionVerdict = ref('');
+const submissionSource = ref('');
+const submissionUserId = ref(null);      // set when jumping here from a member row
+const submissionUserLabel = ref('');     // that member's name, shown as an active filter chip
+const submissionsPage = ref(1);
+const submissionsPageSize = ref(50);
+const submissionsTotal = ref(0);
+const viewSubmission = ref(null);        // { id, source, authorName } | null
+
+async function loadSubmissions() {
+  err.value = '';
+  try {
+    const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize.value) });
+    if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
+    if (submissionVerdict.value) p.set('verdict', submissionVerdict.value);
+    if (submissionSource.value) p.set('source', submissionSource.value);
+    if (submissionUserId.value) p.set('userId', submissionUserId.value);
+    const result = await api.get(`/api/org-admin/${orgId.value}/submissions?${p}`);
+    submissionRows.value = result.rows;
+    submissionsTotal.value = result.total;
+  } catch (e) { err.value = e.message; }
+}
+function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
+function submissionsPrevPage() { if (submissionsPage.value > 1) { submissionsPage.value--; loadSubmissions(); } }
+function submissionsNextPage() { if (submissionsPage.value * submissionsPageSize.value < submissionsTotal.value) { submissionsPage.value++; loadSubmissions(); } }
+function openSubmission(s) { viewSubmission.value = { id: s.id, source: s.source.toLowerCase(), authorName: s.userDisplayName }; }
+function clearSubmissionUserFilter() { submissionUserId.value = null; submissionUserLabel.value = ''; searchSubmissions(); }
+function viewMemberSubmissions(m) {
+  submissionUserId.value = m.userId;
+  submissionUserLabel.value = m.displayName;
+  mobileTabsOpen.value = false;
+  tab.value = 'submissions';
+  searchSubmissions();
 }
 
 async function bulkCreateBoards() {
@@ -430,7 +471,10 @@ onMounted(loadOrgs);
                 <div class="font-medium text-sm truncate">{{ m.displayName }}</div>
                 <div class="text-[11px] text-slate-400 truncate">{{ m.email }}</div>
               </div>
-              <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger shrink-0">Remove</button>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="viewMemberSubmissions(m)" class="row-action-btn">Submissions</button>
+                <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button>
+              </div>
             </div>
             <div class="flex items-center gap-2 mt-2">
               <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
@@ -464,7 +508,10 @@ onMounted(loadOrgs);
                   </select>
                 </td>
                 <td class="text-[11px] text-slate-400">{{ new Date(m.joinedAt).toLocaleDateString() }}</td>
-                <td><button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button></td>
+                <td class="whitespace-nowrap">
+                  <button @click="viewMemberSubmissions(m)" class="row-action-btn">Submissions</button>
+                  <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button>
+                </td>
               </tr>
               <tr v-if="members && !members.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No members yet.</td></tr>
             </tbody>
@@ -533,6 +580,95 @@ onMounted(loadOrgs);
             </tbody>
           </table>
         </div>
+      </section>
+
+      <!-- Submissions -->
+      <section v-show="tab === 'submissions'">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
+                 class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <select v-model="submissionSource" @change="searchSubmissions"
+                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+            <option value="">Board + Practice</option>
+            <option value="board">Board only</option>
+            <option value="practice">Practice only</option>
+          </select>
+          <select v-model="submissionVerdict" @change="searchSubmissions"
+                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+            <option value="">Any verdict</option>
+            <option value="Accepted">Accepted</option>
+            <option value="WrongAnswer">Wrong answer</option>
+            <option value="TimeLimit">Time limit</option>
+            <option value="MemoryLimit">Memory limit</option>
+            <option value="RuntimeError">Runtime error</option>
+            <option value="CompileError">Compile error</option>
+          </select>
+          <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+          <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+        </div>
+        <div v-if="submissionUserId" class="flex items-center gap-2 mb-3 text-xs">
+          <span class="text-slate-500 dark:text-slate-400">Filtered to</span>
+          <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">{{ submissionUserLabel }}</span>
+          <button @click="clearSubmissionUserFilter" class="row-action-btn">✕ clear</button>
+        </div>
+
+        <!-- mobile: cards -->
+        <div v-if="tableView === 'card'" class="space-y-2">
+          <button v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
+                  class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <VerdictBadge :verdict="s.verdict" small />
+              <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
+            </div>
+            <div class="text-sm font-medium">{{ s.problemTitle }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">
+              {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
+            </div>
+          </button>
+          <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
+        </div>
+
+        <!-- desktop: table -->
+        <div v-if="tableView === 'table'" class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
+                <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board / Source</th>
+                <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
+                <th class="font-normal pr-3">Runtime</th><th class="font-normal pr-3">Lang</th>
+              </tr>
+            </thead>
+            <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
+              <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
+                  class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
+                <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
+                <td>{{ s.problemTitle }}</td>
+                <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : 'Practice' }}</td>
+                <td><VerdictBadge :verdict="s.verdict" small /></td>
+                <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
+                <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
+                <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
+              </tr>
+              <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-400 dark:text-slate-500 py-3">No submissions.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="submissionsTotal" class="flex items-center gap-3 mt-3 text-sm">
+          <span class="text-slate-400 dark:text-slate-500">
+            {{ (submissionsPage - 1) * submissionsPageSize + 1 }}–{{ Math.min(submissionsPage * submissionsPageSize, submissionsTotal) }} of {{ submissionsTotal }}
+          </span>
+          <div class="ml-auto flex gap-2">
+            <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+            <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+          </div>
+        </div>
+
+        <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :source="viewSubmission.source"
+                        :author-name="viewSubmission.authorName" @close="viewSubmission = null" />
       </section>
 
       <!-- AI settings -->
