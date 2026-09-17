@@ -54,7 +54,13 @@ async function remove() {
   try {
     await api.del(`${base}/${slug}`);
     router.push(listPath.value);
-    undoToast.show(`"${title}" deleted.`, () => api.post(`${base}/${slug}/restore`));
+    undoToast.show(`"${title}" deleted.`, async () => {
+      await api.post(`${base}/${slug}/restore`);
+      // Undo can fire well after we've already navigated to the list page (a different
+      // component instance whose own list we have no handle on) — a full reload is the
+      // simplest way to guarantee the restored problem actually reappears.
+      window.location.reload();
+    });
   } catch (e) { error.value = e.message; }
 }
 

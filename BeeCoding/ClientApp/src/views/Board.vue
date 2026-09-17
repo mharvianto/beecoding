@@ -176,7 +176,13 @@ async function deleteBoard() {
   try {
     await api.del(`/api/boards/${slug}`);
     router.push('/boards');
-    undoToast.show(`"${title}" deleted.`, () => api.post(`/api/boards/${slug}/restore`));
+    undoToast.show(`"${title}" deleted.`, async () => {
+      await api.post(`/api/boards/${slug}/restore`);
+      // Undo can fire well after we've already navigated to the boards list (a different
+      // component instance whose own list we have no handle on) — a full reload is the
+      // simplest way to guarantee the restored board actually reappears.
+      window.location.reload();
+    });
   } catch (e) { error.value = e.message; }
 }
 
