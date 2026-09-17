@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 
@@ -8,11 +8,19 @@ const boards = ref([]);
 const newTitle = ref('');
 const joinCode = ref('');
 const error = ref('');
+const q = ref('');
 
 async function load() {
   boards.value = await api.get('/api/boards');
 }
 onMounted(load);
+
+const filteredBoards = computed(() => {
+  const needle = q.value.trim().toLowerCase();
+  if (!needle) return boards.value;
+  return boards.value.filter((b) =>
+    b.title.toLowerCase().includes(needle) || (b.tags || '').toLowerCase().includes(needle));
+});
 
 async function createBoard() {
   error.value = '';
@@ -67,8 +75,11 @@ async function join() {
 
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
 
+    <input v-if="boards.length > 1" v-model="q" placeholder="Search by title or tag…"
+           class="w-full sm:w-80 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-4" />
+
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <RouterLink v-for="b in boards" :key="b.id" :to="`/boards/${b.slug}`"
+      <RouterLink v-for="b in filteredBoards" :key="b.id" :to="`/boards/${b.slug}`"
                   class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-amber-400 dark:hover:border-amber-500 transition">
         <div class="flex items-center justify-between">
           <h3 class="font-semibold">{{ b.title }}</h3>
@@ -79,6 +90,10 @@ async function join() {
             {{ b.role }}
           </span>
         </div>
+        <div v-if="b.tags" class="flex flex-wrap gap-1 mt-1.5">
+          <span v-for="t in b.tags.split(',')" :key="t"
+                class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+        </div>
         <div class="text-sm text-slate-500 dark:text-slate-400 mt-2 flex gap-4">
           <span>{{ b.problemCount }} problem{{ b.problemCount === 1 ? '' : 's' }}</span>
           <span>{{ b.memberCount }} student{{ b.memberCount === 1 ? '' : 's' }}</span>
@@ -88,6 +103,9 @@ async function join() {
         </div>
       </RouterLink>
     </div>
+    <p v-if="boards.length && !filteredBoards.length" class="text-slate-400 dark:text-slate-500 text-sm">
+      No boards match "{{ q }}".
+    </p>
     <div v-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
       <p class="text-slate-500 dark:text-slate-400 text-sm">
         {{ auth.isTeacher ? "You don't own or belong to any board yet." : "You haven't joined a board yet." }}

@@ -11,7 +11,7 @@ namespace BeeCoding.Controllers;
 [Authorize]
 [Route("api/boards")]
 public class BoardsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IBoardNotifier notifier, AdminAccess admin, AuditLog audit, OrgResolver orgs) : ApiControllerBase
+    IBoardNotifier notifier, AdminAccess admin, AuditLog audit, OrgResolver orgs, OrgAccess orgAccess) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -20,6 +20,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     private readonly AdminAccess _admin = admin;
     private readonly AuditLog _audit = audit;
     private readonly OrgResolver _orgs = orgs;
+    private readonly OrgAccess _orgAccess = orgAccess;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<BoardDto>>> Mine()
@@ -122,11 +123,23 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var board = await _db.Boards.Include(b => b.Members).Include(b => b.Problems)
             .FirstOrDefaultAsync(b => b.Slug == slug);
         if (board is null) return NotFound();
-        if (board.OwnerId != UserId) return Forbid();
+
+        bool isOwner = board.OwnerId == UserId;
+        bool isPlatformAdmin = IsAdminUser(_admin);
+        bool canManageOrg = board.OrganizationId is int oid && await _orgAccess.CanManageAsync(UserId, ActorEmail, oid);
+        if (!isOwner && !isPlatformAdmin && !canManageOrg) return Forbid();
+
+        // Exam mode / protect content / lecturing mode stay owner-or-platform-admin only —
+        // an org admin can tag/organize a board for their institution without also being
+        // able to remotely flip a teacher's in-class settings.
+        if (!isOwner && !isPlatformAdmin
+            && (dto.ExamMode is not null || dto.ProtectContent is not null || dto.LecturingMode is not null))
+            return Forbid();
 
         if (dto.ExamMode is bool exam) board.ExamMode = exam;
         if (dto.ProtectContent is bool protect) board.ProtectContent = protect;
         if (dto.LecturingMode is bool lecture) board.LecturingMode = lecture;
+        if (dto.Tags is not null) board.Tags = Mapping.NormalizeTags(dto.Tags);
         await _db.SaveChangesAsync();
         await _notifier.ExamModeChangedAsync(board.Id, board.ExamMode);
         await _notifier.BoardSettingsChangedAsync(board.Id);
@@ -317,5 +330,5 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         b.OwnerId == UserId, role.ToString(),
         b.Members?.Count(m => m.Role == MembershipRole.Student) ?? 0,
         b.Problems?.Count ?? 0,
-        b.OrganizationId, b.Organization?.Name);
+        b.OrganizationId, b.Organization?.Name, b.Tags);
 }

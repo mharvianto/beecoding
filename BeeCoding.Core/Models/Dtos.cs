@@ -11,8 +11,8 @@ public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false);
 // ---- Boards ----
 public record CreateBoardDto(string Title, int? OrganizationId = null);
 public record JoinBoardDto(string Code);
-public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode);
-public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null);
+public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null);
+public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "");
 
 public record MemberDto(int UserId, string DisplayName, string Role, bool HiddenByTeacher);
 public record UpdateMemberDto(bool HiddenByTeacher);
@@ -346,7 +346,7 @@ public record OrgSummaryDto(int MemberCount, int BoardCount);
 public record OrgMemberRow(int UserId, string Email, string DisplayName, string OrgRole, DateTime JoinedAt);
 public record OrgAddMemberDto(string Email, string OrgRole);   // "Member" | "Admin"
 public record OrgSetMemberRoleDto(string OrgRole);
-public record OrgBoardRow(int Id, string Slug, string Title, string OwnerEmail, int MemberCount, int ProblemCount, DateTime CreatedAt);
+public record OrgBoardRow(int Id, string Slug, string Title, string OwnerEmail, int MemberCount, int ProblemCount, DateTime CreatedAt, string Tags = "");
 
 // ---- Org Admin: bulk member add via CSV (existing accounts only — no signup here) ----
 public record OrgMemberImportDto(string Csv);

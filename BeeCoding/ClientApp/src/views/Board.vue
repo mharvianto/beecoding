@@ -77,6 +77,17 @@ async function toggleHide(student) {
   await loadProgress();
 }
 
+const tagList = computed(() => (board.value?.tags ? board.value.tags.split(',') : []));
+const editingTags = ref(false);
+const tagsInput = ref('');
+function startEditTags() { tagsInput.value = board.value.tags || ''; editingTags.value = true; }
+async function saveTags() {
+  try {
+    board.value = await api.patch(`/api/boards/${props.slug}`, { tags: tagsInput.value });
+    editingTags.value = false;
+  } catch (e) { error.value = e.message; }
+}
+
 const picking = ref(false);
 const stats = ref(null);
 const statsOpen = ref(false);
@@ -228,7 +239,22 @@ onBeforeUnmount(async () => {
 <template>
   <div class="max-w-6xl mx-auto px-4 py-6" v-if="board">
     <div class="flex items-center justify-between mb-1">
-      <h1 class="text-xl font-bold">{{ board.title }}</h1>
+      <div>
+        <h1 class="text-xl font-bold">{{ board.title }}</h1>
+        <div v-if="!editingTags" class="flex flex-wrap items-center gap-1 mt-1">
+          <span v-for="t in tagList" :key="t"
+                class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+          <button v-if="board.isOwner || auth.user?.isAdmin" @click="startEditTags" class="row-action-btn">
+            {{ tagList.length ? '✏️ Edit tags' : '+ Add tags' }}
+          </button>
+        </div>
+        <div v-else class="flex items-center gap-2 mt-1">
+          <input v-model="tagsInput" placeholder="e.g. class-2026, semester-1" @keyup.enter="saveTags"
+                 class="text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 w-64" />
+          <button @click="saveTags" class="row-action-btn row-action-btn--success">Save</button>
+          <button @click="editingTags = false" class="row-action-btn">Cancel</button>
+        </div>
+      </div>
       <div class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-3">
         <span v-if="presence.length">🟢 {{ presence.length }} online</span>
         <span v-if="isStaff" class="flex items-center gap-2">

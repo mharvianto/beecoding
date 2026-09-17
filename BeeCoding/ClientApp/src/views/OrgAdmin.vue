@@ -190,6 +190,19 @@ async function loadBoards() {
   try { boards.value = await api.get(`/api/org-admin/${orgId.value}/boards`); } catch (e) { err.value = e.message; }
 }
 
+// ---- tags: editable here even though the org admin isn't a member of these boards —
+// BoardsController.Update lets an org admin set Tags (only) on any board in their org ----
+const editingBoardTagsSlug = ref(null);
+const boardTagsInput = ref('');
+function startEditBoardTags(b) { editingBoardTagsSlug.value = b.slug; boardTagsInput.value = b.tags || ''; }
+async function saveBoardTags(b) {
+  try {
+    const updated = await api.patch(`/api/boards/${b.slug}`, { tags: boardTagsInput.value });
+    b.tags = updated.tags;
+    editingBoardTagsSlug.value = null;
+  } catch (e) { err.value = e.message; }
+}
+
 // ---- submissions: this org's boards, plus practice submissions by this org's members ----
 const submissionRows = ref(null);
 const submissionQ = ref('');
@@ -555,6 +568,17 @@ onMounted(loadOrgs);
             <div class="text-[11px] text-slate-400 mt-0.5">
               {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
             </div>
+            <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1 mt-1.5">
+              <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" @keyup.enter="saveBoardTags(b)"
+                     class="flex-1 text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+              <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
+              <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
+            </div>
+            <div v-else class="flex flex-wrap items-center gap-1 mt-1.5">
+              <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
+                    class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+              <button @click="startEditBoardTags(b)" class="row-action-btn">{{ b.tags ? '✏️ Edit tags' : '+ Add tags' }}</button>
+            </div>
           </div>
           <p v-if="boards && !boards.length" class="text-slate-400 dark:text-slate-500 text-sm">No boards yet.</p>
         </div>
@@ -566,6 +590,7 @@ onMounted(loadOrgs);
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
                 <th class="font-normal py-1.5 pr-3">Title</th><th class="font-normal pr-3">Owner</th>
                 <th class="font-normal pr-3">Students</th><th class="font-normal pr-3">Problems</th><th class="font-normal pr-3">Created</th>
+                <th class="font-normal pr-3">Tags</th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -575,8 +600,21 @@ onMounted(loadOrgs);
                 <td class="tabular-nums">{{ b.memberCount }}</td>
                 <td class="tabular-nums">{{ b.problemCount }}</td>
                 <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
+                <td class="min-w-48">
+                  <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1">
+                    <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" @keyup.enter="saveBoardTags(b)"
+                           class="flex-1 text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                    <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
+                    <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
+                  </div>
+                  <div v-else class="flex flex-wrap items-center gap-1">
+                    <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
+                          class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                    <button @click="startEditBoardTags(b)" class="row-action-btn">{{ b.tags ? '✏️ Edit' : '+ Add' }}</button>
+                  </div>
+                </td>
               </tr>
-              <tr v-if="boards && !boards.length"><td colspan="5" class="text-slate-400 dark:text-slate-500 py-3">No boards yet.</td></tr>
+              <tr v-if="boards && !boards.length"><td colspan="6" class="text-slate-400 dark:text-slate-500 py-3">No boards yet.</td></tr>
             </tbody>
           </table>
         </div>

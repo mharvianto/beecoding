@@ -360,7 +360,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             .Include(b => b.Owner).Include(b => b.Members).Include(b => b.Problems)
             .OrderByDescending(b => b.CreatedAt)
             .Select(b => new OrgBoardRow(b.Id, b.Slug, b.Title, b.Owner != null ? b.Owner.Email : "?",
-                b.Members.Count(m => m.Role == MembershipRole.Student), b.Problems.Count, b.CreatedAt))
+                b.Members.Count(m => m.Role == MembershipRole.Student), b.Problems.Count, b.CreatedAt, b.Tags))
             .ToListAsync();
     }
 

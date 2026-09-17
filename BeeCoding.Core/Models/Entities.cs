@@ -104,6 +104,11 @@ public class Board
     /// blur-on-leave, name watermark). Cannot truly stop a camera — makes leaks attributable.</summary>
     public bool ProtectContent { get; set; }
 
+    /// <summary>Comma-separated, lowercase tags for the owner's own organizing/filtering
+    /// (e.g. by class, semester, cohort) — purely descriptive, no access-control meaning.</summary>
+    [MaxLength(300)]
+    public string Tags { get; set; } = "";
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Soft-delete marker — excluded from all normal queries via a global query
