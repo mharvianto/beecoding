@@ -11,9 +11,6 @@ import ProgressGrid from '../components/ProgressGrid.vue';
 import PadletWall from '../components/PadletWall.vue';
 import BankPicker from '../components/BankPicker.vue';
 import LevelBadge from '../components/LevelBadge.vue';
-import VerdictBadge from '../components/VerdictBadge.vue';
-import MiniLineChart from '../components/MiniLineChart.vue';
-import TopicBarChart from '../components/TopicBarChart.vue';
 import QrCode from '../components/QrCode.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 
@@ -89,88 +86,6 @@ async function saveTags() {
 }
 
 const picking = ref(false);
-const stats = ref(null);
-const statsOpen = ref(false);
-const ENGAGEMENT_GRANULARITY_KEY = 'beecoding.board.stats.engagementGranularity';
-const AI_GRANULARITY_KEY = 'beecoding.board.stats.aiGranularity';
-const engagementGranularity = ref(localStorage.getItem(ENGAGEMENT_GRANULARITY_KEY) || 'week');   // 'hour' | 'day' | 'week'
-const engagementStats = ref(null);
-const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');                    // 'day' | 'week'
-const aiEngagementStats = ref(null);
-
-function periodsFor(granularity) {
-  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
-}
-async function toggleStats() {
-  statsOpen.value = !statsOpen.value;
-  if (statsOpen.value && !stats.value) {
-    try {
-      stats.value = await api.get(`/api/boards/${props.slug}/stats`);
-      await Promise.all([loadEngagement(), loadAiEngagement()]);
-    } catch (e) { error.value = e.message; }
-  }
-}
-async function loadEngagement() {
-  try {
-    engagementStats.value = await api.get(
-      `/api/boards/${props.slug}/stats/engagement?granularity=${engagementGranularity.value}&periods=${periodsFor(engagementGranularity.value)}`);
-  } catch (e) { error.value = e.message; }
-}
-function setEngagementGranularity(g) {
-  engagementGranularity.value = g;
-  try { localStorage.setItem(ENGAGEMENT_GRANULARITY_KEY, g); } catch { /* ignore */ }
-  loadEngagement();
-}
-async function loadAiEngagement() {
-  try {
-    aiEngagementStats.value = await api.get(
-      `/api/boards/${props.slug}/stats/ai-engagement?granularity=${aiGranularity.value}&periods=${periodsFor(aiGranularity.value)}`);
-  } catch (e) { error.value = e.message; }
-}
-function setAiGranularity(g) {
-  aiGranularity.value = g;
-  try { localStorage.setItem(AI_GRANULARITY_KEY, g); } catch { /* ignore */ }
-  loadAiEngagement();
-}
-const shortDate = (s) => new Date(`${s}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-const shortHour = (s) => new Date(s).toLocaleTimeString(undefined, { hour: 'numeric' });
-const engagementLabel = (s) => (engagementGranularity.value === 'hour' ? shortHour(s) : shortDate(s));
-const activeUserPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.activeUsers }));
-const submissionPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.submissions }));
-const aiCallPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.calls }));
-const aiTokenPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.totalTokens }));
-const topicBarItems = () => (stats.value?.topics || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
-
-// ---- submissions: full history for this board (not just latest-per-student) ----
-const submissionsOpen = ref(false);
-const submissionRows = ref(null);
-const submissionQ = ref('');
-const submissionVerdict = ref('');
-const submissionUserId = ref('');   // '' = all students
-const submissionsPage = ref(1);
-const submissionsPageSize = 50;
-const submissionsTotal = ref(0);
-const viewSubmission = ref(null);   // { id, authorName } | null
-
-async function toggleSubmissions() {
-  submissionsOpen.value = !submissionsOpen.value;
-  if (submissionsOpen.value && !submissionRows.value) await loadSubmissions();
-}
-async function loadSubmissions() {
-  try {
-    const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize) });
-    if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
-    if (submissionVerdict.value) p.set('verdict', submissionVerdict.value);
-    if (submissionUserId.value) p.set('userId', submissionUserId.value);
-    const result = await api.get(`/api/boards/${props.slug}/submissions?${p}`);
-    submissionRows.value = result.rows;
-    submissionsTotal.value = result.total;
-  } catch (e) { error.value = e.message; }
-}
-function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
-function submissionsPrevPage() { if (submissionsPage.value > 1) { submissionsPage.value--; loadSubmissions(); } }
-function submissionsNextPage() { if (submissionsPage.value * submissionsPageSize < submissionsTotal.value) { submissionsPage.value++; loadSubmissions(); } }
-function openSubmission(s) { viewSubmission.value = { id: s.id, authorName: s.userDisplayName }; }
 
 async function toggleHidden(p) {
   try {
@@ -302,153 +217,22 @@ onBeforeUnmount(async () => {
               class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📚 From bank
       </button>
-      <button @click="toggleStats"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-              :class="statsOpen
-                ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
+      <RouterLink :to="`/boards/${board.slug}/stats`"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📊 Statistics
-      </button>
-      <button @click="toggleSubmissions"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-              :class="submissionsOpen
-                ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
+      </RouterLink>
+      <RouterLink :to="`/boards/${board.slug}/submissions`"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         🧾 Submissions
-      </button>
+      </RouterLink>
       <button v-if="board.isOwner" @click="deleteBoard"
               class="sm:ml-auto px-3 py-1.5 rounded-lg text-sm font-medium border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
         🗑️ Delete board
       </button>
     </div>
 
-    <!-- Staff: board statistics (this board only) -->
-    <div v-if="isStaff && statsOpen" class="mb-4 space-y-3">
-      <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Students</div>
-          <div class="text-xl font-bold">{{ stats.totalStudents }}</div>
-        </div>
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Problems</div>
-          <div class="text-xl font-bold">{{ stats.totalProblems }}</div>
-        </div>
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 col-span-2 sm:col-span-1">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
-          <div class="text-xl font-bold">{{ stats.totalSubmissions }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500">
-            {{ stats.totalSubmissions ? Math.round(100 * stats.acceptedSubmissions / stats.totalSubmissions) : 0 }}% accepted
-          </div>
-        </div>
-      </div>
-      <p v-else class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
-
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">Engagement</h2>
-          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
-            <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
-                    @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
-                    :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-              {{ g[1] }}
-            </button>
-          </span>
-        </div>
-        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`Active students / ${engagementGranularity}`" :points="activeUserPoints()" />
-          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
-        </div>
-        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
-      </div>
-
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">AI usage</h2>
-          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
-            <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
-                    @click="setAiGranularity(g[0])" class="px-2.5 py-1"
-                    :class="aiGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-              {{ g[1] }}
-            </button>
-          </span>
-        </div>
-        <div v-if="aiEngagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
-          <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
-        </div>
-        <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage in this window yet.</p>
-      </div>
-
-      <div v-if="stats?.topics?.length">
-        <h2 class="font-semibold text-sm mb-1.5">Top topics by attempts</h2>
-        <TopicBarChart :items="topicBarItems()" />
-      </div>
-    </div>
-
-    <div v-if="isStaff && submissionsOpen" class="mb-4 space-y-3">
-      <div class="flex flex-wrap gap-2">
-        <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student or problem…"
-               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <select v-model="submissionUserId" @change="searchSubmissions"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
-          <option value="">All students</option>
-          <option v-for="st in progress.students" :key="st.userId" :value="st.userId">{{ st.displayName }}</option>
-        </select>
-        <select v-model="submissionVerdict" @change="searchSubmissions"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
-          <option value="">Any verdict</option>
-          <option value="Accepted">Accepted</option>
-          <option value="WrongAnswer">Wrong answer</option>
-          <option value="TimeLimit">Time limit</option>
-          <option value="MemoryLimit">Memory limit</option>
-          <option value="RuntimeError">Runtime error</option>
-          <option value="CompileError">Compile error</option>
-        </select>
-        <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
-      </div>
-
-      <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
-              <th class="font-normal py-1.5 px-3">When</th><th class="font-normal px-3">Student</th>
-              <th class="font-normal px-3">Problem</th><th class="font-normal px-3">Verdict</th>
-              <th class="font-normal px-3">Score</th><th class="font-normal px-3">Runtime</th><th class="font-normal px-3">Lang</th>
-            </tr>
-          </thead>
-          <tbody class="[&_td]:py-1.5 [&_td]:px-3">
-            <tr v-for="s in submissionRows" :key="s.id" @click="openSubmission(s)"
-                class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
-              <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
-              <td>{{ s.userDisplayName }}</td>
-              <td>{{ s.problemTitle }}</td>
-              <td><VerdictBadge :verdict="s.verdict" small /></td>
-              <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
-              <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
-              <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
-            </tr>
-            <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-400 dark:text-slate-500 py-3 px-3">No submissions.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="submissionsTotal" class="flex items-center gap-3 text-sm">
-        <span class="text-slate-400 dark:text-slate-500">
-          {{ (submissionsPage - 1) * submissionsPageSize + 1 }}–{{ Math.min(submissionsPage * submissionsPageSize, submissionsTotal) }} of {{ submissionsTotal }}
-        </span>
-        <div class="ml-auto flex gap-2">
-          <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
-          <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
-        </div>
-      </div>
-
-      <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id"
-                      :author-name="viewSubmission.authorName" @close="viewSubmission = null" />
-    </div>
-
     <!-- Student: exam-mode notice -->
-    <div v-else-if="progress.examMode" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
+    <div v-if="progress.examMode" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
       🔒 Exam mode is on — you can’t see other students’ progress.
     </div>
 
