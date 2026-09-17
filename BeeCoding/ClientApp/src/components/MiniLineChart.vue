@@ -25,6 +25,33 @@ function isDark() {
   return appTheme.value === 'dark'
     || (appTheme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 }
+// Recessive, one-step-off-surface hairlines — same tokens as the card border utilities
+// (border-slate-200 / dark:border-slate-800) so gridlines read as structure, not data.
+function gridColor() { return isDark() ? '#1e293b' : '#e2e8f0'; }
+function tickColor() { return isDark() ? '#94a3b8' : '#64748b'; }
+function tooltipBg() { return isDark() ? '#1e293b' : '#ffffff'; }
+function tooltipInk() { return isDark() ? '#e2e8f0' : '#0f172a'; }
+
+// A vertical hairline at the hovered/nearest X — "the crosshair finds the X" (dataviz).
+const crosshairPlugin = {
+  id: 'crosshair',
+  afterDraw(c) {
+    const active = c.getActiveElements();
+    if (!active.length) return;
+    const { ctx, chartArea } = c;
+    const x = active[0].element.x;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = gridColor();
+    ctx.stroke();
+    ctx.restore();
+  },
+};
+
+const fmt = (n) => (n ?? 0).toLocaleString();
 
 function build() {
   if (!canvasEl.value) return;
@@ -32,6 +59,7 @@ function build() {
   const last = props.points.length - 1;
   chart = new Chart(canvasEl.value, {
     type: 'line',
+    plugins: [crosshairPlugin],
     data: {
       labels: props.points.map((p) => p.label),
       datasets: [{
@@ -56,15 +84,42 @@ function build() {
       interaction: { intersect: false, mode: 'index' },
       onHover: (_evt, elements) => { hoverIdx.value = elements.length ? elements[0].index : null; },
       scales: {
-        x: { display: false, ticks: { display: false }, grid: { display: false } },
-        y: { display: false, beginAtZero: true, ticks: { display: false }, grid: { display: false } },
+        x: {
+          grid: { display: false },
+          border: { color: gridColor() },
+          ticks: { color: tickColor(), font: { size: 10 }, autoSkip: true, maxTicksLimit: 4, maxRotation: 0 },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: gridColor() },
+          border: { display: false },
+          ticks: { color: tickColor(), font: { size: 10 }, maxTicksLimit: 3, precision: 0 },
+        },
       },
       plugins: {
         legend: { display: false },
-        tooltip: { enabled: false },
         // chartjs-plugin-datalabels registers itself globally (TopicBarChart uses
         // it) and would otherwise try to label every point on this chart too.
         datalabels: { display: false },
+        tooltip: {
+          enabled: true,
+          displayColors: false,   // single series — the title already names it (dataviz)
+          backgroundColor: tooltipBg(),
+          borderColor: gridColor(),
+          borderWidth: 1,
+          titleColor: tooltipInk(),
+          bodyColor: tooltipInk(),
+          padding: 8,
+          cornerRadius: 8,
+          titleFont: { size: 13, weight: 'bold' },
+          bodyFont: { size: 11, weight: 'normal' },
+          // Values lead, labels follow: the bold title slot carries the number,
+          // the plain body slot carries the date/time it happened.
+          callbacks: {
+            title: (items) => fmt(items[0]?.raw),
+            label: (item) => item.label,
+          },
+        },
       },
     },
   });
@@ -75,7 +130,6 @@ watch(() => [props.points, props.color], build, { deep: true });
 watch(appTheme, build);
 onBeforeUnmount(() => chart?.destroy());
 
-const fmt = (n) => (n ?? 0).toLocaleString();
 const lastPoint = () => props.points[props.points.length - 1];
 const activePoint = () => (hoverIdx.value === null ? lastPoint() : props.points[hoverIdx.value]);
 </script>
@@ -86,12 +140,8 @@ const activePoint = () => (hoverIdx.value === null ? lastPoint() : props.points[
       <div class="text-xs text-slate-400 dark:text-slate-500">{{ title }}</div>
       <div class="text-sm font-semibold tabular-nums">{{ fmt(activePoint()?.value) }}</div>
     </div>
-    <div class="h-20">
+    <div class="h-32">
       <canvas ref="canvasEl" @mouseleave="hoverIdx = null"></canvas>
-    </div>
-    <div class="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
-      <span>{{ points[0]?.label }}</span>
-      <span>{{ activePoint()?.label }}</span>
     </div>
   </div>
 </template>
