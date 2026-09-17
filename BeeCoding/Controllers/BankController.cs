@@ -99,11 +99,16 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         if (b is null) return NotFound();
         if (b.OwnerId != UserId) return Forbid();
 
+        // Captured before Apply() adds any brand-new TestCase rows to b.TestCases — those
+        // start with Id 0 (not yet persisted) and must never reach the removal filter below,
+        // or EF throws trying to mark a never-saved entity as Deleted.
+        var existingIds = b.TestCases.Select(t => t.Id).ToHashSet();
+
         Apply(b, dto);
         if (dto.TestCases is not null)
         {
             var keep = dto.TestCases.Where(t => t.Id is > 0).Select(t => t.Id!.Value).ToHashSet();
-            _db.BankTestCases.RemoveRange(b.TestCases.Where(t => !keep.Contains(t.Id)));
+            _db.BankTestCases.RemoveRange(b.TestCases.Where(t => existingIds.Contains(t.Id) && !keep.Contains(t.Id)));
         }
         await _db.SaveChangesAsync();
 

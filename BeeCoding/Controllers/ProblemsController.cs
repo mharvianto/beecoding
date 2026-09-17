@@ -146,12 +146,17 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p is null) return NotFound();
 
+        // Captured before Apply() adds any brand-new TestCase rows to p.TestCases — those
+        // start with Id 0 (not yet persisted) and must never reach the removal filter below,
+        // or EF throws trying to mark a never-saved entity as Deleted.
+        var existingIds = p.TestCases.Select(t => t.Id).ToHashSet();
+
         Apply(p, dto);
 
         if (dto.TestCases is not null)
         {
             var keepIds = dto.TestCases.Where(t => t.Id is > 0).Select(t => t.Id!.Value).ToHashSet();
-            _db.TestCases.RemoveRange(p.TestCases.Where(t => !keepIds.Contains(t.Id)));
+            _db.TestCases.RemoveRange(p.TestCases.Where(t => existingIds.Contains(t.Id) && !keepIds.Contains(t.Id)));
         }
 
         await _db.SaveChangesAsync();
