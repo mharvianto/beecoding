@@ -28,10 +28,12 @@ public class AdminUiController(
     AppDbContext db, AdminAccess admin, AuditLog audit, PasswordService pw, AiRuntimeSettings aiRuntime,
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
-    IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat)
+    IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
+    PlagiarismService plagiarism)
     : ApiControllerBase
 {
     private readonly SysstatService _sysstat = sysstat;
+    private readonly PlagiarismService _plagiarism = plagiarism;
     private readonly AppDbContext _db = db;
     private readonly AdminAccess _admin = admin;
     private readonly AuditLog _audit = audit;
@@ -400,6 +402,15 @@ public class AdminUiController(
         return boards.Select(b => new AdminBoardRow(
             b.Id, b.Slug, b.Title, b.Owner?.Email ?? "?", b.Owner?.DisplayName ?? "?",
             b.Members.Count(m => m.Role == MembershipRole.Student), b.Problems.Count, b.CreatedAt)).ToList();
+    }
+
+    /// <summary>Same spot-check signal as the board/org-level endpoints (see
+    /// PlagiarismService), scoped to any one board on the platform.</summary>
+    [HttpGet("plagiarism")]
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism([FromQuery] int boardId)
+    {
+        if (!await _db.Boards.AnyAsync(b => b.Id == boardId)) return NotFound();
+        return await _plagiarism.ComputeForBoardAsync(boardId);
     }
 
     /// <summary>Bulk-archive (soft-delete) boards, e.g. "everything from last semester" —

@@ -213,6 +213,10 @@ onBeforeUnmount(async () => {
                       class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             🎥 Live code
           </RouterLink>
+          <RouterLink :to="`/boards/${board.slug}/plagiarism`" @click="settingsOpen = false"
+                      class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            🔍 Plagiarism check
+          </RouterLink>
           <template v-if="board.isOwner">
             <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
             <button @click="deleteBoard"

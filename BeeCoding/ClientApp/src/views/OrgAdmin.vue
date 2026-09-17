@@ -8,6 +8,7 @@ import TopicBarChart from '../components/TopicBarChart.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
+import PlagiarismTable from '../components/PlagiarismTable.vue';
 import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
@@ -16,7 +17,7 @@ const router = useRouter();
 
 const orgs = ref(null);
 const orgId = ref(null);
-const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['submissions', 'Submissions'], ['ai', 'AI settings'], ['lti', 'LTI']];
+const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['submissions', 'Submissions'], ['plagiarism', 'Plagiarism'], ['ai', 'AI settings'], ['lti', 'LTI']];
 // Deep-linkable: /org-admin/members etc. — reload/share/bookmark lands on the same tab.
 const tab = ref(tabDefs.some((t) => t[0] === route.params.tab) ? route.params.tab : 'dashboard');
 const mobileTabsOpen = ref(false);
@@ -36,6 +37,10 @@ const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');  
 const aiEngagementStats = ref(null);
 const members = ref(null);
 const boards = ref(null);
+const plagiarismBoardId = ref(null);
+const plagiarismPairs = ref([]);
+const plagiarismLoading = ref(false);
+const plagiarismViewSubmission = ref(null);
 const aiSettings = ref(null);
 const aiSaving = ref(false);
 const aiProvider = ref(null);
@@ -109,6 +114,7 @@ function loadTab(id) {
   else if (id === 'members' && !members.value) loadMembers();
   else if (id === 'boards' && !boards.value) loadBoards();
   else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
+  else if (id === 'plagiarism' && !boards.value) loadBoards();
   else if (id === 'ai') {
     if (!aiSettings.value) loadAiSettings();
     if (!aiProvider.value) loadAiProvider();
@@ -217,6 +223,15 @@ async function importMembersCsv(ev) {
 async function loadBoards() {
   err.value = '';
   try { boards.value = await api.get(`/api/org-admin/${orgId.value}/boards`); } catch (e) { err.value = e.message; }
+}
+
+async function loadPlagiarism() {
+  if (!plagiarismBoardId.value) { plagiarismPairs.value = []; return; }
+  err.value = ''; plagiarismLoading.value = true;
+  try {
+    plagiarismPairs.value = await api.get(`/api/org-admin/${orgId.value}/plagiarism?boardId=${plagiarismBoardId.value}`);
+  } catch (e) { err.value = e.message; }
+  finally { plagiarismLoading.value = false; }
 }
 
 // ---- tags: editable here even though the org admin isn't a member of these boards —
@@ -740,6 +755,20 @@ onMounted(() => { loadOrgs(); });
 
         <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :source="viewSubmission.source"
                         :author-name="viewSubmission.authorName" @close="viewSubmission = null" />
+      </section>
+
+      <!-- Plagiarism -->
+      <section v-show="tab === 'plagiarism'">
+        <div class="flex items-center gap-2 mb-3">
+          <select v-model="plagiarismBoardId" @change="loadPlagiarism"
+                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+            <option :value="null">Pick a board…</option>
+            <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
+          </select>
+        </div>
+        <PlagiarismTable :pairs="plagiarismPairs" :loading="plagiarismLoading" @view="plagiarismViewSubmission = $event" />
+        <SubmissionView v-if="plagiarismViewSubmission" :submission-id="plagiarismViewSubmission.id"
+                        :author-name="plagiarismViewSubmission.authorName" @close="plagiarismViewSubmission = null" />
       </section>
 
       <!-- AI settings -->

@@ -21,7 +21,7 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;
@@ -30,6 +30,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     private readonly AiProviderRuntime _aiProviderRuntime = aiProviderRuntime;
     private readonly LtiPlatformOriginsCache _ltiOrigins = ltiOrigins;
     private readonly BoardService _boards = boards;
+    private readonly PlagiarismService _plagiarism = plagiarism;
 
     /// <summary>Organizations the caller administers — for the org picker. Empty for a
     /// user who administers none (most users, including most super admins' everyday use).</summary>
@@ -362,6 +363,17 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             .Select(b => new OrgBoardRow(b.Id, b.Slug, b.Title, b.Owner != null ? b.Owner.Email : "?",
                 b.Members.Count(m => m.Role == MembershipRole.Student), b.Problems.Count, b.CreatedAt, b.Tags))
             .ToListAsync();
+    }
+
+    /// <summary>Same spot-check signal as the board-level endpoint (see PlagiarismService),
+    /// scoped to one board that must belong to this org.</summary>
+    [HttpGet("{orgId:int}/plagiarism")]
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(int orgId, [FromQuery] int boardId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        if (!await _db.Boards.AnyAsync(b => b.Id == boardId && b.OrganizationId == orgId)) return NotFound();
+
+        return await _plagiarism.ComputeForBoardAsync(boardId);
     }
 
     /// <summary>Bulk-create boards, all owned by one existing Teacher and all assigned to

@@ -11,7 +11,8 @@ namespace BeeCoding.Controllers;
 [Authorize]
 [Route("api/boards")]
 public class BoardsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IBoardNotifier notifier, AdminAccess admin, AuditLog audit, OrgResolver orgs, OrgAccess orgAccess) : ApiControllerBase
+    IBoardNotifier notifier, AdminAccess admin, AuditLog audit, OrgResolver orgs, OrgAccess orgAccess,
+    PlagiarismService plagiarism) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -21,6 +22,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     private readonly AuditLog _audit = audit;
     private readonly OrgResolver _orgs = orgs;
     private readonly OrgAccess _orgAccess = orgAccess;
+    private readonly PlagiarismService _plagiarism = plagiarism;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<BoardDto>>> Mine()
@@ -291,6 +293,20 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
             .ToListAsync();
 
         return new AdminPageDto<AdminSubmissionRow>(rows, total, page, pageSize);
+    }
+
+    /// <summary>Staff-only: flag pairs of students on this board whose latest submission to
+    /// the same problem looks suspiciously similar (see PlagiarismService for the algorithm
+    /// and its caveats — this is a spot-check signal, not proof).</summary>
+    [HttpGet("{slug}/plagiarism")]
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(string slug)
+    {
+        var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
+        if (!IsAdminUser(_admin) && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
+
+        return await _plagiarism.ComputeForBoardAsync(board.Id);
     }
 
     /// <summary>Soft-delete (owner or admin). Owner undo is time-boxed to

@@ -12,6 +12,7 @@ import MarkdownBlock from '../components/MarkdownBlock.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
+import PlagiarismTable from '../components/PlagiarismTable.vue';
 import { tableView } from '../lib/tableView';
 
 const auth = useAuth();
@@ -21,7 +22,7 @@ const confirmDialog = useConfirmDialog();
 const undoToast = useUndoToast();
 const tabDefs = [
   ['dashboard', 'Dashboard'], ['ai', 'AI'], ['users', 'Users'], ['boards', 'Boards'], ['problems', 'Problems'],
-  ['submissions', 'Submissions'], ['review', 'AI review'], ['reports', 'Reports'], ['trash', 'Trash'],
+  ['submissions', 'Submissions'], ['plagiarism', 'Plagiarism'], ['review', 'AI review'], ['reports', 'Reports'], ['trash', 'Trash'],
   ['audit', 'Audit log'], ['organizations', 'Organizations'], ['lti', 'LTI'],
 ];
 // Deep-linkable: /admin/users etc. — reload/share/bookmark lands on the same tab.
@@ -59,6 +60,7 @@ function loadTabData(id) {
     if (!boards.value) loadBoards();   // populates the CSV-import board picker too
   } else if (id === 'boards' && !boards.value) loadBoards();
   else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
+  else if (id === 'plagiarism' && !boards.value) loadBoards();
   else if (id === 'review') loadAiReview();   // queue changes often — always refresh
   else if (id === 'reports' && !systemStatus.value) loadSystemStatus();
   else if (id === 'trash') loadTrash();     // state changes often — always refresh
@@ -359,6 +361,18 @@ async function loadBoards() {
   try { boards.value = await api.get('/api/admin-ui/boards' + (boardQ.value.trim() ? `?q=${encodeURIComponent(boardQ.value.trim())}` : '')); }
   catch (e) { err.value = e.message; }
 }
+const plagiarismBoardId = ref(null);
+const plagiarismPairs = ref([]);
+const plagiarismLoading = ref(false);
+const plagiarismViewSubmission = ref(null);
+async function loadPlagiarism() {
+  if (!plagiarismBoardId.value) { plagiarismPairs.value = []; return; }
+  err.value = ''; plagiarismLoading.value = true;
+  try { plagiarismPairs.value = await api.get(`/api/admin-ui/plagiarism?boardId=${plagiarismBoardId.value}`); }
+  catch (e) { err.value = e.message; }
+  finally { plagiarismLoading.value = false; }
+}
+
 async function deleteBoard(b) {
   err.value = '';
   try {
@@ -1371,6 +1385,20 @@ onMounted(async () => {
 
       <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :source="viewSubmission.source"
                       :author-name="viewSubmission.authorName" @close="viewSubmission = null" />
+    </section>
+
+    <!-- Plagiarism -->
+    <section v-show="tab === 'plagiarism'">
+      <div class="flex items-center gap-2 mb-3">
+        <select v-model="plagiarismBoardId" @change="loadPlagiarism"
+                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+          <option :value="null">Pick a board…</option>
+          <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
+        </select>
+      </div>
+      <PlagiarismTable :pairs="plagiarismPairs" :loading="plagiarismLoading" @view="plagiarismViewSubmission = $event" />
+      <SubmissionView v-if="plagiarismViewSubmission" :submission-id="plagiarismViewSubmission.id"
+                      :author-name="plagiarismViewSubmission.authorName" @close="plagiarismViewSubmission = null" />
     </section>
 
     <!-- AI review: AI-generated bank problems held back until approved -->

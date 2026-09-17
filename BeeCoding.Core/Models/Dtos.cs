@@ -145,6 +145,14 @@ public record AdminSubmissionRow(int Id, DateTime CreatedAt, string Verdict, dou
     string ProblemTitle, string? BoardSlug, string? BoardTitle,
     string Source = "Board");   // "Board" | "Practice" — Practice has no BoardSlug/BoardTitle
 
+/// <summary>One flagged pair from PlagiarismService — a heuristic similarity signal, not
+/// proof of copying (see its class doc for the caveats).</summary>
+public record PlagiarismPairDto(
+    int ProblemId, string ProblemTitle,
+    int UserAId, string UserAName, int SubmissionAId,
+    int UserBId, string UserBName, int SubmissionBId,
+    double Similarity);
+
 // ---- Admin: dashboard (overview landing tab) ----
 public record AdminDashboardDto(
     int TotalUsers, int TeacherCount, int StudentCount, int AdminCount,

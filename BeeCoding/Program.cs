@@ -240,6 +240,7 @@ builder.Services.AddHostedService<JudgeJanitor>();
 
 builder.Services.AddScoped<VisibilityService>();
 builder.Services.AddScoped<BoardService>();
+builder.Services.AddScoped<PlagiarismService>();
 builder.Services.AddScoped<OrgResolver>();
 builder.Services.AddScoped<OrgAccess>();
 builder.Services.AddScoped<WallService>();
