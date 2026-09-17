@@ -12,6 +12,7 @@ import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
 import SplitPane from '../components/SplitPane.vue';
+import ReducedMotionNotice from '../components/ReducedMotionNotice.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
 import { loadDraft, saveDraft, clearDraft, markDraftAccepted } from '../lib/draft';
 import { celebrate } from '../lib/confetti';
@@ -305,5 +306,6 @@ onBeforeUnmount(async () => {
     </SplitPane>
     </template>
    </SplitPane>
+   <ReducedMotionNotice />
   </div>
 </template>
