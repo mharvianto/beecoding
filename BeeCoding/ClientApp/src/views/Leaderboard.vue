@@ -9,12 +9,12 @@ const loading = ref(false);
 const orgs = ref([]);
 const boards = ref([]);
 const scope = ref('global');   // 'global' | `org:<id>` | `board:<id>`
-const period = ref('all');     // 'all' | '1y' | '6m' | '1m'
+const period = ref('all');     // 'all' | '1m'
 const page = ref(1);
 const pageSize = 20;
 const total = ref(0);
 
-const periods = [['all', 'All time'], ['1y', '1 year'], ['6m', '6 months'], ['1m', '1 month']];
+const periods = [['all', 'All time'], ['1m', '1 month']];
 
 async function loadOrgs() {
   try { orgs.value = await api.get('/api/me/organizations'); } catch { /* not fatal — just no org tab */ }
@@ -96,6 +96,9 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
           <span v-if="r.me" class="text-xs text-amber-600 dark:text-amber-400"> (you)</span>
         </span>
         <span v-if="r.role === 'Teacher'" class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">teacher</span>
+        <span class="text-xs text-slate-400 dark:text-slate-500 w-24 text-right" title="Problems solved">
+          {{ r.solvedCount }} solved
+        </span>
         <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Lv {{ r.level }}</span>
         <span class="text-sm text-slate-500 dark:text-slate-400 w-20 text-right">{{ r.xp }} XP</span>
       </div>

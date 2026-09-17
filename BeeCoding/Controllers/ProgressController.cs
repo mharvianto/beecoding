@@ -11,7 +11,7 @@ namespace BeeCoding.Controllers;
 // RankDelta: yesterday's rank minus today's rank in the SAME scope, "all time" period only
 // (see ProgressController.GetYesterdayRanksAsync) — positive = moved up, negative = moved
 // down, null = not computed (a windowed period) or the user has no solves before today.
-public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null);
+public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null, int SolvedCount = 0);
 public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
 public record MyOrgDto(int Id, string Name, string Slug);
 public record MyBoardDto(int Id, string Slug, string Title);
@@ -135,7 +135,9 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
             .Select(m => new MyBoardDto(m.Board!.Id, m.Board.Slug, m.Board.Title))
             .ToListAsync();
 
-    /// <summary>Ranked by XP. `period` narrows to XP earned within a window (via
+    /// <summary>Ranked by XP, competition-style: tied users share a rank, and the next
+    /// distinct XP value's rank accounts for how many were tied above it (1, 1, 3 — not
+    /// 1, 1, 2 or 1, 2, 3). `period` narrows to XP earned within a rolling window (via
     /// SolveRecord, since Xp itself is a lifetime total with no history) — "all" uses the
     /// fast denormalized User.Xp column when also unscoped. `organizationId`/`boardId` narrow
     /// to that org's/board's own members (mutually exclusive — pass at most one); the caller
@@ -158,72 +160,80 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         if (boardId is int bId0 && !await _db.BoardMemberships.AnyAsync(m => m.BoardId == bId0 && m.UserId == UserId))
             return Forbid();
 
+        // (UserId, Xp, SolvedCount) for the whole scoped/windowed population — loaded fully
+        // (not paginated at the DB level) so rank can be computed once, correctly, over the
+        // real ordering; a page is then just a slice of it. Fine at this app's scale (a
+        // classroom/institution's worth of users), and it's what already made RankDelta's
+        // "yesterday" ranking simple below.
+        List<(int UserId, int Xp, int Solved)> scored;
         if (organizationId is null && boardId is null && period == "all")
         {
-            var query = _db.Users.Where(u => u.Xp > 0);
-            var total = await query.CountAsync();
-            var top = await query
-                .OrderByDescending(u => u.Xp).ThenBy(u => u.Id)
-                .Skip(skip).Take(pageSize)
-                .Select(u => new { u.Id, u.DisplayName, u.Role, u.Xp })
-                .ToListAsync();
+            var users = await _db.Users.Where(u => u.Xp > 0).Select(u => new { u.Id, u.Xp }).ToListAsync();
+            var solvedCounts = await _db.SolveRecords.GroupBy(r => r.UserId)
+                .Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count);
+            scored = users.Select(u => (u.Id, u.Xp, solvedCounts.GetValueOrDefault(u.Id))).ToList();
+        }
+        else
+        {
+            DateTime? cutoff = period == "1m" ? DateTime.UtcNow.AddMonths(-1) : null;   // "all" only other option now
 
-            var yesterday = await GetYesterdayRanksAsync(null, null);
-            var rows = top.Select((u, i) =>
+            var records = _db.SolveRecords.AsQueryable();
+            if (cutoff is DateTime c) records = records.Where(r => r.CreatedAt >= c);
+            if (organizationId is int oid)
             {
-                int rank = skip + i + 1;
-                int? delta = yesterday.TryGetValue(u.Id, out var y) ? y - rank : null;
-                return new LeaderRowDto(rank, u.Id, u.DisplayName, u.Role.ToString(), u.Xp,
-                    ProgressService.LevelForXp(u.Xp), u.Id == UserId, delta);
-            }).ToList();
-            return new LeaderboardPageDto(rows, total, page, pageSize);
+                var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == oid).Select(m => m.UserId);
+                records = records.Where(r => memberIds.Contains(r.UserId));
+            }
+            if (boardId is int bId1)
+            {
+                var memberIds = _db.BoardMemberships.Where(m => m.BoardId == bId1).Select(m => m.UserId);
+                records = records.Where(r => memberIds.Contains(r.UserId));
+            }
+
+            var grouped = await records.GroupBy(r => r.UserId)
+                .Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded), Solved = g.Count() })
+                .ToListAsync();
+            scored = grouped.Select(g => (g.UserId, g.Xp, g.Solved)).ToList();
         }
 
-        DateTime? cutoff = period switch
-        {
-            "1y" => DateTime.UtcNow.AddYears(-1),
-            "6m" => DateTime.UtcNow.AddMonths(-6),
-            "1m" => DateTime.UtcNow.AddMonths(-1),
-            _ => null,   // "all"
-        };
+        // Stable secondary order by UserId so tied rows don't reshuffle between requests —
+        // the previous code only sorted by Xp here, which let pagination be inconsistent
+        // for tied users (a row could shift page, or appear twice/not at all across two
+        // requests, since EF/SQL make no ordering guarantee among equal keys).
+        var ordered = scored.OrderByDescending(x => x.Xp).ThenBy(x => x.UserId).ToList();
+        var total = ordered.Count;
 
-        var records = _db.SolveRecords.AsQueryable();
-        if (cutoff is DateTime c) records = records.Where(r => r.CreatedAt >= c);
-        if (organizationId is int oid)
+        var rankByUser = new Dictionary<int, int>(ordered.Count);
+        int prevXp = int.MinValue, prevRank = 0, idx = 0;
+        foreach (var x in ordered)
         {
-            var memberIds = _db.OrganizationMemberships.Where(m => m.OrganizationId == oid).Select(m => m.UserId);
-            records = records.Where(r => memberIds.Contains(r.UserId));
-        }
-        if (boardId is int bId1)
-        {
-            var memberIds = _db.BoardMemberships.Where(m => m.BoardId == bId1).Select(m => m.UserId);
-            records = records.Where(r => memberIds.Contains(r.UserId));
+            idx++;
+            if (x.Xp != prevXp) { prevRank = idx; prevXp = x.Xp; }
+            rankByUser[x.UserId] = prevRank;
         }
 
-        var grouped = records.GroupBy(r => r.UserId).Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) });
-        var groupedTotal = await grouped.CountAsync();
-        var ranked = await grouped.OrderByDescending(x => x.Xp).Skip(skip).Take(pageSize).ToListAsync();
-
-        var userIds = ranked.Select(r => r.UserId).ToList();
-        var users = await _db.Users.Where(u => userIds.Contains(u.Id))
+        var pageSlice = ordered.Skip(skip).Take(pageSize).ToList();
+        var userIds = pageSlice.Select(x => x.UserId).ToList();
+        var users2 = await _db.Users.Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
 
-        var yesterdayRanked = cutoff is null ? await GetYesterdayRanksAsync(organizationId, boardId) : null;
-        var rankedRows = ranked.Select((r, i) =>
+        var yesterday = period == "all" ? await GetYesterdayRanksAsync(organizationId, boardId) : null;
+        var rows = pageSlice.Select(x =>
         {
-            int rank = skip + i + 1;
-            int? delta = yesterdayRanked is not null && yesterdayRanked.TryGetValue(r.UserId, out var y) ? y - rank : null;
-            return new LeaderRowDto(rank, r.UserId, users[r.UserId].DisplayName, users[r.UserId].Role.ToString(), r.Xp,
-                ProgressService.LevelForXp(r.Xp), r.UserId == UserId, delta);
+            int rank = rankByUser[x.UserId];
+            int? delta = yesterday is not null && yesterday.TryGetValue(x.UserId, out var y) ? y - rank : null;
+            return new LeaderRowDto(rank, x.UserId, users2[x.UserId].DisplayName, users2[x.UserId].Role.ToString(), x.Xp,
+                ProgressService.LevelForXp(x.Xp), x.UserId == UserId, delta, x.Solved);
         }).ToList();
-        return new LeaderboardPageDto(rankedRows, groupedTotal, page, pageSize);
+        return new LeaderboardPageDto(rows, total, page, pageSize);
     }
 
-    /// <summary>Each user's rank (1 = best) in the given scope, as of the start of today UTC
-    /// — i.e. excluding anything earned today, so "today vs. this" is a same-day-apples
-    /// comparison for RankDelta. Computed from SolveRecord (an append-only ledger), so no
-    /// separate snapshot table is needed; cached in memory per scope until the next UTC
-    /// midnight, since re-ranking every user on every leaderboard request would be wasteful
+    /// <summary>Each user's competition rank (1 = best, ties share a rank — same method as
+    /// Leaderboard itself, so a RankDelta comparison is apples-to-apples) in the given scope,
+    /// as of the start of today UTC — i.e. excluding anything earned today, so "today vs.
+    /// this" is a same-day comparison. Computed from SolveRecord (an append-only ledger), so
+    /// no separate snapshot table is needed; cached in memory per scope until the next UTC
+    /// midnight, since re-ranking everyone on every leaderboard request would be wasteful
     /// when "yesterday" only changes once a day.</summary>
     private async Task<Dictionary<int, int>> GetYesterdayRanksAsync(int? organizationId, int? boardId)
     {
@@ -246,11 +256,17 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
 
         var grouped = await records.GroupBy(r => r.UserId)
             .Select(g => new { UserId = g.Key, Xp = g.Sum(r => r.XpAwarded) })
-            .OrderByDescending(x => x.Xp)
+            .OrderByDescending(x => x.Xp).ThenBy(x => x.UserId)
             .ToListAsync();
 
         var map = new Dictionary<int, int>(grouped.Count);
-        for (int i = 0; i < grouped.Count; i++) map[grouped[i].UserId] = i + 1;
+        int prevXp = int.MinValue, prevRank = 0, idx = 0;
+        foreach (var g in grouped)
+        {
+            idx++;
+            if (g.Xp != prevXp) { prevRank = idx; prevXp = g.Xp; }
+            map[g.UserId] = prevRank;
+        }
 
         _cache.Set(cacheKey, map, new DateTimeOffset(cutoff.AddDays(1)));
         return map;
