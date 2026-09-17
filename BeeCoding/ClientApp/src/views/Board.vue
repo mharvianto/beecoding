@@ -86,6 +86,7 @@ async function saveTags() {
 }
 
 const picking = ref(false);
+const settingsOpen = ref(false);
 
 async function toggleHidden(p) {
   try {
@@ -193,23 +194,12 @@ onBeforeUnmount(async () => {
     <!-- Staff controls -->
     <div v-if="isStaff" class="flex flex-wrap items-center gap-2 my-4">
       <button @click="toggleExam"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
+              class="px-4 py-2 rounded-lg text-sm font-semibold border-2"
               :class="progress.examMode
-                ? 'bg-purple-600 text-white border-purple-600'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
-        {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : 'Exam mode off' }}
+                ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30'
+                : 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-500/40 hover:border-purple-500'">
+        {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}
       </button>
-      <button @click="toggleLecturing"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border"
-              :class="board.lecturingMode
-                ? 'bg-sky-600 text-white border-sky-600'
-                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'">
-        {{ board.lecturingMode ? '👨‍🏫 Lecturing ON — students see your code' : 'Lecturing mode' }}
-      </button>
-      <RouterLink :to="`/boards/${board.slug}/live`"
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-        🎥 Live code
-      </RouterLink>
       <button @click="router.push(`/boards/${props.slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
         + Add problem
       </button>
@@ -225,10 +215,33 @@ onBeforeUnmount(async () => {
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         🧾 Submissions
       </RouterLink>
-      <button v-if="board.isOwner" @click="deleteBoard"
-              class="sm:ml-auto px-3 py-1.5 rounded-lg text-sm font-medium border border-rose-300 dark:border-rose-500/40 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
-        🗑️ Delete board
-      </button>
+
+      <div class="relative sm:ml-auto">
+        <button @click="settingsOpen = !settingsOpen"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
+          ⚙️ Settings
+        </button>
+        <div v-if="settingsOpen" class="fixed inset-0 z-40" @click="settingsOpen = false"></div>
+        <div v-if="settingsOpen"
+             class="absolute right-0 z-50 mt-1 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
+          <button @click="toggleLecturing(); settingsOpen = false"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  :class="board.lecturingMode ? 'text-sky-600 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
+            👨‍🏫 {{ board.lecturingMode ? 'Lecturing ON — students see your code' : 'Lecturing mode' }}
+          </button>
+          <RouterLink :to="`/boards/${board.slug}/live`" @click="settingsOpen = false"
+                      class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            🎥 Live code
+          </RouterLink>
+          <template v-if="board.isOwner">
+            <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+            <button @click="deleteBoard"
+                    class="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+              🗑️ Delete board
+            </button>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- Student: exam-mode notice -->
