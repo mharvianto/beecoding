@@ -8,7 +8,6 @@ import { createBoardConnection } from '../lib/signalr';
 import { useUndoToast } from '../stores/undoToast';
 import ProgressGrid from '../components/ProgressGrid.vue';
 import PadletWall from '../components/PadletWall.vue';
-import BankPicker from '../components/BankPicker.vue';
 import QrCode from '../components/QrCode.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 
@@ -83,10 +82,7 @@ async function saveTags() {
   } catch (e) { error.value = e.message; }
 }
 
-const picking = ref(false);
 const settingsOpen = ref(false);
-
-async function onBankAdded() { picking.value = false; await loadAll(); }
 
 async function deleteBoard() {
   const title = board.value.title;
@@ -191,13 +187,6 @@ onBeforeUnmount(async () => {
                 : 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-500/40 hover:border-purple-500'">
         {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}
       </button>
-      <button @click="router.push(`/boards/${props.slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
-        + Add problem
-      </button>
-      <button @click="picking = true"
-              class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-        📚 From bank
-      </button>
       <RouterLink :to="`/boards/${board.slug}/stats`"
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📊 Statistics
@@ -277,11 +266,6 @@ onBeforeUnmount(async () => {
       :is-staff="progress.viewerIsStaff"
       :current-user-id="auth.user?.id"
       @toggle-hide="toggleHide" />
-
-
-    <BankPicker v-if="picking"
-      :board-slug="board.slug"
-      @added="onBankAdded" @cancel="picking = false" />
 
     <SubmissionView v-if="ltiSubmissionId" :submission-id="ltiSubmissionId" @close="ltiSubmissionId = null" />
   </div>

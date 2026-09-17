@@ -37,6 +37,11 @@ public record UpsertProblemDto(
 public record UpdateProblemVisibilityDto(bool Hidden);
 public record ReorderProblemsDto(List<string> Order);   // problem slugs, board's new top-to-bottom order
 
+/// <summary>Per-problem submission aggregate for the staff Problems page — computed
+/// straight from Submissions, independent of Problem.Hidden (which only affects
+/// student-facing visibility, not staff-facing stats).</summary>
+public record ProblemStatDto(int ProblemId, int Submissions, int Accepted, double AcceptRate, int SolvedCount);
+
 /// <summary>Full problem view for the board owner/teacher.</summary>
 public record ProblemDto(
     int Id, string Slug, int BoardId, string Title, string StatementMarkdown, string AllowedLanguages,

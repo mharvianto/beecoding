@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
+import BankPicker from '../components/BankPicker.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const router = useRouter();
@@ -11,9 +12,10 @@ const router = useRouter();
 const board = ref(null);
 const problems = ref([]);
 const studentCount = ref(0);
-const solvedCounts = ref({});   // problemId -> number of students who've solved it
+const stats = ref({});   // problemId -> { submissions, accepted, acceptRate, solvedCount }
 const error = ref('');
 const q = ref('');
+const picking = ref(false);
 
 const isStaff = computed(() => board.value && board.value.role !== 'Student');
 
@@ -22,13 +24,16 @@ async function loadAll() {
   problems.value = await api.get(`/api/boards/${props.slug}/problems`);
 
   if (isStaff.value) {
-    const progress = await api.get(`/api/boards/${props.slug}/progress`);
+    const [progress, problemStats] = await Promise.all([
+      api.get(`/api/boards/${props.slug}/progress`),
+      api.get(`/api/boards/${props.slug}/problems/stats`),
+    ]);
     studentCount.value = progress.students.length;
-    const counts = {};
-    for (const c of progress.cells) if (c.latest) counts[c.problemId] = (counts[c.problemId] || 0) + 1;
-    solvedCounts.value = counts;
+    stats.value = Object.fromEntries(problemStats.map((s) => [s.problemId, s]));
   }
 }
+
+async function onBankAdded() { picking.value = false; await loadAll(); }
 
 onMounted(async () => {
   try { await loadAll(); } catch (e) { error.value = e.message; }
@@ -70,13 +75,19 @@ async function onDrop(target) {
 </script>
 
 <template>
-  <div class="max-w-4xl mx-auto px-4 py-6" v-if="board">
+  <div class="max-w-6xl mx-auto px-4 py-6" v-if="board">
     <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
       <h1 class="text-xl font-bold">Problems</h1>
-      <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
-        + Add problem
-      </button>
+      <div v-if="isStaff" class="flex items-center gap-2">
+        <button @click="picking = true"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
+          📚 From bank
+        </button>
+        <button @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
+          + Add problem
+        </button>
+      </div>
     </div>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
@@ -107,7 +118,11 @@ async function onDrop(target) {
             </div>
             <div class="text-xs text-slate-400 dark:text-slate-500">
               {{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB
-              <span v-if="isStaff"> · ✅ {{ solvedCounts[p.id] || 0 }}/{{ studentCount }} solved</span>
+              <template v-if="isStaff">
+                · ✅ {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved
+                · {{ stats[p.id]?.submissions || 0 }} submissions
+                · {{ Math.round((stats[p.id]?.acceptRate || 0) * 100) }}% AC
+              </template>
             </div>
           </div>
         </div>
@@ -126,5 +141,7 @@ async function onDrop(target) {
       <p v-if="!problems.length" class="text-slate-400 dark:text-slate-500 text-sm">No problems yet.</p>
       <p v-else-if="!filtered.length" class="text-slate-400 dark:text-slate-500 text-sm">No problems match "{{ q }}".</p>
     </div>
+
+    <BankPicker v-if="picking" :board-slug="slug" @added="onBankAdded" @cancel="picking = false" />
   </div>
 </template>

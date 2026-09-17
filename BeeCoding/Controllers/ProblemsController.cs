@@ -77,6 +77,33 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         return Mapping.ToOwnerDto(p);
     }
 
+    /// <summary>Staff-only per-problem submission aggregate for the Problems page — computed
+    /// straight from Submissions rather than the visibility-filtered progress grid, so a
+    /// hidden problem's counts aren't zeroed out (Problem.Hidden only affects student-facing
+    /// visibility, not staff-facing stats).</summary>
+    [HttpGet("stats")]
+    public async Task<ActionResult<List<ProblemStatDto>>> Stats(string slug)
+    {
+        var boardId = await _boards.ResolveBoardIdAsync(slug);
+        if (boardId is null) return NotFound();
+        var me = await _boards.GetMembershipAsync(boardId.Value, UserId);
+        bool isAdmin = IsAdminUser(_admin);
+        if (!isAdmin && (me is null || me.Role == MembershipRole.Student)) return Forbid();
+
+        var subs = await _db.Submissions
+            .Where(s => s.Problem!.BoardId == boardId.Value)
+            .Select(s => new { s.ProblemId, s.UserId, s.Verdict, s.Score })
+            .ToListAsync();
+
+        return subs.GroupBy(s => s.ProblemId).Select(g =>
+        {
+            var accepted = g.Count(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0);
+            var solved = g.Where(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0)
+                .Select(s => s.UserId).Distinct().Count();
+            return new ProblemStatDto(g.Key, g.Count(), accepted, accepted / (double)g.Count(), solved);
+        }).ToList();
+    }
+
     /// <summary>Owner-only: persist a new top-to-bottom order (drag-and-drop on the problem list).</summary>
     [HttpPatch("reorder")]
     public async Task<IActionResult> Reorder(string slug, ReorderProblemsDto dto)
