@@ -58,7 +58,7 @@ function solvedCount(userId) {
                     class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" title="attempted (hidden)"></span>
               <button v-else-if="cell(s.userId, p.id).latestSubmissionId"
                       @click="viewSubmissionId = cell(s.userId, p.id).latestSubmissionId"
-                      class="rounded hover:ring-2 hover:ring-amber-400 transition" title="View submission">
+                      class="inline-flex p-0 m-0 leading-none rounded hover:ring-2 hover:ring-amber-400 transition" title="View submission">
                 <VerdictBadge :verdict="cell(s.userId, p.id).verdict" small />
               </button>
               <VerdictBadge v-else :verdict="cell(s.userId, p.id).verdict" small />
