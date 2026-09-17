@@ -27,12 +27,31 @@ const props = defineProps({
   readOnly: { type: Boolean, default: false },
   // base filename (no extension) offered when downloading this editor's content
   filename: { type: String, default: 'code' },
+  // Exam-mode deterrent, not real security — a determined student can still retype
+  // pasted content, disable JS, etc. See Board.vue's exam-mode toggle.
+  blockPaste: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue']);
 
 const el = ref(null);
 let editor = null;
 let selfEmit = false;   // true while we're emitting our own change — don't echo it back
+
+// ---- exam-mode paste block (deterrent only — see the prop's doc comment) ----
+// Monaco doesn't route paste through a plain DOM 'paste' listener when the browser
+// supports the EditContext API (see hasEditContext below) — preventDefault() on that
+// event does nothing there. onDidPaste fires after Monaco's own model edit either way,
+// so detect-then-undo is the reliable way to block it regardless of input backend.
+const pasteBlockedFlash = ref(false);
+let pasteFlashTimer = null;
+let pasteDisposable = null;
+function onEditorPaste() {
+  if (!props.blockPaste) return;
+  editor.trigger('beecoding', 'undo', null);
+  pasteBlockedFlash.value = true;
+  clearTimeout(pasteFlashTimer);
+  pasteFlashTimer = setTimeout(() => { pasteBlockedFlash.value = false; }, 1500);
+}
 
 // Touch devices: Monaco's virtual-keyboard/IME handling is fragile. The browser
 // EditContext API fixes most of the "typed char lands wrong / deletes the wrong
@@ -248,6 +267,7 @@ onMounted(() => {
     emit('update:modelValue', editor.getValue());
     selfEmit = false;
   });
+  pasteDisposable = editor.onDidPaste(onEditorPaste);
 
   // right-click menu / shortcuts: font size + LSP toggle
   editor.addAction({
@@ -341,7 +361,12 @@ watch(appTheme, () => monaco.editor.setTheme(editorTheme()));
 watch(editorThemePref, () => monaco.editor.setTheme(editorTheme()));
 watch(editorFontFamily, (f) => editor?.updateOptions({ fontFamily: f || undefined }));
 
-onBeforeUnmount(() => { disposeLsp(); editor?.dispose(); });
+onBeforeUnmount(() => {
+  clearTimeout(pasteFlashTimer);
+  pasteDisposable?.dispose();
+  disposeLsp();
+  editor?.dispose();
+});
 
 const showLspBtn = lspCapable() && !props.readOnly;
 const btnCls =
@@ -363,6 +388,10 @@ function download() {
 <template>
   <div class="relative h-full w-full">
     <div ref="el" class="h-full w-full"></div>
+    <div v-if="pasteBlockedFlash"
+         class="absolute top-1 left-4 z-10 text-[11px] font-mono px-2 py-1 rounded bg-rose-600 text-white shadow-sm">
+      Paste disabled — Exam mode
+    </div>
     <div class="absolute top-1 right-4 z-10 flex items-center gap-1 text-[11px] font-mono transition-opacity
                 opacity-30 hover:opacity-100 focus-within:opacity-100"
          :class="{ '!opacity-90': coarse }">

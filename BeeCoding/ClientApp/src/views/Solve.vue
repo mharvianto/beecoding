@@ -414,7 +414,8 @@ function ago(ts) {
     <!-- Right: editor + console -->
     <SplitPane direction="vertical" storage-key="beecoding.split.solve-console" :initial="66" :min="110">
       <template #a>
-        <MonacoEditor v-model="code" :language="solveLang" :lsp="solveLang" :filename="props.problemSlug" />
+        <MonacoEditor v-model="code" :language="solveLang" :lsp="solveLang" :filename="props.problemSlug"
+                      :block-paste="!isStaff && !!board?.examMode" />
       </template>
       <template #b>
       <div class="h-full overflow-y-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-2">
