@@ -25,6 +25,7 @@ const routes = [
   { path: '/boards/:slug/stats', component: () => import('./views/BoardStats.vue'), props: true },
   { path: '/boards/:slug/submissions', component: () => import('./views/BoardSubmissions.vue'), props: true },
   { path: '/boards/:slug/live', component: () => import('./views/LiveCode.vue'), props: true },
+  { path: '/boards/:slug/problems', component: () => import('./views/BoardProblems.vue'), props: true },
   { path: '/boards/:slug/problems/new', component: () => import('./views/ProblemEdit.vue'), props: true },
   { path: '/boards/:slug/problems/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true },
   { path: '/boards/:slug/problems/:problemSlug', component: () => import('./views/Solve.vue'), props: true },

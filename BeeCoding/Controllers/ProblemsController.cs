@@ -77,6 +77,22 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         return Mapping.ToOwnerDto(p);
     }
 
+    /// <summary>Owner-only: persist a new top-to-bottom order (drag-and-drop on the problem list).</summary>
+    [HttpPatch("reorder")]
+    public async Task<IActionResult> Reorder(string slug, ReorderProblemsDto dto)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var bySlug = await _db.Problems.Where(p => p.BoardId == boardId!.Value).ToDictionaryAsync(p => p.Slug);
+        for (var i = 0; i < dto.Order.Count; i++)
+            if (bySlug.TryGetValue(dto.Order[i], out var p)) p.Position = i;
+
+        await _db.SaveChangesAsync();
+        await _notifier.ProblemChangedAsync(boardId!.Value);
+        return NoContent();
+    }
+
     [HttpPost]
     public async Task<ActionResult<ProblemDto>> Create(string slug, UpsertProblemDto dto)
     {

@@ -5,12 +5,10 @@ import { api } from '../lib/api';
 import { withBase } from '../lib/base';
 import { useAuth } from '../stores/auth';
 import { createBoardConnection } from '../lib/signalr';
-import { langLabel } from '../lib/templates';
 import { useUndoToast } from '../stores/undoToast';
 import ProgressGrid from '../components/ProgressGrid.vue';
 import PadletWall from '../components/PadletWall.vue';
 import BankPicker from '../components/BankPicker.vue';
-import LevelBadge from '../components/LevelBadge.vue';
 import QrCode from '../components/QrCode.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 
@@ -87,13 +85,6 @@ async function saveTags() {
 
 const picking = ref(false);
 const settingsOpen = ref(false);
-
-async function toggleHidden(p) {
-  try {
-    const updated = await api.patch(`/api/boards/${props.slug}/problems/${p.slug}/hidden`, { hidden: !p.hidden });
-    p.hidden = updated.hidden;
-  } catch (e) { error.value = e.message; }
-}
 
 async function onBankAdded() { picking.value = false; await loadAll(); }
 
@@ -255,36 +246,12 @@ onBeforeUnmount(async () => {
       🎥 The teacher is live-coding now — open the shared editor →
     </RouterLink>
 
-    <!-- Problem list -->
-    <div class="grid gap-2 my-4">
-      <div v-for="p in problems" :key="p.id"
-           class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between">
-        <div>
-          <div class="font-medium flex items-center gap-2 flex-wrap">
-            {{ p.title }}
-            <LevelBadge :level="p.level" />
-            <span v-if="p.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
-            <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
-                  class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-          </div>
-          <div class="text-xs text-slate-400 dark:text-slate-500">{{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB</div>
-        </div>
-        <div class="flex items-center gap-1">
-          <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'"
-                  class="row-action-btn">
-            <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span>{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
-          </button>
-          <button v-if="isStaff" @click="router.push(`/boards/${props.slug}/problems/${p.slug}/edit`)" class="row-action-btn">
-            <span>✏️</span><span>Edit</span>
-          </button>
-          <RouterLink :to="`/boards/${board.slug}/problems/${p.slug}`"
-                      class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5 ml-1">
-            {{ isStaff ? 'View' : 'Solve' }}
-          </RouterLink>
-        </div>
-      </div>
-      <p v-if="!problems.length" class="text-slate-400 dark:text-slate-500 text-sm">No problems yet.</p>
-    </div>
+    <!-- Problems -->
+    <RouterLink :to="`/boards/${board.slug}/problems`"
+                class="my-4 flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 hover:border-amber-400 dark:hover:border-amber-500">
+      <span class="text-sm font-medium">📋 Problems ({{ problems.length }})</span>
+      <span class="text-slate-400 dark:text-slate-500 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
+    </RouterLink>
 
     <!-- Live board -->
     <div class="flex items-center justify-between mt-8 mb-2">

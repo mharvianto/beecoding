@@ -35,6 +35,7 @@ public record UpsertProblemDto(
     string? InputFileName = null);        // set => stdin is written to this file instead of piped
 
 public record UpdateProblemVisibilityDto(bool Hidden);
+public record ReorderProblemsDto(List<string> Order);   // problem slugs, board's new top-to-bottom order
 
 /// <summary>Full problem view for the board owner/teacher.</summary>
 public record ProblemDto(
