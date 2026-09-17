@@ -64,7 +64,12 @@ async function loadOrgs() {
   err.value = '';
   try {
     orgs.value = await api.get('/api/org-admin/mine');
-    if (orgs.value.length && !orgId.value) selectOrg(orgs.value[0].id);
+    if (orgs.value.length && !orgId.value) {
+      // Deep-linkable: /org-admin/<slug>/<tab> — reload/share/bookmark lands on the same
+      // organization, not always back to the first one in the list.
+      const wanted = orgs.value.find((o) => o.slug === route.params.slug);
+      selectOrg((wanted || orgs.value[0]).id);
+    }
   } catch (e) { err.value = e.message; }
 }
 
@@ -73,6 +78,9 @@ function selectOrg(id) {
   summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null;
   members.value = null; boards.value = null; aiSettings.value = null; aiProvider.value = null;
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
+  const org = orgs.value?.find((o) => o.id === id);
+  if (org && (route.params.slug !== org.slug || route.params.tab !== tab.value))
+    router.replace(`/org-admin/${org.slug}/${tab.value}`);
   loadTab(tab.value);
 }
 
@@ -80,14 +88,19 @@ function switchTab(id) {
   mobileTabsOpen.value = false;
   if (id === tab.value) return;
   tab.value = id;
-  router.replace(`/org-admin/${id}`);
+  const org = orgs.value?.find((o) => o.id === orgId.value);
+  if (org) router.replace(`/org-admin/${org.slug}/${id}`);
   loadTab(id);
 }
-// Browser back/forward (or a direct link to /org-admin/<tab>) changes route.params.tab
-// without going through switchTab — keep the active tab (and its data) in sync.
+// Browser back/forward (or a direct link to /org-admin/<slug>/<tab>) changes route.params
+// without going through switchTab/selectOrg — keep local state in sync.
 watch(() => route.params.tab, (t) => {
   const id = tabDefs.some(([k]) => k === t) ? t : 'dashboard';
   if (id !== tab.value) { tab.value = id; loadTab(id); }
+});
+watch(() => route.params.slug, (slug) => {
+  const org = orgs.value?.find((o) => o.slug === slug);
+  if (org && org.id !== orgId.value) selectOrg(org.id);
 });
 function loadTab(id) {
   if (!orgId.value) return;
@@ -254,7 +267,8 @@ function viewMemberSubmissions(m) {
   submissionUserLabel.value = m.displayName;
   mobileTabsOpen.value = false;
   tab.value = 'submissions';
-  router.replace('/org-admin/submissions');
+  const org = orgs.value?.find((o) => o.id === orgId.value);
+  if (org) router.replace(`/org-admin/${org.slug}/submissions`);
   searchSubmissions();
 }
 
@@ -336,10 +350,9 @@ async function copyLtiValue(value) {
   catch { /* clipboard permission denied — not worth surfacing an error for */ }
 }
 
-onMounted(() => {
-  if (route.params.tab !== tab.value) router.replace(`/org-admin/${tab.value}`);
-  loadOrgs();
-});
+// URL normalization (missing/invalid slug or tab) happens inside selectOrg once the org
+// list is known — see its router.replace check.
+onMounted(() => { loadOrgs(); });
 </script>
 
 <template>
