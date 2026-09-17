@@ -322,18 +322,6 @@ onBeforeUnmount(async () => {
       </button>
     </div>
 
-    <!-- Staff: per-student visibility (feature 5, per student) -->
-    <div v-if="isStaff && progress.students.length" class="flex flex-wrap gap-1.5 mb-4">
-      <span class="text-xs text-slate-400 dark:text-slate-500 self-center mr-1">Hide from peers:</span>
-      <button v-for="s in progress.students" :key="s.userId" @click="toggleHide(s)"
-              class="text-xs px-2 py-0.5 rounded-full border"
-              :class="s.hiddenByTeacher
-                ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
-                : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
-        {{ s.displayName }} {{ s.hiddenByTeacher ? '🔒' : '' }}
-      </button>
-    </div>
-
     <!-- Staff: board statistics (this board only) -->
     <div v-if="isStaff && statsOpen" class="mb-4 space-y-3">
       <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
