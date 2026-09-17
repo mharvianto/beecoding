@@ -1,6 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
+
+const route = useRoute();
+const router = useRouter();
 
 const rows = ref([]);
 const error = ref('');
@@ -8,8 +12,10 @@ const loading = ref(false);
 
 const orgs = ref([]);
 const boards = ref([]);
-const scope = ref('global');   // 'global' | `org:<id>` | `board:<id>`
-const period = ref('all');     // 'all' | '1m'
+// 'global' | `org:<slug>` | `board:<slug>` — initialized from the URL so a scoped/windowed
+// leaderboard link (e.g. shared in a class group chat) opens straight into that view.
+const scope = ref(/^(org|board):[\w-]+$/.test(route.query.scope) ? route.query.scope : 'global');
+const period = ref(route.query.period === '1m' ? '1m' : 'all');
 const page = ref(1);
 const pageSize = 20;
 const total = ref(0);
@@ -27,19 +33,34 @@ async function load() {
   loading.value = true; error.value = '';
   try {
     const params = new URLSearchParams({ page: String(page.value), pageSize: String(pageSize), period: period.value });
-    if (scope.value.startsWith('org:')) params.set('organizationId', scope.value.slice(4));
-    else if (scope.value.startsWith('board:')) params.set('boardId', scope.value.slice(6));
+    if (scope.value.startsWith('org:')) {
+      const org = orgs.value.find((o) => o.slug === scope.value.slice(4));
+      if (org) params.set('organizationId', org.id);
+    } else if (scope.value.startsWith('board:')) {
+      const board = boards.value.find((b) => b.slug === scope.value.slice(6));
+      if (board) params.set('boardId', board.id);
+    }
     const result = await api.get(`/api/leaderboard?${params}`);
     rows.value = result.rows;
     total.value = result.total;
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 }
-function setScope(s) { scope.value = s; page.value = 1; load(); }
+function syncQuery() { router.replace({ query: { ...route.query, scope: scope.value, period: period.value } }); }
+function setScope(s) { scope.value = s; page.value = 1; syncQuery(); load(); }
 function setBoardScope(e) { setScope(e.target.value ? `board:${e.target.value}` : 'global'); }
-function setPeriod(p) { period.value = p; page.value = 1; load(); }
+function setPeriod(p) { period.value = p; page.value = 1; syncQuery(); load(); }
 function prevPage() { if (page.value > 1) { page.value--; load(); } }
 function nextPage() { if (page.value * pageSize < total.value) { page.value++; load(); } }
+
+// Browser back/forward (or a direct /leaderboard?scope=...&period=... link) changes the
+// query without going through setScope/setPeriod — keep local state in sync.
+watch(() => [route.query.scope, route.query.period], ([s, p]) => {
+  const nextScope = /^(org|board):[\w-]+$/.test(s) ? s : 'global';
+  const nextPeriod = p === '1m' ? '1m' : 'all';
+  if (nextScope === scope.value && nextPeriod === period.value) return;
+  scope.value = nextScope; period.value = nextPeriod; page.value = 1; load();
+});
 
 onMounted(async () => { await Promise.all([loadOrgs(), loadBoards()]); await load(); });
 
@@ -56,15 +77,15 @@ const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '
                 :class="scope === 'global' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           Global
         </button>
-        <button v-for="o in orgs" :key="o.id" @click="setScope(`org:${o.id}`)"
+        <button v-for="o in orgs" :key="o.id" @click="setScope(`org:${o.slug}`)"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
-                :class="scope === `org:${o.id}` ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+                :class="scope === `org:${o.slug}` ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ o.name }}
         </button>
         <select v-if="boards.length" :value="scope.startsWith('board:') ? scope.slice(6) : ''" @change="setBoardScope"
                 class="rounded-lg px-2 py-1.5 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 text-sm max-w-[10rem] sm:max-w-none">
           <option value="">This board…</option>
-          <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
+          <option v-for="b in boards" :key="b.id" :value="b.slug">{{ b.title }}</option>
         </select>
       </div>
       <div class="flex gap-1.5 text-sm sm:ml-auto">
