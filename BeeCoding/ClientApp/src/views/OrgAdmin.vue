@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import MiniLineChart from '../components/MiniLineChart.vue';
@@ -10,11 +11,14 @@ import SubmissionView from '../components/SubmissionView.vue';
 import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
+const route = useRoute();
+const router = useRouter();
 
 const orgs = ref(null);
 const orgId = ref(null);
 const tabDefs = [['dashboard', 'Dashboard'], ['members', 'Members'], ['boards', 'Boards'], ['submissions', 'Submissions'], ['ai', 'AI settings'], ['lti', 'LTI']];
-const tab = ref('dashboard');
+// Deep-linkable: /org-admin/members etc. — reload/share/bookmark lands on the same tab.
+const tab = ref(tabDefs.some((t) => t[0] === route.params.tab) ? route.params.tab : 'dashboard');
 const mobileTabsOpen = ref(false);
 const err = ref('');
 
@@ -72,7 +76,19 @@ function selectOrg(id) {
   loadTab(tab.value);
 }
 
-function switchTab(id) { mobileTabsOpen.value = false; tab.value = id; loadTab(id); }
+function switchTab(id) {
+  mobileTabsOpen.value = false;
+  if (id === tab.value) return;
+  tab.value = id;
+  router.replace(`/org-admin/${id}`);
+  loadTab(id);
+}
+// Browser back/forward (or a direct link to /org-admin/<tab>) changes route.params.tab
+// without going through switchTab — keep the active tab (and its data) in sync.
+watch(() => route.params.tab, (t) => {
+  const id = tabDefs.some(([k]) => k === t) ? t : 'dashboard';
+  if (id !== tab.value) { tab.value = id; loadTab(id); }
+});
 function loadTab(id) {
   if (!orgId.value) return;
   loadSummary();
@@ -238,6 +254,7 @@ function viewMemberSubmissions(m) {
   submissionUserLabel.value = m.displayName;
   mobileTabsOpen.value = false;
   tab.value = 'submissions';
+  router.replace('/org-admin/submissions');
   searchSubmissions();
 }
 
@@ -319,7 +336,10 @@ async function copyLtiValue(value) {
   catch { /* clipboard permission denied — not worth surfacing an error for */ }
 }
 
-onMounted(loadOrgs);
+onMounted(() => {
+  if (route.params.tab !== tab.value) router.replace(`/org-admin/${tab.value}`);
+  loadOrgs();
+});
 </script>
 
 <template>
