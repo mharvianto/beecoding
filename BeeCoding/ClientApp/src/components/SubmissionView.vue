@@ -3,6 +3,7 @@ import { ref, watch } from 'vue';
 import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
 import MonacoEditor from './MonacoEditor.vue';
+import SubmissionDiffView from './SubmissionDiffView.vue';
 
 const props = defineProps({
   submissionId: { type: Number, required: true },
@@ -16,9 +17,10 @@ const emit = defineEmits(['close']);
 const sub = ref(null);
 const error = ref('');
 const showFailedTest = ref(false);
+const comparingPrevious = ref(false);
 
 async function load() {
-  error.value = ''; sub.value = null; showFailedTest.value = false;
+  error.value = ''; sub.value = null; showFailedTest.value = false; comparingPrevious.value = false;
   try {
     sub.value = props.source === 'practice'
       ? await api.get(`/api/practice/submissions/${props.submissionId}`)
@@ -39,6 +41,9 @@ watch(() => props.submissionId, load, { immediate: true });
           <span v-if="sub?.status === 'Done'" class="text-xs text-slate-400 dark:text-slate-500">
             {{ sub.runtimeMs }}ms · {{ sub.memoryKb }}KB · {{ Math.round(sub.score * 100) }}%
           </span>
+          <button v-if="sub?.previousSubmissionId" @click="comparingPrevious = true" class="row-action-btn shrink-0">
+            <span>⇄</span><span>Compare with previous</span>
+          </button>
         </div>
         <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
       </div>
@@ -61,5 +66,8 @@ watch(() => props.submissionId, load, { immediate: true });
         </div>
       </template>
     </div>
+
+    <SubmissionDiffView v-if="comparingPrevious" :submission-a-id="sub.previousSubmissionId" :submission-b-id="sub.id"
+                        label-a="Previous attempt" label-b="This attempt" @close="comparingPrevious = false" />
   </div>
 </template>

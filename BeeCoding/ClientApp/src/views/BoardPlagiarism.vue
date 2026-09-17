@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionView from '../components/SubmissionView.vue';
-import PlagiarismDiffView from '../components/PlagiarismDiffView.vue';
+import SubmissionDiffView from '../components/SubmissionDiffView.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const router = useRouter();
@@ -37,7 +37,7 @@ onMounted(async () => {
 
     <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :author-name="viewSubmission.authorName"
                     @close="viewSubmission = null" />
-    <PlagiarismDiffView v-if="compareData" :submission-a-id="compareData.submissionAId" :submission-b-id="compareData.submissionBId"
-                         :user-a-name="compareData.userAName" :user-b-name="compareData.userBName" @close="compareData = null" />
+    <SubmissionDiffView v-if="compareData" :submission-a-id="compareData.submissionAId" :submission-b-id="compareData.submissionBId"
+                         :label-a="compareData.userAName" :label-b="compareData.userBName" @close="compareData = null" />
   </div>
 </template>

@@ -9,7 +9,7 @@ import TableViewToggle from '../components/TableViewToggle.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
-import PlagiarismDiffView from '../components/PlagiarismDiffView.vue';
+import SubmissionDiffView from '../components/SubmissionDiffView.vue';
 import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
@@ -772,9 +772,9 @@ onMounted(() => { loadOrgs(); });
                          @compare="plagiarismCompareData = $event" />
         <SubmissionView v-if="plagiarismViewSubmission" :submission-id="plagiarismViewSubmission.id"
                         :author-name="plagiarismViewSubmission.authorName" @close="plagiarismViewSubmission = null" />
-        <PlagiarismDiffView v-if="plagiarismCompareData" :submission-a-id="plagiarismCompareData.submissionAId"
-                             :submission-b-id="plagiarismCompareData.submissionBId" :user-a-name="plagiarismCompareData.userAName"
-                             :user-b-name="plagiarismCompareData.userBName" @close="plagiarismCompareData = null" />
+        <SubmissionDiffView v-if="plagiarismCompareData" :submission-a-id="plagiarismCompareData.submissionAId"
+                             :submission-b-id="plagiarismCompareData.submissionBId" :label-a="plagiarismCompareData.userAName"
+                             :label-b="plagiarismCompareData.userBName" @close="plagiarismCompareData = null" />
       </section>
 
       <!-- AI settings -->

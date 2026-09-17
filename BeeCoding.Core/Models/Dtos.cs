@@ -276,7 +276,8 @@ public record SubmissionDto(
     bool HiddenByStudent, bool Mine, string? Code, string CompilerOutput,
     DateTime CreatedAt, DateTime? JudgedAt, string Language,
     string? FailedTest = null,   // staff-only — see Mapping.ToDto
-    int XpAwarded = 0);
+    int XpAwarded = 0,
+    int? PreviousSubmissionId = null);   // this author's previous attempt at the same problem, if any
 
 // ---- Live board / progress grid ----
 public record ProgressCellDto(

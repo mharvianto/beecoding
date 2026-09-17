@@ -115,6 +115,16 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             .FirstOrDefaultAsync(x => x.Id == id);
         if (s is null) return NotFound();
 
+        // This author's own previous attempt at the same problem, if any — lets the viewer
+        // diff "what changed since last time" (see PreviousSubmissionId on SubmissionDto).
+        // Exposing the id alone isn't sensitive: fetching it still re-runs this same
+        // authorization check against that submission's own visibility.
+        var previousId = await _db.Submissions
+            .Where(x => x.UserId == s.UserId && x.ProblemId == s.ProblemId && x.Id < s.Id)
+            .OrderByDescending(x => x.Id)
+            .Select(x => (int?)x.Id)
+            .FirstOrDefaultAsync();
+
         // The problem (or its board) may since have been soft-deleted — nothing left to
         // check staff-ness against then, but the author can still see their own basics.
         Board? board = null;
@@ -133,7 +143,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         }
 
         if (s.UserId == UserId)
-            return Mapping.ToDto(s, UserId, canSeeCode: true, s.User!.DisplayName, isStaff: staff);
+            return Mapping.ToDto(s, UserId, canSeeCode: true, s.User!.DisplayName, isStaff: staff, previousSubmissionId: previousId);
 
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
@@ -142,7 +152,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
         if (author is null || !_vis.CanSeePeerRow(UserId, staff, board, author)) return Forbid();
         bool full = _vis.CanSeePeerSubmission(UserId, staff, board, author, s);
-        return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff);
+        return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff, previousSubmissionId: previousId);
     }
 
     /// <summary>Feature 4: a student hides/unhides their own submission from other students.</summary>
