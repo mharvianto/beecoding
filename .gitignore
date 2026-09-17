@@ -6,6 +6,7 @@ BeeCoding/beecoding.db
 BeeCoding/beecoding.db-*
 BeeCoding/ClientApp/node_modules/
 BeeCoding/ClientApp/dist/
+/beecoding.db
 /tmp/
 
 # core dumps

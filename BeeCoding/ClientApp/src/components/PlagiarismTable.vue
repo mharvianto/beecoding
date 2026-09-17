@@ -3,7 +3,7 @@ const props = defineProps({
   pairs: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
 });
-const emit = defineEmits(['view']);
+const emit = defineEmits(['view', 'compare']);
 
 function tier(score) {
   if (score >= 0.85) return 'text-rose-600 dark:text-rose-400 font-semibold';
@@ -31,6 +31,9 @@ function tier(score) {
         <span class="text-slate-300 dark:text-slate-600">↔</span>
         <button class="font-medium hover:underline" @click="emit('view', { id: p.submissionBId, authorName: p.userBName })">
           {{ p.userBName }}
+        </button>
+        <button class="row-action-btn ml-auto" @click="emit('compare', p)">
+          <span>⇄</span><span>Compare</span>
         </button>
       </div>
     </div>

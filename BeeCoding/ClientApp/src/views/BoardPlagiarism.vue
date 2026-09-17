@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionView from '../components/SubmissionView.vue';
+import PlagiarismDiffView from '../components/PlagiarismDiffView.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const router = useRouter();
@@ -13,6 +14,7 @@ const pairs = ref([]);
 const loading = ref(false);
 const error = ref('');
 const viewSubmission = ref(null);
+const compareData = ref(null);
 
 onMounted(async () => {
   try {
@@ -31,9 +33,11 @@ onMounted(async () => {
     <h1 class="text-xl font-bold mt-2 mb-4">Plagiarism check</h1>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
-    <PlagiarismTable :pairs="pairs" :loading="loading" @view="viewSubmission = $event" />
+    <PlagiarismTable :pairs="pairs" :loading="loading" @view="viewSubmission = $event" @compare="compareData = $event" />
 
     <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :author-name="viewSubmission.authorName"
                     @close="viewSubmission = null" />
+    <PlagiarismDiffView v-if="compareData" :submission-a-id="compareData.submissionAId" :submission-b-id="compareData.submissionBId"
+                         :user-a-name="compareData.userAName" :user-b-name="compareData.userBName" @close="compareData = null" />
   </div>
 </template>
