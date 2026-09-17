@@ -68,6 +68,16 @@ function startSubmitCooldown(seconds) {
     if (submitCooldown.value <= 0) { submitCooldown.value = 0; clearInterval(submitCooldownTimer); }
   }, 1000);
 }
+const runCooldown = ref(0);   // seconds left before another run is allowed
+let runCooldownTimer = null;
+function startRunCooldown(seconds) {
+  runCooldown.value = Math.ceil(seconds);
+  clearInterval(runCooldownTimer);
+  runCooldownTimer = setInterval(() => {
+    runCooldown.value -= 1;
+    if (runCooldown.value <= 0) { runCooldown.value = 0; clearInterval(runCooldownTimer); }
+  }, 1000);
+}
 const submittingId = ref(null);
 const testProgress = ref(null);   // { current, total } | null
 const submissions = ref([]);
@@ -131,9 +141,11 @@ async function loadSubs() {
 }
 
 async function run() {
+  if (runCooldown.value > 0) return;
   error.value = ''; running.value = true; runOut.value = null;
   try {
     runOut.value = await api.post('/api/run', { language: solveLang.value, code: code.value, stdin: stdin.value, bankProblemId: pid.value });
+    startRunCooldown(5);
   } catch (e) { error.value = e.message; }
   finally { running.value = false; }
 }
@@ -174,6 +186,7 @@ onMounted(async () => {
 onBeforeUnmount(async () => {
   clearTimeout(saveTimer);
   clearInterval(submitCooldownTimer);
+  clearInterval(runCooldownTimer);
   saveDraftNow();
   window.removeEventListener('beforeunload', saveDraftNow);
   try { await conn?.stop(); } catch {}
@@ -256,9 +269,9 @@ onBeforeUnmount(async () => {
       <template #b>
       <div class="h-full overflow-y-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-2">
         <div class="flex gap-2 items-center">
-          <button @click="run" :disabled="running"
+          <button @click="run" :disabled="running || runCooldown > 0"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ running ? 'Running…' : 'Run' }}
+            {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
           </button>
           <button @click="submit" :disabled="submitting || submitCooldown > 0"
                   class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">

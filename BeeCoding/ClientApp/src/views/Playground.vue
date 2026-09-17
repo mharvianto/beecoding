@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
@@ -17,6 +17,16 @@ const stdin = ref('');
 const running = ref(false);
 const runOut = ref(null);
 const error = ref('');
+const runCooldown = ref(0);   // seconds left before another run is allowed
+let runCooldownTimer = null;
+function startRunCooldown(seconds) {
+  runCooldown.value = Math.ceil(seconds);
+  clearInterval(runCooldownTimer);
+  runCooldownTimer = setInterval(() => {
+    runCooldown.value -= 1;
+    if (runCooldown.value <= 0) { runCooldown.value = 0; clearInterval(runCooldownTimer); }
+  }, 1000);
+}
 
 function loadCode(l) {
   try {
@@ -35,9 +45,11 @@ function resetTemplate() {
 }
 
 async function run() {
+  if (runCooldown.value > 0) return;
   error.value = ''; running.value = true; runOut.value = null;
   try {
     runOut.value = await api.post('/api/run', { language: lang.value, code: code.value, stdin: stdin.value });
+    startRunCooldown(5);
   } catch (e) { error.value = e.message; }
   finally { running.value = false; }
 }
@@ -64,6 +76,7 @@ onMounted(() => {
   } catch { /* ignore */ }
   loadCode(lang.value);
 });
+onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
 </script>
 
 <template>
@@ -95,9 +108,9 @@ onMounted(() => {
         <template #b>
           <div class="h-full overflow-y-auto bg-white dark:bg-slate-900 p-3 space-y-2">
             <div class="flex gap-2 items-center">
-              <button @click="run" :disabled="running"
+              <button @click="run" :disabled="running || runCooldown > 0"
                       class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-                {{ running ? 'Running…' : 'Run' }}
+                {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
               </button>
             </div>
             <div class="grid grid-cols-2 gap-2">
