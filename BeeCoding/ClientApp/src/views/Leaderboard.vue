@@ -91,11 +91,24 @@ onMounted(async () => {
 });
 
 const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '');
+const showHowItWorks = ref(false);
 </script>
 
 <template>
   <div class="max-w-6xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-bold mb-4">Leaderboard</h1>
+    <div class="flex items-center gap-2 mb-4">
+      <h1 class="text-xl font-bold">Leaderboard</h1>
+      <button @click="showHowItWorks = !showHowItWorks"
+              class="text-xs text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 underline decoration-dotted">
+        How is ranking calculated?
+      </button>
+    </div>
+    <div v-if="showHowItWorks" class="text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 space-y-1">
+      <p>Ranked by total XP earned in the selected scope and period, highest first.</p>
+      <p>XP comes from your <em>first</em> Accepted solve of each problem: Easy = 10 XP, Medium = 20 XP, Hard = 40 XP. Solving it again, or an unsuccessful attempt, earns no extra XP.</p>
+      <p>Equal XP shares the same rank (e.g. two people tied for #2 are both "#2"; the next distinct XP total is "#4", not "#3").</p>
+      <p>On "All time", the ▲/▼ next to your rank shows the change since yesterday — not shown on "1 month" since a rolling window isn't comparable day to day.</p>
+    </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
       <div class="flex flex-wrap gap-1.5 text-sm">
