@@ -138,4 +138,65 @@ public class ProgressService(AppDbContext db)
             s => s.UserId == userId && s.LocalDay == localDay && s.Verdict == Verdict.Accepted && s.Score >= 1.0, ct);
         return board + practice;
     }
+
+    /// <summary>
+    /// Rebuilds CurrentStreak/StreakLocalDay/LongestStreak/MaxSolvedInADay for one user from
+    /// the raw submission history, in case they ever drift from the incrementally-maintained
+    /// values (e.g. a bug in an earlier version of UpdateStreakAsync/UpdateMaxSolvedInADayAsync,
+    /// or data imported/edited outside the normal grading path). Streak days are practice-only
+    /// (see UpdateStreakAsync); MaxSolvedInADay is board+practice combined (see
+    /// CountSolvedOnLocalDayAsync). Submissions with no LocalDay (pre-dating that field, if any)
+    /// can't be attributed to a calendar day and are excluded. Returns false if the user
+    /// doesn't exist.
+    /// </summary>
+    public async Task<bool> RecalculateOneAsync(int userId, CancellationToken ct = default)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
+        if (user is null) return false;
+
+        var streakDays = await _db.BankSubmissions
+            .Where(s => s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0 && s.LocalDay != null)
+            .Select(s => s.LocalDay!.Value)
+            .Distinct()
+            .OrderBy(d => d)
+            .ToListAsync(ct);
+
+        int longestStreak = 0, currentStreak = 0;
+        DateOnly? prevDay = null, streakLocalDay = null;
+        foreach (var day in streakDays)
+        {
+            currentStreak = prevDay is DateOnly p && p.AddDays(1) == day ? currentStreak + 1 : 1;
+            if (currentStreak > longestStreak) longestStreak = currentStreak;
+            prevDay = day;
+            streakLocalDay = day;
+        }
+
+        var boardCounts = await _db.Submissions
+            .Where(s => s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0 && s.LocalDay != null)
+            .GroupBy(s => s.LocalDay!.Value).Select(g => new { Day = g.Key, Count = g.Count() }).ToListAsync(ct);
+        var practiceCounts = await _db.BankSubmissions
+            .Where(s => s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0 && s.LocalDay != null)
+            .GroupBy(s => s.LocalDay!.Value).Select(g => new { Day = g.Key, Count = g.Count() }).ToListAsync(ct);
+        int maxSolvedInADay = boardCounts.Concat(practiceCounts)
+            .GroupBy(x => x.Day).Select(g => g.Sum(x => x.Count))
+            .DefaultIfEmpty(0).Max();
+
+        user.CurrentStreak = currentStreak;
+        user.StreakLocalDay = streakLocalDay;
+        user.LongestStreak = longestStreak;
+        user.MaxSolvedInADay = maxSolvedInADay;
+        await _db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    /// <summary>Recalculates every user; returns how many were updated (i.e. every non-deleted
+    /// user, since a user with no solves still gets its counters reset to zero).</summary>
+    public async Task<int> RecalculateAllAsync(CancellationToken ct = default)
+    {
+        var userIds = await _db.Users.Select(u => u.Id).ToListAsync(ct);
+        int updated = 0;
+        foreach (var id in userIds)
+            if (await RecalculateOneAsync(id, ct)) updated++;
+        return updated;
+    }
 }

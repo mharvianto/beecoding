@@ -29,11 +29,12 @@ public class AdminUiController(
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
-    PlagiarismService plagiarism)
+    PlagiarismService plagiarism, ProgressService progress)
     : ApiControllerBase
 {
     private readonly SysstatService _sysstat = sysstat;
     private readonly PlagiarismService _plagiarism = plagiarism;
+    private readonly ProgressService _progress = progress;
     private readonly AppDbContext _db = db;
     private readonly AdminAccess _admin = admin;
     private readonly AuditLog _audit = audit;
@@ -226,6 +227,24 @@ public class AdminUiController(
             deleted++;
         }
         return new AdminBulkDeleteUsersResult(deleted, errors);
+    }
+
+    /// <summary>Rebuilds CurrentStreak/LongestStreak/MaxSolvedInADay from raw submission
+    /// history — for one user (?userId=) or everyone. See ProgressService.RecalculateOneAsync
+    /// for why these can drift from the incrementally-maintained values.</summary>
+    [HttpPost("users/recalculate-progress")]
+    public async Task<ActionResult<object>> RecalculateProgress([FromQuery] int? userId)
+    {
+        if (userId is int id)
+        {
+            if (!await _progress.RecalculateOneAsync(id))
+                return NotFound();
+            await _audit.RecordAsync(UserId, ActorEmail, "recalculate-progress", "User", id, "1 user");
+            return new { updated = 1 };
+        }
+        int updated = await _progress.RecalculateAllAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "recalculate-progress", "User", 0, $"{updated} users (all)");
+        return new { updated };
     }
 
     [HttpPost("users/{id:int}/restore")]

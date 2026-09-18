@@ -314,6 +314,23 @@ async function deleteSelectedUsers() {
   } catch (e) { err.value = e.message; }
 }
 
+// ---- recalculate streak/best-day from raw submission history ----
+const recalcBusy = ref(false);
+const recalcResultMsg = ref('');
+async function recalculateProgress() {
+  if (!(await confirmDialog.ask(
+    "Recalculate every user's streak, longest streak and best-day-solved from their raw submission history? This overwrites the current values.",
+    { confirmLabel: 'Recalculate' }
+  ))) return;
+  err.value = ''; recalcResultMsg.value = ''; recalcBusy.value = true;
+  try {
+    const result = await api.post('/api/admin-ui/users/recalculate-progress');
+    await loadUsers();
+    recalcResultMsg.value = `Recalculated ${result.updated} user(s).`;
+  } catch (e) { err.value = e.message; }
+  finally { recalcBusy.value = false; }
+}
+
 async function changeRole(u, role) {
   if (role === u.role) return;
   err.value = '';
@@ -1050,6 +1067,11 @@ onMounted(async () => {
         <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
                class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchUsers" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+        <button @click="recalculateProgress" :disabled="recalcBusy"
+                class="row-action-btn row-action-btn--accent shrink-0 disabled:opacity-50"
+                title="Rebuild everyone's streak / longest streak / best-day-solved from raw submission history">
+          {{ recalcBusy ? 'Recalculating…' : '↻ Recalculate progress' }}
+        </button>
       </div>
       <div v-if="selectedUsers.size" class="flex items-center gap-2 mb-2 text-sm">
         <span>{{ selectedUsers.size }} selected</span>
@@ -1058,6 +1080,7 @@ onMounted(async () => {
         </button>
       </div>
       <p v-if="userDeleteResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ userDeleteResultMsg }}</p>
+      <p v-if="recalcResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ recalcResultMsg }}</p>
 
       <!-- mobile: cards -->
       <div v-if="tableView === 'card'" class="space-y-2">
