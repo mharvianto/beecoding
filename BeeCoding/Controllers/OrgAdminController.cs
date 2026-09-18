@@ -196,7 +196,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
-                    s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title, "Board"))
+                    s.Problem!.Title, s.Problem.Board!.Slug, s.Problem.Board.Title, "Board", s.Problem.Slug))
                 .ToListAsync());
         }
 
@@ -214,7 +214,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
-                    s.BankProblem!.Title, null, null, "Practice"))
+                    s.BankProblem!.Title, null, null, "Practice", s.BankProblem.Slug))
                 .ToListAsync());
         }
 

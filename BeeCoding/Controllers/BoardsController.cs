@@ -289,7 +289,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
             .Skip((page - 1) * pageSize).Take(pageSize)
             .Select(s => new AdminSubmissionRow(
                 s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
-                s.UserId, s.User!.Email, s.User.DisplayName, s.Problem!.Title, board.Slug, board.Title, "Board"))
+                s.UserId, s.User!.Email, s.User.DisplayName, s.Problem!.Title, board.Slug, board.Title, "Board", s.Problem.Slug))
             .ToListAsync();
 
         return new AdminPageDto<AdminSubmissionRow>(rows, total, page, pageSize);

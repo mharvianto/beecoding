@@ -96,7 +96,11 @@ onMounted(async () => {
               class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
             <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
             <td>{{ s.userDisplayName }}</td>
-            <td>{{ s.problemTitle }}</td>
+            <td>
+              <RouterLink v-if="s.problemSlug" :to="`/boards/${props.slug}/problems/${s.problemSlug}`" @click.stop
+                          class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
+              <template v-else>{{ s.problemTitle }}</template>
+            </td>
             <td><VerdictBadge :verdict="s.verdict" small /></td>
             <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
             <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>

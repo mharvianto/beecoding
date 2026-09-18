@@ -540,6 +540,10 @@ function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
 function submissionsPrevPage() { if (submissionsPage.value > 1) { submissionsPage.value--; loadSubmissions(); } }
 function submissionsNextPage() { if (submissionsPage.value * submissionsPageSize.value < submissionsTotal.value) { submissionsPage.value++; loadSubmissions(); } }
 function openSubmission(s) { viewSubmission.value = { id: s.id, source: s.source.toLowerCase(), authorName: s.userDisplayName }; }
+function problemLink(s) {
+  if (!s.problemSlug) return null;
+  return s.source === 'Board' ? `/boards/${s.boardSlug}/problems/${s.problemSlug}` : `/practice/${s.problemSlug}`;
+}
 
 // ---- audit log ----
 const auditRows = ref(null);
@@ -1361,7 +1365,11 @@ onMounted(async () => {
             <VerdictBadge :verdict="s.verdict" small />
             <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</span>
           </div>
-          <div class="text-sm font-medium">{{ s.problemTitle }}</div>
+          <div class="text-sm font-medium">
+            <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
+                        class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
+            <template v-else>{{ s.problemTitle }}</template>
+          </div>
           <div class="text-[11px] text-slate-400 mt-0.5">
             {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
           </div>
@@ -1385,7 +1393,11 @@ onMounted(async () => {
                 class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</td>
               <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
-              <td>{{ s.problemTitle }}</td>
+              <td>
+                <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
+                            class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
+                <template v-else>{{ s.problemTitle }}</template>
+              </td>
               <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : 'Practice' }}</td>
               <td><VerdictBadge :verdict="s.verdict" small /></td>
               <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>

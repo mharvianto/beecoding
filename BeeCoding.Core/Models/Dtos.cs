@@ -143,7 +143,10 @@ public record AdminSubmissionRow(int Id, DateTime CreatedAt, string Verdict, dou
     int RuntimeMs, int MemoryKb, string? Language,
     int UserId, string UserEmail, string UserDisplayName,
     string ProblemTitle, string? BoardSlug, string? BoardTitle,
-    string Source = "Board");   // "Board" | "Practice" — Practice has no BoardSlug/BoardTitle
+    string Source = "Board",   // "Board" | "Practice" — Practice has no BoardSlug/BoardTitle
+    // Problem.Slug (Board) or BankProblem.Slug (Practice) — links the row to its solve page:
+    // /boards/{BoardSlug}/problems/{ProblemSlug} or /practice/{ProblemSlug}.
+    string? ProblemSlug = null);
 
 /// <summary>One flagged pair from PlagiarismService — a heuristic similarity signal, not
 /// proof of copying (see its class doc for the caveats).</summary>
