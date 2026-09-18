@@ -168,11 +168,15 @@ async function loadSubs() {
   // Celebrate a genuine first-time solve as soon as we see it — whether that's via a live
   // push or discovered here on reload/reopen after grading finished while unwatched (e.g.
   // the tab was closed mid-grading). xpAwarded is only >0 the one time a problem is newly
-  // solved; the localStorage marker stops a later revisit from re-celebrating it.
+  // solved; the localStorage marker stops a later revisit from re-celebrating it on this
+  // device — but the marker doesn't exist yet on a device that's never opened this problem,
+  // so we also require the grading to be recent: otherwise opening an already-solved problem
+  // from a second device would replay the celebration for a solve that happened long ago.
   const mineLatest = submissions.value.find((s) => s.mine);
+  const judgedRecently = mineLatest?.judgedAt && (Date.now() - new Date(mineLatest.judgedAt + (mineLatest.judgedAt.endsWith('Z') ? '' : 'Z')).getTime()) < 60_000;
   if (mineLatest?.status === 'Done' && mineLatest.verdict === 'Accepted') {
     markDraftAccepted(auth.user?.id, draftScope.value);
-    if (mineLatest.xpAwarded > 0 && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
+    if (mineLatest.xpAwarded > 0 && judgedRecently && !alreadyCelebrated(auth.user?.id, draftScope.value, mineLatest.id)) {
       await progress.refresh();
       celebrate({ waves: Math.min(8, progress.solvedToday + 2) });
       celebrationToast.show({
