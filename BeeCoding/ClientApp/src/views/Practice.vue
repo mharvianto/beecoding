@@ -11,14 +11,26 @@ const route = useRoute();
 const router = useRouter();
 const progress = useProgress();
 const items = ref([]);
-// Search text and page live in the URL query (?q=...&page=...) so a search is
-// bookmarkable/shareable and survives a refresh or the back button; level/status stay
-// local-only (less commonly worth sharing, keeps the URL shorter).
+// Search text, level, status, sort and page all live in the URL query so a search is
+// bookmarkable/shareable and survives a refresh or the back button.
 const q = ref(route.query.q ? String(route.query.q) : '');
-const level = ref('');
-const status = ref('');
-const sort = ref('');
+const level = ref(route.query.level ? String(route.query.level) : '');
+const status = ref(route.query.status ? String(route.query.status) : '');
+const sort = ref(route.query.sort ? String(route.query.sort) : '');
 const error = ref('');
+
+const LAST_QUERY_KEY = 'beecoding.practice.lastQuery';
+function loadLastQuery() {
+  try { return JSON.parse(localStorage.getItem(LAST_QUERY_KEY) || 'null'); }
+  catch { return null; }
+}
+function saveLastQuery() {
+  try {
+    localStorage.setItem(LAST_QUERY_KEY, JSON.stringify({
+      q: q.value.trim(), level: level.value, status: status.value, sort: sort.value, page: page.value,
+    }));
+  } catch { /* quota exceeded / private mode — nothing we can do */ }
+}
 
 const page = ref(route.query.page ? Math.max(1, Number(route.query.page) || 1) : 1);
 const pageSize = ref(25);
@@ -78,8 +90,12 @@ async function load() {
 function syncUrl() {
   const query = {};
   if (q.value.trim()) query.q = q.value.trim();
+  if (level.value) query.level = level.value;
+  if (status.value) query.status = status.value;
+  if (sort.value) query.sort = sort.value;
   if (page.value > 1) query.page = String(page.value);
   router.replace({ query });
+  saveLastQuery();
 }
 
 // filter change -> back to first page
@@ -93,14 +109,36 @@ function go(n) {
 // the equality check also stops this from re-firing right after our own syncUrl() call.
 watch(() => route.query, (query) => {
   const newQ = query.q ? String(query.q) : '';
+  const newLevel = query.level ? String(query.level) : '';
+  const newStatus = query.status ? String(query.status) : '';
+  const newSort = query.sort ? String(query.sort) : '';
   const newPage = query.page ? Math.max(1, Number(query.page) || 1) : 1;
-  if (newQ === q.value && newPage === page.value) return;
+  if (newQ === q.value && newLevel === level.value && newStatus === status.value
+      && newSort === sort.value && newPage === page.value) return;
   q.value = newQ;
+  level.value = newLevel;
+  status.value = newStatus;
+  sort.value = newSort;
   page.value = newPage;
   load();
 });
 
-onMounted(() => { load(); loadGuide(); progress.refresh(); });
+onMounted(() => {
+  // A bare /practice open (no query at all) restores the last filters/sort/page used —
+  // a shared/bookmarked link with its own query always wins and is left untouched.
+  if (!Object.keys(route.query).length) {
+    const saved = loadLastQuery();
+    if (saved) {
+      q.value = saved.q || '';
+      level.value = saved.level || '';
+      status.value = saved.status || '';
+      sort.value = saved.sort || '';
+      page.value = saved.page || 1;
+      syncUrl();
+    }
+  }
+  load(); loadGuide(); progress.refresh();
+});
 </script>
 
 <template>

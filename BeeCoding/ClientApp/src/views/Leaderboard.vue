@@ -22,6 +22,16 @@ const total = ref(0);
 
 const periods = [['all', 'All time'], ['1m', '1 month']];
 
+const LAST_QUERY_KEY = 'beecoding.leaderboard.lastQuery';
+function loadLastQuery() {
+  try { return JSON.parse(localStorage.getItem(LAST_QUERY_KEY) || 'null'); }
+  catch { return null; }
+}
+function saveLastQuery() {
+  try { localStorage.setItem(LAST_QUERY_KEY, JSON.stringify({ scope: scope.value, period: period.value })); }
+  catch { /* quota exceeded / private mode — nothing we can do */ }
+}
+
 async function loadOrgs() {
   try { orgs.value = await api.get('/api/me/organizations'); } catch { /* not fatal — just no org tab */ }
 }
@@ -46,7 +56,10 @@ async function load() {
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 }
-function syncQuery() { router.replace({ query: { ...route.query, scope: scope.value, period: period.value } }); }
+function syncQuery() {
+  router.replace({ query: { ...route.query, scope: scope.value, period: period.value } });
+  saveLastQuery();
+}
 function setScope(s) { scope.value = s; page.value = 1; syncQuery(); load(); }
 function setBoardScope(e) { setScope(e.target.value ? `board:${e.target.value}` : 'global'); }
 function setPeriod(p) { period.value = p; page.value = 1; syncQuery(); load(); }
@@ -62,7 +75,20 @@ watch(() => [route.query.scope, route.query.period], ([s, p]) => {
   scope.value = nextScope; period.value = nextPeriod; page.value = 1; load();
 });
 
-onMounted(async () => { await Promise.all([loadOrgs(), loadBoards()]); await load(); });
+onMounted(async () => {
+  // A bare /leaderboard open (no query at all) restores the last scope/period used — a
+  // shared/bookmarked link with its own query always wins and is left untouched.
+  if (!route.query.scope && !route.query.period) {
+    const saved = loadLastQuery();
+    if (saved) {
+      scope.value = /^(org|board):[\w-]+$/.test(saved.scope) ? saved.scope : 'global';
+      period.value = saved.period === '1m' ? '1m' : 'all';
+      router.replace({ query: { ...route.query, scope: scope.value, period: period.value } });
+    }
+  }
+  await Promise.all([loadOrgs(), loadBoards()]);
+  await load();
+});
 
 const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '');
 </script>
