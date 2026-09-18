@@ -107,7 +107,7 @@ const showHowItWorks = ref(false);
       <p>Ranked by total XP earned in the selected scope and period, highest first.</p>
       <p>XP comes from your <em>first</em> Accepted solve of each problem: Easy = 10 XP, Medium = 20 XP, Hard = 40 XP. Solving it again, or an unsuccessful attempt, earns no extra XP.</p>
       <p>Equal XP shares the same rank (e.g. two people tied for #2 are both "#2"; the next distinct XP total is "#4", not "#3").</p>
-      <p>On "All time", the ▲/▼ next to your rank shows the change since yesterday — not shown on "1 month" since a rolling window isn't comparable day to day.</p>
+      <p>On "All time", the ▲/▼ next to your rank and the "+N" under your XP total both show the change since yesterday — neither is shown on "1 month" since a rolling window isn't comparable day to day.</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
@@ -161,7 +161,12 @@ const showHowItWorks = ref(false);
             {{ r.solvedCount }} solved · Lv {{ r.level }}
           </div>
         </div>
-        <span class="text-sm font-semibold text-amber-600 dark:text-amber-400 shrink-0">{{ r.xp }} XP</span>
+        <div class="text-right shrink-0">
+          <span class="text-sm font-semibold text-amber-600 dark:text-amber-400">{{ r.xp }} XP</span>
+          <div v-if="r.xpDelta" class="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums" title="XP gained since yesterday">
+            +{{ r.xpDelta }}
+          </div>
+        </div>
       </div>
       <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">
         No XP earned{{ period === 'all' ? ' yet' : ' in this period' }}.

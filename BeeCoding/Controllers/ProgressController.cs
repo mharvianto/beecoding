@@ -11,7 +11,7 @@ namespace BeeCoding.Controllers;
 // RankDelta: yesterday's rank minus today's rank in the SAME scope, "all time" period only
 // (see ProgressController.GetYesterdayRanksAsync) — positive = moved up, negative = moved
 // down, null = not computed (a windowed period) or the user has no solves before today.
-public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null, int SolvedCount = 0);
+public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null, int SolvedCount = 0, int? XpDelta = null);
 public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
 public record MyOrgDto(int Id, string Name, string Slug);
 public record MyBoardDto(int Id, string Slug, string Title);
@@ -221,9 +221,12 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         var rows = pageSlice.Select(x =>
         {
             int rank = rankByUser[x.UserId];
-            int? delta = yesterday is not null && yesterday.TryGetValue(x.UserId, out var y) ? y - rank : null;
+            int? delta = yesterday is not null && yesterday.TryGetValue(x.UserId, out var y) ? y.Rank - rank : null;
+            int? xpDelta = yesterday is not null
+                ? x.Xp - (yesterday.TryGetValue(x.UserId, out var y2) ? y2.Xp : 0)
+                : null;
             return new LeaderRowDto(rank, x.UserId, users2[x.UserId].DisplayName, users2[x.UserId].Role.ToString(), x.Xp,
-                ProgressService.LevelForXp(x.Xp), x.UserId == UserId, delta, x.Solved);
+                ProgressService.LevelForXp(x.Xp), x.UserId == UserId, delta, x.Solved, xpDelta);
         }).ToList();
         return new LeaderboardPageDto(rows, total, page, pageSize);
     }
@@ -235,11 +238,13 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
     /// no separate snapshot table is needed; cached in memory per scope until the next UTC
     /// midnight, since re-ranking everyone on every leaderboard request would be wasteful
     /// when "yesterday" only changes once a day.</summary>
-    private async Task<Dictionary<int, int>> GetYesterdayRanksAsync(int? organizationId, int? boardId)
+    /// <summary>Each user's (Rank, Xp) as of the start of today UTC — the Xp side powers
+    /// LeaderRowDto.XpDelta (today's Xp minus this), the Rank side powers RankDelta.</summary>
+    private async Task<Dictionary<int, (int Rank, int Xp)>> GetYesterdayRanksAsync(int? organizationId, int? boardId)
     {
         var cutoff = DateTime.UtcNow.Date;
         var cacheKey = $"leaderboard:yesterday:org={organizationId}:board={boardId}:asof={cutoff:yyyy-MM-dd}";
-        if (_cache.TryGetValue(cacheKey, out Dictionary<int, int>? cached) && cached is not null)
+        if (_cache.TryGetValue(cacheKey, out Dictionary<int, (int Rank, int Xp)>? cached) && cached is not null)
             return cached;
 
         var records = _db.SolveRecords.Where(r => r.CreatedAt < cutoff);
@@ -259,13 +264,13 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
             .OrderByDescending(x => x.Xp).ThenBy(x => x.UserId)
             .ToListAsync();
 
-        var map = new Dictionary<int, int>(grouped.Count);
+        var map = new Dictionary<int, (int Rank, int Xp)>(grouped.Count);
         int prevXp = int.MinValue, prevRank = 0, idx = 0;
         foreach (var g in grouped)
         {
             idx++;
             if (g.Xp != prevXp) { prevRank = idx; prevXp = g.Xp; }
-            map[g.UserId] = prevRank;
+            map[g.UserId] = (prevRank, g.Xp);
         }
 
         _cache.Set(cacheKey, map, new DateTimeOffset(cutoff.AddDays(1)));
