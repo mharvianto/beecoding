@@ -750,11 +750,17 @@ paling bawah** sekarang — bisa di-override tanpa restart lewat tab **AI** di `
 - Di nginx, batasi body untuk route judge: `location /api/run { client_max_body_size 1m; proxy_pass http://beecoding; ... }` — biarkan `100m` hanya untuk `/api/admin/`.
 - Header keamanan (CSP, `X-Frame-Options`, `X-Content-Type-Options`, HSTS saat HTTPS) sudah dikirim aplikasi otomatis.
 - Statement soal disanitasi (DOMPurify) sebelum dirender — aman dari HTML/script sisipan.
-- Login sudah di-throttle otomatis (8 gagal / 15 menit per akun, 25 per IP → `429`). Untuk membendung spam pendaftaran, tambahkan `limit_req` nginx pada `/api/auth/`:
+- Login sudah di-throttle otomatis di level aplikasi (8 gagal / 15 menit per akun, 25 per IP → `429`) — `limit_req` nginx tambahan di sini sifatnya opsional, cuma menahan volume kasar sebelum sampai ke app.
+- **Registrasi jangan disamakan ketatnya dengan login.** Satu kelas yang disuruh "buka link, daftar sekarang" di WiFi sekolah yang sama akan terlihat sebagai puluhan request dari **satu IP publik** dalam hitungan detik — bukan pola serangan, tapi pemakaian normal. `rate=10r/m` + `burst=20` akan menolak siswa ke-21 dst. dengan `429` tanpa retry otomatis dari browser, terlihat seperti situs error. Kalau mau `limit_req` untuk `/api/auth/`, pisahkan zona per route dan longgarkan khusus register — cukup untuk menampung satu kelas penuh (~40-50 siswa) mendaftar serentak, sambil tetap menahan spam yang sifatnya berkelanjutan:
   ```nginx
-  limit_req_zone $binary_remote_addr zone=auth:10m rate=10r/m;   # di http {}
-  location /api/auth/ { limit_req zone=auth burst=20 nodelay; proxy_pass http://beecoding; ... }
+  # di http {}
+  limit_req_zone $binary_remote_addr zone=auth_login:10m rate=10r/m;
+  limit_req_zone $binary_remote_addr zone=auth_register:10m rate=30r/m;
+
+  location /api/auth/register { limit_req zone=auth_register burst=60 nodelay; proxy_pass http://beecoding; ... }
+  location /api/auth/         { limit_req zone=auth_login burst=20 nodelay; proxy_pass http://beecoding; ... }
   ```
+  (nginx mencocokkan `location` paling spesifik dulu, jadi urutan di atas — `register` sebelum blok umum `/api/auth/` — sudah benar tanpa perlu `^~`.)
 - Scratch dir judge yang tertinggal (proses ke-kill) dibersihkan otomatis tiap 15 menit (usia > 1 jam).
 
 ### Endpoint admin — mengisi bank soal via skrip
