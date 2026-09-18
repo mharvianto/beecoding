@@ -23,6 +23,13 @@ const loading = ref(true);
 const subA = ref(null);
 const subB = ref(null);
 let diffEditor = null;
+let resizeObserver = null;
+
+// Below this, two side-by-side panes are too narrow to read — Monaco doesn't switch to an
+// inline/unified diff on its own, it just squeezes both panes (one can collapse to
+// near-nothing on a phone). Re-checked on every resize, not just at mount, so rotating the
+// device or resizing the window still gets it right.
+const SIDE_BY_SIDE_MIN_WIDTH = 700;
 
 function editorTheme() {
   const dark = appTheme.value === 'dark'
@@ -45,7 +52,7 @@ onMounted(async () => {
     theme: editorTheme(),
     readOnly: true,
     automaticLayout: true,
-    renderSideBySide: true,
+    renderSideBySide: el.value.clientWidth >= SIDE_BY_SIDE_MIN_WIDTH,
     minimap: { enabled: false },
   });
   const lang = (l) => (l === 'c' ? 'c' : 'cpp');
@@ -53,9 +60,16 @@ onMounted(async () => {
     original: monaco.editor.createModel(subA.value.code || '', lang(subA.value.language)),
     modified: monaco.editor.createModel(subB.value.code || '', lang(subB.value.language)),
   });
+
+  resizeObserver = new ResizeObserver((entries) => {
+    const width = entries[0]?.contentRect.width ?? 0;
+    diffEditor?.updateOptions({ renderSideBySide: width >= SIDE_BY_SIDE_MIN_WIDTH });
+  });
+  resizeObserver.observe(el.value);
 });
 
 onBeforeUnmount(() => {
+  resizeObserver?.disconnect();
   const model = diffEditor?.getModel();
   model?.original?.dispose();
   model?.modified?.dispose();
