@@ -10,7 +10,7 @@ namespace BeeCoding.Services;
 /// </summary>
 public class SubmitCooldown
 {
-    private static readonly TimeSpan Window = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan Window = TimeSpan.FromSeconds(5);
     private readonly ConcurrentDictionary<int, DateTime> _last = new();
 
     /// <summary>Seconds still remaining before the next submit is allowed (0 if allowed now).</summary>

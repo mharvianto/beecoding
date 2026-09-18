@@ -154,7 +154,7 @@ async function load() {
   // button would look enabled for a few seconds after a reload right after submitting.
   if (myLatest) {
     const secondsSince = (Date.now() - new Date(myLatest.createdAt + (myLatest.createdAt.endsWith('Z') ? '' : 'Z')).getTime()) / 1000;
-    if (secondsSince < 10) startSubmitCooldown(10 - secondsSince);
+    if (secondsSince < 5) startSubmitCooldown(5 - secondsSince);
   }
 }
 async function loadSubs() {
@@ -192,7 +192,7 @@ async function run() {
   error.value = ''; running.value = true; runOut.value = null;
   try {
     runOut.value = await api.post('/api/run', { language: solveLang.value, code: code.value, stdin: stdin.value, problemId: pid.value });
-    startRunCooldown(5);
+    startRunCooldown(2);
   } catch (e) { error.value = e.message; }
   finally { running.value = false; }
 }
@@ -203,7 +203,7 @@ async function submit() {
   try {
     const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value, localDay: localDayKey() });
     submittingId.value = res.submissionId;
-    startSubmitCooldown(10);
+    startSubmitCooldown(5);
     await loadSubs();
   } catch (e) { error.value = e.message; }
   finally { submitting.value = false; }
