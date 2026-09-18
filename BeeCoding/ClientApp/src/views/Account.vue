@@ -181,6 +181,15 @@ async function deleteAccount(force = false) {
           <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
             {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
           </div>
+          <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-400 dark:text-slate-500">
+            🏆 longest: {{ fmt(dashboard.longestStreak) }} day(s)
+          </div>
+        </div>
+
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+          <div class="text-xs text-slate-400 dark:text-slate-500">Best day</div>
+          <div class="text-2xl font-bold">{{ dashboard.maxSolvedInADay > 0 ? fmt(dashboard.maxSolvedInADay) : '—' }}</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">solved in a single day</div>
         </div>
       </div>
       <p v-else-if="!dashErr" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>

@@ -55,6 +55,14 @@ public class User
     /// <summary>Last local day that counted toward <see cref="CurrentStreak"/>.</summary>
     public DateOnly? StreakLocalDay { get; set; }
 
+    /// <summary>Highest <see cref="CurrentStreak"/> ever reached — a personal-best record
+    /// that survives a broken streak (CurrentStreak itself resets to 1 on a missed day).</summary>
+    public int LongestStreak { get; set; }
+
+    /// <summary>Most Accepted solves (board + practice combined, see
+    /// ProgressService.CountSolvedOnLocalDayAsync) ever recorded on a single local day.</summary>
+    public int MaxSolvedInADay { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Soft-delete marker (admin-only action). Not a global query filter — the

@@ -173,7 +173,8 @@ public record AdminAiEngagementPointDto(string PeriodStart, int Calls, long Tota
 // ---- Student: personal dashboard, aggregated across every board + practice/bank ----
 public record StudentDashboardDto(
     int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount,
-    int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts, int Streak);
+    int Rank, int RankedUsers, int BoardsJoined, int TotalAttempts, int AcceptedAttempts, int Streak,
+    int LongestStreak = 0, int MaxSolvedInADay = 0);
 public record MyWeeklyStatDto(string WeekStart, int Attempts, int Solved);
 public record MyEngagementPointDto(string PeriodStart, int Attempts, int Solved);
 

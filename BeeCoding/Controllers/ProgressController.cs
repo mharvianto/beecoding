@@ -51,7 +51,7 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
                      + bankVerdicts.Count(x => x.Verdict == Verdict.Accepted && x.Score >= 1.0);
 
         return new StudentDashboardDto(p.Xp, p.Level, p.LevelStartXp, p.NextLevelXp, p.SolvedCount,
-            rank, rankedUsers, boardsJoined, totalAttempts, accepted, p.Streak);
+            rank, rankedUsers, boardsJoined, totalAttempts, accepted, p.Streak, p.LongestStreak, p.MaxSolvedInADay);
     }
 
     /// <summary>Attempts + solves (first-time accepts, matching XP awards) across every

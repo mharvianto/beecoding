@@ -4,7 +4,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Services;
 
-public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount, int Streak, int SolvedToday);
+public record ProgressDto(int Xp, int Level, int LevelStartXp, int NextLevelXp, int SolvedCount, int Streak, int SolvedToday,
+    int LongestStreak = 0, int MaxSolvedInADay = 0);
 
 /// <summary>
 /// XP / leveling. XP is awarded once per distinct problem the first time a student
@@ -85,7 +86,19 @@ public class ProgressService(AppDbContext db)
             user.CurrentStreak = 1;   // missed a day (or clock skew) — restart
 
         user.StreakLocalDay = localDay;
+        if (user.CurrentStreak > user.LongestStreak) user.LongestStreak = user.CurrentStreak;
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Refreshes the personal-best "most solved in one day" record after a fresh
+    /// Accepted solve (board or practice — see CountSolvedOnLocalDayAsync's combined
+    /// definition). Called from both grading paths, unlike UpdateStreakAsync which is
+    /// practice-only by design.</summary>
+    public async Task UpdateMaxSolvedInADayAsync(int userId, DateOnly localDay, CancellationToken ct = default)
+    {
+        var today = await CountSolvedOnLocalDayAsync(userId, localDay, ct);
+        await _db.Users.Where(u => u.Id == userId && u.MaxSolvedInADay < today)
+            .ExecuteUpdateAsync(s => s.SetProperty(u => u.MaxSolvedInADay, today), ct);
     }
 
     /// <summary>
@@ -99,7 +112,7 @@ public class ProgressService(AppDbContext db)
     public async Task<ProgressDto> GetAsync(int userId, DateOnly? localDay = null, CancellationToken ct = default)
     {
         var user = await _db.Users.Where(u => u.Id == userId)
-            .Select(u => new { u.Xp, u.CurrentStreak, u.StreakLocalDay }).FirstOrDefaultAsync(ct);
+            .Select(u => new { u.Xp, u.CurrentStreak, u.StreakLocalDay, u.LongestStreak, u.MaxSolvedInADay }).FirstOrDefaultAsync(ct);
         var solved = await _db.SolveRecords.CountAsync(r => r.UserId == userId, ct);
         int level = LevelForXp(user?.Xp ?? 0);
 
@@ -110,7 +123,8 @@ public class ProgressService(AppDbContext db)
 
         int solvedToday = localDay is DateOnly day ? await CountSolvedOnLocalDayAsync(userId, day, ct) : 0;
 
-        return new ProgressDto(user?.Xp ?? 0, level, LevelStartXp(level), LevelStartXp(level + 1), solved, streak, solvedToday);
+        return new ProgressDto(user?.Xp ?? 0, level, LevelStartXp(level), LevelStartXp(level + 1), solved, streak, solvedToday,
+            user?.LongestStreak ?? 0, user?.MaxSolvedInADay ?? 0);
     }
 
     /// <summary>Accepted, fully-scored solves (board + practice combined, repeats included —

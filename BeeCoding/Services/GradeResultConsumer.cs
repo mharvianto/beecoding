@@ -87,7 +87,12 @@ public sealed class GradeResultConsumer(
 
         int xp = 0;
         if (sub.Verdict == Verdict.Accepted && sub.Score >= 1.0)
+        {
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.KeyForBoardProblem(problem), problem.Level, ct);
+            // Board solves don't bump the practice streak (see User.CurrentStreak), but they
+            // do count toward the combined "most solved in a day" record.
+            await progress.UpdateMaxSolvedInADayAsync(sub.UserId, sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        }
         sub.XpAwarded = xp;
         await db.SaveChangesAsync(ct);
 
@@ -133,7 +138,9 @@ public sealed class GradeResultConsumer(
         if (solvedNow)
         {
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.BankKey(problem.Id), problem.Level, ct);
-            await progress.UpdateStreakAsync(sub.UserId, sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            var localDay = sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow);
+            await progress.UpdateStreakAsync(sub.UserId, localDay, ct);
+            await progress.UpdateMaxSolvedInADayAsync(sub.UserId, localDay, ct);
         }
         sub.XpAwarded = xp;
         await db.SaveChangesAsync(ct);
