@@ -148,7 +148,8 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
     [HttpGet("api/leaderboard")]
     public async Task<ActionResult<LeaderboardPageDto>> Leaderboard(
         [FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string period = "all",
-        [FromQuery] int? organizationId = null, [FromQuery] int? boardId = null)
+        [FromQuery] int? organizationId = null, [FromQuery] int? boardId = null,
+        [FromQuery] DateTime? localMidnight = null)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 100);
@@ -217,7 +218,12 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         var users2 = await _db.Users.Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
 
-        var yesterday = period == "all" ? await GetYesterdayRanksAsync(organizationId, boardId) : null;
+        // "Yesterday" is measured against the CALLER's local midnight (localMidnight, sent
+        // as an ISO instant so it converts correctly regardless of the viewer's timezone —
+        // matches how streak/best-day already key off the student's local day, not UTC's).
+        // Falls back to UTC midnight for an older client build or a non-browser caller.
+        var yesterdayCutoff = localMidnight?.ToUniversalTime() ?? DateTime.UtcNow.Date;
+        var yesterday = period == "all" ? await GetYesterdayRanksAsync(organizationId, boardId, yesterdayCutoff) : null;
         var rows = pageSlice.Select(x =>
         {
             int rank = rankByUser[x.UserId];
@@ -238,12 +244,14 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
     /// no separate snapshot table is needed; cached in memory per scope until the next UTC
     /// midnight, since re-ranking everyone on every leaderboard request would be wasteful
     /// when "yesterday" only changes once a day.</summary>
-    /// <summary>Each user's (Rank, Xp) as of the start of today UTC — the Xp side powers
-    /// LeaderRowDto.XpDelta (today's Xp minus this), the Rank side powers RankDelta.</summary>
-    private async Task<Dictionary<int, (int Rank, int Xp)>> GetYesterdayRanksAsync(int? organizationId, int? boardId)
+    /// <summary>Each user's (Rank, Xp) as of <paramref name="cutoff"/> (the caller's local
+    /// midnight, converted to UTC by the caller) — the Xp side powers LeaderRowDto.XpDelta
+    /// (today's Xp minus this), the Rank side powers RankDelta. The cache key includes the
+    /// exact cutoff instant, so it naturally repeats (and hits cache) for repeat requests
+    /// from the same timezone on the same calendar day, without needing to round it.</summary>
+    private async Task<Dictionary<int, (int Rank, int Xp)>> GetYesterdayRanksAsync(int? organizationId, int? boardId, DateTime cutoff)
     {
-        var cutoff = DateTime.UtcNow.Date;
-        var cacheKey = $"leaderboard:yesterday:org={organizationId}:board={boardId}:asof={cutoff:yyyy-MM-dd}";
+        var cacheKey = $"leaderboard:yesterday:org={organizationId}:board={boardId}:asof={cutoff:O}";
         if (_cache.TryGetValue(cacheKey, out Dictionary<int, (int Rank, int Xp)>? cached) && cached is not null)
             return cached;
 

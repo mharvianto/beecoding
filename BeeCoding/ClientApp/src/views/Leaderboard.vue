@@ -42,7 +42,15 @@ async function loadBoards() {
 async function load() {
   loading.value = true; error.value = '';
   try {
-    const params = new URLSearchParams({ page: String(page.value), pageSize: String(pageSize), period: period.value });
+    // Sent as a precise instant (not just a date string) so the server can compare it
+    // directly against UTC-stored SolveRecord.CreatedAt regardless of the viewer's
+    // timezone — matches how streak/best-day already key off the student's local day.
+    const localMidnight = new Date();
+    localMidnight.setHours(0, 0, 0, 0);
+    const params = new URLSearchParams({
+      page: String(page.value), pageSize: String(pageSize), period: period.value,
+      localMidnight: localMidnight.toISOString(),
+    });
     if (scope.value.startsWith('org:')) {
       const org = orgs.value.find((o) => o.slug === scope.value.slice(4));
       if (org) params.set('organizationId', org.id);
