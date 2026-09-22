@@ -1,0 +1,267 @@
+{
+ "version": 1,
+ "exportedAt": "2026-09-22T05:38:16.653032+00:00",
+ "problems": [
+  {
+   "ownerEmail": "teacher@demo.test",
+   "title": "Hitung Waktu Setelah Penambahan Menit",
+   "statementMarkdown": "Diberikan waktu dalam format `HH:MM` (24 jam) dan sejumlah menit `M` yang akan\nditambahkan (`M >= 0`, bisa melewati tengah malam, bahkan beberapa hari).\nHitung waktu hasilnya, tetap dalam format `HH:MM`, membungkus (wrap) setiap\nkali melewati 24:00.\n\n**Input:**\n```\nHH:MM M\n```\n**Contoh:**\n```\n00:03 130\n```\n**Output:**\n```\n02:13\n```\n",
+   "allowedLanguages": "c",
+   "level": "Easy",
+   "tags": "math",
+   "timeLimitMs": 1000,
+   "memoryLimitKb": 32768,
+   "isPublic": true,
+   "generatedByAi": true,
+   "bannedHeaders": null,
+   "bannedSymbols": null,
+   "inputFileName": null,
+   "tests": [
+    {
+     "stdin": "00:03 130\n",
+     "expectedStdout": "02:13\n",
+     "isSample": true,
+     "points": 1,
+     "position": 0
+    },
+    {
+     "stdin": "23:59 1\n",
+     "expectedStdout": "00:00\n",
+     "isSample": true,
+     "points": 1,
+     "position": 1
+    },
+    {
+     "stdin": "12:00 0\n",
+     "expectedStdout": "12:00\n",
+     "isSample": true,
+     "points": 1,
+     "position": 2
+    },
+    {
+     "stdin": "06:30 90\n",
+     "expectedStdout": "08:00\n",
+     "isSample": false,
+     "points": 1,
+     "position": 3
+    },
+    {
+     "stdin": "00:00 1440\n",
+     "expectedStdout": "00:00\n",
+     "isSample": false,
+     "points": 1,
+     "position": 4
+    },
+    {
+     "stdin": "10:15 45\n",
+     "expectedStdout": "11:00\n",
+     "isSample": false,
+     "points": 1,
+     "position": 5
+    },
+    {
+     "stdin": "23:00 61\n",
+     "expectedStdout": "00:01\n",
+     "isSample": false,
+     "points": 1,
+     "position": 6
+    },
+    {
+     "stdin": "00:00 100000\n",
+     "expectedStdout": "10:40\n",
+     "isSample": false,
+     "points": 1,
+     "position": 7
+    },
+    {
+     "stdin": "12:34 1000000\n",
+     "expectedStdout": "23:14\n",
+     "isSample": false,
+     "points": 1,
+     "position": 8
+    },
+    {
+     "stdin": "23:59 1439\n",
+     "expectedStdout": "23:58\n",
+     "isSample": false,
+     "points": 1,
+     "position": 9
+    }
+   ]
+  },
+  {
+   "ownerEmail": "teacher@demo.test",
+   "title": "Hitung Sudut Terkecil Jarum Jam",
+   "statementMarkdown": "Diberikan waktu dalam format `HH:MM` (`HH` antara 0-23, tapi jam analog hanya\nmengenal 12 posisi — gunakan `HH % 12`). Hitung **sudut terkecil** (dalam\nderajat, boleh berupa `.5` karena jarum jam ikut bergeser sesuai menit) antara\njarum jam dan jarum menit.\n\n**Input:**\n```\nHH:MM\n```\n**Contoh:**\n```\n03:15\n```\n**Output:**\n```\n7.5\n```\n",
+   "allowedLanguages": "c",
+   "level": "Medium",
+   "tags": "math",
+   "timeLimitMs": 1000,
+   "memoryLimitKb": 32768,
+   "isPublic": true,
+   "generatedByAi": true,
+   "bannedHeaders": null,
+   "bannedSymbols": null,
+   "inputFileName": null,
+   "tests": [
+    {
+     "stdin": "03:15\n",
+     "expectedStdout": "7.5\n",
+     "isSample": true,
+     "points": 1,
+     "position": 0
+    },
+    {
+     "stdin": "12:00\n",
+     "expectedStdout": "0.0\n",
+     "isSample": true,
+     "points": 1,
+     "position": 1
+    },
+    {
+     "stdin": "00:00\n",
+     "expectedStdout": "0.0\n",
+     "isSample": true,
+     "points": 1,
+     "position": 2
+    },
+    {
+     "stdin": "06:00\n",
+     "expectedStdout": "180.0\n",
+     "isSample": false,
+     "points": 1,
+     "position": 3
+    },
+    {
+     "stdin": "09:00\n",
+     "expectedStdout": "90.0\n",
+     "isSample": false,
+     "points": 1,
+     "position": 4
+    },
+    {
+     "stdin": "02:20\n",
+     "expectedStdout": "50.0\n",
+     "isSample": false,
+     "points": 1,
+     "position": 5
+    },
+    {
+     "stdin": "23:59\n",
+     "expectedStdout": "5.5\n",
+     "isSample": false,
+     "points": 1,
+     "position": 6
+    },
+    {
+     "stdin": "05:24\n",
+     "expectedStdout": "18.0\n",
+     "isSample": false,
+     "points": 1,
+     "position": 7
+    },
+    {
+     "stdin": "11:59\n",
+     "expectedStdout": "5.5\n",
+     "isSample": false,
+     "points": 1,
+     "position": 8
+    },
+    {
+     "stdin": "18:30\n",
+     "expectedStdout": "15.0\n",
+     "isSample": false,
+     "points": 1,
+     "position": 9
+    }
+   ]
+  },
+  {
+   "ownerEmail": "teacher@demo.test",
+   "title": "Validasi Pemenang Tic-Tac-Toe",
+   "statementMarkdown": "Diberikan papan tic-tac-toe `3x3` berisi `X`, `O`, atau `.` (kosong), yang\ndijamin merupakan **permainan yang sudah selesai** (ada pemenang, atau papan\npenuh tanpa pemenang). Tentukan hasilnya: cetak `X` jika `X` menang, `O` jika\n`O` menang, atau `DRAW` jika papan penuh tanpa ada yang menang.\n\n**Input:** 3 baris, masing-masing 3 karakter (`X`/`O`/`.`) tanpa spasi.\n**Contoh:**\n```\nXXX\nOO.\n...\n```\n**Output:**\n```\nX\n```\n",
+   "allowedLanguages": "c",
+   "level": "Medium",
+   "tags": "array2d",
+   "timeLimitMs": 1000,
+   "memoryLimitKb": 32768,
+   "isPublic": true,
+   "generatedByAi": true,
+   "bannedHeaders": null,
+   "bannedSymbols": null,
+   "inputFileName": null,
+   "tests": [
+    {
+     "stdin": "XXX\nOO.\n...\n",
+     "expectedStdout": "X\n",
+     "isSample": true,
+     "points": 1,
+     "position": 0
+    },
+    {
+     "stdin": "OXX\nO.X\nO..\n",
+     "expectedStdout": "O\n",
+     "isSample": true,
+     "points": 1,
+     "position": 1
+    },
+    {
+     "stdin": "XOX\nXOO\nOXX\n",
+     "expectedStdout": "DRAW\n",
+     "isSample": true,
+     "points": 1,
+     "position": 2
+    },
+    {
+     "stdin": "X..\n.X.\nOOX\n",
+     "expectedStdout": "X\n",
+     "isSample": false,
+     "points": 1,
+     "position": 3
+    },
+    {
+     "stdin": "X.O\n.O.\nOXX\n",
+     "expectedStdout": "O\n",
+     "isSample": false,
+     "points": 1,
+     "position": 4
+    },
+    {
+     "stdin": "XO.\nXO.\nX..\n",
+     "expectedStdout": "X\n",
+     "isSample": false,
+     "points": 1,
+     "position": 5
+    },
+    {
+     "stdin": "OOO\nXX.\n..X\n",
+     "expectedStdout": "O\n",
+     "isSample": false,
+     "points": 1,
+     "position": 6
+    },
+    {
+     "stdin": "OXO\nXXO\nXOX\n",
+     "expectedStdout": "DRAW\n",
+     "isSample": false,
+     "points": 1,
+     "position": 7
+    },
+    {
+     "stdin": "XOX\nOXO\nOXX\n",
+     "expectedStdout": "X\n",
+     "isSample": false,
+     "points": 1,
+     "position": 8
+    },
+    {
+     "stdin": "OOX\nXOX\n..X\n",
+     "expectedStdout": "X\n",
+     "isSample": false,
+     "points": 1,
+     "position": 9
+    }
+   ]
+  }
+ ]
+}
