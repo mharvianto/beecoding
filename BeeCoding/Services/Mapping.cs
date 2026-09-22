@@ -70,10 +70,14 @@ public static class Mapping
     public static ProblemSummaryDto ToSummary(Problem p) =>
         new(p.Id, p.Slug, p.Title, p.Position, p.TimeLimitMs, p.MemoryLimitKb, p.AllowedLanguages, p.Tags, p.Level.ToString());
 
-    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, int? previousSubmissionId = null, int? nextSubmissionId = null) => new(
+    public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, bool isStaff = false, int? previousSubmissionId = null, int? nextSubmissionId = null) => new(
         s.Id, s.BankProblemId, s.Status.ToString(), s.Verdict.ToString(),
         s.RuntimeMs, s.MemoryKb, s.Score, s.CompilerOutput,
-        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded, previousSubmissionId, nextSubmissionId);
+        s.CreatedAt, s.JudgedAt, withCode ? s.Code : null, s.Language ?? "", s.XpAwarded,
+        // Staff-only, and *not* granted just by "mine" — a hidden test's expected output
+        // must never reach the student whose submission it is either (see Submission.FailedTest).
+        isStaff ? s.FailedTest : null,
+        previousSubmissionId, nextSubmissionId);
 
     // Practice statements are always served as an encrypted image, so the statement text
     // and expected outputs are never sent as JSON (see StatementController.PracticeProblem).

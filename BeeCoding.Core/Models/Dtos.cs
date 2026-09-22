@@ -269,6 +269,7 @@ public record BankSubmissionDto(
     int Id, int BankProblemId, string Status, string Verdict,
     int RuntimeMs, int MemoryKb, double Score, string CompilerOutput,
     DateTime CreatedAt, DateTime? JudgedAt, string? Code, string Language, int XpAwarded = 0,
+    string? FailedTest = null,   // staff-only — see Mapping.ToDto
     int? PreviousSubmissionId = null,   // this author's previous attempt at the same problem, if any
     int? NextSubmissionId = null);      // ...and the one right after this one, if any
 

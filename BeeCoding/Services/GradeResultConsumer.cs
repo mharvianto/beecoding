@@ -130,6 +130,7 @@ public sealed class GradeResultConsumer(
         sub.RuntimeMs = r.RuntimeMs;
         sub.MemoryKb = r.MemoryKb;
         sub.CompilerOutput = r.CompilerOutput;
+        sub.FailedTest = r.FailedTest;
         sub.JudgedAt = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 

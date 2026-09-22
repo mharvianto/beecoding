@@ -472,6 +472,12 @@ public class BankSubmission
     public double Score { get; set; }
     public string CompilerOutput { get; set; } = "";
 
+    /// <summary>"Test N of M / input / expected / your output" for the first testcase that
+    /// didn't pass — null on Accepted or CompileError. Staff-only once served over the API
+    /// (see Mapping.ToDto), same as Submission.FailedTest — even the student whose attempt
+    /// this is shouldn't see a hidden test's expected output.</summary>
+    public string? FailedTest { get; set; }
+
     /// <summary>XP this specific submission earned — see Submission.XpAwarded.</summary>
     public int XpAwarded { get; set; }
 

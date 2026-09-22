@@ -351,9 +351,10 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     {
         var s = await _db.BankSubmissions.FirstOrDefaultAsync(x => x.Id == sid);
         if (s is null) return NotFound();
-        if (s.UserId != UserId && !IsAdminUser(_admin)
-            && !await _orgAccess.CanManageMemberAsync(UserId, ActorEmail, s.UserId))
-            return Forbid();
+        // Staff-ness here means "has admin/org-manage capability over this author" — not
+        // granted just by "mine" (see Mapping.ToDto), same principle as the board side.
+        bool isStaff = IsAdminUser(_admin) || await _orgAccess.CanManageMemberAsync(UserId, ActorEmail, s.UserId);
+        if (s.UserId != UserId && !isStaff) return Forbid();
 
         var previousId = await _db.BankSubmissions
             .Where(x => x.UserId == s.UserId && x.BankProblemId == s.BankProblemId && x.Id < s.Id)
@@ -365,6 +366,6 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             .OrderBy(x => x.Id)
             .Select(x => (int?)x.Id)
             .FirstOrDefaultAsync();
-        return Mapping.ToDto(s, previousSubmissionId: previousId, nextSubmissionId: nextId);
+        return Mapping.ToDto(s, isStaff: isStaff, previousSubmissionId: previousId, nextSubmissionId: nextId);
     }
 }
