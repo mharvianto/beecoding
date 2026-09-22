@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import { tableView } from '../lib/tableView';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
+import TableViewToggle from '../components/TableViewToggle.vue';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const router = useRouter();
@@ -80,9 +82,31 @@ onMounted(async () => {
         <option value="CompileError">Compile error</option>
       </select>
       <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+      <TableViewToggle class="ml-auto" />
     </div>
 
-    <div class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
+    <!-- mobile: cards -->
+    <div v-if="tableView === 'card'" class="space-y-2">
+      <button v-for="s in submissionRows" :key="s.id" @click="openSubmission(s)"
+              class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <VerdictBadge :verdict="s.verdict" small />
+          <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
+        </div>
+        <div class="text-sm font-medium">
+          <RouterLink v-if="s.problemSlug" :to="`/boards/${props.slug}/problems/${s.problemSlug}`" @click.stop
+                      class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
+          <template v-else>{{ s.problemTitle }}</template>
+        </div>
+        <div class="text-[11px] text-slate-400 mt-0.5">
+          {{ s.userDisplayName }} · {{ Math.round(s.score * 100) }}% · {{ s.runtimeMs }}ms · {{ s.language || '—' }}
+        </div>
+      </button>
+      <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
+    </div>
+
+    <!-- desktop: table -->
+    <div v-if="tableView === 'table'" class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
