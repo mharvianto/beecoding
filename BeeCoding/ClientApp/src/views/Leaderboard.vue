@@ -159,19 +159,28 @@ const showHowItWorks = ref(false);
           <template v-else-if="r.rankDelta < 0">▼{{ -r.rankDelta }}</template>
           <template v-else-if="r.rankDelta === 0">–</template>
         </span>
-        <div class="flex-1 min-w-0">
+        <div class="min-w-0 flex-1 sm:flex-none sm:w-64">
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-sm font-medium truncate">{{ r.displayName?.trim() || 'Anonymous' }}</span>
             <span v-if="r.me" class="text-xs text-amber-600 dark:text-amber-400 shrink-0">(you)</span>
             <span v-if="r.role === 'Teacher'" class="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">teacher</span>
           </div>
-          <div class="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+          <div class="sm:hidden text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
             {{ r.solvedCount }} solved · Lv {{ r.level }}
           </div>
         </div>
-        <div class="text-right shrink-0">
+        <div class="hidden sm:flex flex-1 items-center gap-8 text-sm text-slate-400 dark:text-slate-500">
+          <span class="tabular-nums">{{ r.solvedCount }} solved</span>
+          <span>Lv {{ r.level }}</span>
+        </div>
+        <div v-if="r.xpDelta" class="hidden sm:block shrink-0 w-16 text-right text-sm text-emerald-600 dark:text-emerald-400 tabular-nums"
+             title="XP gained since yesterday">
+          +{{ r.xpDelta }}
+        </div>
+        <div v-else class="hidden sm:block shrink-0 w-16"></div>
+        <div class="text-right shrink-0 sm:w-20">
           <span class="text-sm font-semibold text-amber-600 dark:text-amber-400">{{ r.xp }} XP</span>
-          <div v-if="r.xpDelta" class="text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums" title="XP gained since yesterday">
+          <div v-if="r.xpDelta" class="sm:hidden text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums" title="XP gained since yesterday">
             +{{ r.xpDelta }}
           </div>
         </div>
