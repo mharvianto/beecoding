@@ -128,7 +128,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             var refLang = gp.Language is "c" ? "c" : "cpp";
             var built = new List<(string Stdin, string Expected, bool IsSample)>();
 
-            int i = 0;
+            var candidates = new List<(string Stdin, bool IsSample)>();
             var seenStdin = new HashSet<string>();
             foreach (var t in gp.Tests.Take(15))
             {
@@ -136,17 +136,30 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 // teaching data, not a stress test — drop oversized inputs and exact duplicates
                 if (stdin.Length > 16_000) continue;
                 if (!seenStdin.Add(stdin.Replace("\r\n", "\n").Trim())) continue;
-                RunResultDto res;
-                try { res = await queue.EnqueueRunAsync(refLang, gp.ReferenceSolution, stdin, gp.TimeLimitMs, gp.MemoryLimitKb, ct: ct); }
-                catch { await Fail("Timed out validating the generated problem."); return; }
+                candidates.Add((stdin, t.IsSample));
+            }
 
+            // Fire every test's compile+run concurrently instead of one at a time — the judge
+            // worker already bounds real parallelism via JudgeOptions.MaxConcurrent, so this
+            // collapses N sequential compile+sandbox round-trips into ~N/MaxConcurrent, which
+            // is most of why generation used to take minutes.
+            RunResultDto[] results;
+            try
+            {
+                results = await Task.WhenAll(candidates.Select(c =>
+                    queue.EnqueueRunAsync(refLang, gp.ReferenceSolution, c.Stdin, gp.TimeLimitMs, gp.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out validating the generated problem."); return; }
+
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                var res = results[i];
                 if (!res.CompileOk)
                 { await Fail("The AI's reference solution didn't compile — try again or rephrase the idea.", compilerOutput: res.CompilerOutput); return; }
                 if (res.TimedOut || res.Signal != 0 || res.ExitCode != 0)
                 { await Fail($"The AI's reference solution failed on test #{i + 1} (signal {res.Signal}, exit {res.ExitCode}) — try again or rephrase.", stderr: res.Stderr); return; }
 
-                built.Add((stdin, res.Stdout ?? "", t.IsSample));
-                i++;
+                built.Add((candidates[i].Stdin, res.Stdout ?? "", candidates[i].IsSample));
             }
             if (built.Count < 2) { await Fail("The AI didn't produce enough usable tests — try again."); return; }
 
@@ -250,32 +263,48 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
             await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
 
-            // 1) the new reference must reproduce every existing sample
-            foreach (var (sIn, sExp) in samples)
+            // 1) the new reference must reproduce every existing sample — validated concurrently
+            // rather than one at a time (see the same fix in RunGenerateAsync for why).
+            RunResultDto[] sampleResults;
+            try
             {
-                RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, sIn, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
-                catch { await Fail("Timed out validating the new tests."); return; }
+                sampleResults = await Task.WhenAll(samples.Select(s =>
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, s.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out validating the new tests."); return; }
+            for (int i = 0; i < samples.Count; i++)
+            {
+                var r = sampleResults[i];
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
                 { await Fail("The AI's reference solution crashed on a sample — try again.", stderr: r.Stderr); return; }
-                if (!VerdictEvaluator.OutputMatches(r.Stdout ?? "", sExp))
+                if (!VerdictEvaluator.OutputMatches(r.Stdout ?? "", samples[i].ExpectedStdout))
                 { await Fail("The AI's reference disagrees with your sample tests — the statement may be ambiguous. Tighten it and retry."); return; }
             }
 
             // 2) run the new inputs through the (now trusted) reference for expected output
             var seen = samples.Select(s => s.Stdin.Replace("\r\n", "\n").Trim()).ToHashSet();
-            var fresh = new List<(string Stdin, string Expected)>();
+            var newInputs = new List<string>();
             foreach (var inp in gen.Inputs.Take(15))
             {
                 if (inp.Length > 16_000) continue;
                 if (!seen.Add(inp.Replace("\r\n", "\n").Trim())) continue;
-                RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
-                catch { await Fail("Timed out validating the new tests."); return; }
+                newInputs.Add(inp);
+            }
+            RunResultDto[] newResults;
+            try
+            {
+                newResults = await Task.WhenAll(newInputs.Select(inp =>
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out validating the new tests."); return; }
+            var fresh = new List<(string Stdin, string Expected)>();
+            for (int i = 0; i < newInputs.Count; i++)
+            {
+                var r = newResults[i];
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0) continue;   // skip an input the reference can't handle
-                fresh.Add((inp, r.Stdout ?? ""));
+                fresh.Add((newInputs[i], r.Stdout ?? ""));
             }
             if (fresh.Count < 2) { await Fail("The AI didn't produce enough usable new tests — try again."); return; }
 
@@ -361,32 +390,48 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
             await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
 
-            // 1) the new reference must reproduce every existing test (samples + hidden)
-            foreach (var (eIn, eExp) in existing)
+            // 1) the new reference must reproduce every existing test (samples + hidden) —
+            // validated concurrently rather than one at a time (see RunGenerateAsync).
+            RunResultDto[] existingResults;
+            try
             {
-                RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, eIn, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
-                catch { await Fail("Timed out validating the new tests."); return; }
+                existingResults = await Task.WhenAll(existing.Select(e =>
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, e.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out validating the new tests."); return; }
+            for (int i = 0; i < existing.Count; i++)
+            {
+                var r = existingResults[i];
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
                 { await Fail("The AI's reference solution crashed on an existing test — try again.", stderr: r.Stderr); return; }
-                if (!VerdictEvaluator.OutputMatches(r.Stdout ?? "", eExp))
+                if (!VerdictEvaluator.OutputMatches(r.Stdout ?? "", existing[i].ExpectedStdout))
                 { await Fail("The AI's reference disagrees with an existing test — try again."); return; }
             }
 
             // 2) run the new extreme inputs through the (now trusted) reference for expected output
             var seen = existing.Select(s => s.Stdin.Replace("\r\n", "\n").Trim()).ToHashSet();
-            var fresh = new List<(string Stdin, string Expected)>();
+            var newInputs = new List<string>();
             foreach (var inp in gen.Inputs.Take(8))
             {
                 if (inp.Length > 16_000) continue;
                 if (!seen.Add(inp.Replace("\r\n", "\n").Trim())) continue;
-                RunResultDto r;
-                try { r = await queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct); }
-                catch { await Fail("Timed out validating the new tests."); return; }
+                newInputs.Add(inp);
+            }
+            RunResultDto[] newResults;
+            try
+            {
+                newResults = await Task.WhenAll(newInputs.Select(inp =>
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out validating the new tests."); return; }
+            var fresh = new List<(string Stdin, string Expected)>();
+            for (int i = 0; i < newInputs.Count; i++)
+            {
+                var r = newResults[i];
                 if (!r.CompileOk) { await Fail("The AI's reference solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
                 if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0) continue;   // skip an input the reference can't handle
-                fresh.Add((inp, r.Stdout ?? ""));
+                fresh.Add((newInputs[i], r.Stdout ?? ""));
             }
             if (fresh.Count < 1) { await Fail("The AI didn't produce any usable extreme tests — try again."); return; }
 
