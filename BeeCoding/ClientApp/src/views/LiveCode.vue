@@ -9,6 +9,7 @@ import SplitPane from '../components/SplitPane.vue';
 import AiHint from '../components/AiHint.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
+import { playgroundFocus } from '../lib/playgroundFocus';
 
 // A board-wide live-coding scratchpad — lecturing mode without a problem.
 // Streamed with problemId 0 so it never collides with a real problem's buffers.
@@ -74,6 +75,9 @@ function pushNow() {
 function setLang(l) {
   if (l === liveLang.value) return;
   liveLang.value = l;
+}
+function resetTemplate() {
+  code.value = CODE_TEMPLATES[liveLang.value] || '';
 }
 function loadTeacherCode() {
   if (!lecture.value) return;
@@ -199,6 +203,15 @@ onBeforeUnmount(async () => {
                   ? 'bg-amber-500 text-white'
                   : 'border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'">
           {{ lecturingOn ? 'Stop broadcasting' : 'Start broadcasting' }}
+        </button>
+        <button @click="playgroundFocus = !playgroundFocus"
+                :title="playgroundFocus ? 'Show the top navigation bar' : 'Hide the top navigation bar for more room'"
+                class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+          {{ playgroundFocus ? '⤡ Show navbar' : '⤢ Full screen' }}
+        </button>
+        <button @click="resetTemplate"
+                class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+          Reset template
         </button>
         <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
           <button v-for="l in ['c', 'cpp']" :key="l" @click="setLang(l)" class="px-2.5 py-1"

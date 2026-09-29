@@ -1,9 +1,9 @@
 import { ref, watch } from 'vue';
 
-// "Focus mode" for the Playground: hides the app navbar so editor + stdin + output get
-// the whole viewport. Per-browser convenience in plain localStorage (see lib/theme.js).
-// App.vue only honours it on /playground, so it can never strand the user without a
-// navbar elsewhere in the app.
+// "Focus mode" for the Playground and Live code pages: hides the app navbar so editor +
+// stdin + output get the whole viewport. One shared per-browser preference in plain
+// localStorage (see lib/theme.js). App.vue only honours it on those routes, so it can
+// never strand the user without a navbar elsewhere in the app.
 const KEY = 'beecoding.playground.focus';
 
 function read() {

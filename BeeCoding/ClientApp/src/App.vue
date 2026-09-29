@@ -27,6 +27,10 @@ const showFooter = computed(() =>
   !/^\/boards\/[^/]+\/problems\/(?!new$)[^/]+$/.test(route.path) && !/^\/practice\/[^/]+$/.test(route.path)
   && !/^\/boards\/[^/]+\/live$/.test(route.path) && route.path !== '/playground');
 
+// Scratch-editor pages that offer a "Full screen" toggle hiding the navbar (see
+// lib/playgroundFocus.js) — honoured only here so it can't strand the navbar elsewhere.
+const focusRoute = computed(() => route.path === '/playground' || /^\/boards\/[^/]+\/live$/.test(route.path));
+
 // keep the header XP in sync with who's logged in
 watch(() => auth.user?.id, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
 
@@ -75,7 +79,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full min-h-0 flex flex-col">
-    <header v-if="auth.user && !(playgroundFocus && route.path === '/playground')" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <header v-if="auth.user && !(playgroundFocus && focusRoute)" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <button @click="mobileNavOpen = !mobileNavOpen"
                 class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" aria-label="Menu">
