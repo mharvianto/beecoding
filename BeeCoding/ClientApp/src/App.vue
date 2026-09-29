@@ -3,12 +3,12 @@ import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from './stores/auth';
 import { useProgress } from './stores/progress';
-import ThemeToggle from './components/ThemeToggle.vue';
 import AppFooter from './components/AppFooter.vue';
 import UndoToast from './components/UndoToast.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
 import NotificationBell from './components/NotificationBell.vue';
+import UserMenu from './components/UserMenu.vue';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications } from './stores/notifications';
 import { celebrate } from './lib/confetti';
@@ -89,7 +89,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="h-full min-h-0 flex flex-col">
     <header v-if="auth.user && !(playgroundFocus && focusRoute)" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-      <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
+      <div class="max-w-7xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <button @click="mobileNavOpen = !mobileNavOpen"
                 class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" aria-label="Menu">
           <svg v-if="!mobileNavOpen" viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -118,28 +118,15 @@ onBeforeUnmount(() => {
 
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
           <RouterLink to="/leaderboard" v-if="progress.ready"
-                      class="hidden md:flex items-center gap-2" title="Your XP">
+                      class="hidden md:flex items-center gap-2" :title="`Your XP: ${progress.xp}`">
             <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Lv {{ progress.level }}</span>
-            <span class="w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+            <span class="hidden xl:block w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
             </span>
-            <span class="text-xs text-slate-400 dark:text-slate-500">{{ progress.xp }} XP</span>
-          </RouterLink>
-          <RouterLink to="/account" title="Account settings"
-                      class="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-            <span class="hidden sm:block truncate max-w-[9rem]">{{ auth.user.displayName }}</span>
-            <span class="px-2 py-0.5 rounded-full text-xs shrink-0"
-                  :class="auth.isTeacher
-                    ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-                    : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'">
-              {{ auth.user.role }}
-            </span>
+            <span class="hidden xl:inline text-xs text-slate-400 dark:text-slate-500">{{ progress.xp }} XP</span>
           </RouterLink>
           <NotificationBell />
-          <ThemeToggle />
-          <button @click="logout" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
-            Sign out
-          </button>
+          <UserMenu @logout="logout" />
         </div>
       </div>
     </header>
