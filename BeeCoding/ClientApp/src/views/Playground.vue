@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
+import { editorFontSize } from '../lib/editorFont';
 
 // A no-strings scratch editor: anyone can try C / C++, Run it, see output.
 // Nothing is submitted, graded, saved to the server, or shared.
@@ -116,12 +117,13 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                <textarea v-model="stdin"
-                          class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono text-xs"></textarea>
+                <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+                          class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
               </div>
               <div>
                 <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
-                <pre class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono text-xs overflow-auto whitespace-pre-wrap">{{
+                <pre :style="{ fontSize: editorFontSize + 'px' }"
+                     class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                   runOut
                     ? (runOut.compileOk
                         ? (runOut.stdout || '') + (runOut.stderr ? '\n[stderr] ' + runOut.stderr : '') +

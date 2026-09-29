@@ -8,6 +8,7 @@ import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
 import AiHint from '../components/AiHint.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
+import { editorFontSize } from '../lib/editorFont';
 
 // A board-wide live-coding scratchpad — lecturing mode without a problem.
 // Streamed with problemId 0 so it never collides with a real problem's buffers.
@@ -231,12 +232,13 @@ onBeforeUnmount(async () => {
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                    <textarea v-model="stdin"
-                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono text-xs"></textarea>
+                    <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
                     <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
-                    <pre class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono text-xs overflow-auto whitespace-pre-wrap">{{
+                    <pre :style="{ fontSize: editorFontSize + 'px' }"
+                         class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                       runOut
                         ? (runOut.compileOk
                             ? (runOut.stdout || '') + (runOut.stderr ? '\n[stderr] ' + runOut.stderr : '') +
@@ -313,7 +315,8 @@ onBeforeUnmount(async () => {
                       {{ stdinCopied ? 'Copied ✓' : 'Use this stdin' }}
                     </button>
                   </div>
-                  <pre class="w-full max-h-20 overflow-auto bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono text-xs whitespace-pre-wrap">{{ lecture.stdin }}</pre>
+                  <pre :style="{ fontSize: editorFontSize + 'px' }"
+                       class="w-full max-h-20 overflow-auto bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono whitespace-pre-wrap">{{ lecture.stdin }}</pre>
                 </div>
                 <AiHint :board-slug="props.slug" :teacher-code="lecture?.code || ''"
                         :language="liveLang" :code="code" :stdin="stdin"
@@ -340,12 +343,13 @@ onBeforeUnmount(async () => {
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                    <textarea v-model="stdin"
-                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono text-xs"></textarea>
+                    <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
                     <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
-                    <pre class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono text-xs overflow-auto whitespace-pre-wrap">{{
+                    <pre :style="{ fontSize: editorFontSize + 'px' }"
+                         class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                       runOut
                         ? (runOut.compileOk
                             ? (runOut.stdout || '') + (runOut.stderr ? '\n[stderr] ' + runOut.stderr : '') +

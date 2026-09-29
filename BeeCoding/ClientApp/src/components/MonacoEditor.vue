@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as monaco from 'monaco-editor';
 import { theme as appTheme } from '../lib/theme';
+import { editorFontSize, setEditorFontSize, DEFAULT_FONT } from '../lib/editorFont';
 import { CppLsp } from '../lib/cpplsp';
 import { withBase } from '../lib/base';
 import {
@@ -61,17 +62,9 @@ const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: c
 const hasEditContext = typeof window !== 'undefined' && 'EditContext' in window;
 
 // ---- per-browser editor prefs (font size, LSP on/off) -----------------------
-const FONT_KEY = 'beecoding.editor.fontSize';
 const LSP_KEY = 'beecoding.editor.lsp';
-const DEFAULT_FONT = coarse ? 14 : 13;
-
-function readFont() {
-  try {
-    const n = parseInt(localStorage.getItem(FONT_KEY), 10);
-    return Number.isFinite(n) ? Math.min(28, Math.max(9, n)) : DEFAULT_FONT;
-  } catch { return DEFAULT_FONT; }
-}
-const fontSize = ref(readFont());
+// font size is shared with the stdin/output panels beside the editor — see lib/editorFont.js
+const fontSize = editorFontSize;
 const lspEnabled = ref((() => { try { return localStorage.getItem(LSP_KEY) !== '0'; } catch { return true; } })());
 
 // Is the clangd bridge switched on server-side? Asked once, shared by every editor.
@@ -90,9 +83,7 @@ function probeServerLsp() {
 const lspCapable = () => props.lsp === true || props.lsp === 'c' || props.lsp === 'cpp';
 
 function applyFont(px) {
-  fontSize.value = Math.min(28, Math.max(9, Math.round(px)));
-  editor?.updateOptions({ fontSize: fontSize.value });
-  try { localStorage.setItem(FONT_KEY, String(fontSize.value)); } catch { /* ignore */ }
+  setEditorFontSize(px);   // the watch(fontSize) below pushes it into the editor
 }
 function toggleLsp() {
   lspEnabled.value = !lspEnabled.value;
@@ -360,6 +351,7 @@ watch(() => props.language, (l) => {
 watch(appTheme, () => monaco.editor.setTheme(editorTheme()));
 watch(editorThemePref, () => monaco.editor.setTheme(editorTheme()));
 watch(editorFontFamily, (f) => editor?.updateOptions({ fontFamily: f || undefined }));
+watch(fontSize, (px) => editor?.updateOptions({ fontSize: px }));
 
 onBeforeUnmount(() => {
   clearTimeout(pasteFlashTimer);
