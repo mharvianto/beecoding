@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth';
 import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
+import StdinFileButton from '../components/StdinFileButton.vue';
 import AiHint from '../components/AiHint.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
@@ -244,7 +245,10 @@ onBeforeUnmount(async () => {
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                      <StdinFileButton @load="stdin = $event" />
+                    </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
@@ -355,7 +359,10 @@ onBeforeUnmount(async () => {
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                    <div class="flex items-center justify-between gap-2">
+                      <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                      <StdinFileButton @load="stdin = $event" />
+                    </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
