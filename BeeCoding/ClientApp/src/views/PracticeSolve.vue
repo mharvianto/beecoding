@@ -309,7 +309,7 @@ onBeforeUnmount(async () => {
           <div>
             <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
-                 class="w-full h-20 bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
+                 class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
               runOut
                 ? (runOut.compileOk
                     ? (runOut.stdout || '') + (runOut.stderr ? '\n[stderr] ' + runOut.stderr : '') +
