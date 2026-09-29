@@ -66,11 +66,42 @@ function pushSoon() {
   clearTimeout(pushTimer);
   pushTimer = setTimeout(pushNow, 600);
 }
+// One presenter per board: while another teacher's buffer is fresh we observe instead of
+// pushing, so two teachers never overwrite each other on the students' screens. The server
+// enforces this too (a push is refused) — this just keeps the UI in step.
+const PRESENTER_IDLE_MS = 90_000;
+const other = ref(null);             // { id, name, at } — the other teacher currently presenting
+const nowTick = ref(Date.now());
+let tickTimer = null;
+const observing = computed(() =>
+  isStaff.value && lecturingOn.value && !!other.value && nowTick.value - other.value.at < PRESENTER_IDLE_MS);
+
+function noteOtherPresenter(id, name, at) {
+  other.value = { id, name, at: at ?? Date.now() };
+  nowTick.value = Date.now();
+}
+function ingestLecture(l) {
+  if (!l || l.problemId !== SCRATCH) return;
+  if (!isStaff.value) { lecture.value = l; return; }
+  if (l.teacherId && l.teacherId !== auth.user?.id) {
+    lecture.value = l;
+    noteOtherPresenter(l.teacherId, l.teacherName, Date.parse(l.updatedAt.endsWith('Z') ? l.updatedAt : l.updatedAt + 'Z'));
+  } else other.value = null;   // our own push (or a takeover by us)
+}
+async function takeOver() {
+  try {
+    const res = await conn.invoke('PushLecture', board.value.id, SCRATCH, code.value, liveLang.value, stdin.value, true);
+    if (res?.accepted) other.value = null;
+  } catch { /* ignore */ }
+}
+
 function pushNow() {
   if (!conn || conn.state !== 'Connected') return;
   if (isStaff.value) {
-    if (lecturingOn.value)
-      conn.invoke('PushLecture', board.value.id, SCRATCH, code.value, liveLang.value, stdin.value).catch(() => {});
+    if (lecturingOn.value && !observing.value)
+      conn.invoke('PushLecture', board.value.id, SCRATCH, code.value, liveLang.value, stdin.value, false)
+        .then((res) => { if (res && !res.accepted && res.presenterId) noteOtherPresenter(res.presenterId, res.presenterName); })
+        .catch(() => {});
   } else {
     conn.invoke('PushDraft', board.value.id, SCRATCH, code.value).catch(() => {});
   }
@@ -158,14 +189,15 @@ onMounted(async () => {
   conn.on('boardSettingsChanged', async () => {
     try { board.value = await api.get(`/api/boards/${props.slug}`); } catch { /* ignore */ }
   });
-  conn.on('lectureUpdated', (l) => {
-    if (l.problemId === SCRATCH && !isStaff.value) lecture.value = l;
-  });
+  conn.on('lectureUpdated', ingestLecture);
+  tickTimer = setInterval(() => { nowTick.value = Date.now(); }, 5000);
   conn.on('draftUpdated', (d) => { if (isStaff.value) ingestDraft(d); });
   try {
     await conn.start();
     await conn.invoke('JoinBoard', board.value.id);
     if (isStaff.value) {
+      // See whether another teacher is already presenting before pushing our own buffer.
+      try { ingestLecture(await conn.invoke('GetLecture', board.value.id, SCRATCH)); } catch { /* ignore */ }
       pushNow();
       try {
         const ds = await conn.invoke('GetDrafts', board.value.id);
@@ -180,6 +212,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(async () => {
   clearTimeout(pushTimer);
+  clearInterval(tickTimer);
   clearTimeout(saveTimer);
   try { await conn?.stop(); } catch { /* ignore */ }
 });
@@ -231,6 +264,13 @@ onBeforeUnmount(async () => {
     </div>
 
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
+
+    <div v-if="observing"
+         class="flex items-center gap-2 flex-wrap text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 px-4 py-2 border-b border-sky-100 dark:border-sky-500/20">
+      <span>👨‍🏫 {{ other.name }} is presenting — your editor is not shown to students.</span>
+      <button @click="loadTeacherCode" class="underline hover:no-underline">Copy their code</button>
+      <button @click="takeOver" class="ml-auto px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-medium">Take over</button>
+    </div>
 
     <!-- Teacher: left = my code + stdin + AI tutor, right = a student's code -->
     <div v-if="isStaff" class="flex-1 min-h-0">

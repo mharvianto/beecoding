@@ -71,23 +71,37 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
     /// <summary>
     /// Lecturing mode: a teacher streams their own editor buffer so students can follow along.
-    /// Staff-only, and only while the board has LecturingMode on.
+    /// Staff-only, and only while the board has LecturingMode on. A board has ONE presenter at
+    /// a time: while another teacher's buffer is fresh (see <see cref="PresenterIdleSeconds"/>)
+    /// a push is refused unless <paramref name="takeOver"/> is set, so two teachers never
+    /// overwrite each other on the students' screens.
     /// </summary>
-    public async Task PushLecture(int boardId, int problemId, string code, string language, string? stdin = null)
+    public async Task<LecturePushResult> PushLecture(int boardId, int problemId, string code, string language, string? stdin = null, bool takeOver = false)
     {
         var m = await _db.BoardMemberships
             .FirstOrDefaultAsync(x => x.BoardId == boardId && x.UserId == UserId);
-        if (m is null || m.Role is not (MembershipRole.Owner or MembershipRole.Teacher)) return;
+        if (m is null || m.Role is not (MembershipRole.Owner or MembershipRole.Teacher)) return new(false, 0, "");
         var lecturingMode = await _db.Boards.Where(b => b.Id == boardId)
             .Select(b => (bool?)b.LecturingMode).FirstOrDefaultAsync() ?? false;   // false if the board was deleted
-        if (!lecturingMode) return;
+        if (!lecturingMode) return new(false, 0, "");
+
+        var current = await _lectures.GetAsync(boardId, problemId);
+        if (!takeOver && current is { TeacherId: > 0 } && current.TeacherId != UserId
+            && (DateTime.UtcNow - current.UpdatedAt).TotalSeconds < PresenterIdleSeconds)
+            return new(false, current.TeacherId, current.TeacherName);
+
         if (code is { Length: > 200_000 }) code = code[..200_000];
         if (stdin is { Length: > 20_000 }) stdin = stdin[..20_000];
 
         var name = Context.User!.FindFirstValue(ClaimTypes.Name) ?? "teacher";
-        var lec = await _lectures.SetAsync(boardId, problemId, code ?? "", language is "c" or "cpp" ? language : "cpp", name, stdin ?? "");
+        var lec = await _lectures.SetAsync(boardId, problemId, code ?? "", language is "c" or "cpp" ? language : "cpp", name, stdin ?? "", UserId);
         await Clients.Group(BoardGroup(boardId)).SendAsync("lectureUpdated", lec);
+        return new(true, UserId, name);
     }
+
+    /// <summary>A presenter that hasn't pushed for this long is considered gone; another
+    /// teacher's next push then takes the slot without an explicit take-over.</summary>
+    public const int PresenterIdleSeconds = 90;
 
     public async Task<Lecture?> GetLecture(int boardId, int problemId) =>
         await _lectures.GetAsync(boardId, problemId);
@@ -144,3 +158,6 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
         await base.OnDisconnectedAsync(exception);
     }
 }
+
+/// <summary>Outcome of <see cref="BoardHub.PushLecture"/>: whether the push was accepted, and who holds the presenter slot.</summary>
+public record LecturePushResult(bool Accepted, int PresenterId, string PresenterName);

@@ -114,12 +114,12 @@ function pushLectureSoon() {
   if (!conn || conn.state !== 'Connected' || !isStaff.value || !board.value?.lecturingMode) return;
   clearTimeout(lectureTimer);
   lectureTimer = setTimeout(() => {
-    conn.invoke('PushLecture', board.value.id, pid.value, code.value, solveLang.value).catch(() => {});
+    conn.invoke('PushLecture', board.value.id, pid.value, code.value, solveLang.value, '', false).catch(() => {});
   }, 700);
 }
 function pushLectureNow() {
   if (conn?.state === 'Connected' && isStaff.value && board.value?.lecturingMode)
-    conn.invoke('PushLecture', board.value.id, pid.value, code.value, solveLang.value).catch(() => {});
+    conn.invoke('PushLecture', board.value.id, pid.value, code.value, solveLang.value, '', false).catch(() => {});
 }
 function useLectureCode() {
   if (!lecture.value) return;

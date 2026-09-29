@@ -71,9 +71,9 @@ public sealed class RedisLectureStore(IConnectionMultiplexer mux, Microsoft.Exte
     private TimeSpan? Ttl => _o.TtlSeconds > 0 ? TimeSpan.FromSeconds(_o.TtlSeconds) : null;
     private string Key(int boardId) => $"{_o.KeyPrefix}lecture:{boardId}";
 
-    public async ValueTask<Lecture> SetAsync(int boardId, int problemId, string code, string language, string teacherName, string stdin = "")
+    public async ValueTask<Lecture> SetAsync(int boardId, int problemId, string code, string language, string teacherName, string stdin = "", int teacherId = 0)
     {
-        var l = new Lecture(boardId, problemId, code, language, teacherName, DateTime.UtcNow, stdin);
+        var l = new Lecture(boardId, problemId, code, language, teacherName, DateTime.UtcNow, stdin, teacherId);
         var key = Key(boardId);
         await _db.HashSetAsync(key, problemId, RedisJson.Ser(l));
         if (Ttl is { } t) await _db.KeyExpireAsync(key, t);
