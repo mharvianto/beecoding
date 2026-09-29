@@ -136,7 +136,7 @@ async function loadSubs() {
     markDraftAccepted(auth.user?.id, draftScope.value);
     if (latest.xpAwarded > 0 && judgedRecently && !alreadyCelebrated(auth.user?.id, draftScope.value, latest.id)) {
       await progress.refresh();
-      celebrate({ waves: Math.min(8, progress.solvedToday + 2) });
+      celebrate({ level: problem.value?.level, bonus: progress.solvedToday > 1 ? 1 : 0 });
       celebrationToast.show({
         xpGained: latest.xpAwarded, level: progress.level, xp: progress.xp, solvedToday: progress.solvedToday,
       });
