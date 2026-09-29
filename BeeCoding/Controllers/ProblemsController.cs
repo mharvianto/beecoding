@@ -32,13 +32,17 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var problems = await _db.Problems
             .Where(p => p.BoardId == boardId.Value)
             .Include(p => p.TestCases)
+            .Include(p => p.Group)
             .OrderBy(p => p.Position).ThenBy(p => p.Id)
             .ToListAsync();
 
         bool staff = me is not null ? _vis.IsStaff(me.Role) : isAdmin;
-        return staff
-            ? problems.Select(Mapping.ToOwnerDto).ToList()
-            : problems.Where(p => !p.Hidden).Select(Mapping.ToStudentDto).ToList();
+        if (staff) return problems.Select(Mapping.ToOwnerDto).ToList();
+
+        var now = DateTime.UtcNow;
+        var boardExam = await _db.Boards.Where(b => b.Id == boardId.Value).Select(b => b.ExamMode).FirstAsync();
+        return problems.Where(p => GroupAccess.StudentVisible(p, now))
+            .Select(p => Mapping.ToStudentDto(p, p.Group?.ExamMode ?? boardExam, GroupAccess.IsClosed(p, now))).ToList();
     }
 
     [HttpGet("{problemSlug}")]
@@ -51,12 +55,16 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
 
         var p = await _db.Problems
             .Include(x => x.TestCases)
+            .Include(x => x.Group)
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId.Value);
         if (p is null) return NotFound();
 
         bool staff = me is not null ? _vis.IsStaff(me.Role) : IsAdminUser(_admin);
-        if (!staff && p.Hidden) return NotFound();
-        return staff ? Mapping.ToOwnerDto(p) : Mapping.ToStudentDto(p);
+        var now = DateTime.UtcNow;
+        if (!staff && !GroupAccess.StudentVisible(p, now)) return NotFound();
+        if (staff) return Mapping.ToOwnerDto(p);
+        var boardExam = await _db.Boards.Where(b => b.Id == boardId.Value).Select(b => b.ExamMode).FirstAsync();
+        return Mapping.ToStudentDto(p, p.Group?.ExamMode ?? boardExam, GroupAccess.IsClosed(p, now));
     }
 
     /// <summary>Owner-only: hide/unhide a problem from students (draft/not-ready), without
@@ -72,6 +80,25 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         if (p is null) return NotFound();
 
         p.Hidden = dto.Hidden;
+        await _db.SaveChangesAsync();
+        await _notifier.ProblemChangedAsync(boardId!.Value);
+        return Mapping.ToOwnerDto(p);
+    }
+
+    /// <summary>Owner-only: move a problem into a group (or out of all groups with a null id).</summary>
+    [HttpPatch("{problemSlug}/group")]
+    public async Task<ActionResult<ProblemDto>> SetGroup(string slug, string problemSlug, MoveProblemDto dto)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var p = await _db.Problems.Include(x => x.TestCases)
+            .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
+        if (p is null) return NotFound();
+        if (dto.GroupId is int gid && !await _db.ProblemGroups.AnyAsync(g => g.Id == gid && g.BoardId == boardId!.Value))
+            return BadRequest("Unknown group.");
+
+        p.GroupId = dto.GroupId;
         await _db.SaveChangesAsync();
         await _notifier.ProblemChangedAsync(boardId!.Value);
         return Mapping.ToOwnerDto(p);

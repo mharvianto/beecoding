@@ -30,6 +30,8 @@ async function load() {
 onMounted(load);
 watch(() => props.refreshSignal, load);
 
+const activeExam = computed(() => !!wall.value.problems.find((p) => p.id === activeProblem.value)?.examMode);
+
 const visiblePosts = computed(() => {
   const posts = wall.value.posts.filter((p) => p.problemId === activeProblem.value);
   const seen = new Set(posts.map((p) => `${p.problemId}:${p.userId}`));
@@ -144,11 +146,11 @@ async function toggleHiddenByStudent(post) {
               :class="activeProblem === p.id
                 ? 'bg-amber-500 text-white border-amber-500'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
-        {{ p.title }}
+        <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
       </button>
     </div>
 
-    <div v-if="wall.examMode && !wall.viewerIsStaff"
+    <div v-if="activeExam && !wall.viewerIsStaff"
          class="text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2 mb-3">
       🔒 Exam mode — only your own posts are shown.
     </div>

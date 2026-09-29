@@ -38,12 +38,13 @@ public static class Mapping
         p.Id, p.Slug, p.BoardId, p.Title, p.StatementMarkdown, p.AllowedLanguages,
         p.TimeLimitMs, p.MemoryLimitKb, p.Position, p.Tags, p.Level.ToString(), p.GeneratedByAi,
         p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(ToDto).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName,
-        p.Hidden);
+        p.Hidden, p.GroupId);
 
-    public static StudentProblemDto ToStudentDto(Problem p) => new(
+    public static StudentProblemDto ToStudentDto(Problem p, bool examMode = false, bool closed = false) => new(
         p.Id, p.Slug, p.BoardId, p.Title, p.StatementMarkdown, p.AllowedLanguages,
         p.TimeLimitMs, p.MemoryLimitKb, p.Position, p.Tags, p.Level.ToString(), p.GeneratedByAi,
-        p.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id).Select(ToDto).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName);
+        p.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id).Select(ToDto).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName,
+        p.GroupId, examMode, closed);
 
     public static TestCaseDto ToDto(BankTestCase t) =>
         new(t.Id, t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position);
@@ -67,8 +68,9 @@ public static class Mapping
             b.PendingReview, mine, b.Owner?.DisplayName ?? "teacher", b.UpdatedAt, tests, b.BannedHeaders, b.BannedSymbols, b.InputFileName);
     }
 
-    public static ProblemSummaryDto ToSummary(Problem p) =>
-        new(p.Id, p.Slug, p.Title, p.Position, p.TimeLimitMs, p.MemoryLimitKb, p.AllowedLanguages, p.Tags, p.Level.ToString());
+    public static ProblemSummaryDto ToSummary(Problem p, bool examMode = false) =>
+        new(p.Id, p.Slug, p.Title, p.Position, p.TimeLimitMs, p.MemoryLimitKb, p.AllowedLanguages, p.Tags, p.Level.ToString(),
+            p.GroupId, p.Group?.Title, examMode);
 
     public static BankSubmissionDto ToDto(BankSubmission s, bool withCode = true, bool isStaff = false, int? previousSubmissionId = null, int? nextSubmissionId = null) => new(
         s.Id, s.BankProblemId, s.Status.ToString(), s.Verdict.ToString(),

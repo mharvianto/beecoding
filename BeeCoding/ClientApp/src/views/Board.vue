@@ -39,6 +39,8 @@ let conn = null;
 let refreshTimer = null;
 
 const isStaff = computed(() => board.value && board.value.role !== 'Student');
+const hasGroups = computed(() => problems.value.some((p) => p.groupId != null));
+const examProblems = computed(() => progress.value.problems.filter((p) => p.examMode));
 const showQr = ref(false);
 const joinUrl = computed(() =>
   board.value ? `${window.location.origin}${withBase('/join/' + board.value.joinCode)}` : '');
@@ -185,8 +187,12 @@ onBeforeUnmount(async () => {
               :class="progress.examMode
                 ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30'
                 : 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-500/40 hover:border-purple-500'">
-        {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}
+        {{ (progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off') + (hasGroups ? ' (ungrouped)' : '') }}
       </button>
+      <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" class="text-xs text-slate-400 dark:text-slate-500 underline decoration-dotted"
+                  title="Grouped problems use their own group's exam mode">
+        per-group exam mode: Problems page
+      </RouterLink>
       <RouterLink :to="`/boards/${board.slug}/stats`"
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📊 Statistics
@@ -229,8 +235,9 @@ onBeforeUnmount(async () => {
     </div>
 
     <!-- Student: exam-mode notice -->
-    <div v-if="progress.examMode" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
-      🔒 Exam mode is on — you can’t see other students’ progress.
+    <div v-if="!isStaff && examProblems.length" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
+      🔒 Exam mode is on for {{ examProblems.length === progress.problems.length ? 'every problem' : examProblems.map((p) => p.title).join(', ') }}
+      — you can’t see other students’ progress {{ examProblems.length === progress.problems.length ? '' : 'on ' + (examProblems.length === 1 ? 'it' : 'them') }}.
     </div>
 
     <!-- Student: live-coding session running -->

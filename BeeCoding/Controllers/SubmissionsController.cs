@@ -27,12 +27,16 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     [HttpPost("api/problems/{problemId:int}/submit")]
     public async Task<ActionResult<object>> Submit(int problemId, SubmitDto dto)
     {
-        var problem = await _db.Problems.Include(p => p.TestCases).FirstOrDefaultAsync(p => p.Id == problemId);
+        var problem = await _db.Problems.Include(p => p.TestCases).Include(p => p.Group).FirstOrDefaultAsync(p => p.Id == problemId);
         if (problem is null) return NotFound();
 
         var membership = await _boards.GetMembershipAsync(problem.BoardId, UserId);
         if (membership is null) return Forbid();
-        if (problem.Hidden && !_vis.IsStaff(membership.Role) && !IsAdminUser(_admin)) return NotFound();
+        bool staffSubmitter = _vis.IsStaff(membership.Role) || IsAdminUser(_admin);
+        var now = DateTime.UtcNow;
+        if (!staffSubmitter && !GroupAccess.StudentVisible(problem, now)) return NotFound();
+        if (!staffSubmitter && GroupAccess.IsClosed(problem, now))
+            return BadRequest("This session is closed — submissions are no longer accepted.");
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
         if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
@@ -85,6 +89,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         bool isAdmin = IsAdminUser(_admin);
         if (viewer is null && !isAdmin) return Forbid();
         bool staff = viewer is not null ? _vis.IsStaff(viewer.Role) : isAdmin;
+        bool exam = await GroupAccess.ExamModeAsync(_db, board, problemId);
 
         var subs = await _db.Submissions
             .Where(s => s.ProblemId == problemId)
@@ -101,8 +106,8 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
                 continue;
             }
             if (!membersById.TryGetValue(s.UserId, out var author)) continue;
-            if (!_vis.CanSeePeerRow(UserId, staff, board, author)) continue;
-            bool full = _vis.CanSeePeerSubmission(UserId, staff, board, author, s);
+            if (!_vis.CanSeePeerRow(UserId, staff, exam, author)) continue;
+            bool full = _vis.CanSeePeerSubmission(UserId, staff, exam, author, s);
             result.Add(Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff));
         }
         return result;
@@ -156,8 +161,9 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (viewer is null && !IsAdminUser(_admin) && !orgManages) return Forbid();
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
-        if (author is null || !_vis.CanSeePeerRow(UserId, staff, board, author)) return Forbid();
-        bool full = _vis.CanSeePeerSubmission(UserId, staff, board, author, s);
+        bool exam = await GroupAccess.ExamModeAsync(_db, board, s.ProblemId);
+        if (author is null || !_vis.CanSeePeerRow(UserId, staff, exam, author)) return Forbid();
+        bool full = _vis.CanSeePeerSubmission(UserId, staff, exam, author, s);
         return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff, previousSubmissionId: previousId, nextSubmissionId: nextId);
     }
 

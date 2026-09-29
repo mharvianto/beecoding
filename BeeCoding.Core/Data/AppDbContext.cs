@@ -10,6 +10,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Board> Boards => Set<Board>();
     public DbSet<BoardMembership> BoardMemberships => Set<BoardMembership>();
     public DbSet<Problem> Problems => Set<Problem>();
+    public DbSet<ProblemGroup> ProblemGroups => Set<ProblemGroup>();
     public DbSet<TestCase> TestCases => Set<TestCase>();
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<Post> Posts => Set<Post>();
@@ -60,6 +61,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Problem>()
             .HasOne(x => x.Board).WithMany(x => x.Problems)
             .HasForeignKey(x => x.BoardId).OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<ProblemGroup>()
+            .HasOne(x => x.Board).WithMany(x => x.Groups)
+            .HasForeignKey(x => x.BoardId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProblemGroup>().HasIndex(x => x.BoardId);
+        // Deleting a group just ungroups its problems.
+        b.Entity<Problem>()
+            .HasOne(x => x.Group).WithMany(x => x.Problems)
+            .HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.SetNull);
 
         b.Entity<TestCase>()
             .HasOne(x => x.Problem).WithMany(x => x.TestCases)

@@ -43,10 +43,10 @@ public class WallService(AppDbContext db, VisibilityService vis)
     public static bool PeerCanSee(bool examMode, bool hiddenByTeacher, bool hiddenByStudent) =>
         !examMode && !hiddenByTeacher && !hiddenByStudent;
 
-    public bool CanViewPost(Board board, int viewerUserId, bool viewerIsStaff, BoardMembership author, Post post)
+    public bool CanViewPost(bool examMode, int viewerUserId, bool viewerIsStaff, BoardMembership author, Post post)
     {
         if (viewerIsStaff || author.UserId == viewerUserId) return true;
-        return PeerCanSee(board.ExamMode, author.HiddenByTeacher, post.HiddenByStudent);
+        return PeerCanSee(examMode, author.HiddenByTeacher, post.HiddenByStudent);
     }
 
     public async Task<WallDto?> BuildWallAsync(int boardId, int viewerUserId)
@@ -54,6 +54,7 @@ public class WallService(AppDbContext db, VisibilityService vis)
         var board = await _db.Boards
             .Include(b => b.Members).ThenInclude(m => m.User)
             .Include(b => b.Problems)
+            .Include(b => b.Groups)
             .FirstOrDefaultAsync(b => b.Id == boardId);
         if (board is null) return null;
 
@@ -61,9 +62,12 @@ public class WallService(AppDbContext db, VisibilityService vis)
         if (viewer is null) return null;
         bool staff = _vis.IsStaff(viewer.Role);
 
-        // Hidden problems (see Problem.Hidden) are excluded from the wall entirely — same
-        // "not currently active" treatment as the student-facing list and the progress grid.
-        var problems = board.Problems.Where(p => !p.Hidden).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        // Hidden problems (Problem.Hidden, or a hidden/not-yet-open group) are excluded from
+        // the wall entirely — same "not currently active" treatment as the student-facing
+        // list and the progress grid.
+        var now = DateTime.UtcNow;
+        var problems = board.Problems.Where(p => GroupAccess.StudentVisible(p, now)).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        var examByProblem = problems.ToDictionary(p => p.Id, p => GroupAccess.ExamMode(board, p));
         var problemIds = problems.Select(p => p.Id).ToHashSet();
         var langByProblem = problems.ToDictionary(p => p.Id, p => Languages.Default(p.AllowedLanguages));
 
@@ -100,9 +104,10 @@ public class WallService(AppDbContext db, VisibilityService vis)
             bool mine = post.UserId == viewerUserId;
 
             // Exam mode removes peers' cards entirely for a student; other hides just redact.
-            if (!staff && !mine && board.ExamMode) continue;
+            bool exam = examByProblem[post.ProblemId];
+            if (!staff && !mine && exam) continue;
 
-            bool full = CanViewPost(board, viewerUserId, staff, author, post);
+            bool full = CanViewPost(exam, viewerUserId, staff, author, post);
 
             var reactions = post.Reactions
                 .GroupBy(r => r.Emoji)
@@ -141,7 +146,7 @@ public class WallService(AppDbContext db, VisibilityService vis)
 
         return new WallDto(
             board.Id, board.ExamMode, staff,
-            problems.Select(Mapping.ToSummary).ToList(),
+            problems.Select(p => Mapping.ToSummary(p, examByProblem[p.Id])).ToList(),
             dtos.OrderByDescending(d => d.UpdatedAt).ToList());
     }
 }

@@ -116,6 +116,16 @@ builders — don't duplicate a visibility check elsewhere. A **hidden problem**
 student-facing list/wall/progress-grid and 404s on direct access/submit for non-staff,
 independent of the peer-visibility rules above.
 
+### Problem groups (folders/sessions)
+
+`ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and
+`OpensAt`/`ClosesAt` window. `Services/GroupAccess.cs` is the source of truth for what that
+means: student-visible (not hidden, group not hidden, already open), closed (readable but
+submit refused) and *effective exam mode* (the group's flag, or `Board.ExamMode` for
+ungrouped problems). Exam mode is therefore per problem, not per board —
+`VisibilityService` takes an `examMode` bool rather than a `Board`. Always `Include(Group)`
+where you call `GroupAccess`; an unloaded group on a grouped problem fails closed.
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

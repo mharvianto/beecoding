@@ -321,6 +321,9 @@ function ago(ts) {
         <span v-if="problem.bannedSymbols" class="block">🚫 Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
         <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
       </p>
+      <p v-if="problem.closed && !isStaff" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
+        🔚 This session is closed — you can still read and run code, but new submissions are no longer accepted.
+      </p>
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
         📄 This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
       </p>
@@ -420,7 +423,7 @@ function ago(ts) {
     <SplitPane direction="vertical" storage-key="beecoding.split.solve-console" :initial="66" :min="110">
       <template #a>
         <MonacoEditor v-model="code" :language="solveLang" :lsp="solveLang" :filename="props.problemSlug"
-                      :block-paste="!isStaff && !!board?.examMode" />
+                      :block-paste="!isStaff && !!problem?.examMode" />
       </template>
       <template #b>
       <div class="h-full overflow-y-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-2">
@@ -429,7 +432,7 @@ function ago(ts) {
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
           </button>
-          <button @click="submit" :disabled="submitting || submitCooldown > 0"
+          <button @click="submit" :disabled="submitting || submitCooldown > 0 || (problem.closed && !isStaff)"
                   class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
           </button>

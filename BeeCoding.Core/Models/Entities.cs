@@ -101,7 +101,8 @@ public class Board
     public int? OrganizationId { get; set; }
     public Organization? Organization { get; set; }
 
-    /// <summary>Board-wide exam mode: students never see peers' answers/progress.</summary>
+    /// <summary>Exam mode for the board's UNGROUPED problems (a grouped problem uses its
+    /// group's own <see cref="ProblemGroup.ExamMode"/>): students never see peers' answers/progress.</summary>
     public bool ExamMode { get; set; }
 
     /// <summary>Lecturing / live-coding mode: the teacher's editor buffer is streamed to
@@ -124,6 +125,40 @@ public class Board
     public DateTime? DeletedAt { get; set; }
 
     public List<BoardMembership> Members { get; set; } = new();
+    public List<Problem> Problems { get; set; } = new();
+    public List<ProblemGroup> Groups { get; set; } = new();
+}
+
+/// <summary>A one-level folder/session that groups a board's problems. Carries its own
+/// hide flag, exam mode and open/close window. A problem with no group falls back to the
+/// board's own <see cref="Board.ExamMode"/> and is always "open".</summary>
+public class ProblemGroup
+{
+    public int Id { get; set; }
+
+    public int BoardId { get; set; }
+    public Board? Board { get; set; }
+
+    [MaxLength(120)]
+    public string Title { get; set; } = "";
+
+    public int Position { get; set; }
+
+    /// <summary>Teacher-hidden: every problem in the group is hidden from students.</summary>
+    public bool Hidden { get; set; }
+
+    /// <summary>Exam mode for this group's problems: students never see peers' work on them.</summary>
+    public bool ExamMode { get; set; }
+
+    /// <summary>UTC. Before this the group is invisible to students. Null = open from the start.</summary>
+    public DateTime? OpensAt { get; set; }
+
+    /// <summary>UTC. From this instant students can still read the problems but not submit.
+    /// Null = never closes.</summary>
+    public DateTime? ClosesAt { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
     public List<Problem> Problems { get; set; } = new();
 }
 
@@ -156,6 +191,10 @@ public class Problem : IHasSlug
 
     public int BoardId { get; set; }
     public Board? Board { get; set; }
+
+    /// <summary>Optional folder/session this problem belongs to (null = ungrouped).</summary>
+    public int? GroupId { get; set; }
+    public ProblemGroup? Group { get; set; }
 
     [MaxLength(200)]
     public string Title { get; set; } = "";

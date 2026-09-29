@@ -48,14 +48,26 @@ public record ProblemDto(
     int TimeLimitMs, int MemoryLimitKb, int Position,
     string Tags, string Level, bool GeneratedByAi,
     List<TestCaseDto> TestCases, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
-    bool Hidden = false);
+    bool Hidden = false, int? GroupId = null);
 
 /// <summary>Problem view for a student: only sample tests exposed.</summary>
 public record StudentProblemDto(
     int Id, string Slug, int BoardId, string Title, string StatementMarkdown, string AllowedLanguages,
     int TimeLimitMs, int MemoryLimitKb, int Position,
     string Tags, string Level, bool GeneratedByAi,
-    List<TestCaseDto> SampleTests, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null);
+    List<TestCaseDto> SampleTests, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
+    int? GroupId = null,
+    bool ExamMode = false,      // effective exam mode for this problem (its group's, or the board's if ungrouped)
+    bool Closed = false);       // its group's close time has passed: readable, but submissions are refused
+
+// ---- Problem groups (one-level folders/sessions on a board) ----
+/// <summary>State is "Upcoming" (before OpensAt), "Closed" (after ClosesAt) or "Open".</summary>
+public record ProblemGroupDto(
+    int Id, string Title, int Position, bool Hidden, bool ExamMode,
+    DateTime? OpensAt, DateTime? ClosesAt, string State, int ProblemCount);
+public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, DateTime? OpensAt, DateTime? ClosesAt);
+public record ReorderGroupsDto(List<int> Order);   // group ids, new top-to-bottom order
+public record MoveProblemDto(int? GroupId);        // null => ungrouped
 
 // ---- Problem bank ----
 public record BankSummaryDto(
@@ -306,7 +318,8 @@ public record ProgressBoardDto(
     List<ProblemSummaryDto> Problems,
     List<ProgressCellDto> Cells);
 
-public record ProblemSummaryDto(int Id, string Slug, string Title, int Position, int TimeLimitMs, int MemoryLimitKb, string AllowedLanguages, string Tags, string Level);
+public record ProblemSummaryDto(int Id, string Slug, string Title, int Position, int TimeLimitMs, int MemoryLimitKb, string AllowedLanguages, string Tags, string Level,
+    int? GroupId = null, string? GroupTitle = null, bool ExamMode = false);
 
 // ---- Padlet-style wall ----
 public record ReactionDto(string Emoji, int Count, bool Mine);

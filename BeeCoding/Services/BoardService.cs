@@ -48,6 +48,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         var board = await _db.Boards
             .Include(b => b.Members).ThenInclude(m => m.User)
             .Include(b => b.Problems)
+            .Include(b => b.Groups)
             .FirstOrDefaultAsync(b => b.Id == boardId);
         if (board is null) return null;
 
@@ -55,9 +56,14 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         if (viewer is null && !viewerIsAdmin) return null;
         bool viewerIsStaff = viewerIsAdmin || (viewer is not null && _vis.IsStaff(viewer.Role));
 
-        // Hidden problems (see Problem.Hidden) are excluded from Live progress entirely —
-        // same "not currently active" treatment as the student-facing list/wall.
-        var problems = board.Problems.Where(p => !p.Hidden).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        // Hidden problems (Problem.Hidden, or a hidden/not-yet-open group) are excluded from
+        // Live progress entirely — same "not currently active" treatment as the student-facing
+        // list/wall.
+        var now = DateTime.UtcNow;
+        var problems = board.Problems.Where(p => GroupAccess.StudentVisible(p, now)).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        var examByProblem = problems.ToDictionary(p => p.Id, p => GroupAccess.ExamMode(board, p));
+        // A peer's row is only worth listing if at least one visible problem is not in exam mode.
+        bool peersVisible = problems.Count == 0 || examByProblem.Values.Any(e => !e);
         var problemIds = problems.Select(p => p.Id).ToList();
 
         var subs = await _db.Submissions
@@ -81,7 +87,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
             .ToList();
 
         var visibleStudents = studentMembers
-            .Where(m => _vis.CanSeePeerRow(viewerUserId, viewerIsStaff, board, m))
+            .Where(m => _vis.CanSeePeerRow(viewerUserId, viewerIsStaff, !peersVisible, m))
             .ToList();
 
         var studentDtos = visibleStudents
@@ -96,8 +102,10 @@ public class BoardService(AppDbContext db, VisibilityService vis)
             foreach (var p in problems)
             {
                 if (!latestByKey.TryGetValue((m.UserId, p.Id), out var agg)) continue;
+                // Exam-mode problem: a student gets nothing at all about peers' attempts on it.
+                if (!viewerIsStaff && m.UserId != viewerUserId && examByProblem[p.Id]) continue;
 
-                bool canSeeFull = _vis.CanSeePeerSubmission(viewerUserId, viewerIsStaff, board, m, agg.Latest);
+                bool canSeeFull = _vis.CanSeePeerSubmission(viewerUserId, viewerIsStaff, examByProblem[p.Id], m, agg.Latest);
                 if (canSeeFull)
                 {
                     cells.Add(new ProgressCellDto(
@@ -122,7 +130,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         return new ProgressBoardDto(
             board.Id, board.ExamMode, viewerIsStaff,
             studentDtos,
-            problems.Select(Mapping.ToSummary).ToList(),
+            problems.Select(p => Mapping.ToSummary(p, examByProblem[p.Id])).ToList(),
             cells);
     }
 }

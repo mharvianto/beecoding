@@ -94,8 +94,12 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
     private async Task<bool> DraftVisibleToPeersAsync(int boardId, int problemId, BoardMembership me)
     {
-        var examMode = await _db.Boards.Where(b => b.Id == boardId)
-            .Select(b => (bool?)b.ExamMode).FirstOrDefaultAsync() ?? true;   // treat a deleted board as locked down
+        var boardExam = await _db.Boards.Where(b => b.Id == boardId)
+            .Select(b => (bool?)b.ExamMode).FirstOrDefaultAsync();
+        // A deleted board is treated as locked down; a grouped problem uses its group's exam mode.
+        var groupExam = await _db.Problems.Where(p => p.Id == problemId)
+            .Select(p => p.Group != null ? (bool?)p.Group.ExamMode : null).FirstOrDefaultAsync();
+        var examMode = boardExam is null || (groupExam ?? boardExam.Value);
         var hiddenByStudent = await _db.Posts
             .Where(p => p.ProblemId == problemId && p.UserId == UserId)
             .Select(p => (bool?)p.HiddenByStudent).FirstOrDefaultAsync() ?? false;
@@ -112,7 +116,11 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
         if (me.Role is MembershipRole.Owner or MembershipRole.Teacher)
             return await _drafts.ForBoardAsync(boardId);
 
-        if (me.Board is null || me.Board.ExamMode) return Enumerable.Empty<Draft>();   // deleted board -> locked down
+        if (me.Board is null) return Enumerable.Empty<Draft>();   // deleted board -> locked down
+        // Per-problem exam mode: a group's own flag, else the board's (for ungrouped problems).
+        var groupExam = await _db.Problems.Where(p => p.BoardId == boardId)
+            .Select(p => new { p.Id, Exam = p.Group != null ? (bool?)p.Group.ExamMode : null }).ToListAsync();
+        var examByProblem = groupExam.ToDictionary(p => p.Id, p => p.Exam ?? me.Board.ExamMode);
         var hiddenUserIds = await _db.BoardMemberships
             .Where(m => m.BoardId == boardId && m.HiddenByTeacher)
             .Select(m => m.UserId).ToListAsync();
@@ -123,6 +131,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
         return (await _drafts.ForBoardAsync(boardId))
             .Where(d => d.UserId != UserId
+                        && !examByProblem.GetValueOrDefault(d.ProblemId, me.Board.ExamMode)
                         && !hiddenUserIds.Contains(d.UserId)
                         && !hiddenPostSet.Contains((d.ProblemId, d.UserId)));
     }

@@ -92,7 +92,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         var (post, board, viewer, author, _) = await _wall.LoadPostContextAsync(postId, UserId);
         if (post is null || board is null || viewer is null || author is null) return NotFound();
         bool staff = _vis.IsStaff(viewer.Role);
-        if (!_wall.CanViewPost(board, UserId, staff, author, post)) return Forbid();
+        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return Forbid();
 
         var existing = await _db.PostReactions
             .FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == UserId && r.Emoji == emoji);
@@ -121,7 +121,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         var (post, board, viewer, author, _) = await _wall.LoadPostContextAsync(postId, UserId);
         if (post is null || board is null || viewer is null || author is null) return NotFound();
         bool staff = _vis.IsStaff(viewer.Role);
-        if (!_wall.CanViewPost(board, UserId, staff, author, post)) return Forbid();
+        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return Forbid();
 
         var c = new PostComment { PostId = postId, UserId = UserId, Body = body };
         _db.PostComments.Add(c);
