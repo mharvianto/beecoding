@@ -333,8 +333,8 @@ public record ProblemSummaryDto(int Id, string Slug, string Title, int Position,
     int? GroupId = null, string? GroupTitle = null, bool ExamMode = false);
 
 // ---- Padlet-style wall ----
-public record ReactionDto(string Emoji, int Count, bool Mine);
-public record CommentDto(int Id, int UserId, string AuthorName, string Body, DateTime CreatedAt, bool CanDelete);
+public record ReactionDto(string Emoji, int Count, bool Mine, int New = 0);   // New: reactions by others since the author last saw (author only)
+public record CommentDto(int Id, int UserId, string AuthorName, string Body, DateTime CreatedAt, bool CanDelete, bool IsNew = false);
 
 public record WallPostDto(
     int PostId,
@@ -355,7 +355,8 @@ public record WallPostDto(
     int? LatestSubmissionId,  // fetch GET /api/submissions/{id} for the full, untruncated code
     DateTime UpdatedAt,
     List<ReactionDto> Reactions,
-    List<CommentDto> Comments);
+    List<CommentDto> Comments,
+    int NewActivity = 0);     // author only: reactions + comments by others since the author last saw
 
 public record WallDto(
     int BoardId,

@@ -435,6 +435,10 @@ public class Post
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+    /// <summary>When the author last acknowledged feedback on this post. Reactions and
+    /// comments by others newer than this show up to the author as "new" on the wall.</summary>
+    public DateTime ActivitySeenAt { get; set; } = DateTime.UtcNow;
+
     public List<PostReaction> Reactions { get; set; } = new();
     public List<PostComment> Comments { get; set; } = new();
 }

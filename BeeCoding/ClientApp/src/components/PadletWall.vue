@@ -93,6 +93,18 @@ async function toggleReaction(post, emoji) {
     post.reactions = await api.post(`/api/posts/${post.postId}/reactions`, { emoji });
   } catch (e) { error.value = e.message; }
 }
+// Feedback the post's author hasn't acknowledged yet. Acknowledging tells the server, but the
+// per-item "new" marks stay on screen until the wall next reloads so they can be spotted.
+async function acknowledge(post) {
+  openComments.value[post.postId] = true;
+  if (!post.newActivity) return;
+  try {
+    await api.post(`/api/posts/${post.postId}/seen`);
+    post.newActivity = 0;
+  } catch (e) { error.value = e.message; }
+}
+const tabHasNew = (problemId) =>
+  wall.value.posts.some((p) => p.problemId === problemId && p.mine && p.newActivity > 0);
 function reactionCount(post, emoji) {
   return post.reactions.find((r) => r.emoji === emoji);
 }
@@ -147,6 +159,7 @@ async function toggleHiddenByStudent(post) {
                 ? 'bg-amber-500 text-white border-amber-500'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
         <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
+        <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card">🔔</span>
       </button>
     </div>
 
@@ -220,6 +233,15 @@ async function toggleHiddenByStudent(post) {
 
           <div v-if="!post.postId" class="px-4 pb-3 pt-1 text-[11px] text-slate-400 dark:text-slate-500">watching live · not submitted yet</div>
 
+          <!-- new feedback for the author -->
+          <div v-if="post.mine && post.newActivity" class="px-4 mt-2">
+            <button @click="acknowledge(post)"
+                    class="text-xs font-medium rounded-full px-2.5 py-0.5 bg-amber-500 text-white hover:bg-amber-600"
+                    title="Show the new feedback and mark it as seen">
+              🔔 {{ post.newActivity }} new — mark as seen
+            </button>
+          </div>
+
           <!-- reactions -->
           <div v-if="post.postId" class="flex flex-wrap gap-1 px-4 mt-2">
             <button v-for="e in EMOJIS" :key="e" @click="toggleReaction(post, e)"
@@ -227,19 +249,22 @@ async function toggleHiddenByStudent(post) {
                     :class="reactionCount(post, e)?.mine
                       ? 'bg-amber-100 border-amber-300 dark:bg-amber-500/20 dark:border-amber-500/40'
                       : 'bg-white/70 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-slate-300'">
-              {{ e }}<span v-if="reactionCount(post, e)" class="ml-1 text-slate-500 dark:text-slate-400">{{ reactionCount(post, e).count }}</span>
+              {{ e }}<span v-if="reactionCount(post, e)" class="ml-1 text-slate-500 dark:text-slate-400">{{ reactionCount(post, e).count }}</span><span
+                v-if="reactionCount(post, e)?.new" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">+{{ reactionCount(post, e).new }}</span>
             </button>
           </div>
 
           <!-- comments -->
           <div v-if="post.postId" class="px-4 mt-2 pb-3">
-            <button @click="openComments[post.postId] = !openComments[post.postId]"
+            <button @click="openComments[post.postId] ? (openComments[post.postId] = false) : acknowledge(post)"
                     class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
               💬 {{ post.comments.length }} comment{{ post.comments.length === 1 ? '' : 's' }}
             </button>
             <div v-if="openComments[post.postId]" class="mt-2 space-y-1.5">
-              <div v-for="c in post.comments" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1">
+              <div v-for="c in post.comments" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1"
+                   :class="{ 'border-l-2 border-amber-500': c.isNew }">
                 <span class="font-semibold">{{ c.authorName }}</span>
+                <span v-if="c.isNew" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">NEW</span>
                 <span class="text-slate-400 dark:text-slate-500"> · {{ ago(c.createdAt) }} ago</span>
                 <button v-if="c.canDelete" @click="delComment(post, c)"
                         class="text-slate-300 dark:text-slate-600 hover:text-red-500 float-right">×</button>

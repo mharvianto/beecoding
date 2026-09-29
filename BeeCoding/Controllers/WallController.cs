@@ -83,6 +83,19 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         return NoContent();
     }
 
+    /// <summary>The author acknowledges the reactions/comments on their own post.</summary>
+    [HttpPost("api/posts/{postId:int}/seen")]
+    public async Task<IActionResult> MarkSeen(int postId)
+    {
+        var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+        if (post is null) return NotFound();
+        if (post.UserId != UserId) return Forbid();
+
+        post.ActivitySeenAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     [HttpPost("api/posts/{postId:int}/reactions")]
     public async Task<ActionResult<IEnumerable<ReactionDto>>> React(int postId, ReactDto dto)
     {

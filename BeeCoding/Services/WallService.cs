@@ -109,9 +109,15 @@ public class WallService(AppDbContext db, VisibilityService vis)
 
             bool full = CanViewPost(exam, viewerUserId, staff, author, post);
 
+            // "New" feedback is only ever surfaced to the post's own author: others' reactions
+            // and comments newer than the moment they last acknowledged (see Post.ActivitySeenAt).
+            var seenAt = post.ActivitySeenAt;
+            bool NewFor(int actorId, DateTime at) => mine && actorId != post.UserId && at > seenAt;
+
             var reactions = post.Reactions
                 .GroupBy(r => r.Emoji)
-                .Select(g => new ReactionDto(g.Key, g.Count(), g.Any(r => r.UserId == viewerUserId)))
+                .Select(g => new ReactionDto(g.Key, g.Count(), g.Any(r => r.UserId == viewerUserId),
+                    g.Count(r => NewFor(r.UserId, r.CreatedAt))))
                 .OrderByDescending(r => r.Count)
                 .ToList();
 
@@ -120,7 +126,8 @@ public class WallService(AppDbContext db, VisibilityService vis)
                     .OrderBy(c => c.CreatedAt)
                     .Select(c => new CommentDto(
                         c.Id, c.UserId, c.User?.DisplayName ?? "user", c.Body, c.CreatedAt,
-                        c.UserId == viewerUserId || board.OwnerId == viewerUserId))
+                        c.UserId == viewerUserId || board.OwnerId == viewerUserId,
+                        NewFor(c.UserId, c.CreatedAt)))
                     .ToList()
                 : new List<CommentDto>();
 
@@ -141,7 +148,8 @@ public class WallService(AppDbContext db, VisibilityService vis)
                 LatestSubmissionId: full && latest is not null ? latest.Id : null,
                 UpdatedAt: post.UpdatedAt,
                 Reactions: full ? reactions : new List<ReactionDto>(),
-                Comments: comments));
+                Comments: comments,
+                NewActivity: reactions.Sum(r => r.New) + comments.Count(c => c.IsNew)));
         }
 
         return new WallDto(
