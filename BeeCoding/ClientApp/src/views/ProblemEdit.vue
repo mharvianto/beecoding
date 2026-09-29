@@ -121,7 +121,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <p v-if="!loaded" class="max-w-6xl mx-auto px-4 py-10 text-sm text-slate-400 dark:text-slate-500">Loading…</p>
+    <p v-if="!loaded" class="max-w-7xl mx-auto px-4 py-10 text-sm text-slate-400 dark:text-slate-500">Loading…</p>
     <ProblemEditor v-else
       :problem="problem"
       :show-bank-fields="!isBoard"

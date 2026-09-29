@@ -103,7 +103,7 @@ onBeforeUnmount(() => { pollStopped = true; });
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-1 gap-2 flex-wrap">
       <h1 class="text-xl font-bold">Problem bank</h1>
       <div class="flex items-center gap-2">

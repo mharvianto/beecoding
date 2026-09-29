@@ -390,7 +390,7 @@ onMounted(() => { loadOrgs(); });
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center gap-3 mb-4">
       <h1 class="text-xl font-bold">Organization</h1>
       <TableViewToggle class="ml-auto" />

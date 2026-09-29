@@ -146,7 +146,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-6" v-if="board">
+  <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
     <div class="flex items-center justify-between mb-1">
       <div>
         <h1 class="text-xl font-bold">{{ board.title }}</h1>

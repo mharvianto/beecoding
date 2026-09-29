@@ -103,7 +103,7 @@ const showHowItWorks = ref(false);
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-8">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center gap-2 mb-4">
       <h1 class="text-xl font-bold">Leaderboard</h1>
       <button @click="showHowItWorks = !showHowItWorks"

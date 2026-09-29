@@ -64,7 +64,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="max-w-6xl mx-auto px-4 py-6" v-if="board">
+  <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
     <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
       <h1 class="text-xl font-bold">Statistics</h1>
