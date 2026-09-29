@@ -5,6 +5,7 @@ import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
+import { playgroundFocus } from '../lib/playgroundFocus';
 
 // A no-strings scratch editor: anyone can try C / C++, Run it, see output.
 // Nothing is submitted, graded, saved to the server, or shared.
@@ -86,6 +87,11 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
       <h1 class="text-sm font-bold">🧪 Playground</h1>
       <span class="text-xs text-slate-400 dark:text-slate-500">Scratch C / C++ — nothing is graded or shared.</span>
       <div class="ml-auto flex items-center gap-2">
+        <button @click="playgroundFocus = !playgroundFocus"
+                :title="playgroundFocus ? 'Show the top navigation bar' : 'Hide the top navigation bar for more room'"
+                class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+          {{ playgroundFocus ? '⤡ Show navbar' : '⤢ Full screen' }}
+        </button>
         <button @click="resetTemplate"
                 class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
           Reset template

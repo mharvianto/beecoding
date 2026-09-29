@@ -9,6 +9,7 @@ import UndoToast from './components/UndoToast.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
 import { celebrate } from './lib/confetti';
+import { playgroundFocus } from './lib/playgroundFocus';
 
 const auth = useAuth();
 const progress = useProgress();
@@ -74,7 +75,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full min-h-0 flex flex-col">
-    <header v-if="auth.user" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+    <header v-if="auth.user && !(playgroundFocus && route.path === '/playground')" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-6xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <button @click="mobileNavOpen = !mobileNavOpen"
                 class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" aria-label="Menu">
