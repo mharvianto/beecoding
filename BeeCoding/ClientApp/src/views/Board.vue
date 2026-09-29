@@ -191,17 +191,6 @@ onBeforeUnmount(async () => {
 
     <!-- Staff controls -->
     <div v-if="isStaff" class="flex flex-wrap items-center gap-2 my-4">
-      <button @click="toggleExam"
-              class="px-4 py-2 rounded-lg text-sm font-semibold border-2"
-              :class="progress.examMode
-                ? 'bg-purple-600 text-white border-purple-600 shadow-md shadow-purple-500/30'
-                : 'bg-white dark:bg-slate-900 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-500/40 hover:border-purple-500'">
-        {{ (progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off') + (hasGroups ? ' (ungrouped)' : '') }}
-      </button>
-      <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" class="text-xs text-slate-400 dark:text-slate-500 underline decoration-dotted"
-                  title="Grouped problems use their own group's exam mode">
-        per-group exam mode: Problems page
-      </RouterLink>
       <RouterLink :to="`/boards/${board.slug}/stats`"
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         📊 Statistics
@@ -211,14 +200,25 @@ onBeforeUnmount(async () => {
         🧾 Submissions
       </RouterLink>
 
-      <div class="relative sm:ml-auto">
+      <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
+            title="Exam mode is on for ungrouped problems">🔒 Exam mode{{ hasGroups ? ' (ungrouped)' : '' }}</span>
+      <div class="relative" :class="progress.examMode ? '' : 'sm:ml-auto'">
         <button @click="settingsOpen = !settingsOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           ⚙️ Settings
         </button>
         <div v-if="settingsOpen" class="fixed inset-0 z-40" @click="settingsOpen = false"></div>
         <div v-if="settingsOpen"
-             class="absolute right-0 z-50 mt-1 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
+             class="absolute right-0 z-50 mt-1 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
+          <button @click="toggleExam(); settingsOpen = false"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  :class="progress.examMode ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
+            {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}{{ hasGroups ? ' (ungrouped)' : '' }}
+          </button>
+          <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" @click="settingsOpen = false"
+                      class="block px-3 pb-2 -mt-1 text-[11px] text-slate-400 dark:text-slate-500 hover:underline">
+            Grouped problems use their group's exam mode — set it on the Problems page
+          </RouterLink>
           <button @click="toggleLecturing(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   :class="board.lecturingMode ? 'text-sky-600 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
