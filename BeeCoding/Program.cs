@@ -237,6 +237,7 @@ builder.Services.AddHostedService<GradeResultConsumer>();
 if (!judgeOpt.Queue.UseRedis)
     builder.Services.AddHostedService<JudgeWorker>();
 builder.Services.AddHostedService<JudgeJanitor>();
+builder.Services.AddHostedService<NotificationJanitor>();
 
 builder.Services.AddScoped<VisibilityService>();
 builder.Services.AddScoped<BoardService>();
