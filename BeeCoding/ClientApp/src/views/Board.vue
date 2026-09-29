@@ -113,7 +113,10 @@ async function refreshDrafts() {
   } catch { /* ignore */ }
 }
 
+function onEsc(e) { if (e.key === 'Escape') showQr.value = false; }
+
 onMounted(async () => {
+  window.addEventListener('keydown', onEsc);
   try { await loadAll(); } catch (e) { error.value = e.message; return; }
 
   conn = createBoardConnection();
@@ -135,6 +138,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(async () => {
+  window.removeEventListener('keydown', onEsc);
   clearTimeout(refreshTimer);
   try { await conn?.invoke('LeaveBoard', board.value?.id); } catch {}
   await conn?.stop();
@@ -166,18 +170,23 @@ onBeforeUnmount(async () => {
           Join code: <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ board.joinCode }}</span>
           <button @click="showQr = !showQr"
                   class="text-xs px-1.5 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400 dark:hover:border-amber-500">
-            {{ showQr ? 'Hide QR' : 'Show QR' }}
+            Show QR
           </button>
         </span>
       </div>
     </div>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
 
-    <div v-if="isStaff && showQr" class="flex flex-col items-center gap-2 my-4">
-      <QrCode :text="joinUrl" />
-      <p class="text-xs text-slate-400 dark:text-slate-500">
-        Scan to join instantly — or enter code <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ board.joinCode }}</span> manually
-      </p>
+    <!-- Join QR: centered modal, with the code large enough to read from the back of a room -->
+    <div v-if="isStaff && showQr" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+         @click.self="showQr = false">
+      <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-sm p-6 shadow-lg text-center relative">
+        <button @click="showQr = false" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" aria-label="Close">✕</button>
+        <h2 class="font-semibold mb-3">{{ board.title }}</h2>
+        <QrCode :text="joinUrl" :size="260" />
+        <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">Scan to join instantly, or enter the code:</p>
+        <p class="mt-1 font-mono font-bold text-4xl tracking-widest text-slate-800 dark:text-slate-100 select-all">{{ board.joinCode }}</p>
+      </div>
     </div>
 
     <!-- Staff controls -->
