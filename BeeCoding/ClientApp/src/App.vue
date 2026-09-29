@@ -8,11 +8,15 @@ import AppFooter from './components/AppFooter.vue';
 import UndoToast from './components/UndoToast.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
+import NotificationBell from './components/NotificationBell.vue';
+import NotificationToast from './components/NotificationToast.vue';
+import { useNotifications } from './stores/notifications';
 import { celebrate } from './lib/confetti';
 import { playgroundFocus } from './lib/playgroundFocus';
 
 const auth = useAuth();
 const progress = useProgress();
+const notifications = useNotifications();
 const router = useRouter();
 const route = useRoute();
 
@@ -33,6 +37,11 @@ const focusRoute = computed(() => route.path === '/playground' || /^\/boards\/[^
 
 // keep the header XP in sync with who's logged in
 watch(() => auth.user?.id, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
+
+// Bell + live toasts for reactions/comments on my wall posts. No toast when the user is
+// already on the board it's about — the card itself shows the new feedback there.
+notifications.suppressToast = (n) => route.path === `/boards/${n.boardSlug}`;
+watch(() => auth.user?.id, (id) => (id ? notifications.start() : notifications.stop()), { immediate: true });
 
 // Celebrate a level-up anywhere in the app. `levelBaseline` is the level as of the
 // last hydration; null while logged out — so a fresh login that loads level 5 does
@@ -126,6 +135,7 @@ onBeforeUnmount(() => {
               {{ auth.user.role }}
             </span>
           </RouterLink>
+          <NotificationBell />
           <ThemeToggle />
           <button @click="logout" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">
             Sign out
@@ -144,5 +154,6 @@ onBeforeUnmount(() => {
     <UndoToast />
     <ConfirmDialog />
     <CelebrationToast />
+    <NotificationToast v-if="auth.user" />
   </div>
 </template>

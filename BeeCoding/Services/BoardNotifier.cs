@@ -42,4 +42,10 @@ public class BoardNotifier(IHubContext<BoardHub> hub) : IBoardNotifier
     public Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total) =>
         _hub.Clients.User(userId.ToString())
             .SendAsync("submissionProgress", new { kind, submissionId, current, total });
+
+    public Task NotificationAsync(int userId, NotificationDto item, int unread) =>
+        _hub.Clients.User(userId.ToString()).SendAsync("notification", new { item, unread });
+
+    public Task NotificationRemovedAsync(int userId, int notificationId, int unread) =>
+        _hub.Clients.User(userId.ToString()).SendAsync("notificationRemoved", new { id = notificationId, unread });
 }

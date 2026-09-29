@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch, computed, onMounted } from 'vue';
+import { ref, watch, computed, onMounted, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
 import SubmissionView from './SubmissionView.vue';
@@ -10,6 +11,8 @@ const props = defineProps({
   refreshSignal: { type: Number, default: 0 },
   drafts: { type: Object, default: () => ({}) },   // "problemId:userId" -> { code, updatedAt, authorName }
 });
+const route = useRoute();
+const router = useRouter();
 const wall = ref({ problems: [], posts: [], examMode: false, viewerIsStaff: false });
 const activeProblem = ref(null);
 const noteDraft = ref({});          // postId -> string while editing
@@ -25,10 +28,30 @@ async function load() {
     wall.value = await api.get(`/api/boards/${props.boardSlug}/wall`);
     if (!activeProblem.value && wall.value.problems.length)
       activeProblem.value = wall.value.problems[0].id;
+    await applyDeepLink();
   } catch (e) { error.value = e.message; }
+}
+
+// Arriving from a notification (?problem=<id>&post=<id>): open that problem's tab, scroll to
+// the card and flash it, then drop the params so a refresh doesn't repeat it.
+const flashPost = ref(null);
+async function applyDeepLink() {
+  const { problem, post, ...rest } = route.query;
+  if (!problem) return;
+  const pid = Number(problem);
+  if (wall.value.problems.some((p) => p.id === pid)) activeProblem.value = pid;
+  router.replace({ query: rest });
+  if (!post) return;
+  await nextTick();
+  const el = document.getElementById(`post-${post}`);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  flashPost.value = Number(post);
+  setTimeout(() => { flashPost.value = null; }, 2500);
 }
 onMounted(load);
 watch(() => props.refreshSignal, load);
+watch(() => route.query.problem, (v) => { if (v) load(); });
 
 const activeExam = computed(() => !!wall.value.problems.find((p) => p.id === activeProblem.value)?.examMode);
 
@@ -171,10 +194,12 @@ async function toggleHiddenByStudent(post) {
     <!-- masonry wall -->
     <div class="[column-fill:_balance] columns-1 sm:columns-2 xl:columns-3 gap-4">
       <article v-for="post in visiblePosts" :key="post.postId ?? ('d' + post.userId)"
-               class="mb-4 break-inside-avoid rounded-2xl border shadow-sm relative"
-               :class="post.redacted ? 'bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-slate-700'
+               :id="post.postId ? `post-${post.postId}` : undefined"
+               class="mb-4 break-inside-avoid rounded-2xl border shadow-sm relative transition"
+               :class="[post.redacted ? 'bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-slate-700'
                  : draftFor(post) ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-300 dark:border-amber-500/40'
-                 : pastels[hash(post.userId)] + ' border-slate-200 dark:border-slate-800'">
+                 : pastels[hash(post.userId)] + ' border-slate-200 dark:border-slate-800',
+                 { 'ring-2 ring-amber-400': post.postId && flashPost === post.postId }]">
         <!-- header -->
         <div class="flex items-center gap-2 px-4 pt-3">
           <span class="w-7 h-7 rounded-full text-white text-xs font-bold grid place-items-center shrink-0"

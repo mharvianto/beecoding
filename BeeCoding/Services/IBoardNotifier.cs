@@ -39,4 +39,10 @@ public interface IBoardNotifier
     /// <summary>A submission (board or practice) is mid-grading: test <c>current</c> of
     /// <c>total</c> is about to run.</summary>
     Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total);
+
+    /// <summary>A notification was created or updated for this user (also carries the new unread total).</summary>
+    Task NotificationAsync(int userId, NotificationDto item, int unread);
+
+    /// <summary>A notification was withdrawn (e.g. the reaction was toggled off).</summary>
+    Task NotificationRemovedAsync(int userId, int notificationId, int unread);
 }

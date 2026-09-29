@@ -471,6 +471,46 @@ public class PostComment
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>An in-app notification for a wall-post author: someone reacted to or commented on
+/// their card. Reactions on the same post coalesce into one unread row (see NotificationService)
+/// so a burst of emoji doesn't flood the bell.</summary>
+public class Notification
+{
+    public int Id { get; set; }
+
+    /// <summary>Recipient.</summary>
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    /// <summary>"reaction" or "comment".</summary>
+    [MaxLength(16)]
+    public string Kind { get; set; } = "";
+
+    public int BoardId { get; set; }
+    public int ProblemId { get; set; }
+    public int PostId { get; set; }
+    public int? CommentId { get; set; }
+
+    public int ActorUserId { get; set; }
+    [MaxLength(120)]
+    public string ActorName { get; set; } = "";
+    public bool ActorIsStaff { get; set; }
+
+    /// <summary>Latest emoji, for a reaction notification.</summary>
+    [MaxLength(16)]
+    public string? Emoji { get; set; }
+
+    /// <summary>First part of the comment, for a comment notification.</summary>
+    [MaxLength(200)]
+    public string? Snippet { get; set; }
+
+    /// <summary>How many reactions this (coalesced) row stands for.</summary>
+    public int Count { get; set; } = 1;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ReadAt { get; set; }
+}
+
 /// <summary>One row per distinct problem a user has fully solved (first Accepted).
 /// De-dupes XP: a bank problem and its board copies share the same <see cref="ProblemKey"/>.</summary>
 public class SolveRecord

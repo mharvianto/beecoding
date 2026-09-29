@@ -11,13 +11,14 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 public class WallController(AppDbContext db, WallService wall, VisibilityService vis,
-    IBoardNotifier notifier, BoardService boards) : ApiControllerBase
+    IBoardNotifier notifier, BoardService boards, NotificationService notifications) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly WallService _wall = wall;
     private readonly VisibilityService _vis = vis;
     private readonly IBoardNotifier _notifier = notifier;
     private readonly BoardService _boards = boards;
+    private readonly NotificationService _notifications = notifications;
 
     [HttpGet("api/boards/{slug}/wall")]
     public async Task<ActionResult<WallDto>> Get(string slug)
@@ -116,6 +117,11 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         await _db.SaveChangesAsync();
         await _notifier.WallChangedAsync(post.BoardId);
 
+        if (existing is null)
+            await _notifications.ReactionAddedAsync(post, UserId, (await _db.Users.FindAsync(UserId))?.DisplayName ?? "Someone", staff, emoji);
+        else
+            await _notifications.ReactionRemovedAsync(post, UserId);
+
         var reactions = await _db.PostReactions.Where(r => r.PostId == postId).ToListAsync();
         return reactions
             .GroupBy(r => r.Emoji)
@@ -142,6 +148,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         await _notifier.WallChangedAsync(post.BoardId);
 
         var me = await _db.Users.FindAsync(UserId);
+        await _notifications.CommentAddedAsync(post, c, me?.DisplayName ?? "Someone", staff);
         return new CommentDto(c.Id, UserId, me?.DisplayName ?? "user", c.Body, c.CreatedAt, true);
     }
 
@@ -157,6 +164,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
 
         _db.PostComments.Remove(c);
         await _db.SaveChangesAsync();
+        await _notifications.CommentRemovedAsync(commentId);
         await _notifier.WallChangedAsync(c.Post!.BoardId);
         return NoContent();
     }
