@@ -7,6 +7,7 @@ import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
 import StdinFileButton from '../components/StdinFileButton.vue';
+import InputFileName from '../components/InputFileName.vue';
 import AiHint from '../components/AiHint.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
@@ -27,6 +28,7 @@ const lecturingOn = computed(() => !!board.value?.lecturingMode);
 const storeKey = computed(() =>
   !board.value ? '' : `beecoding.livecode.${isStaff.value ? '' : 'student.'}${board.value.id}`);
 const stdinKey = computed(() => (storeKey.value ? storeKey.value + '.stdin' : ''));
+const fileKey = computed(() => (storeKey.value ? storeKey.value + '.inputFile' : ''));
 const code = ref(CODE_TEMPLATES.cpp);
 const liveLang = ref('cpp');
 
@@ -51,6 +53,7 @@ const selectedStudent = computed(() =>
 
 // run panel
 const stdin = ref('');
+const inputFile = ref('');   // blank = pipe stdin; a name = write stdin to that file (local to this viewer)
 const running = ref(false);
 const runOut = ref(null);
 
@@ -100,7 +103,7 @@ async function toggleLecturing() {
 
 async function run() {
   error.value = ''; running.value = true; runOut.value = null;
-  try { runOut.value = await api.post('/api/run', { language: liveLang.value, code: code.value, stdin: stdin.value }); }
+  try { runOut.value = await api.post('/api/run', { language: liveLang.value, code: code.value, stdin: stdin.value, inputFileName: inputFile.value || null }); }
   catch (e) { error.value = e.message; }
   finally { running.value = false; }
 }
@@ -125,6 +128,9 @@ watch(stdin, () => {
   if (isStaff.value) pushSoon();
   try { if (stdinKey.value) localStorage.setItem(stdinKey.value, stdin.value); } catch { /* ignore */ }
 });
+watch(inputFile, () => {
+  try { if (fileKey.value) localStorage.setItem(fileKey.value, inputFile.value); } catch { /* ignore */ }
+});
 watch(lecturingOn, (on) => { if (on) pushNow(); });
 
 function ingestDraft(d) {
@@ -145,6 +151,7 @@ onMounted(async () => {
     const s = localStorage.getItem(stdinKey.value);
     if (s != null) stdin.value = s;
   } catch { /* ignore */ }
+  try { inputFile.value = localStorage.getItem(fileKey.value) || ''; } catch { /* ignore */ }
   try { showStudents.value = localStorage.getItem(stKey.value) !== '0'; } catch { /* ignore */ }
 
   conn = createBoardConnection();
@@ -247,7 +254,10 @@ onBeforeUnmount(async () => {
                   <div>
                     <div class="flex items-center justify-between gap-2">
                       <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                      <StdinFileButton @load="stdin = $event" />
+                      <span class="inline-flex items-center gap-3">
+          <InputFileName v-model="inputFile" />
+          <StdinFileButton @load="stdin = $event" />
+        </span>
                     </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
@@ -361,7 +371,10 @@ onBeforeUnmount(async () => {
                   <div>
                     <div class="flex items-center justify-between gap-2">
                       <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                      <StdinFileButton @load="stdin = $event" />
+                      <span class="inline-flex items-center gap-3">
+          <InputFileName v-model="inputFile" />
+          <StdinFileButton @load="stdin = $event" />
+        </span>
                     </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>

@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
 import StdinFileButton from '../components/StdinFileButton.vue';
+import InputFileName from '../components/InputFileName.vue';
 import { CODE_TEMPLATES } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
 import { playgroundFocus } from '../lib/playgroundFocus';
@@ -12,11 +13,13 @@ import { playgroundFocus } from '../lib/playgroundFocus';
 // Nothing is submitted, graded, saved to the server, or shared.
 const LANG_KEY = 'beecoding.playground.lang';
 const STDIN_KEY = 'beecoding.playground.stdin';
+const FILE_KEY = 'beecoding.playground.inputFile';
 const codeKey = (l) => `beecoding.playground.code.${l}`;
 
 const lang = ref('cpp');
 const code = ref(CODE_TEMPLATES.cpp);
 const stdin = ref('');
+const inputFile = ref('');   // blank = pipe stdin; a name = write stdin to that file
 const running = ref(false);
 const runOut = ref(null);
 const error = ref('');
@@ -51,7 +54,7 @@ async function run() {
   if (runCooldown.value > 0) return;
   error.value = ''; running.value = true; runOut.value = null;
   try {
-    runOut.value = await api.post('/api/run', { language: lang.value, code: code.value, stdin: stdin.value });
+    runOut.value = await api.post('/api/run', { language: lang.value, code: code.value, stdin: stdin.value, inputFileName: inputFile.value || null });
     startRunCooldown(5);
   } catch (e) { error.value = e.message; }
   finally { running.value = false; }
@@ -63,6 +66,9 @@ watch(code, () => {
   saveTimer = setTimeout(() => {
     try { localStorage.setItem(codeKey(lang.value), code.value); } catch { /* ignore */ }
   }, 400);
+});
+watch(inputFile, () => {
+  try { localStorage.setItem(FILE_KEY, inputFile.value); } catch { /* ignore */ }
 });
 watch(stdin, () => {
   try { localStorage.setItem(STDIN_KEY, stdin.value); } catch { /* ignore */ }
@@ -77,6 +83,7 @@ onMounted(() => {
     const s = localStorage.getItem(STDIN_KEY);
     if (s != null) stdin.value = s;
   } catch { /* ignore */ }
+  try { inputFile.value = localStorage.getItem(FILE_KEY) || ''; } catch { /* ignore */ }
   loadCode(lang.value);
 });
 onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
@@ -125,7 +132,10 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
               <div>
                 <div class="flex items-center justify-between gap-2">
                   <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
-                  <StdinFileButton @load="stdin = $event" />
+                  <span class="inline-flex items-center gap-3">
+          <InputFileName v-model="inputFile" />
+          <StdinFileButton @load="stdin = $event" />
+        </span>
                 </div>
                 <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                           class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>

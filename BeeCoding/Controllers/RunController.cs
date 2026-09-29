@@ -38,6 +38,11 @@ public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOp
         if (!Languages.Allows(allowedLangs, dto.Language))
             return new RunResultDto(false, $"This problem only accepts {Languages.Label(allowedLangs)}.", "", "", 0, 0, false, 0, 0);
 
+        // Playground / Live code have no problem to dictate file input, so let the caller ask
+        // for it; a problem's own setting always wins.
+        if (dto.ProblemId is null && dto.BankProblemId is null)
+            inputFileName = InputFilePolicy.Normalize(dto.InputFileName);
+
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         try

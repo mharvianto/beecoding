@@ -388,7 +388,8 @@ public record OrgDashboardDto(
 
 // ---- Ad-hoc run ----
 public record RunDto(string Language, string Code, string Stdin,
-    int? ProblemId = null, int? BankProblemId = null);   // for per-problem header restrictions
+    int? ProblemId = null, int? BankProblemId = null,   // for per-problem header restrictions
+    string? InputFileName = null);                       // scratch runs only: write stdin to this file instead of piping it
 public record RunResultDto(
     bool CompileOk, string CompilerOutput,
     string Stdout, string Stderr,
