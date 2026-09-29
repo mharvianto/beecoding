@@ -69,6 +69,17 @@ public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, Da
 public record ReorderGroupsDto(List<int> Order);   // group ids, new top-to-bottom order
 public record MoveProblemDto(int? GroupId);        // null => ungrouped
 
+/// <summary>Admin / org-admin bulk action over many boards at once: create the same groups on
+/// each and/or copy the same bank problems into each. Idempotent per board — a group whose
+/// title already exists, or a bank problem already copied there, is skipped.</summary>
+public record BulkAddDto(
+    List<string> Slugs,
+    List<UpsertProblemGroupDto>? Groups,
+    List<int>? BankProblemIds,
+    string? ProblemGroupTitle);   // put the copied problems in the group with this title (created if missing); null => ungrouped
+public record BulkAddBoardRow(string Slug, string Title, int GroupsAdded, int GroupsSkipped, int ProblemsAdded, int ProblemsSkipped, string? Error);
+public record BulkAddResult(int BoardsUpdated, int BoardsFailed, List<BulkAddBoardRow> Rows);
+
 // ---- Problem bank ----
 public record BankSummaryDto(
     int Id, string Slug, string Title, string AllowedLanguages, string Level, string Tags, bool IsPublic,

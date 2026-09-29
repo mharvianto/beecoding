@@ -29,9 +29,10 @@ public class AdminUiController(
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
-    PlagiarismService plagiarism, ProgressService progress)
+    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk)
     : ApiControllerBase
 {
+    private readonly BoardBulkService _bulk = bulk;
     private readonly SysstatService _sysstat = sysstat;
     private readonly PlagiarismService _plagiarism = plagiarism;
     private readonly ProgressService _progress = progress;
@@ -450,6 +451,44 @@ public class AdminUiController(
             archived++;
         }
         return new AdminBulkArchiveResult(archived, errors);
+    }
+
+    /// <summary>Every bank problem on the platform, for the bulk-add picker (the regular bank
+    /// list only shows a teacher their own + public problems).</summary>
+    [HttpGet("bank")]
+    public async Task<ActionResult<List<BankSummaryDto>>> Bank([FromQuery] string? q)
+    {
+        var query = _db.BankProblems.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var n = q.Trim();
+            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Tags, $"%{n}%"));
+        }
+        var rows = await query.Include(b => b.Owner).Include(b => b.TestCases)
+            .OrderByDescending(b => b.UpdatedAt).Take(100).ToListAsync();
+        return rows.Select(b => Mapping.ToSummary(b, UserId)).ToList();
+    }
+
+    /// <summary>Apply the same groups and/or bank problems to many boards at once.</summary>
+    [HttpPost("boards/bulk-add")]
+    public async Task<ActionResult<BulkAddResult>> BulkAdd(BulkAddDto dto)
+    {
+        var groups = dto.Groups ?? new();
+        if (BoardBulkService.ValidateGroups(groups) is { } bad) return BadRequest(bad);
+        var slugs = (dto.Slugs ?? new()).Distinct().ToList();
+        if (slugs.Count == 0) return BadRequest("Select at least one board.");
+        if (groups.Count == 0 && (dto.BankProblemIds ?? new()).Count == 0) return BadRequest("Nothing to add.");
+
+        var boards = await _db.Boards.Where(b => slugs.Contains(b.Slug)).ToListAsync();
+        var bankIds = (dto.BankProblemIds ?? new()).Distinct().ToList();
+        var bank = await _db.BankProblems.Include(b => b.TestCases).Where(b => bankIds.Contains(b.Id)).ToListAsync();
+
+        var rows = await _bulk.ApplyAsync(boards, groups, bank, dto.ProblemGroupTitle);
+        foreach (var missing in slugs.Except(boards.Select(b => b.Slug)))
+            rows.Add(new(missing, missing, 0, 0, 0, 0, "Board not found"));
+        await _audit.RecordAsync(UserId, ActorEmail, "boards-bulk-add", "Board", 0,
+            $"{groups.Count} group(s), {bank.Count} problem(s) → {boards.Count} board(s)");
+        return new BulkAddResult(rows.Count(r => r.Error is null), rows.Count(r => r.Error is not null), rows);
     }
 
     // ---- system status (human-readable view of what health checks/config say) ----

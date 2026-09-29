@@ -162,32 +162,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         int nextPos = await _db.Problems.Where(p => p.BoardId == board.Id)
             .Select(p => (int?)p.Position).MaxAsync() is int max ? max + 1 : 0;
 
-        var p = new Problem
-        {
-            BoardId = board.Id,
-            Title = bank.Title,
-            StatementMarkdown = bank.StatementMarkdown,
-            AllowedLanguages = bank.AllowedLanguages,
-            Tags = bank.Tags,
-            Level = bank.Level,
-            GeneratedByAi = bank.GeneratedByAi,
-            BannedHeaders = bank.BannedHeaders,
-            BannedSymbols = bank.BannedSymbols,
-            InputFileName = bank.InputFileName,
-            TimeLimitMs = bank.TimeLimitMs,
-            MemoryLimitKb = bank.MemoryLimitKb,
-            Position = nextPos,
-            SourceBankProblemId = bank.Id,
-        };
-        foreach (var t in bank.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id))
-            p.TestCases.Add(new TestCase
-            {
-                Stdin = t.Stdin,
-                ExpectedStdout = t.ExpectedStdout,
-                IsSample = t.IsSample,
-                Points = t.Points,
-                Position = t.Position,
-            });
+        var p = BoardBulkService.ProblemFromBank(bank, board.Id, nextPos);
 
         _db.Problems.Add(p);
         await _db.SaveChangesAsync();

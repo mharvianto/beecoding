@@ -36,4 +36,21 @@ public static class GroupAccess
 
     public static string State(ProblemGroup g, DateTime now) =>
         g.OpensAt > now ? "Upcoming" : g.ClosesAt <= now ? "Closed" : "Open";
+
+    public static string? Validate(UpsertProblemGroupDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title)) return "A group needs a title.";
+        if (dto.OpensAt is { } o && dto.ClosesAt is { } c && c <= o) return "The close time must be after the open time.";
+        return null;
+    }
+
+    public static void Apply(ProblemGroup g, UpsertProblemGroupDto dto)
+    {
+        var title = dto.Title.Trim();
+        g.Title = title.Length > 120 ? title[..120] : title;
+        g.Hidden = dto.Hidden;
+        g.ExamMode = dto.ExamMode;
+        g.OpensAt = dto.OpensAt?.ToUniversalTime();
+        g.ClosesAt = dto.ClosesAt?.ToUniversalTime();
+    }
 }

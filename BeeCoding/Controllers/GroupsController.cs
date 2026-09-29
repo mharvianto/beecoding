@@ -51,12 +51,12 @@ public class GroupsController(AppDbContext db, BoardService boards, VisibilitySe
     {
         var (boardId, err) = await RequireOwnerAsync(slug);
         if (err is not null) return err;
-        if (Validate(dto) is { } bad) return BadRequest(bad);
+        if (GroupAccess.Validate(dto) is { } bad) return BadRequest(bad);
 
         var next = (await _db.ProblemGroups.Where(g => g.BoardId == boardId!.Value)
             .Select(g => (int?)g.Position).MaxAsync() ?? -1) + 1;
         var g = new ProblemGroup { BoardId = boardId!.Value, Position = next };
-        Apply(g, dto);
+        GroupAccess.Apply(g, dto);
         _db.ProblemGroups.Add(g);
         await _db.SaveChangesAsync();
         await NotifyAsync(boardId.Value);
@@ -68,13 +68,13 @@ public class GroupsController(AppDbContext db, BoardService boards, VisibilitySe
     {
         var (boardId, err) = await RequireOwnerAsync(slug);
         if (err is not null) return err;
-        if (Validate(dto) is { } bad) return BadRequest(bad);
+        if (GroupAccess.Validate(dto) is { } bad) return BadRequest(bad);
 
         var g = await _db.ProblemGroups.Include(x => x.Problems)
             .FirstOrDefaultAsync(x => x.Id == id && x.BoardId == boardId!.Value);
         if (g is null) return NotFound();
 
-        Apply(g, dto);
+        GroupAccess.Apply(g, dto);
         await _db.SaveChangesAsync();
         await NotifyAsync(boardId!.Value);
         return ToDto(g, DateTime.UtcNow, g.Problems.Count);
@@ -114,23 +114,6 @@ public class GroupsController(AppDbContext db, BoardService boards, VisibilitySe
         await _db.SaveChangesAsync();
         await NotifyAsync(boardId!.Value);
         return NoContent();
-    }
-
-    private static string? Validate(UpsertProblemGroupDto dto)
-    {
-        if (string.IsNullOrWhiteSpace(dto.Title)) return "A group needs a title.";
-        if (dto.OpensAt is { } o && dto.ClosesAt is { } c && c <= o) return "The close time must be after the open time.";
-        return null;
-    }
-
-    private static void Apply(ProblemGroup g, UpsertProblemGroupDto dto)
-    {
-        var title = dto.Title.Trim();
-        g.Title = title.Length > 120 ? title[..120] : title;
-        g.Hidden = dto.Hidden;
-        g.ExamMode = dto.ExamMode;
-        g.OpensAt = dto.OpensAt?.ToUniversalTime();
-        g.ClosesAt = dto.ClosesAt?.ToUniversalTime();
     }
 
     private static ProblemGroupDto ToDto(ProblemGroup g, DateTime now, int problemCount) =>

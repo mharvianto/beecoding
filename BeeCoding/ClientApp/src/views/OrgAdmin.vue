@@ -10,6 +10,7 @@ import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionDiffView from '../components/SubmissionDiffView.vue';
+import BulkAddPanel from '../components/BulkAddPanel.vue';
 import { tableView } from '../lib/tableView';
 
 const confirmDialog = useConfirmDialog();
@@ -220,6 +221,18 @@ async function importMembersCsv(ev) {
     await loadMembers();
   } catch (e) { err.value = e.message; }
   finally { importingMembers.value = false; }
+}
+
+// ---- bulk add groups / problems to the selected boards ----
+const selectedBoards = ref(new Set());
+const bulkAdding = ref(false);
+function toggleBoardSelect(slug) {
+  const next = new Set(selectedBoards.value);
+  next.has(slug) ? next.delete(slug) : next.add(slug);
+  selectedBoards.value = next;
+}
+function selectAllBoards(checked) {
+  selectedBoards.value = checked ? new Set((boards.value || []).map((b) => b.slug)) : new Set();
 }
 
 async function loadBoards() {
@@ -614,10 +627,26 @@ onMounted(() => { loadOrgs(); });
           </div>
         </div>
 
+        <div v-if="boards?.length" class="flex items-center gap-2 mb-2 text-sm flex-wrap">
+          <label class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <input type="checkbox" :checked="selectedBoards.size === boards.length" @change="selectAllBoards($event.target.checked)" /> Select all
+          </label>
+          <template v-if="selectedBoards.size">
+            <span>{{ selectedBoards.size }} selected</span>
+            <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-1 text-xs font-medium">
+              ➕ Add groups / problems
+            </button>
+          </template>
+        </div>
+        <BulkAddPanel v-if="bulkAdding" :slugs="[...selectedBoards]" :bank-url="`/api/org-admin/${orgId}/bank`"
+                      :add-url="`/api/org-admin/${orgId}/boards/bulk-add`" @done="loadBoards" @close="bulkAdding = false" />
+
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
           <div v-for="b in boards" :key="b.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-            <div class="font-medium text-sm">{{ b.title }}</div>
+            <div class="font-medium text-sm flex items-center gap-2">
+              <input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" class="shrink-0" />{{ b.title }}
+            </div>
             <div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div>
             <div class="text-[11px] text-slate-400 mt-0.5">
               {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
@@ -642,6 +671,9 @@ onMounted(() => { loadOrgs(); });
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                <th class="font-normal py-1.5 pr-3">
+                  <input type="checkbox" :checked="!!boards?.length && selectedBoards.size === boards.length" @change="selectAllBoards($event.target.checked)" />
+                </th>
                 <th class="font-normal py-1.5 pr-3">Title</th><th class="font-normal pr-3">Owner</th>
                 <th class="font-normal pr-3">Students</th><th class="font-normal pr-3">Problems</th><th class="font-normal pr-3">Created</th>
                 <th class="font-normal pr-3">Tags</th>
@@ -649,6 +681,7 @@ onMounted(() => { loadOrgs(); });
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="b in boards" :key="b.id" class="border-b border-slate-100 dark:border-slate-800/60">
+                <td><input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" /></td>
                 <td class="font-medium">{{ b.title }}</td>
                 <td class="text-[11px] text-slate-400">{{ b.ownerEmail }}</td>
                 <td class="tabular-nums">{{ b.memberCount }}</td>
@@ -668,7 +701,7 @@ onMounted(() => { loadOrgs(); });
                   </div>
                 </td>
               </tr>
-              <tr v-if="boards && !boards.length"><td colspan="6" class="text-slate-400 dark:text-slate-500 py-3">No boards yet.</td></tr>
+              <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-400 dark:text-slate-500 py-3">No boards yet.</td></tr>
             </tbody>
           </table>
         </div>

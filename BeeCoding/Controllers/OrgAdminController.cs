@@ -21,8 +21,9 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk) : ApiControllerBase
 {
+    private readonly BoardBulkService _bulk = bulk;
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;
     private readonly AuditLog _audit = audit;
@@ -374,6 +375,51 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         if (!await _db.Boards.AnyAsync(b => b.Id == boardId && b.OrganizationId == orgId)) return NotFound();
 
         return await _plagiarism.ComputeForBoardAsync(boardId);
+    }
+
+    /// <summary>Bank problems an org admin may copy into the org's boards: public ones, plus
+    /// anything owned by a member of this organization.</summary>
+    private IQueryable<BankProblem> BankFor(int orgId) =>
+        _db.BankProblems.Where(b => b.IsPublic
+            || _db.OrganizationMemberships.Any(m => m.OrganizationId == orgId && m.UserId == b.OwnerId));
+
+    [HttpGet("{orgId:int}/bank")]
+    public async Task<ActionResult<List<BankSummaryDto>>> Bank(int orgId, [FromQuery] string? q)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var query = BankFor(orgId);
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var n = q.Trim();
+            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Tags, $"%{n}%"));
+        }
+        var rows = await query.Include(b => b.Owner).Include(b => b.TestCases)
+            .OrderByDescending(b => b.UpdatedAt).Take(100).ToListAsync();
+        return rows.Select(b => Mapping.ToSummary(b, UserId)).ToList();
+    }
+
+    /// <summary>Apply the same groups and/or bank problems to many of this org's boards.</summary>
+    [HttpPost("{orgId:int}/boards/bulk-add")]
+    public async Task<ActionResult<BulkAddResult>> BulkAdd(int orgId, BulkAddDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var groups = dto.Groups ?? new();
+        if (BoardBulkService.ValidateGroups(groups) is { } bad) return BadRequest(bad);
+        var slugs = (dto.Slugs ?? new()).Distinct().ToList();
+        if (slugs.Count == 0) return BadRequest("Select at least one board.");
+        var bankIds = (dto.BankProblemIds ?? new()).Distinct().ToList();
+        if (groups.Count == 0 && bankIds.Count == 0) return BadRequest("Nothing to add.");
+
+        var boards = await _db.Boards.Where(b => b.OrganizationId == orgId && slugs.Contains(b.Slug)).ToListAsync();
+        var bank = await BankFor(orgId).Include(b => b.TestCases).Where(b => bankIds.Contains(b.Id)).ToListAsync();
+        if (bank.Count != bankIds.Count) return BadRequest("Some of those bank problems aren't available to this organization.");
+
+        var rows = await _bulk.ApplyAsync(boards, groups, bank, dto.ProblemGroupTitle);
+        foreach (var missing in slugs.Except(boards.Select(b => b.Slug)))
+            rows.Add(new(missing, missing, 0, 0, 0, 0, "Not a board of this organization"));
+        await _audit.RecordAsync(UserId, ActorEmail, "org-boards-bulk-add", "Organization", orgId,
+            $"{groups.Count} group(s), {bank.Count} problem(s) → {boards.Count} board(s)");
+        return new BulkAddResult(rows.Count(r => r.Error is null), rows.Count(r => r.Error is not null), rows);
     }
 
     /// <summary>Bulk-create boards, all owned by one existing Teacher and all assigned to

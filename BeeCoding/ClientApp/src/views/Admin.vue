@@ -14,6 +14,7 @@ import SubmissionView from '../components/SubmissionView.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionDiffView from '../components/SubmissionDiffView.vue';
+import BulkAddPanel from '../components/BulkAddPanel.vue';
 import { tableView } from '../lib/tableView';
 
 const auth = useAuth();
@@ -421,6 +422,7 @@ function selectBoardsBeforeDate() {
   selectedBoards.value = new Set((boards.value || []).filter((b) => new Date(b.createdAt).getTime() < cutoff).map((b) => b.slug));
 }
 const archiveResultMsg = ref('');
+const bulkAdding = ref(false);
 async function archiveSelectedBoards() {
   const slugs = [...selectedBoards.value];
   if (!slugs.length) return;
@@ -1241,10 +1243,15 @@ onMounted(async () => {
       </div>
       <div v-if="selectedBoards.size" class="flex items-center gap-2 mb-2 text-sm">
         <span>{{ selectedBoards.size }} selected</span>
+        <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-1 text-xs font-medium">
+          ➕ Add groups / problems
+        </button>
         <button @click="archiveSelectedBoards" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1 text-xs font-medium">
           🗄️ Archive selected
         </button>
       </div>
+      <BulkAddPanel v-if="bulkAdding" :slugs="[...selectedBoards]" bank-url="/api/admin-ui/bank" add-url="/api/admin-ui/boards/bulk-add"
+                    @done="loadBoards" @close="bulkAdding = false" />
       <p v-if="archiveResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ archiveResultMsg }}</p>
 
       <!-- mobile: cards -->
