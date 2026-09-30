@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
+import { useUrlQuery } from '../lib/urlQuery';
 
 const router = useRouter();
 
@@ -12,6 +13,14 @@ const q = ref('');
 const scope = ref('mine');
 const level = ref('');
 const error = ref('');
+
+// Search, scope and level live in the URL so a filtered bank survives refresh and can be shared.
+const url = useUrlQuery({
+  q: { ref: q, def: '' },
+  scope: { ref: scope, def: 'mine', allowed: ['mine', 'public', 'all'] },
+  level: { ref: level, def: '', allowed: ['Easy', 'Medium', 'Hard'] },
+}, { onExternalChange: () => load() });
+url.read();
 
 // AI problem generator
 const aiEnabled = ref(false);
@@ -83,6 +92,7 @@ function finishJob() {
 
 async function load() {
   error.value = '';
+  url.write();
   try {
     const p = new URLSearchParams({ scope: scope.value });
     if (q.value.trim()) p.set('q', q.value.trim());

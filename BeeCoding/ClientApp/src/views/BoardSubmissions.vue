@@ -6,6 +6,7 @@ import { tableView } from '../lib/tableView';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
+import { useUrlQuery, lastPage } from '../lib/urlQuery';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const router = useRouter();
@@ -24,7 +25,18 @@ const submissionsPageSize = 50;
 const submissionsTotal = ref(0);
 const viewSubmission = ref(null);   // { id, authorName } | null
 
+// Search, student, verdict and page live in the URL so a filtered view survives refresh and
+// can be shared with another teacher.
+const url = useUrlQuery({
+  q: { ref: submissionQ, def: '' },
+  userId: { ref: submissionUserId, def: '', int: true },
+  verdict: { ref: submissionVerdict, def: '' },
+  page: { ref: submissionsPage, def: 1, int: true },
+}, { onExternalChange: () => loadSubmissions() });
+url.read();
+
 async function loadSubmissions() {
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize) });
     if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
@@ -33,6 +45,9 @@ async function loadSubmissions() {
     const result = await api.get(`/api/boards/${props.slug}/submissions?${p}`);
     submissionRows.value = result.rows;
     submissionsTotal.value = result.total;
+    // A stale/hand-edited ?page= past the end: fall back to the last page that exists.
+    const last = lastPage(result.total, submissionsPageSize);
+    if (submissionsPage.value > last) { submissionsPage.value = last; await loadSubmissions(); }
   } catch (e) { error.value = e.message; }
 }
 function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }

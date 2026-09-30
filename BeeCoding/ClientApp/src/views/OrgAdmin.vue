@@ -10,6 +10,7 @@ import VerdictBadge from '../components/VerdictBadge.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionDiffView from '../components/SubmissionDiffView.vue';
+import { useUrlQuery, lastPage } from '../lib/urlQuery';
 import BulkAddPanel from '../components/BulkAddPanel.vue';
 import { tableView } from '../lib/tableView';
 
@@ -88,7 +89,7 @@ function selectOrg(id) {
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
   const org = orgs.value?.find((o) => o.id === id);
   if (org && (route.params.slug !== org.slug || route.params.tab !== tab.value))
-    router.replace(`/org-admin/${org.slug}/${tab.value}`);
+    router.replace({ path: `/org-admin/${org.slug}/${tab.value}`, query: route.query });
   loadTab(tab.value);
 }
 
@@ -97,27 +98,35 @@ function switchTab(id) {
   if (id === tab.value) return;
   tab.value = id;
   const org = orgs.value?.find((o) => o.id === orgId.value);
-  if (org) router.replace(`/org-admin/${org.slug}/${id}`);
+  if (org) url.write();   // this tab's filters -> URL (and the path moves to the new tab)
   loadTab(id);
 }
 // Browser back/forward (or a direct link to /org-admin/<slug>/<tab>) changes route.params
 // without going through switchTab/selectOrg — keep local state in sync.
 watch(() => route.params.tab, (t) => {
   const id = tabDefs.some(([k]) => k === t) ? t : 'dashboard';
-  if (id !== tab.value) { tab.value = id; loadTab(id); }
+  if (id !== tab.value) { tab.value = id; url.read(); loadTab(id, true); }
 });
 watch(() => route.params.slug, (slug) => {
   const org = orgs.value?.find((o) => o.slug === slug);
   if (org && org.id !== orgId.value) selectOrg(org.id);
 });
-function loadTab(id) {
+// `force` drops the cached submissions so they refetch with the filters just read from the URL.
+function loadTab(id, force = false) {
   if (!orgId.value) return;
+  if (force) submissionRows.value = null;
   loadSummary();
   if (id === 'dashboard' && !dashboard.value) loadDashboard();
   else if (id === 'members' && !members.value) loadMembers();
   else if (id === 'boards' && !boards.value) loadBoards();
-  else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
-  else if (id === 'plagiarism' && !boards.value) loadBoards();
+  else if (id === 'submissions') {
+    if (!submissionRows.value) loadSubmissions();
+    if (submissionUserId.value && !members.value) loadMembers();   // to name the member-filter chip
+  }
+  else if (id === 'plagiarism') {
+    if (!boards.value) loadBoards();
+    if (plagiarismBoardId.value) loadPlagiarism();   // ?board= from a shared link
+  }
   else if (id === 'ai') {
     if (!aiSettings.value) loadAiSettings();
     if (!aiProvider.value) loadAiProvider();
@@ -241,6 +250,7 @@ async function loadBoards() {
 }
 
 async function loadPlagiarism() {
+  url.write();
   if (!plagiarismBoardId.value) { plagiarismPairs.value = []; return; }
   err.value = ''; plagiarismLoading.value = true;
   try {
@@ -276,6 +286,7 @@ const viewSubmission = ref(null);        // { id, source, authorName } | null
 
 async function loadSubmissions() {
   err.value = '';
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize.value) });
     if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
@@ -285,6 +296,8 @@ async function loadSubmissions() {
     const result = await api.get(`/api/org-admin/${orgId.value}/submissions?${p}`);
     submissionRows.value = result.rows;
     submissionsTotal.value = result.total;
+    const last = lastPage(result.total, submissionsPageSize.value);
+    if (submissionsPage.value > last) { submissionsPage.value = last; await loadSubmissions(); }
   } catch (e) { err.value = e.message; }
 }
 function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
@@ -295,15 +308,15 @@ function problemLink(s) {
   if (!s.problemSlug) return null;
   return s.source === 'Board' ? `/boards/${s.boardSlug}/problems/${s.problemSlug}` : `/practice/${s.problemSlug}`;
 }
+// A member filter arriving from the URL only carries the id — look the name up once members load.
+const memberName = (id) => members.value?.find((m) => m.userId === id)?.displayName || `member #${id}`;
 function clearSubmissionUserFilter() { submissionUserId.value = null; submissionUserLabel.value = ''; searchSubmissions(); }
 function viewMemberSubmissions(m) {
   submissionUserId.value = m.userId;
   submissionUserLabel.value = m.displayName;
   mobileTabsOpen.value = false;
   tab.value = 'submissions';
-  const org = orgs.value?.find((o) => o.id === orgId.value);
-  if (org) router.replace(`/org-admin/${org.slug}/submissions`);
-  searchSubmissions();
+  searchSubmissions();   // writes the URL (path + filters) and loads
 }
 
 async function bulkCreateBoards() {
@@ -386,7 +399,30 @@ async function copyLtiValue(value) {
 
 // URL normalization (missing/invalid slug or tab) happens inside selectOrg once the org
 // list is known — see its router.replace check.
-onMounted(() => { loadOrgs(); });
+// Submissions filters/page and the plagiarism board live in the URL (?q=&page=&board=…) so a view
+// survives refresh and can be shared. The path carries the org and tab, so pass it explicitly.
+const url = useUrlQuery(() => {
+  switch (tab.value) {
+    case 'submissions': return {
+      q: { ref: submissionQ, def: '' },
+      source: { ref: submissionSource, def: '' },
+      verdict: { ref: submissionVerdict, def: '' },
+      userId: { ref: submissionUserId, def: null, int: true },
+      page: { ref: submissionsPage, def: 1, int: true },
+    };
+    case 'plagiarism': return { board: { ref: plagiarismBoardId, def: null, int: true } };
+    default: return {};
+  }
+}, {
+  path: () => {
+    const org = orgs.value?.find((o) => o.id === orgId.value);
+    return org ? `/org-admin/${org.slug}/${tab.value}` : route.path;
+  },
+  active: () => route.params.tab === tab.value,
+  onExternalChange: () => loadTab(tab.value, true),
+});
+
+onMounted(() => { url.read(); loadOrgs(); });
 </script>
 
 <template>
@@ -733,7 +769,7 @@ onMounted(() => { loadOrgs(); });
         </div>
         <div v-if="submissionUserId" class="flex items-center gap-2 mb-3 text-xs">
           <span class="text-slate-500 dark:text-slate-400">Filtered to</span>
-          <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">{{ submissionUserLabel }}</span>
+          <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">{{ submissionUserLabel || memberName(submissionUserId) }}</span>
           <button @click="clearSubmissionUserFilter" class="row-action-btn">✕ clear</button>
         </div>
 

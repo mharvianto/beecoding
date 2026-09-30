@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, reactive, toRef, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
@@ -14,6 +14,7 @@ import SubmissionView from '../components/SubmissionView.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionDiffView from '../components/SubmissionDiffView.vue';
+import { useUrlQuery, lastPage } from '../lib/urlQuery';
 import BulkAddPanel from '../components/BulkAddPanel.vue';
 import { tableView } from '../lib/tableView';
 
@@ -50,7 +51,10 @@ const actionBadgeClass = (action) => ({
   'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300': ['admin-grant', 'role-change', 'ai-quota-set'].includes(action),
 });
 
-function loadTabData(id) {
+// `force` drops the cached rows of the filtered tabs so they refetch with the filters just read
+// from the URL (back/forward or a pasted link), instead of showing the previous tab state.
+function loadTabData(id, force = false) {
+  if (force) { users.value = null; submissionRows.value = null; auditRows.value = null; aiRows.value = null; }
   if (id === 'dashboard') { if (!dashboard.value) loadDashboard(); }
   else if (id === 'ai') {
     if (!aiRows.value) loadAi();
@@ -62,7 +66,10 @@ function loadTabData(id) {
     if (!boards.value) loadBoards();   // populates the CSV-import board picker too
   } else if (id === 'boards' && !boards.value) loadBoards();
   else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
-  else if (id === 'plagiarism' && !boards.value) loadBoards();
+  else if (id === 'plagiarism') {
+    if (!boards.value) loadBoards();
+    if (plagiarismBoardId.value) loadPlagiarism();   // ?board= from a shared link
+  }
   else if (id === 'review') loadAiReview();   // queue changes often — always refresh
   else if (id === 'reports' && !systemStatus.value) loadSystemStatus();
   else if (id === 'trash') loadTrash();     // state changes often — always refresh
@@ -79,14 +86,14 @@ function switchTab(id) {
   mobileTabsOpen.value = false;
   if (id === tab.value) return;
   tab.value = id;
-  router.replace(`/admin/${id}`);
+  url.write();   // this tab's filters -> URL (and the path moves to /admin/<id>)
   loadTabData(id);
 }
 // Browser back/forward (or a direct link to /admin/<tab>) changes route.params.tab
 // without going through switchTab — keep the active tab (and its data) in sync.
 watch(() => route.params.tab, (t) => {
   const id = tabDefs.some(([k]) => k === t) ? t : 'dashboard';
-  if (id !== tab.value) { tab.value = id; loadTabData(id); }
+  if (id !== tab.value) { tab.value = id; url.read(); loadTabData(id, true); }
 });
 
 // ---- dashboard: at-a-glance overview, the default landing tab ----
@@ -253,11 +260,14 @@ async function rejectAiReview(row) {
 
 async function loadAi() {
   err.value = '';
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(aiPage.value), pageSize: String(aiPageSize.value) });
     const result = await api.get(`/api/admin-ui/ai-usage?${p}`);
     aiRows.value = result.rows;
     aiTotal.value = result.total;
+    const last = lastPage(result.total, aiPageSize.value);
+    if (aiPage.value > last) { aiPage.value = last; await loadAi(); }
   } catch (e) { err.value = e.message; }
 }
 function aiPrevPage() { if (aiPage.value > 1) { aiPage.value--; loadAi(); } }
@@ -265,12 +275,15 @@ function aiNextPage() { if (aiPage.value * aiPageSize.value < aiTotal.value) { a
 async function loadUsers() {
   err.value = '';
   selectedUsers.value = new Set();
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(usersPage.value), pageSize: String(usersPageSize.value) });
     if (userQ.value.trim()) p.set('q', userQ.value.trim());
     const result = await api.get(`/api/admin-ui/users?${p}`);
     users.value = result.rows;
     usersTotal.value = result.total;
+    const last = lastPage(result.total, usersPageSize.value);
+    if (usersPage.value > last) { usersPage.value = last; await loadUsers(); }
   } catch (e) { err.value = e.message; }
 }
 function searchUsers() { usersPage.value = 1; loadUsers(); }
@@ -386,6 +399,7 @@ const plagiarismLoading = ref(false);
 const plagiarismViewSubmission = ref(null);
 const plagiarismCompareData = ref(null);
 async function loadPlagiarism() {
+  url.write();
   if (!plagiarismBoardId.value) { plagiarismPairs.value = []; return; }
   err.value = ''; plagiarismLoading.value = true;
   try { plagiarismPairs.value = await api.get(`/api/admin-ui/plagiarism?boardId=${plagiarismBoardId.value}`); }
@@ -453,12 +467,15 @@ const trashKey = (kind, row) => (kind === 'users' ? String(row.id) : row.slug);
 async function loadTrashKind(kind) {
   err.value = '';
   const st = trash[kind];
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(st.page), pageSize: String(st.pageSize) });
     const result = await api.get(`/api/admin-ui/trash/${kind}?${p}`);
     st.rows = result.rows;
     st.total = result.total;
     st.selected = new Set();
+    const last = lastPage(result.total, st.pageSize);
+    if (st.page > last) { st.page = last; await loadTrashKind(kind); }
   } catch (e) { err.value = e.message; }
 }
 function loadTrash() { return Promise.all(TRASH_KINDS.map(([kind]) => loadTrashKind(kind))); }
@@ -528,6 +545,7 @@ const viewSubmission = ref(null);   // { id, source, authorName } | null
 
 async function loadSubmissions() {
   err.value = '';
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(submissionsPage.value), pageSize: String(submissionsPageSize.value) });
     if (submissionQ.value.trim()) p.set('q', submissionQ.value.trim());
@@ -536,6 +554,8 @@ async function loadSubmissions() {
     const result = await api.get(`/api/admin-ui/submissions?${p}`);
     submissionRows.value = result.rows;
     submissionsTotal.value = result.total;
+    const last = lastPage(result.total, submissionsPageSize.value);
+    if (submissionsPage.value > last) { submissionsPage.value = last; await loadSubmissions(); }
   } catch (e) { err.value = e.message; }
 }
 function searchSubmissions() { submissionsPage.value = 1; loadSubmissions(); }
@@ -556,12 +576,15 @@ const auditTotal = ref(0);
 
 async function loadAudit() {
   err.value = '';
+  url.write();
   try {
     const p = new URLSearchParams({ page: String(auditPage.value), pageSize: String(auditPageSize.value) });
     if (auditQ.value.trim()) p.set('q', auditQ.value.trim());
     const result = await api.get(`/api/admin-ui/audit-log?${p}`);
     auditRows.value = result.rows;
     auditTotal.value = result.total;
+    const last = lastPage(result.total, auditPageSize.value);
+    if (auditPage.value > last) { auditPage.value = last; await loadAudit(); }
   } catch (e) { err.value = e.message; }
 }
 function searchAudit() { auditPage.value = 1; loadAudit(); }
@@ -707,9 +730,35 @@ async function importProblems(ev) {
   finally { importing.value = false; }
 }
 
+// Each filtered tab keeps its search / filters / page in the URL (?q=&page=…) so a view survives
+// refresh and can be shared. The fields depend on the active tab; the path is passed explicitly
+// so a tab switch and the load that follows it can't race on the not-yet-updated route.
+const url = useUrlQuery(() => {
+  switch (tab.value) {
+    case 'ai': return { page: { ref: aiPage, def: 1, int: true } };
+    case 'users': return { q: { ref: userQ, def: '' }, page: { ref: usersPage, def: 1, int: true } };
+    case 'submissions': return {
+      q: { ref: submissionQ, def: '' },
+      source: { ref: submissionSource, def: '' },
+      verdict: { ref: submissionVerdict, def: '' },
+      page: { ref: submissionsPage, def: 1, int: true },
+    };
+    case 'audit': return { q: { ref: auditQ, def: '' }, page: { ref: auditPage, def: 1, int: true } };
+    case 'plagiarism': return { board: { ref: plagiarismBoardId, def: null, int: true } };
+    case 'trash': return Object.fromEntries(TRASH_KINDS.map(([kind]) => [kind, { ref: toRef(trash[kind], 'page'), def: 1, int: true }]));
+    default: return {};
+  }
+}, {
+  path: () => `/admin/${tab.value}`,
+  active: () => route.params.tab === tab.value,
+  onExternalChange: () => loadTabData(tab.value, true),
+});
+
 onMounted(async () => {
   if (!auth.user?.isAdmin) { router.replace('/boards'); return; }
-  if (route.params.tab !== tab.value) router.replace(`/admin/${tab.value}`);
+  // A bare /admin (or an unknown tab) is normalised to /admin/<tab>, keeping any query.
+  if (route.params.tab !== tab.value) router.replace({ path: `/admin/${tab.value}`, query: route.query });
+  url.read();
   loadTabData(tab.value);
 });
 </script>
