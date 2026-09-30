@@ -117,25 +117,101 @@ async function toggleHidden(p) {
   } catch (e) { error.value = e.message; }
 }
 
-// ---- drag-and-drop reorder (staff only, disabled while a search filter is active) ----
+// ---- drag-and-drop (staff only, disabled while a search filter is active) ----
+// A problem can be dropped on another problem (before/after it, joining that problem's group),
+// or on a group header / empty group area (end of that group). A group can be dropped on
+// another group to reorder. `drag` is what is being dragged; `over` drives the drop indicator.
 const canReorder = computed(() => isStaff.value && !q.value);
-const dragSlug = ref(null);
-function onDragStart(p) { dragSlug.value = p.slug; }
-function onDragOver(e) { e.preventDefault(); }
-async function onDrop(target) {
-  if (!dragSlug.value || dragSlug.value === target.slug) return;
-  const list = problems.value;
-  const from = list.findIndex((p) => p.slug === dragSlug.value);
-  const to = list.findIndex((p) => p.slug === target.slug);
-  if (from === -1 || to === -1) return;
+const drag = ref(null);   // { kind: 'problem', slug } | { kind: 'group', id }
+const over = ref(null);   // { kind: 'problem', slug, pos } | { kind: 'section', key } | { kind: 'group', key, pos }
+const secKey = (g) => (g ? g.id : 'none');
+const isOverProblem = (p, pos) => over.value?.kind === 'problem' && over.value.slug === p.slug && over.value.pos === pos;
+const isOverSection = (sec) => over.value?.kind === 'section' && over.value.key === secKey(sec.group);
+const isOverGroup = (sec, pos) => over.value?.kind === 'group' && over.value.key === secKey(sec.group) && over.value.pos === pos;
+
+function dragStart(e, payload) {
+  drag.value = payload;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', payload.kind === 'problem' ? payload.slug : String(payload.id));   // Firefox needs data
+}
+function dragEnd() { drag.value = null; over.value = null; }
+const halfway = (e) => {
+  const r = e.currentTarget.getBoundingClientRect();
+  return e.clientY < r.top + r.height / 2 ? 'before' : 'after';
+};
+
+function overProblem(e, p) {
+  if (drag.value?.kind !== 'problem') return;
+  e.stopPropagation();
+  if (drag.value.slug === p.slug) { over.value = null; return; }   // not a drop target for itself
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  over.value = { kind: 'problem', slug: p.slug, pos: halfway(e) };
+}
+async function dropOnProblem(e, p) {
+  if (drag.value?.kind !== 'problem') return;
+  e.preventDefault(); e.stopPropagation();
+  const pos = halfway(e);
+  const slug = drag.value.slug;
+  dragEnd();
+  if (slug !== p.slug) await moveProblemTo(slug, p.groupId ?? null, { target: p.slug, pos });
+}
+
+function overSection(e, sec) {
+  if (!drag.value) return;
+  if (drag.value.kind === 'problem') {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    over.value = { kind: 'section', key: secKey(sec.group) };
+  } else if (sec.group?.id !== drag.value.id) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    over.value = { kind: 'group', key: secKey(sec.group), pos: sec.group ? halfway(e) : 'after' };
+  }
+}
+async function dropOnSection(e, sec) {
+  if (!drag.value) return;
+  e.preventDefault();
+  const d = drag.value;
+  const pos = over.value?.kind === 'group' ? over.value.pos : 'after';
+  dragEnd();
+  if (d.kind === 'problem') await moveProblemTo(d.slug, sec.group?.id ?? null, null);
+  else if (sec.group?.id !== d.id) await reorderGroupTo(d.id, sec.group, pos);
+}
+
+/** Move a problem into `groupId`, before/after `anchor.target`, or (no anchor) to the end of that group. */
+async function moveProblemTo(slug, groupId, anchor) {
+  const list = [...problems.value];
+  const from = list.findIndex((x) => x.slug === slug);
+  if (from === -1) return;
   const [moved] = list.splice(from, 1);
+  const groupChanged = (moved.groupId ?? null) !== groupId;
+  let to;
+  if (anchor) {
+    to = list.findIndex((x) => x.slug === anchor.target) + (anchor.pos === 'after' ? 1 : 0);
+  } else {
+    let last = -1;
+    list.forEach((x, i) => { if ((x.groupId ?? null) === groupId) last = i; });
+    to = last < 0 ? list.length : last + 1;
+  }
   list.splice(to, 0, moved);
-  dragSlug.value = null;
+  moved.groupId = groupId;
+  problems.value = list;   // optimistic; the calls below persist it
   try {
-    // Dropping onto a problem in another section moves it into that section too.
-    if ((moved.groupId ?? null) !== (target.groupId ?? null)) await moveProblem(moved, target.groupId ?? null);
-    await api.patch(`/api/boards/${props.slug}/problems/reorder`, { order: list.map((p) => p.slug) });
-  } catch (e) { error.value = e.message; }
+    if (groupChanged) await api.patch(`/api/boards/${props.slug}/problems/${slug}/group`, { groupId });
+    await api.patch(`/api/boards/${props.slug}/problems/reorder`, { order: list.map((x) => x.slug) });
+    if (groupChanged) groups.value = await api.get(`/api/boards/${props.slug}/groups`);
+  } catch (e) { error.value = e.message; await loadAll(); }
+}
+
+async function reorderGroupTo(id, target, pos) {
+  const ids = groups.value.map((g) => g.id).filter((x) => x !== id);
+  const to = target ? ids.indexOf(target.id) + (pos === 'after' ? 1 : 0) : ids.length;
+  ids.splice(to, 0, id);
+  const byId = new Map(groups.value.map((g) => [g.id, g]));
+  groups.value = ids.map((x) => byId.get(x));   // optimistic
+  try { await api.patch(`/api/boards/${props.slug}/groups/reorder`, { order: ids }); }
+  catch (e) { error.value = e.message; await loadAll(); }
 }
 </script>
 
@@ -166,13 +242,20 @@ async function onDrop(target) {
       {{ filtered.length }} of {{ problems.length }} problems
     </p>
     <p v-if="canReorder && problems.length > 1" class="text-xs text-slate-400 dark:text-slate-500 mb-2">
-      Drag ⠿ to reorder
+      Drag ⠿ to reorder or move problems between groups — drop on a group's header to send a problem to its end. Groups can be dragged by their ⠿ too.
     </p>
 
     <div class="space-y-5">
-      <section v-for="sec in sections" :key="sec.group ? sec.group.id : 'none'">
-        <!-- section header: only when the board actually uses groups -->
-        <div v-if="groups.length" class="flex items-center gap-2 flex-wrap mb-2">
+      <section v-for="sec in sections" :key="sec.group ? sec.group.id : 'none'"
+               @dragover="overSection($event, sec)" @drop="dropOnSection($event, sec)"
+               class="transition-shadow"
+               :class="{ 'shadow-[0_-4px_0_0_rgb(245_158_11)]': isOverGroup(sec, 'before'), 'shadow-[0_4px_0_0_rgb(245_158_11)]': isOverGroup(sec, 'after') }">
+        <!-- section header: only when the board actually uses groups (also the drop target for "send to this group") -->
+        <div v-if="groups.length" class="flex items-center gap-2 flex-wrap mb-2 rounded-lg transition-colors"
+             :class="isOverSection(sec) ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-300 dark:ring-amber-500/40' : ''"
+             :draggable="canReorder && !!sec.group"
+             @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
+          <span v-if="canReorder && sec.group" class="cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
           <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-400 dark:text-slate-500 w-4 text-left"
                   :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
             {{ collapsed[sec.group ? sec.group.id : 'none'] ? '▸' : '▾' }}
@@ -198,9 +281,14 @@ async function onDrop(target) {
         <div v-show="!collapsed[sec.group ? sec.group.id : 'none']" class="grid gap-2">
           <div v-for="p in sec.items" :key="p.id"
                :draggable="canReorder"
-               @dragstart="onDragStart(p)" @dragover="onDragOver" @drop="onDrop(p)"
+               @dragstart="dragStart($event, { kind: 'problem', slug: p.slug })" @dragend="dragEnd"
+               @dragover="overProblem($event, p)" @drop="dropOnProblem($event, p)"
                class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between"
-               :class="{ 'opacity-50': dragSlug === p.slug }">
+               :class="{
+                 'opacity-50': drag?.kind === 'problem' && drag.slug === p.slug,
+                 'shadow-[0_-3px_0_0_rgb(245_158_11)]': isOverProblem(p, 'before'),
+                 'shadow-[0_3px_0_0_rgb(245_158_11)]': isOverProblem(p, 'after'),
+               }">
             <div class="flex items-start gap-2 min-w-0">
               <span v-if="canReorder" class="cursor-grab text-slate-300 dark:text-slate-600 select-none mt-0.5" title="Drag to reorder">⠿</span>
               <div class="min-w-0">
@@ -239,7 +327,7 @@ async function onDrop(target) {
             </div>
           </div>
           <p v-if="!sec.items.length && !q && groups.length" class="text-slate-400 dark:text-slate-500 text-sm px-1">
-            {{ sec.group ? 'No problems in this group yet — use the group menu on a problem to move it here.' : 'Every problem is in a group.' }}
+            {{ sec.group ? (canReorder ? 'No problems in this group yet — drag a problem here, or use its group menu.' : 'No problems in this group yet.') : 'Every problem is in a group.' }}
           </p>
         </div>
       </section>
