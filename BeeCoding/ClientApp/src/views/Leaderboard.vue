@@ -16,7 +16,9 @@ const boards = ref([]);
 // leaderboard link (e.g. shared in a class group chat) opens straight into that view.
 const scope = ref(/^(org|board):[\w-]+$/.test(route.query.scope) ? route.query.scope : 'global');
 const period = ref(route.query.period === '1m' ? '1m' : 'all');
-const page = ref(1);
+// page lives in the URL too (only when > 1), so a deep page survives refresh/back and can be shared.
+const pageFromQuery = (v) => Math.max(1, Number(v) || 1);
+const page = ref(pageFromQuery(route.query.page));
 const pageSize = 20;
 const total = ref(0);
 
@@ -61,26 +63,32 @@ async function load() {
     const result = await api.get(`/api/leaderboard?${params}`);
     rows.value = result.rows;
     total.value = result.total;
+    // A stale/hand-edited ?page= past the end: fall back to the last page that exists.
+    const lastPage = Math.max(1, Math.ceil(result.total / pageSize));
+    if (page.value > lastPage) { page.value = lastPage; syncQuery(); await load(); return; }
   } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 }
 function syncQuery() {
-  router.replace({ query: { ...route.query, scope: scope.value, period: period.value } });
+  const query = { ...route.query, scope: scope.value, period: period.value };
+  if (page.value > 1) query.page = String(page.value); else delete query.page;
+  router.replace({ query });
   saveLastQuery();
 }
 function setScope(s) { scope.value = s; page.value = 1; syncQuery(); load(); }
 function setBoardScope(e) { setScope(e.target.value ? `board:${e.target.value}` : 'global'); }
 function setPeriod(p) { period.value = p; page.value = 1; syncQuery(); load(); }
-function prevPage() { if (page.value > 1) { page.value--; load(); } }
-function nextPage() { if (page.value * pageSize < total.value) { page.value++; load(); } }
+function prevPage() { if (page.value > 1) { page.value--; syncQuery(); load(); } }
+function nextPage() { if (page.value * pageSize < total.value) { page.value++; syncQuery(); load(); } }
 
 // Browser back/forward (or a direct /leaderboard?scope=...&period=... link) changes the
 // query without going through setScope/setPeriod — keep local state in sync.
-watch(() => [route.query.scope, route.query.period], ([s, p]) => {
+watch(() => [route.query.scope, route.query.period, route.query.page], ([s, p, pg]) => {
   const nextScope = /^(org|board):[\w-]+$/.test(s) ? s : 'global';
   const nextPeriod = p === '1m' ? '1m' : 'all';
-  if (nextScope === scope.value && nextPeriod === period.value) return;
-  scope.value = nextScope; period.value = nextPeriod; page.value = 1; load();
+  const nextPage = pageFromQuery(pg);
+  if (nextScope === scope.value && nextPeriod === period.value && nextPage === page.value) return;
+  scope.value = nextScope; period.value = nextPeriod; page.value = nextPage; load();
 });
 
 onMounted(async () => {
