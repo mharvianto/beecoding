@@ -11,12 +11,14 @@ import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications } from './stores/notifications';
+import { useUndoToast } from './stores/undoToast';
 import { celebrate } from './lib/confetti';
 import { playgroundFocus } from './lib/playgroundFocus';
 
 const auth = useAuth();
 const progress = useProgress();
 const notifications = useNotifications();
+const undoToast = useUndoToast();
 const router = useRouter();
 const route = useRoute();
 
@@ -41,6 +43,11 @@ watch(() => auth.user?.id, (id) => (id ? progress.refresh() : progress.reset()),
 // Bell + live toasts for reactions/comments on my wall posts. No toast when the user is
 // already on the board it's about — the card itself shows the new feedback there.
 notifications.suppressToast = (n) => route.path === `/boards/${n.boardSlug}`;
+// The teacher removed this user from a board: if they're inside it, send them back to the list.
+notifications.onMemberRemoved = (e) => {
+  if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');
+  undoToast.show(`You were removed from “${e.boardTitle}”.`);
+};
 watch(() => auth.user?.id, (id) => (id ? notifications.start() : notifications.stop()), { immediate: true });
 
 // Celebrate a level-up anywhere in the app. `levelBaseline` is the level as of the

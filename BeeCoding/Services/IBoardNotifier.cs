@@ -40,6 +40,9 @@ public interface IBoardNotifier
     /// <c>total</c> is about to run.</summary>
     Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total);
 
+    /// <summary>The teacher removed this user from a board: their open pages should leave it.</summary>
+    Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle);
+
     /// <summary>A notification was created or updated for this user (also carries the new unread total).</summary>
     Task NotificationAsync(int userId, NotificationDto item, int unread);
 

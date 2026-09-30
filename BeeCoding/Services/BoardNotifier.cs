@@ -43,6 +43,9 @@ public class BoardNotifier(IHubContext<BoardHub> hub) : IBoardNotifier
         _hub.Clients.User(userId.ToString())
             .SendAsync("submissionProgress", new { kind, submissionId, current, total });
 
+    public Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle) =>
+        _hub.Clients.User(userId.ToString()).SendAsync("memberRemoved", new { boardId, boardSlug, boardTitle });
+
     public Task NotificationAsync(int userId, NotificationDto item, int unread) =>
         _hub.Clients.User(userId.ToString()).SendAsync("notification", new { item, unread });
 

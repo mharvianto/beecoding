@@ -10,12 +10,14 @@ import ProgressGrid from '../components/ProgressGrid.vue';
 import PadletWall from '../components/PadletWall.vue';
 import QrCode from '../components/QrCode.vue';
 import SubmissionView from '../components/SubmissionView.vue';
+import { useConfirmDialog } from '../stores/confirmDialog';
 
 const props = defineProps({ slug: { type: String, required: true } });
 const auth = useAuth();
 const route = useRoute();
 const router = useRouter();
 const undoToast = useUndoToast();
+const confirmDialog = useConfirmDialog();
 
 // Deep link from an LTI "review submission" launch (?viewSubmission=<id>, see LtiController)
 // — open it once on load, then drop the query param so a refresh doesn't reopen it.
@@ -67,6 +69,18 @@ async function toggleExam() {
 }
 async function toggleLecturing() {
   board.value = await api.patch(`/api/boards/${props.slug}`, { lecturingMode: !board.value.lecturingMode });
+}
+async function removeStudent(student) {
+  const ok = await confirmDialog.ask(
+    `Remove ${student.displayName} from “${board.value.title}”?\nTheir submissions are kept. They can rejoin with the join code.`,
+    { confirmLabel: 'Remove student' });
+  if (!ok) return;
+  try {
+    await api.del(`/api/boards/${props.slug}/members/${student.userId}`);
+    await loadProgress();
+    await refreshDrafts();
+    wallSignal.value++;
+  } catch (e) { error.value = e.message; }
 }
 async function toggleHide(student) {
   await api.patch(`/api/boards/${props.slug}/members/${student.userId}`, { hiddenByTeacher: !student.hiddenByTeacher });
@@ -224,6 +238,10 @@ onBeforeUnmount(async () => {
                   :class="board.lecturingMode ? 'text-sky-600 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
             👨‍🏫 {{ board.lecturingMode ? 'Lecturing ON — students see your code' : 'Lecturing mode' }}
           </button>
+          <button v-if="board.isOwner" @click="setView('grid'); settingsOpen = false"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            👥 Manage students (grid)
+          </button>
           <RouterLink :to="`/boards/${board.slug}/live`" @click="settingsOpen = false"
                       class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             🎥 Live code
@@ -284,8 +302,10 @@ onBeforeUnmount(async () => {
       :problems="progress.problems"
       :cells="progress.cells"
       :is-staff="progress.viewerIsStaff"
+      :can-remove="board.isOwner"
       :current-user-id="auth.user?.id"
-      @toggle-hide="toggleHide" />
+      @toggle-hide="toggleHide"
+      @remove="removeStudent" />
 
     <SubmissionView v-if="ltiSubmissionId" :submission-id="ltiSubmissionId" @close="ltiSubmissionId = null" />
   </div>

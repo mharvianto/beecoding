@@ -128,7 +128,11 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
             .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == UserId);
         if (me is null) return Enumerable.Empty<Draft>();
         if (me.Role is MembershipRole.Owner or MembershipRole.Teacher)
-            return await _drafts.ForBoardAsync(boardId);
+        {
+            // A student who was removed from the board may still have a lingering draft.
+            var memberIds = (await _db.BoardMemberships.Where(m => m.BoardId == boardId).Select(m => m.UserId).ToListAsync()).ToHashSet();
+            return (await _drafts.ForBoardAsync(boardId)).Where(d => memberIds.Contains(d.UserId));
+        }
 
         if (me.Board is null) return Enumerable.Empty<Draft>();   // deleted board -> locked down
         // Per-problem exam mode: a group's own flag, else the board's (for ungrouped problems).

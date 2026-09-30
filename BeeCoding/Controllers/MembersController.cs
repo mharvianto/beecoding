@@ -10,12 +10,13 @@ namespace BeeCoding.Controllers;
 
 [Authorize]
 [Route("api/boards/{slug}/members")]
-public class MembersController(AppDbContext db, BoardService boards, VisibilityService vis, IBoardNotifier notifier) : ApiControllerBase
+public class MembersController(AppDbContext db, BoardService boards, VisibilityService vis, IBoardNotifier notifier, AuditLog audit) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
     private readonly VisibilityService _vis = vis;
     private readonly IBoardNotifier _notifier = notifier;
+    private readonly AuditLog _audit = audit;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<MemberDto>>> List(string slug)
@@ -58,5 +59,35 @@ public class MembersController(AppDbContext db, BoardService boards, VisibilityS
         await _notifier.MemberVisibilityChangedAsync(board.Id, userId, dto.HiddenByTeacher);
 
         return new MemberDto(target.UserId, target.User!.DisplayName, target.Role.ToString(), target.HiddenByTeacher);
+    }
+
+    /// <summary>
+    /// Owner removes a student from the board. Only the membership goes: their submissions and
+    /// wall posts are kept (so re-adding them restores everything) and simply stop showing while
+    /// they aren't a member. They can rejoin with the join code unless it is changed.
+    /// </summary>
+    [HttpDelete("{userId:int}")]
+    public async Task<IActionResult> Remove(string slug, int userId)
+    {
+        var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        if (board.OwnerId != UserId) return Forbid();
+
+        var target = await _db.BoardMemberships
+            .Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.BoardId == board.Id && m.UserId == userId);
+        if (target is null) return NotFound();
+        if (target.Role != MembershipRole.Student) return BadRequest("Only students can be removed.");
+
+        _db.BoardMemberships.Remove(target);
+        await _db.SaveChangesAsync();
+        // Bell items pointing into a board they can no longer open would only lead to a 403.
+        await _db.Notifications.Where(n => n.UserId == userId && n.BoardId == board.Id).ExecuteDeleteAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "remove-member", "Board", board.Id, $"{target.User!.DisplayName} removed from {board.Title}");
+
+        await _notifier.MemberRemovedAsync(userId, board.Id, board.Slug, board.Title);
+        await _notifier.ProgressChangedAsync(board.Id, 0, userId);   // staff grids drop the row
+        await _notifier.WallChangedAsync(board.Id);
+        return NoContent();
     }
 }

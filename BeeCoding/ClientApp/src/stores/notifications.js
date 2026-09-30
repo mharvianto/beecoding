@@ -15,6 +15,7 @@ export const useNotifications = defineStore('notifications', {
     toasts: [],
     conn: null,
     suppressToast: null,   // (item) => boolean
+    onMemberRemoved: null, // ({ boardId, boardSlug, boardTitle }) => void — set by App.vue
   }),
   actions: {
     async load() {
@@ -31,6 +32,7 @@ export const useNotifications = defineStore('notifications', {
       const conn = createBoardConnection();
       conn.on('notification', (e) => this.ingest(e));
       conn.on('notificationRemoved', (e) => this.remove(e));
+      conn.on('memberRemoved', (e) => this.onMemberRemoved?.(e));
       conn.onreconnected(() => this.load());   // anything missed while disconnected
       this.conn = conn;
       try { await conn.start(); } catch { /* realtime is best-effort; the bell still loads on refresh */ }

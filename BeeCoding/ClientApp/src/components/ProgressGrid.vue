@@ -8,9 +8,10 @@ const props = defineProps({
   problems: Array,
   cells: Array,
   isStaff: Boolean,
+  canRemove: Boolean,   // board owner: may remove a student from the board
   currentUserId: Number,
 });
-const emit = defineEmits(['toggle-hide']);
+const emit = defineEmits(['toggle-hide', 'remove']);
 
 const viewSubmissionId = ref(null);
 
@@ -50,6 +51,10 @@ function solvedCount(userId) {
                       ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                       : 'text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
               {{ s.hiddenByTeacher ? 'hidden from peers' : 'visible' }}
+            </button>
+            <button v-if="isStaff && canRemove" @click="emit('remove', s)" title="Remove from this board"
+                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:border-rose-300 dark:hover:text-rose-400 dark:hover:border-rose-500/40">
+              ✕ remove
             </button>
           </td>
           <td v-for="p in problems" :key="p.id" class="px-2 py-2 text-center">
