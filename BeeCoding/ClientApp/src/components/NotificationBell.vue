@@ -32,11 +32,11 @@ async function go(n) {
 
 <template>
   <div class="relative">
-    <button @click="toggle" class="relative p-1 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+    <!-- Emoji, like the rest of the app's icons (and the 🔔 chips on wall cards / problem tabs). -->
+    <button @click="toggle" class="relative px-1 text-base leading-none transition"
+            :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
             title="Notifications" aria-label="Notifications">
-      <svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" />
-      </svg>
+      🔔
       <span v-if="notif.unread" class="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-4 text-center">
         {{ notif.unread > 9 ? '9+' : notif.unread }}
       </span>
