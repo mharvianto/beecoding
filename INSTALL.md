@@ -189,7 +189,8 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=notify            # butuh build yang sudah memakai UseSystemd(); kalau belum, ganti: Type=simple
+# butuh build yang sudah memakai UseSystemd() (sudah); kalau belum, ganti: Type=simple
+Type=notify
 User=harvianto
 Group=harvianto
 WorkingDirectory=/srv/beecoding/BeeCoding/out
@@ -211,6 +212,12 @@ TimeoutStartSec=60
 WantedBy=multi-user.target
 EOF
 ```
+
+> **Komentar di file unit harus di baris sendiri** (diawali `#`). systemd tidak mengenal komentar di
+> akhir baris: `Type=notify  # catatan` gagal di-parse (`Failed to parse Type=notify …`), dan pada
+> `Environment=` setiap kata komentar dianggap variabel baru (`Invalid environment assignment`).
+> Kalau service tetap jalan padahal ada pesan seperti itu, nilai yang gagal di-parse diabaikan
+> (mis. `Type=notify` jatuh ke `simple`) — hapus komentar sebarisnya lalu `daemon-reload`.
 
 > `DOTNET_ROOT` wajib karena .NET dipasang di home, bukan sistem. Kalau kamu memasang
 > **ASP.NET Core Runtime** sistem-wide (`sudo .../dotnet-install.sh --channel 10.0 --runtime aspnetcore --install-dir /usr/lib/dotnet`),
@@ -739,6 +746,31 @@ export App__PublicUrl=https://beecoding.contoh.com   # dipakai membangun tautan 
 - Tanpa email: admin tetap bisa membuat tautan reset manual di **Admin → Users → 🔑 Reset link**
   (berlaku 24 jam) lalu mengirimkannya sendiri ke pengguna.
 - Sesi yang sudah login **tidak** dicabut saat password diganti (cookie auth tanpa session stamp).
+
+### Verifikasi email
+
+Dengan config `Email` terisi (lihat *Lupa password*), akun diminta mengonfirmasi alamat emailnya:
+
+- **User baru:** setelah registrasi, tautan konfirmasi dikirim (berlaku 24 jam, sekali pakai).
+- **User lama:** semua akun yang sudah ada dianggap *belum terverifikasi* (kecuali akun demo, akun hasil
+  peluncuran LTI, dan akun yang dibuat lewat import CSV admin — mereka otomatis terverifikasi).
+- Selama belum terverifikasi muncul banner kuning "Please confirm your email" dengan tombol **Resend email**
+  (maks. 3 kali per jam per akun). Aplikasi tetap bisa dipakai.
+- Mereset password lewat tautan **yang dikirim ke email** juga memverifikasi akun itu. Tautan reset buatan
+  admin tidak.
+- Admin bisa menandai manual di **Admin → Users → ✓ Mark verified** (mis. email tidak bisa sampai).
+
+Mode ketat — akun yang belum terverifikasi hanya bisa membuka layar verifikasi:
+
+```bash
+export Auth__RequireVerifiedEmail=true
+```
+
+- Berlaku untuk **semua** akun yang belum terverifikasi, termasuk yang lama. Pastikan email benar-benar
+  terkirim (coba "Forgot your password?") sebelum menyalakannya, dan tandai akun penting lebih dulu lewat
+  Admin → Users. Admin platform (`Admin:Emails`) dikecualikan agar tidak terkunci.
+- Mode ketat otomatis **tidak aktif** bila `Email` belum dikonfigurasi, jadi server yang salah konfigurasi
+  tidak mengunci semua orang.
 
 ### Tutor AI (hint, bukan jawaban)
 

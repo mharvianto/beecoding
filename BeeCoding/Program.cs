@@ -247,6 +247,7 @@ builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddSingleton<ResetRequestThrottle>();
 builder.Services.AddScoped<PasswordResetService>();
+builder.Services.AddScoped<EmailVerificationService>();
 builder.Services.AddScoped<PlagiarismService>();
 builder.Services.AddScoped<OrgResolver>();
 builder.Services.AddScoped<OrgAccess>();
@@ -450,6 +451,7 @@ app.UseWebSockets();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<EmailVerificationGate>();   // no-op unless Auth:RequireVerifiedEmail
 
 app.MapControllers();
 app.MapHub<BoardHub>("/hubs/board");

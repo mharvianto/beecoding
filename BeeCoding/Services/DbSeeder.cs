@@ -53,6 +53,7 @@ public static class DbSeeder
             Email = "teacher@demo.test",
             DisplayName = "Demo Teacher",
             Role = UserRole.Teacher,
+            EmailVerifiedAt = DateTime.UtcNow,   // demo account: nothing to confirm
         };
         teacher.PasswordHash = pw.Hash(teacher, "password");
         db.Users.Add(teacher);

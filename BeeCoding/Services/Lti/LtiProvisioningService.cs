@@ -40,6 +40,7 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
                 Email = email,
                 DisplayName = string.IsNullOrWhiteSpace(claims.Name) ? "LTI user" : claims.Name!,
                 Role = LtiClaims.IsInstructor(claims.Roles) ? UserRole.Teacher : UserRole.Student,
+                EmailVerifiedAt = DateTime.UtcNow,   // the LMS vouches for this identity
             };
             // LTI-only account — password login stays possible in principle (e.g. if they
             // later set one via "forgot password"), but starts as an unguessable random hash.

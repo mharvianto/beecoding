@@ -290,6 +290,11 @@ function searchUsers() { usersPage.value = 1; loadUsers(); }
 function usersPrevPage() { if (usersPage.value > 1) { usersPage.value--; loadUsers(); } }
 function usersNextPage() { if (usersPage.value * usersPageSize.value < usersTotal.value) { usersPage.value++; loadUsers(); } }
 
+async function markVerified(u) {
+  err.value = '';
+  try { await api.post(`/api/admin-ui/users/${u.id}/verify-email`); u.emailVerified = true; } catch (e) { err.value = e.message; }
+}
+
 // ---- one-off password-reset link for a user (works without outgoing email) ----
 const resetLink = ref(null);   // { user, url, expiresAt }
 const resetLinkCopied = ref(false);
@@ -1174,10 +1179,12 @@ onMounted(async () => {
             </select>
             <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
             <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
+            <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
           <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
+            <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success" title="Mark this email address as verified">✓ Mark verified</button>
             <button @click="issueResetLink(u)" class="row-action-btn" title="Create a one-time password-reset link">🔑 Reset link</button>
             <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="row-action-btn row-action-btn--accent">Make admin</button>
             <button v-else @click="revokeAdmin(u)" class="row-action-btn">Revoke admin</button>
@@ -1215,6 +1222,7 @@ onMounted(async () => {
                 </select>
                 <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
                 <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
+                <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
@@ -1222,6 +1230,7 @@ onMounted(async () => {
               <td class="text-[11px] text-slate-400">{{ new Date(u.createdAt).toLocaleDateString() }}</td>
               <td class="whitespace-nowrap">
                 <template v-if="u.id !== auth.user?.id">
+                  <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success mr-1" title="Mark this email address as verified">✓ Mark verified</button>
                   <button @click="issueResetLink(u)" class="row-action-btn mr-1" title="Create a one-time password-reset link">🔑 Reset link</button>
                   <button v-if="!u.isAdmin" @click="grantAdmin(u)"
                           class="row-action-btn row-action-btn--accent mr-1">Make admin</button>

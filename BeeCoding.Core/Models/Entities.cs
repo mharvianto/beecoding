@@ -36,6 +36,11 @@ public class User
 
     public string PasswordHash { get; set; } = "";
 
+    /// <summary>When the user proved they own <see cref="Email"/> (by following an emailed link, or an
+    /// admin / LMS vouching for it). Null = not verified. Only enforced when outgoing email is
+    /// configured and, for a hard gate, <c>Auth:RequireVerifiedEmail</c> is on.</summary>
+    public DateTime? EmailVerifiedAt { get; set; }
+
     [MaxLength(120)]
     public string DisplayName { get; set; } = "";
 
@@ -479,6 +484,30 @@ public class PasswordResetToken
 
     public int UserId { get; set; }
     public User? User { get; set; }
+
+    [MaxLength(64)]
+    public string TokenHash { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+
+    /// <summary>True when the link was delivered by email — following it proves the user owns
+    /// the address, so redeeming it also verifies their email. Admin-issued links don't.</summary>
+    public bool ProvesEmail { get; set; }
+}
+
+/// <summary>A single-use link emailed to confirm an address. Like reset tokens, only the hash is stored.
+/// <see cref="Email"/> is the address it was sent to, so changing the account's email voids it.</summary>
+public class EmailVerificationToken
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(256)]
+    public string Email { get; set; } = "";
 
     [MaxLength(64)]
     public string TokenHash { get; set; } = "";

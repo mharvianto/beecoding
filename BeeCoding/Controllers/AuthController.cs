@@ -12,7 +12,7 @@ namespace BeeCoding.Controllers;
 
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
-    EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle) : ApiControllerBase
+    EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -22,6 +22,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly EmailService _email = email;
     private readonly PasswordResetService _resets = resets;
     private readonly ResetRequestThrottle _resetThrottle = resetThrottle;
+    private readonly EmailVerificationService _verification = verification;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -67,6 +68,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         await _db.SaveChangesAsync();
 
         await SignInAsync(user);
+        await _verification.SendAsync(user, Request);   // no-op unless outgoing email is configured
         return await MeDtoAsync(user);
     }
 
@@ -136,7 +138,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
     [HttpGet("config")]
     [AllowAnonymous]
-    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured);
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required);
 
     /// <summary>
     /// Email a reset link. Always answers 204 whether or not the address has an account (no
@@ -156,7 +158,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == address && u.DeletedAt == null);
         if (user is null) return NoContent();
 
-        var (token, _) = await _resets.CreateAsync(user, PasswordResetService.EmailLifetime);
+        var (token, _) = await _resets.CreateAsync(user, PasswordResetService.EmailLifetime, provesEmail: true);
         var link = _resets.BuildLink(Request, token);
         var body =
             $"Hi {user.DisplayName},\n\n" +
@@ -182,9 +184,33 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         if (PasswordPolicy.Validate(dto.NewPassword, user.Email) is string pwErr) return BadRequest(pwErr);
 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
+        if (row.ProvesEmail) user.EmailVerifiedAt ??= DateTime.UtcNow;   // the link came to their mailbox
         await _db.SaveChangesAsync();
         await _resets.ConsumeAsync(row);
         _throttle.RecordSuccess(ClientIp, user.Email);   // a locked-out account can sign in again
+        return NoContent();
+    }
+
+    /// <summary>Redeem an emailed verification link. Anonymous on purpose: the link is opened from
+    /// the mailbox, often in a browser where the user isn't signed in.</summary>
+    [HttpPost("verify-email")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyEmail(VerifyEmailDto dto) =>
+        await _verification.RedeemAsync(dto.Token) is null ? BadRequest("This verification link is invalid or has expired.") : NoContent();
+
+    /// <summary>Send the signed-in user a fresh verification link (capped per account).</summary>
+    [HttpPost("resend-verification")]
+    [Authorize]
+    public async Task<IActionResult> ResendVerification()
+    {
+        if (!_verification.Available) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Email verification isn't set up on this server.");
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        if (user.EmailVerifiedAt is not null) return NoContent();
+        if (!_resetThrottle.TryAcquire("verify:" + UserId, 3))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many requests — check your inbox, or try again in an hour.");
+
+        await _verification.SendAsync(user, Request);
         return NoContent();
     }
 
@@ -247,6 +273,6 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         // A platform super admin can manage every organization (see OrgAccess.CanManageAsync),
         // so they should see the Organization nav link too, not just members with OrgRole.Admin.
         var hasOrgAdmin = isAdmin || await _db.OrganizationMemberships.AnyAsync(m => m.UserId == user.Id && m.Role == OrgRole.Admin);
-        return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin);
+        return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin, user.EmailVerifiedAt != null);
     }
 }

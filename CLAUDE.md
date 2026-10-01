@@ -177,7 +177,7 @@ calling anything that takes a `localDay` param (see `lib/localDay.js`).
 `Judge` (queue backend, concurrency, limits, sandbox), `Lsp` (clangd bridge, off by
 default), `Ai` (AI tutor, off by default — needs `Ai:Enabled=true` + `Ai:ApiKey`),
 `Admin:Emails`/`Admin:Token` (platform admin access + scripted bank-ingest auth),
-`Email` (SMTP for password-reset links; unset = "forgot password" is hidden, admins can still issue a link from Admin → Users) + `App:PublicUrl` (base URL used in those links),
+`Email` (SMTP for password-reset and email-verification links; unset = both are hidden/off, admins can still issue a reset link or mark an email verified from Admin → Users) + `App:PublicUrl` (base URL used in those links), `Auth:RequireVerifiedEmail` (hard gate: unverified accounts can only reach `/api/auth/*`; ignored while `Email` is unset; platform admins exempt — see `EmailVerificationGate`),
 `Auth:TeacherSignupCode`, `Realtime` (Redis backend for presence/drafts/lecture-mode
 stores). `BeeCoding/appsettings.json` and `beecoding.db` are local dev state — do not
 assume changes there should be committed.

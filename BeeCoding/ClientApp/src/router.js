@@ -5,6 +5,7 @@ const routes = [
   { path: '/', component: () => import('./views/Landing.vue'), meta: { anon: true } },
   { path: '/login', component: () => import('./views/Login.vue'), meta: { anon: true } },
   { path: '/register', component: () => import('./views/Register.vue'), meta: { anon: true } },
+  { path: '/verify-email', component: () => import('./views/VerifyEmail.vue'), meta: { public: true } },
   { path: '/forgot-password', component: () => import('./views/ForgotPassword.vue'), meta: { anon: true } },
   { path: '/reset-password', component: () => import('./views/ResetPassword.vue'), meta: { anon: true } },
   { path: '/privacy', component: () => import('./views/Privacy.vue'), meta: { public: true } },
@@ -43,6 +44,9 @@ export const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuth();
   if (!auth.ready) await auth.fetchMe();
+  if (auth.user) await auth.loadConfig();
+  // The server locks unverified accounts out of the app: park them on the verification screen.
+  if (auth.mustVerify && to.path !== '/verify-email' && !to.meta.public) return { path: '/verify-email' };
   if (to.meta.public) return true;                       // privacy / terms — anyone
   if (!to.meta.anon && !auth.user) return { path: '/login', query: { r: to.fullPath } };
   if (to.meta.anon && auth.user) return { path: '/boards' };

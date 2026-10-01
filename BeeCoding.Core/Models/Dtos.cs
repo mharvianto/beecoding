@@ -3,11 +3,15 @@ namespace BeeCoding.Models;
 // ---- Auth ----
 public record RegisterDto(string Email, string Password, string DisplayName, string Role, string? TeacherCode = null);
 public record LoginDto(string Email, string Password);
-public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false);
+public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
+    bool EmailVerified = true);   // false => the account's email hasn't been confirmed yet
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Forgot / reset password ----
-public record AuthConfigDto(bool PasswordReset);   // false when no outgoing email is configured
+/// <summary>PasswordReset / EmailVerification are available when outgoing email is configured;
+/// RequireVerifiedEmail means unverified accounts are locked to the verification screen.</summary>
+public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false);
+public record VerifyEmailDto(string Token);
 public record ForgotPasswordDto(string Email);
 public record ResetPasswordDto(string Token, string NewPassword);
 public record AdminResetLinkDto(string Url, DateTime ExpiresAt);
@@ -132,7 +136,7 @@ public record AdminIngestResultDto(
 
 // ---- Admin panel (cookie-authed, Admin:Emails) ----
 public record AdminUserRow(int Id, string Email, string DisplayName, string Role, bool IsAdmin,
-    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions);
+    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions, bool EmailVerified = true);
 public record AdminUserPageDto(List<AdminUserRow> Rows, int Total, int Page, int PageSize);
 
 public record AdminAiUsageBucket(int Calls, long PromptTokens, long CompletionTokens, long TotalTokens);

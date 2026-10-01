@@ -23,7 +23,7 @@ public class PasswordResetService(AppDbContext db, IConfiguration cfg)
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
 
     /// <summary>Create a token for <paramref name="user"/> and return the raw value (shown once).</summary>
-    public async Task<(string Token, DateTime ExpiresAt)> CreateAsync(User user, TimeSpan lifetime)
+    public async Task<(string Token, DateTime ExpiresAt)> CreateAsync(User user, TimeSpan lifetime, bool provesEmail = false)
     {
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
         var now = DateTime.UtcNow;
@@ -31,7 +31,7 @@ public class PasswordResetService(AppDbContext db, IConfiguration cfg)
         await _db.PasswordResetTokens
             .Where(t => t.UserId == user.Id && (t.UsedAt != null || t.ExpiresAt < now))
             .ExecuteDeleteAsync();
-        var row = new PasswordResetToken { UserId = user.Id, TokenHash = Hash(token), CreatedAt = now, ExpiresAt = now + lifetime };
+        var row = new PasswordResetToken { UserId = user.Id, TokenHash = Hash(token), CreatedAt = now, ExpiresAt = now + lifetime, ProvesEmail = provesEmail };
         _db.PasswordResetTokens.Add(row);
         await _db.SaveChangesAsync();
         return (token, row.ExpiresAt);
@@ -65,11 +65,7 @@ public class PasswordResetService(AppDbContext db, IConfiguration cfg)
     /// Host header can't redirect the link to another site); falls back to the request.</summary>
     public string BuildLink(HttpRequest request, string token)
     {
-        var configured = _cfg["App:PublicUrl"]?.Trim().TrimEnd('/');
-        var baseUrl = string.IsNullOrEmpty(configured)
-            ? $"{request.Scheme}://{request.Host}{request.PathBase}"
-            : configured;
-        return $"{baseUrl}/reset-password?token={Uri.EscapeDataString(token)}";
+        return PublicUrl.Build(_cfg, request, $"/reset-password?token={Uri.EscapeDataString(token)}");
     }
 
     private static string Base64Url(byte[] b) =>

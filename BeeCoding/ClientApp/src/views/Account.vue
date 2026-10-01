@@ -134,6 +134,10 @@ async function deleteAccount(force = false) {
       <h1 class="text-xl font-bold mb-1">Account</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
         {{ auth.user?.displayName }} · {{ auth.user?.email }} · {{ auth.user?.role }}
+        <span v-if="auth.config.emailVerification" class="ml-1"
+              :class="auth.user?.emailVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+          {{ auth.user?.emailVerified ? '✓ email verified' : '⚠ email not verified' }}
+        </span>
       </p>
     </div>
 

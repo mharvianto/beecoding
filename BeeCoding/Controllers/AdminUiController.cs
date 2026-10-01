@@ -187,7 +187,7 @@ public class AdminUiController(
         var rows = users.Select(u => new AdminUserRow(
             u.Id, u.Email, u.DisplayName, u.Role.ToString(), _admin.IsAdminEmail(u.Email),
             u.Xp, u.CreatedAt,
-            ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id))).ToList();
+            ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null)).ToList();
 
         return new AdminUserPageDto(rows, total, page, pageSize);
     }
@@ -370,7 +370,7 @@ public class AdminUiController(
                 string? generatedPw = null;
                 if (user is null)
                 {
-                    user = new User { Email = email, DisplayName = name, Role = role };
+                    user = new User { Email = email, DisplayName = name, Role = role, EmailVerifiedAt = DateTime.UtcNow };   // the admin vouches for imported addresses
                     var password = string.IsNullOrWhiteSpace(explicitPw) ? GeneratePassword() : explicitPw;
                     if (string.IsNullOrWhiteSpace(explicitPw)) generatedPw = password;
                     user.PasswordHash = _pw.Hash(user, password);
@@ -452,6 +452,18 @@ public class AdminUiController(
             archived++;
         }
         return new AdminBulkArchiveResult(archived, errors);
+    }
+
+    /// <summary>Mark a user's email verified by hand (e.g. when mail can't reach them).</summary>
+    [HttpPost("users/{id:int}/verify-email")]
+    public async Task<IActionResult> VerifyUserEmail(int id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && u.DeletedAt == null);
+        if (user is null) return NotFound();
+        user.EmailVerifiedAt ??= DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "email-verified-by-admin", "User", user.Id, user.Email);
+        return NoContent();
     }
 
     /// <summary>Issue a one-off password-reset link for a user, to hand over by chat or in person —

@@ -9,6 +9,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
 import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
+import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications } from './stores/notifications';
 import { useUndoToast } from './stores/undoToast';
@@ -137,6 +138,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </header>
+    <VerifyEmailBanner v-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
     <main class="flex-1 min-h-0 flex flex-col">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div class="flex-1" :class="{ 'min-h-0': !showFooter }">
