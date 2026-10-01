@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
     public DbSet<BankProblem> BankProblems => Set<BankProblem>();
@@ -88,6 +89,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<Post>().HasIndex(x => x.BoardId);
         b.Entity<Notification>().HasIndex(x => new { x.UserId, x.ReadAt });
         b.Entity<Notification>().HasIndex(x => x.PostId);
+        b.Entity<PasswordResetToken>().HasIndex(x => x.TokenHash).IsUnique();
+        b.Entity<PasswordResetToken>().HasIndex(x => new { x.UserId, x.CreatedAt });
+        b.Entity<PasswordResetToken>()
+            .HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<Notification>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

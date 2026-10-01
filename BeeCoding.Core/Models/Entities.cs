@@ -471,6 +471,23 @@ public class PostComment
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>A single-use, time-limited password-reset link. Only the SHA-256 of the token is
+/// stored — the raw token exists only in the emailed (or admin-issued) link.</summary>
+public class PasswordResetToken
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(64)]
+    public string TokenHash { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+}
+
 /// <summary>An in-app notification for a wall-post author: someone reacted to or commented on
 /// their card. Reactions on the same post coalesce into one unread row (see NotificationService)
 /// so a burst of emoji doesn't flood the bell.</summary>

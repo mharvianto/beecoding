@@ -5,6 +5,8 @@ const routes = [
   { path: '/', component: () => import('./views/Landing.vue'), meta: { anon: true } },
   { path: '/login', component: () => import('./views/Login.vue'), meta: { anon: true } },
   { path: '/register', component: () => import('./views/Register.vue'), meta: { anon: true } },
+  { path: '/forgot-password', component: () => import('./views/ForgotPassword.vue'), meta: { anon: true } },
+  { path: '/reset-password', component: () => import('./views/ResetPassword.vue'), meta: { anon: true } },
   { path: '/privacy', component: () => import('./views/Privacy.vue'), meta: { public: true } },
   { path: '/terms', component: () => import('./views/Terms.vue'), meta: { public: true } },
   { path: '/dashboard', redirect: '/account' },

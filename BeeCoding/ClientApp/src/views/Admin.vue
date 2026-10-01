@@ -290,6 +290,21 @@ function searchUsers() { usersPage.value = 1; loadUsers(); }
 function usersPrevPage() { if (usersPage.value > 1) { usersPage.value--; loadUsers(); } }
 function usersNextPage() { if (usersPage.value * usersPageSize.value < usersTotal.value) { usersPage.value++; loadUsers(); } }
 
+// ---- one-off password-reset link for a user (works without outgoing email) ----
+const resetLink = ref(null);   // { user, url, expiresAt }
+const resetLinkCopied = ref(false);
+async function issueResetLink(u) {
+  err.value = '';
+  try {
+    const r = await api.post(`/api/admin-ui/users/${u.id}/reset-link`);
+    resetLink.value = { user: u, url: r.url, expiresAt: r.expiresAt };
+    resetLinkCopied.value = false;
+  } catch (e) { err.value = e.message; }
+}
+async function copyResetLink() {
+  try { await navigator.clipboard.writeText(resetLink.value.url); resetLinkCopied.value = true; } catch { /* select it manually */ }
+}
+
 async function deleteUser(u) {
   err.value = '';
   try {
@@ -1163,6 +1178,7 @@ onMounted(async () => {
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
           <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
+            <button @click="issueResetLink(u)" class="row-action-btn" title="Create a one-time password-reset link">🔑 Reset link</button>
             <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="row-action-btn row-action-btn--accent">Make admin</button>
             <button v-else @click="revokeAdmin(u)" class="row-action-btn">Revoke admin</button>
             <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
@@ -1206,6 +1222,7 @@ onMounted(async () => {
               <td class="text-[11px] text-slate-400">{{ new Date(u.createdAt).toLocaleDateString() }}</td>
               <td class="whitespace-nowrap">
                 <template v-if="u.id !== auth.user?.id">
+                  <button @click="issueResetLink(u)" class="row-action-btn mr-1" title="Create a one-time password-reset link">🔑 Reset link</button>
                   <button v-if="!u.isAdmin" @click="grantAdmin(u)"
                           class="row-action-btn row-action-btn--accent mr-1">Make admin</button>
                   <button v-else @click="revokeAdmin(u)"
@@ -2014,5 +2031,24 @@ onMounted(async () => {
         </div>
       </div>
     </section>
-  </div>
+      <!-- one-off password-reset link -->
+    <div v-if="resetLink" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
+      <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-lg p-5 shadow-lg space-y-3">
+        <h2 class="font-semibold">Reset link for {{ resetLink.user.displayName }}</h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+          Send this to {{ resetLink.user.email }} yourself. It works once and expires
+          {{ new Date(resetLink.expiresAt.endsWith('Z') ? resetLink.expiresAt : resetLink.expiresAt + 'Z').toLocaleString() }}.
+          Anyone with the link can set a new password — share it privately.
+        </p>
+        <input :value="resetLink.url" readonly @focus="$event.target.select()"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono" />
+        <div class="flex justify-end gap-2">
+          <button @click="resetLink = null" class="px-3 py-1.5 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Close</button>
+          <button @click="copyResetLink" class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-amber-500 hover:bg-amber-600">
+            {{ resetLinkCopied ? 'Copied ✓' : 'Copy link' }}
+          </button>
+        </div>
+      </div>
+    </div>
+</div>
 </template>

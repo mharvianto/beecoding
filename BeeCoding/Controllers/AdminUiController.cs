@@ -29,10 +29,11 @@ public class AdminUiController(
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
-    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk)
+    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets)
     : ApiControllerBase
 {
     private readonly BoardBulkService _bulk = bulk;
+    private readonly PasswordResetService _resets = resets;
     private readonly SysstatService _sysstat = sysstat;
     private readonly PlagiarismService _plagiarism = plagiarism;
     private readonly ProgressService _progress = progress;
@@ -451,6 +452,19 @@ public class AdminUiController(
             archived++;
         }
         return new AdminBulkArchiveResult(archived, errors);
+    }
+
+    /// <summary>Issue a one-off password-reset link for a user, to hand over by chat or in person —
+    /// works without outgoing email. Valid 24 hours, single use.</summary>
+    [HttpPost("users/{id:int}/reset-link")]
+    public async Task<ActionResult<AdminResetLinkDto>> ResetLink(int id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && u.DeletedAt == null);
+        if (user is null) return NotFound();
+
+        var (token, expires) = await _resets.CreateAsync(user, PasswordResetService.AdminLifetime);
+        await _audit.RecordAsync(UserId, ActorEmail, "password-reset-link", "User", user.Id, user.Email);
+        return new AdminResetLinkDto(_resets.BuildLink(Request, token), expires);
     }
 
     /// <summary>Every bank problem on the platform, for the bulk-add picker (the regular bank

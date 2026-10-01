@@ -11,13 +11,17 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Controllers;
 
 [Route("api/auth")]
-public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle) : ApiControllerBase
+public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
+    EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
     private readonly IConfiguration _cfg = cfg;
     private readonly AdminAccess _admin = admin;
     private readonly LoginThrottle _throttle = throttle;
+    private readonly EmailService _email = email;
+    private readonly PasswordResetService _resets = resets;
+    private readonly ResetRequestThrottle _resetThrottle = resetThrottle;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -127,6 +131,61 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
             await SignInAsync(user);   // refresh the cookie so ClaimTypes.Name (author names, etc.) is current
         }
         return await MeDtoAsync(user);
+    }
+
+    /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
+    [HttpGet("config")]
+    [AllowAnonymous]
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured);
+
+    /// <summary>
+    /// Email a reset link. Always answers 204 whether or not the address has an account (no
+    /// account enumeration), and the send itself is not awaited so response time doesn't leak
+    /// it either. Capped per address and per client IP.
+    /// </summary>
+    [HttpPost("forgot-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
+    {
+        if (!_email.IsConfigured) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Password reset by email isn't set up on this server. Ask an administrator.");
+
+        var address = (dto.Email ?? "").Trim().ToLowerInvariant();
+        if (address.Length is 0 or > 256 || !address.Contains('@')) return NoContent();
+        if (!_resetThrottle.TryAcquire("ip:" + ClientIp, 20) || !_resetThrottle.TryAcquire("mail:" + address, 3)) return NoContent();
+
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == address && u.DeletedAt == null);
+        if (user is null) return NoContent();
+
+        var (token, _) = await _resets.CreateAsync(user, PasswordResetService.EmailLifetime);
+        var link = _resets.BuildLink(Request, token);
+        var body =
+            $"Hi {user.DisplayName},\n\n" +
+            "Someone asked to reset the password for your BeeCoding account. Use this link to choose a new one " +
+            $"(it works once and expires in {(int)PasswordResetService.EmailLifetime.TotalMinutes} minutes):\n\n{link}\n\n" +
+            "If that wasn't you, ignore this email — your password stays as it is.\n";
+        _ = _email.SendAsync(user.Email, "Reset your BeeCoding password", body);   // deliberately not awaited
+        return NoContent();
+    }
+
+    /// <summary>Lets the reset page say "this link has expired" before the user types a password.</summary>
+    [HttpGet("reset-password/check")]
+    [AllowAnonymous]
+    public async Task<IActionResult> CheckResetToken([FromQuery] string? token) =>
+        await _resets.FindValidAsync(token) is null ? BadRequest("This reset link is invalid or has expired.") : NoContent();
+
+    [HttpPost("reset-password")]
+    [AllowAnonymous]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        var row = await _resets.FindValidAsync(dto.Token);
+        if (row?.User is not { } user) return BadRequest("This reset link is invalid or has expired.");
+        if (PasswordPolicy.Validate(dto.NewPassword, user.Email) is string pwErr) return BadRequest(pwErr);
+
+        user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
+        await _db.SaveChangesAsync();
+        await _resets.ConsumeAsync(row);
+        _throttle.RecordSuccess(ClientIp, user.Email);   // a locked-out account can sign in again
+        return NoContent();
     }
 
     [HttpPost("change-password")]

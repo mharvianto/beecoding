@@ -717,6 +717,29 @@ export Admin__Token="$(openssl rand -hex 32)"   # aktifkan endpoint admin bank s
 export Ai__Enabled=true; export Ai__ApiKey="nvapi-…"   # tutor AI
 ```
 
+### Lupa password (email)
+
+Tautan **Forgot your password?** di halaman login hanya muncul kalau server bisa mengirim email.
+Isi config `Email` (SMTP):
+
+```bash
+export Email__Host=smtp.contoh.com
+export Email__Port=587
+export Email__UseSsl=true            # STARTTLS/TLS; matikan hanya untuk relay lokal
+export Email__User=akun-smtp
+export Email__Password='…'
+export Email__From=noreply@contoh.com
+export App__PublicUrl=https://beecoding.contoh.com   # dipakai membangun tautan di email
+```
+
+- `App:PublicUrl` **sebaiknya diisi**. Kalau kosong, tautan dibuat dari header Host request.
+- Tautan reset berlaku **1 jam** dan **sekali pakai**; hanya hash-nya yang disimpan di DB.
+- Permintaan dibatasi 3 per jam per alamat dan 20 per jam per IP. Respons selalu sama (204),
+  ada atau tidaknya akun tidak terlihat dari luar.
+- Tanpa email: admin tetap bisa membuat tautan reset manual di **Admin → Users → 🔑 Reset link**
+  (berlaku 24 jam) lalu mengirimkannya sendiri ke pengguna.
+- Sesi yang sudah login **tidak** dicabut saat password diganti (cookie auth tanpa session stamp).
+
 ### Tutor AI (hint, bukan jawaban)
 
 Dengan `Ai:Enabled=true` + `Ai:ApiKey` terisi, muncul panel **🤖 AI tutor** di halaman

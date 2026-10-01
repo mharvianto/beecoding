@@ -5,6 +5,12 @@ public record RegisterDto(string Email, string Password, string DisplayName, str
 public record LoginDto(string Email, string Password);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false);
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
+
+// ---- Forgot / reset password ----
+public record AuthConfigDto(bool PasswordReset);   // false when no outgoing email is configured
+public record ForgotPasswordDto(string Email);
+public record ResetPasswordDto(string Token, string NewPassword);
+public record AdminResetLinkDto(string Url, DateTime ExpiresAt);
 public record UpdateProfileDto(string DisplayName);
 public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false);
 
