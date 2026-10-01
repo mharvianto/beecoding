@@ -18,6 +18,8 @@ const activeProblem = ref(null);
 const noteDraft = ref({});          // postId -> string while editing
 const commentDraft = ref({});       // postId -> string
 const openComments = ref({});       // postId -> bool
+const commentLimit = ref({});       // postId -> how many of the newest comments are rendered
+const COMMENT_PAGE = 5;
 const error = ref('');
 const viewSubmissionId = ref(null); // set to open the full-code viewer modal
 
@@ -120,6 +122,7 @@ async function toggleReaction(post, emoji) {
 // per-item "new" marks stay on screen until the wall next reloads so they can be spotted.
 async function acknowledge(post) {
   openComments.value[post.postId] = true;
+  scrollCommentsToEnd(post.postId);
   if (!post.newActivity) return;
   try {
     await api.post(`/api/posts/${post.postId}/seen`);
@@ -128,6 +131,21 @@ async function acknowledge(post) {
 }
 const tabHasNew = (problemId) =>
   wall.value.posts.some((p) => p.problemId === problemId && p.mine && p.newActivity > 0);
+// Newest comments only, with a 'load earlier' step. Unseen comments are never hidden behind it.
+function visibleComments(post) {
+  const all = post.comments;
+  let n = commentLimit.value[post.postId] || COMMENT_PAGE;
+  const firstNew = all.findIndex((c) => c.isNew);
+  if (firstNew >= 0) n = Math.max(n, all.length - firstNew);
+  return all.slice(Math.max(0, all.length - n));
+}
+function hiddenComments(post) { return post.comments.length - visibleComments(post).length; }
+function loadEarlier(post) {
+  commentLimit.value[post.postId] = visibleComments(post).length + COMMENT_PAGE;
+}
+function scrollCommentsToEnd(postId) {
+  nextTick(() => { const el = document.getElementById('comments-' + postId); if (el) el.scrollTop = el.scrollHeight; });
+}
 function reactionCount(post, emoji) {
   return post.reactions.find((r) => r.emoji === emoji);
 }
@@ -147,6 +165,8 @@ async function addComment(post) {
   try {
     const c = await api.post(`/api/posts/${post.postId}/comments`, { body });
     post.comments.push(c);
+    commentLimit.value[post.postId] = visibleComments(post).length + 1;
+    scrollCommentsToEnd(post.postId);
     commentDraft.value[post.postId] = '';
   } catch (e) { error.value = e.message; }
 }
@@ -286,7 +306,12 @@ async function toggleHiddenByStudent(post) {
               💬 {{ post.comments.length }} comment{{ post.comments.length === 1 ? '' : 's' }}
             </button>
             <div v-if="openComments[post.postId]" class="mt-2 space-y-1.5">
-              <div v-for="c in post.comments" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1"
+              <div :id="'comments-' + post.postId" class="max-h-56 overflow-y-auto space-y-1.5 pr-1">
+              <button v-if="hiddenComments(post) > 0" @click="loadEarlier(post)"
+                      class="w-full text-[11px] text-amber-600 dark:text-amber-400 hover:underline py-0.5">
+                Load earlier comments ({{ hiddenComments(post) }} more)
+              </button>
+              <div v-for="c in visibleComments(post)" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1"
                    :class="{ 'border-l-2 border-amber-500': c.isNew }">
                 <span class="font-semibold">{{ c.authorName }}</span>
                 <span v-if="c.isNew" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">NEW</span>
@@ -294,6 +319,7 @@ async function toggleHiddenByStudent(post) {
                 <button v-if="c.canDelete" @click="delComment(post, c)"
                         class="text-slate-300 dark:text-slate-600 hover:text-red-500 float-right">×</button>
                 <div class="text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{{ c.body }}</div>
+              </div>
               </div>
               <div class="flex gap-1">
                 <input v-model="commentDraft[post.postId]" @keyup.enter="addComment(post)"
