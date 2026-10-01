@@ -58,7 +58,10 @@ builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = Syst
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
 
 builder.Services.AddDbContext<AppDbContext>(o =>
-    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=beecoding.db"));
+    // Split queries: Include of several collections (wall posts: reactions x comments, board: members x
+    // problems x groups) would otherwise be one cartesian-product join that grows multiplicatively.
+    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=beecoding.db",
+        s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
