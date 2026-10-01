@@ -156,7 +156,7 @@ async function deleteAccount(force = false) {
           <div class="mt-1.5 w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
           </div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.xp) }} XP</div>
+          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
         </div>
 
         <RouterLink to="/leaderboard" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">

@@ -1,8 +1,10 @@
 <script setup>
 import { watch } from 'vue';
 import { useCelebrationToast } from '../stores/celebrationToast';
+import { useProgress } from '../stores/progress';
 
 const toast = useCelebrationToast();
+const progress = useProgress();
 let timer = null;
 watch(() => toast.deadline, (d) => {
   clearTimeout(timer);
@@ -22,7 +24,7 @@ watch(() => toast.deadline, (d) => {
           {{ toast.xpGained > 0 ? `+${toast.xpGained} XP` : 'Accepted!' }}
         </div>
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Lv {{ toast.level }} · {{ toast.xp }} XP
+          Lv {{ toast.level }} · {{ toast.xp }} XP · {{ progress.toNext }} to Lv {{ toast.level + 1 }}
         </div>
         <div class="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
           🔥 {{ toast.solvedToday }} solved today

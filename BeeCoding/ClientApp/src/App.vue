@@ -126,12 +126,12 @@ onBeforeUnmount(() => {
 
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
           <RouterLink to="/leaderboard" v-if="progress.ready"
-                      class="hidden md:flex items-center gap-2" :title="`Your XP: ${progress.xp}`">
+                      class="hidden md:flex items-center gap-2" :title="`Your XP: ${progress.xp} · ${progress.toNext} XP to Lv ${progress.level + 1}`">
             <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Lv {{ progress.level }}</span>
             <span class="hidden xl:block w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
             </span>
-            <span class="hidden xl:inline text-xs text-slate-400 dark:text-slate-500">{{ progress.xp }} XP</span>
+            <span class="hidden xl:inline text-xs text-slate-400 dark:text-slate-500">{{ progress.xp }} XP · {{ progress.toNext }} to Lv {{ progress.level + 1 }}</span>
           </RouterLink>
           <NotificationBell />
           <UserMenu @logout="logout" />
