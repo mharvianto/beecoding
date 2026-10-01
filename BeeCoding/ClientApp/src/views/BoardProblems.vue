@@ -218,9 +218,9 @@ async function reorderGroupTo(id, target, pos) {
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
     <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
-    <div class="flex items-center justify-between mt-2 mb-4">
+    <div class="flex items-center justify-between gap-2 flex-wrap mt-2 mb-4">
       <h1 class="text-xl font-bold">Problems</h1>
-      <div v-if="isStaff" class="flex items-center gap-2">
+      <div v-if="isStaff" class="flex items-center gap-2 flex-wrap">
         <button @click="editingGroup = null"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           📁 Add group
@@ -241,7 +241,7 @@ async function reorderGroupTo(id, target, pos) {
     <p v-if="q && filtered.length !== problems.length" class="text-xs text-slate-400 dark:text-slate-500 mb-2">
       {{ filtered.length }} of {{ problems.length }} problems
     </p>
-    <p v-if="canReorder && problems.length > 1" class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+    <p v-if="canReorder && problems.length > 1" class="max-sm:hidden text-xs text-slate-400 dark:text-slate-500 mb-2">
       Drag ⠿ to reorder or move problems between groups — drop on a group's header to send a problem to its end. Groups can be dragged by their ⠿ too.
     </p>
 
@@ -255,7 +255,7 @@ async function reorderGroupTo(id, target, pos) {
              :class="isOverSection(sec) ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-300 dark:ring-amber-500/40' : ''"
              :draggable="canReorder && !!sec.group"
              @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
-          <span v-if="canReorder && sec.group" class="cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
+          <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
           <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-400 dark:text-slate-500 w-4 text-left"
                   :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
             {{ collapsed[sec.group ? sec.group.id : 'none'] ? '▸' : '▾' }}
@@ -272,8 +272,8 @@ async function reorderGroupTo(id, target, pos) {
             <span v-if="isStaff" class="ml-auto flex items-center gap-1">
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" title="Move group up"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" title="Move group down"><span>↓</span></button>
-              <button @click="editingGroup = sec.group" class="row-action-btn"><span>✏️</span><span>Edit</span></button>
-              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span>🗑️</span><span>Delete</span></button>
+              <button @click="editingGroup = sec.group" class="row-action-btn"><span>✏️</span><span class="max-sm:hidden">Edit</span></button>
+              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span>🗑️</span><span class="max-sm:hidden">Delete</span></button>
             </span>
           </template>
         </div>
@@ -283,14 +283,14 @@ async function reorderGroupTo(id, target, pos) {
                :draggable="canReorder"
                @dragstart="dragStart($event, { kind: 'problem', slug: p.slug })" @dragend="dragEnd"
                @dragover="overProblem($event, p)" @drop="dropOnProblem($event, p)"
-               class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 flex items-center justify-between"
+               class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3"
                :class="{
                  'opacity-50': drag?.kind === 'problem' && drag.slug === p.slug,
                  'shadow-[0_-3px_0_0_rgb(245_158_11)]': isOverProblem(p, 'before'),
                  'shadow-[0_3px_0_0_rgb(245_158_11)]': isOverProblem(p, 'after'),
                }">
             <div class="flex items-start gap-2 min-w-0">
-              <span v-if="canReorder" class="cursor-grab text-slate-300 dark:text-slate-600 select-none mt-0.5" title="Drag to reorder">⠿</span>
+              <span v-if="canReorder" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none mt-0.5" title="Drag to reorder">⠿</span>
               <div class="min-w-0">
                 <div class="font-medium flex items-center gap-2 flex-wrap">
                   {{ p.title }}
@@ -309,17 +309,17 @@ async function reorderGroupTo(id, target, pos) {
                 </div>
               </div>
             </div>
-            <div class="flex items-center gap-1 shrink-0">
+            <div class="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0">
               <select v-if="isStaff && groups.length" :value="p.groupId ?? ''" @change="moveProblem(p, $event.target.value === '' ? null : Number($event.target.value))"
-                  title="Move to group" class="text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem]">
+                  title="Move to group" class="text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem] min-w-0">
             <option value="">Ungrouped</option>
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.title }}</option>
           </select>
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
-                <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span>{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
+                <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
               </button>
               <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
-                <span>✏️</span><span>Edit</span>
+                <span>✏️</span><span class="max-sm:hidden">Edit</span>
               </button>
               <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5 ml-1">
                 {{ isStaff ? 'View' : 'Solve' }}
