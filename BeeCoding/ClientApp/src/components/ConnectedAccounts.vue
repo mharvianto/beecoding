@@ -35,7 +35,7 @@ async function unlink() {
     <h2 class="font-semibold text-sm">Connected accounts</h2>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     <p v-if="msg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ msg }}</p>
-    <div class="max-w-xl border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+    <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <div class="flex items-center gap-2 flex-wrap">
         <div class="font-medium text-sm">Google</div>
         <span v-if="status.linked" class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ status.email }}</span>

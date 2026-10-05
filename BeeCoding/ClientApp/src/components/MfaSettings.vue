@@ -83,12 +83,12 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
 <template>
   <section id="two-step" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Two-step verification</h2>
-    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
+    <p class="text-sm text-slate-500 dark:text-slate-400">
       After your password, sign-in also asks for a code from an authenticator app, so a stolen password alone is not enough.
     </p>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
-    <div v-if="status" class="space-y-3 max-w-xl">
+    <div v-if="status" class="space-y-3">
       <!-- authenticator app -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
         <div class="flex items-center gap-2">
@@ -132,7 +132,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
     </div>
 
     <!-- password confirmation -->
-    <div v-if="pending" class="max-w-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl p-4 space-y-2">
+    <div v-if="pending" class="border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl p-4 space-y-2">
       <div class="text-sm font-medium">{{ pendingLabel }}</div>
       <p class="text-sm text-slate-500 dark:text-slate-400">Enter your password to confirm.</p>
       <div class="flex flex-wrap gap-2">
@@ -143,7 +143,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
     </div>
 
     <!-- recovery codes, shown once -->
-    <div v-if="codes" class="max-w-xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl p-4 space-y-3">
+    <div v-if="codes" class="border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl p-4 space-y-3">
       <div class="text-sm font-medium">Save your recovery codes</div>
       <p class="text-sm text-slate-600 dark:text-slate-300">Keep them somewhere safe. They are shown only now, and each works once.</p>
       <div class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm">

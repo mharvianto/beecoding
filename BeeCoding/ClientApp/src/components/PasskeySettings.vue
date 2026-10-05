@@ -51,13 +51,13 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
 <template>
   <section v-if="status?.available" id="passkeys" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Passkeys</h2>
-    <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
+    <p class="text-sm text-slate-500 dark:text-slate-400">
       Sign in with your fingerprint, face or device PIN, with no email or password to type. A passkey stays on your
       device, can't be phished, and is already two-factor, so it skips the authenticator-app step.
     </p>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
-    <div class="max-w-xl border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+    <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <p v-if="!supported" class="text-sm text-slate-500 dark:text-slate-400">
         This browser can't use passkeys here. Passkeys need a secure (HTTPS) connection and a browser that supports WebAuthn.
       </p>
