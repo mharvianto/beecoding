@@ -5,7 +5,8 @@ public record RegisterDto(string Email, string Password, string DisplayName, str
 public record LoginDto(string Email, string Password);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
     bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
-    bool HasPassword = true);     // false => created via Google; no password until the user sets one
+    bool HasPassword = true,      // false => created via Google; no password until the user sets one
+    bool MfaEnabled = false);     // has an authenticator app or a passkey (drives the "turn on 2-step" offer)
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----

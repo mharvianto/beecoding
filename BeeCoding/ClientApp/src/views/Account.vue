@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, nextTick } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { useProgress } from '../stores/progress';
@@ -13,6 +13,7 @@ import { localDayKey } from '../lib/localDay';
 const auth = useAuth();
 const progress = useProgress();
 const router = useRouter();
+const route = useRoute();
 
 // AI usage (only shown if the tutor is enabled on this instance)
 const aiUsage = ref(null);
@@ -67,7 +68,14 @@ const attemptPoints = () => (engagementStats.value || []).map((w) => ({ label: e
 const solvedPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.solved }));
 const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
-onMounted(() => { progress.refresh(); loadDashboard(); });
+// A link like /account#two-step: scroll there once the dashboard above has finished loading (it pushes the page down).
+async function scrollToHash() {
+  if (!route.hash) return;
+  await nextTick();
+  requestAnimationFrame(() => document.getElementById(route.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+}
+
+onMounted(async () => { progress.refresh(); await loadDashboard(); scrollToHash(); });
 
 // display name
 const name = ref(auth.user?.displayName || '');

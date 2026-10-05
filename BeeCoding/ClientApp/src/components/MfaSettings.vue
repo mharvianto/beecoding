@@ -1,9 +1,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useAuth } from '../stores/auth';
 import { api } from '../lib/api';
 import { createPasskey, passkeysSupported } from '../lib/webauthn';
 import QrCode from './QrCode.vue';
 
+const auth = useAuth();
 const status = ref(null);          // { passkeysAvailable, totpEnabled, passkeys: [], recoveryCodesLeft }
 const error = ref('');
 const busy = ref(false);
@@ -25,7 +27,9 @@ const canUsePasskeys = computed(() => status.value?.passkeysAvailable && passkey
 const hasFactor = computed(() => status.value && (status.value.totpEnabled || status.value.passkeys.length > 0));
 
 async function load() {
-  try { status.value = await api.get('/api/auth/mfa'); } catch (e) { error.value = e.message; }
+  try { status.value = await api.get('/api/auth/mfa'); } catch (e) { error.value = e.message; return; }
+  // keep the "turn on two-step" offer in the header in step with reality
+  if (auth.user && auth.user.mfaEnabled !== hasFactor.value) auth.user.mfaEnabled = !!hasFactor.value;
 }
 onMounted(load);
 
@@ -99,7 +103,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
 </script>
 
 <template>
-  <section class="space-y-3">
+  <section id="two-step" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Two-step verification</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
       After your password, sign-in also asks for a second step, so a stolen password alone is not enough.
