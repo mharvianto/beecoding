@@ -28,6 +28,10 @@ public record MfaRecoveryCodesDto(List<string>? RecoveryCodes);
 public record PasskeyNameDto(string Name);
 public record MfaOfferSnoozeDto(bool Forever = false);
 
+// ---- Synced display preferences ----
+public record PreferencesDto(int UserId, Dictionary<string, string> Values);
+public record PreferencesPatchDto(Dictionary<string, string?> Values);
+
 // ---- Sign in with Google ----
 public record GoogleTicketDto(string Ticket);
 public record GooglePendingDto(string Email, string Name);

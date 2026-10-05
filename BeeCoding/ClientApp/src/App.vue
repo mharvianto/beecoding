@@ -12,6 +12,7 @@ import UserMenu from './components/UserMenu.vue';
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import MfaOfferBanner from './components/MfaOfferBanner.vue';
 import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
+import { onSignedIn, onSignedOut } from './lib/prefs';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications } from './stores/notifications';
 import { useUndoToast } from './stores/undoToast';
@@ -42,6 +43,9 @@ const focusRoute = computed(() => route.path === '/playground' || /^\/boards\/[^
 
 // keep the header XP in sync with who's logged in
 // (accounts held on the 2-step setup screen can't call the API yet, so nothing is loaded for them)
+// Keep display preferences in step with the account (lib/prefs.js): pull on sign-in, stop mirroring on sign-out.
+watch(() => auth.user?.id, (id) => (id ? onSignedIn(id) : onSignedOut()), { immediate: true });
+
 const activeUserId = computed(() => (auth.mustSetupMfa ? null : auth.user?.id));
 watch(activeUserId, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
 

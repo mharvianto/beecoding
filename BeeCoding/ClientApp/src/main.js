@@ -1,21 +1,5 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import { router } from './router';
-import App from './App.vue';
-import './style.css';
-import './lib/theme';
-import { pruneDrafts } from './lib/draft';
+// Pull the signed-in user's synced preferences into localStorage first (lib/prefs.js), then load the app:
+// theme, editor font and the like are read from localStorage once, when their modules are first imported.
+import { bootstrapPrefs } from './lib/prefs';
 
-pruneDrafts();
-
-// Monaco: use its bundled workers via Vite ?worker imports (no CDN).
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
-
-self.MonacoEnvironment = {
-  getWorker(_, label) {
-    return label === 'typescript' || label === 'javascript' ? new tsWorker() : new editorWorker();
-  },
-};
-
-createApp(App).use(createPinia()).use(router).mount('#app');
+bootstrapPrefs().finally(() => import('./boot'));

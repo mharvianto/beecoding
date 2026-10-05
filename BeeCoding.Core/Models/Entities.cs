@@ -53,6 +53,11 @@ public class User
     /// <summary>When the authenticator app was confirmed. Null = no TOTP second factor.</summary>
     public DateTime? TotpEnabledAt { get; set; }
 
+    /// <summary>The user's display preferences as a JSON object of localStorage-style string values (editor theme
+    /// and font, site theme, default language, table/board view, chart granularity...). Synced from the browser —
+    /// see PreferencesController for the allowlist.</summary>
+    public string? Preferences { get; set; }
+
     /// <summary>The "turn on two-step verification" banner stays hidden until this moment ("Not now" = two weeks,
     /// "Don't ask again" = far future). Kept on the server so it follows the user across devices.</summary>
     public DateTime? MfaOfferHiddenUntil { get; set; }
