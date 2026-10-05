@@ -6,6 +6,7 @@ import { withBase } from '../lib/base';
 import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
 import { useConfirmDialog } from '../stores/confirmDialog';
+import AdminUserActions from '../components/AdminUserActions.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
@@ -1232,13 +1233,9 @@ onMounted(async () => {
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
-          <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
-            <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success" title="Mark this email address as verified">✓ Mark verified</button>
-            <button @click="issueResetLink(u)" class="row-action-btn" title="Create a one-time password-reset link">🔑 Reset link</button>
-            <button v-if="u.mfaEnabled" @click="resetMfa(u)" class="row-action-btn" title="Remove two-step verification">🔓 Reset 2FA</button>
-            <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="row-action-btn row-action-btn--accent">Make admin</button>
-            <button v-else @click="revokeAdmin(u)" class="row-action-btn">Revoke admin</button>
-            <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
+          <div v-if="u.id !== auth.user?.id" class="mt-1 flex justify-end">
+            <AdminUserActions :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)" @reset-mfa="resetMfa(u)"
+                              @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
           </div>
         </div>
         <p v-if="users && !users.length" class="text-slate-400 dark:text-slate-500 text-sm">No users.</p>
@@ -1279,17 +1276,9 @@ onMounted(async () => {
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
               <td class="tabular-nums">{{ u.submissions }}</td>
               <td class="text-[11px] text-slate-400">{{ new Date(u.createdAt).toLocaleDateString() }}</td>
-              <td class="whitespace-nowrap">
-                <template v-if="u.id !== auth.user?.id">
-                  <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success mr-1" title="Mark this email address as verified">✓ Mark verified</button>
-                  <button @click="issueResetLink(u)" class="row-action-btn mr-1" title="Create a one-time password-reset link">🔑 Reset link</button>
-                  <button v-if="u.mfaEnabled" @click="resetMfa(u)" class="row-action-btn mr-1" title="Remove two-step verification">🔓 Reset 2FA</button>
-                  <button v-if="!u.isAdmin" @click="grantAdmin(u)"
-                          class="row-action-btn row-action-btn--accent mr-1">Make admin</button>
-                  <button v-else @click="revokeAdmin(u)"
-                          class="row-action-btn mr-1">Revoke admin</button>
-                  <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
-                </template>
+              <td class="whitespace-nowrap text-right">
+                <AdminUserActions v-if="u.id !== auth.user?.id" :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)"
+                                  @reset-mfa="resetMfa(u)" @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
               </td>
             </tr>
             <tr v-if="users && !users.length"><td colspan="9" class="text-slate-400 dark:text-slate-500 py-3">No users.</td></tr>

@@ -45,6 +45,15 @@ body {
   @apply text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300
          hover:bg-emerald-50 dark:hover:bg-emerald-500/10;
 }
+/* Items inside a RowMenu ("⋮" dropdown) */
+.row-menu-item {
+  @apply flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-slate-600 dark:text-slate-300
+         hover:bg-slate-50 dark:hover:bg-slate-800 focus:bg-slate-50 dark:focus:bg-slate-800 outline-none;
+}
+.row-menu-item--danger {
+  @apply text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 focus:bg-rose-50 dark:focus:bg-rose-500/10;
+}
+.row-menu-sep { @apply my-1 border-t border-slate-100 dark:border-slate-800; }
 .row-action-btn--danger {
   @apply text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300
          hover:bg-rose-50 dark:hover:bg-rose-500/10;
