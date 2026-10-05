@@ -608,6 +608,16 @@ public class AdminUiController(
     [HttpPut("mfa-policy")]
     public async Task<ActionResult<AdminMfaPolicyDto>> SetMfaPolicy(AdminMfaPolicyDto dto)
     {
+        // Don't let an admin switch on a rule that would immediately lock them out of this very page.
+        var me = await _db.Users.FindAsync(UserId);
+        if (me is not null && !MfaPolicy.HasFactor(me))
+        {
+            bool appliesToMe = (dto.RequireAdmin && _admin.IsAdminEmail(me.Email))
+                || (dto.RequireTeacher && me.Role == UserRole.Teacher)
+                || (dto.RequireOrgAdmin && await _db.OrganizationMemberships.AnyAsync(m => m.UserId == me.Id && m.Role == OrgRole.Admin));
+            if (appliesToMe)
+                return Conflict("This would apply to your own account, which has no two-step verification yet. Turn it on under Account > Security first, then switch this on.");
+        }
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.MfaRequireAdmin = dto.RequireAdmin;

@@ -311,7 +311,9 @@ async function toggleMfaPolicy(g) {
   const p = mfaPolicy.value;
   const turningOn = !p[g.key];
   if (turningOn && p[g.without] > 0
-      && !confirm(`${p[g.without]} ${g.label.toLowerCase()} don't have two-step verification yet. They will be held on their Account page until they turn it on. Continue?`)) return;
+      && !(await confirmDialog.ask(
+        `${p[g.without]} ${g.label.toLowerCase()} don't have two-step verification yet. They will be held on their Account page until they turn it on. Continue?`,
+        { confirmLabel: 'Require it', danger: false }))) return;
   err.value = '';
   mfaPolicyBusy.value = true;
   try {
@@ -322,7 +324,7 @@ async function toggleMfaPolicy(g) {
 // ---- remove a user's second factor (lost device + lost recovery codes) ----
 async function resetMfa(u) {
   err.value = '';
-  if (!confirm(`Remove two-step verification for ${u.email}? They will sign in with just their password.`)) return;
+  if (!(await confirmDialog.ask(`Remove two-step verification for ${u.email}? They will sign in with just their password.`, { confirmLabel: 'Reset 2FA' }))) return;
   try { await api.post(`/api/admin-ui/users/${u.id}/reset-mfa`); u.mfaEnabled = false; } catch (e) { err.value = e.message; }
 }
 
