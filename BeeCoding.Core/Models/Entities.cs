@@ -53,6 +53,10 @@ public class User
     /// <summary>When the authenticator app was confirmed. Null = no TOTP second factor.</summary>
     public DateTime? TotpEnabledAt { get; set; }
 
+    /// <summary>The "turn on two-step verification" banner stays hidden until this moment ("Not now" = two weeks,
+    /// "Don't ask again" = far future). Kept on the server so it follows the user across devices.</summary>
+    public DateTime? MfaOfferHiddenUntil { get; set; }
+
     /// <summary>When the user turned on "email me a code" as a second factor. Null = off.</summary>
     public DateTime? EmailMfaEnabledAt { get; set; }
 

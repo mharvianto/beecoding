@@ -161,6 +161,18 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         return NoContent();
     }
 
+    /// <summary>The user dismissed the "turn on two-step verification" banner: for two weeks, or for good.</summary>
+    [HttpPost("offer/snooze")]
+    [Authorize]
+    public async Task<IActionResult> SnoozeOffer(MfaOfferSnoozeDto dto)
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        user.MfaOfferHiddenUntil = dto.Forever ? new DateTime(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc) : DateTime.UtcNow.AddDays(14);
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ---- email code as a second factor ----
 
     /// <summary>Start turning on email codes: sends a code to the account's address to prove it works.</summary>
