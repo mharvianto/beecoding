@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
       </div>
     </header>
     <VerifyEmailBanner v-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
-    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && route.path !== '/account'" />
+    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !route.path.startsWith('/account/security')" />
     <main class="flex-1 min-h-0 flex flex-col">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div class="flex-1" :class="{ 'min-h-0': !showFooter }">

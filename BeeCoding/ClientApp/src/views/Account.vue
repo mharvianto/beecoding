@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
@@ -69,14 +69,29 @@ const attemptPoints = () => (engagementStats.value || []).map((w) => ({ label: e
 const solvedPoints = () => (engagementStats.value || []).map((w) => ({ label: engagementLabel(w.periodStart), value: w.solved }));
 const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
 
-// A link like /account#two-step: scroll there once the dashboard above has finished loading (it pushes the page down).
+// ---- sections: /account, /account/profile, /account/security, /account/danger ----
+const sections = [
+  { key: 'overview', label: 'Overview', icon: '📊', to: '/account' },
+  { key: 'profile', label: 'Profile', icon: '👤', to: '/account/profile' },
+  { key: 'security', label: 'Security', icon: '🔒', to: '/account/security' },
+  { key: 'danger', label: 'Delete account', icon: '⚠️', to: '/account/danger' },
+];
+const section = computed(() => sections.find((s) => s.key === route.params.section)?.key || 'overview');
+
+// A link like /account/security#two-step: scroll to that block once the section has rendered.
 async function scrollToHash() {
   if (!route.hash) return;
   await nextTick();
   requestAnimationFrame(() => document.getElementById(route.hash.slice(1))?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
-onMounted(async () => { progress.refresh(); await loadDashboard(); scrollToHash(); });
+// The progress dashboard is the heavy part: load it only when Overview is actually shown, and only once.
+let dashboardLoaded = false;
+watch(section, (s) => {
+  if (s === 'overview' && !dashboardLoaded) { dashboardLoaded = true; loadDashboard(); }
+  scrollToHash();
+}, { immediate: true });
+onMounted(() => { progress.refresh(); });
 
 // display name
 const name = ref(auth.user?.displayName || '');
@@ -155,7 +170,7 @@ async function deleteAccount(force = false) {
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 py-10 space-y-10">
+  <div class="max-w-7xl mx-auto px-4 py-10 space-y-8">
     <div>
       <h1 class="text-xl font-bold mb-1">Account</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -167,228 +182,256 @@ async function deleteAccount(force = false) {
       </p>
     </div>
 
-    <!-- personal dashboard: progress across every board + practice/bank -->
-    <section class="space-y-5">
-      <div class="flex items-center gap-2">
-        <h2 class="font-semibold text-sm">Progress</h2>
-        <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">↻ refresh</button>
-      </div>
-      <p v-if="dashErr" class="text-sm text-red-600 dark:text-red-400">{{ dashErr }}</p>
-
-      <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Level</div>
-          <div class="text-2xl font-bold">Lv {{ dashboard.level }}</div>
-          <div class="mt-1.5 w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-            <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
-          </div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
-        </div>
-
-        <RouterLink to="/leaderboard" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Leaderboard rank</div>
-          <div class="text-2xl font-bold">{{ dashboard.rank > 0 ? `#${fmt(dashboard.rank)}` : '—' }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">of {{ fmt(dashboard.rankedUsers) }} ranked</div>
+    <div class="grid md:grid-cols-[13rem_minmax(0,1fr)] gap-x-10 gap-y-6 items-start">
+      <!-- section menu: a sticky side column on desktop, scrollable tabs on mobile -->
+      <nav aria-label="Account sections"
+           class="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible md:sticky md:top-4 -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0 border-b md:border-b-0 border-slate-200 dark:border-slate-800">
+        <RouterLink v-for="item in sections" :key="item.key" :to="item.to"
+                    class="shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors"
+                    :class="section === item.key
+                      ? (item.key === 'danger' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 font-medium' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium')
+                      : (item.key === 'danger' ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800')">
+          <span aria-hidden="true">{{ item.icon }}</span>
+          <span>{{ item.label }}</span>
+          <span v-if="item.key === 'security' && auth.user?.mfaEnabled === false" class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Two-step verification is off"></span>
         </RouterLink>
+      </nav>
 
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Problems solved</div>
-          <div class="text-2xl font-bold">{{ fmt(dashboard.solvedCount) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.boardsJoined) }} board(s) joined</div>
-        </div>
-
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
-          <div class="text-2xl font-bold">{{ fmt(dashboard.totalAttempts) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-            {{ dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }}% accepted
+      <div class="min-w-0">
+        <!-- Overview: progress across every board + practice/bank -->
+        <div v-if="section === 'overview'" class="space-y-10">
+        <!-- personal dashboard: progress across every board + practice/bank -->
+        <section class="space-y-5">
+          <div class="flex items-center gap-2">
+            <h2 class="font-semibold text-sm">Progress</h2>
+            <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">↻ refresh</button>
           </div>
-        </div>
+          <p v-if="dashErr" class="text-sm text-red-600 dark:text-red-400">{{ dashErr }}</p>
 
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Practice streak</div>
-          <div class="text-2xl font-bold">{{ dashboard.streak > 0 ? `🔥 ${fmt(dashboard.streak)}` : '—' }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-            {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
+          <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Level</div>
+              <div class="text-2xl font-bold">Lv {{ dashboard.level }}</div>
+              <div class="mt-1.5 w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
+              </div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
+            </div>
+
+            <RouterLink to="/leaderboard" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Leaderboard rank</div>
+              <div class="text-2xl font-bold">{{ dashboard.rank > 0 ? `#${fmt(dashboard.rank)}` : '—' }}</div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">of {{ fmt(dashboard.rankedUsers) }} ranked</div>
+            </RouterLink>
+
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Problems solved</div>
+              <div class="text-2xl font-bold">{{ fmt(dashboard.solvedCount) }}</div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.boardsJoined) }} board(s) joined</div>
+            </div>
+
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
+              <div class="text-2xl font-bold">{{ fmt(dashboard.totalAttempts) }}</div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                {{ dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }}% accepted
+              </div>
+            </div>
+
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Practice streak</div>
+              <div class="text-2xl font-bold">{{ dashboard.streak > 0 ? `🔥 ${fmt(dashboard.streak)}` : '—' }}</div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
+              </div>
+              <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-400 dark:text-slate-500">
+                🏆 longest: {{ fmt(dashboard.longestStreak) }} day(s)
+              </div>
+            </div>
+
+            <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
+              <div class="text-xs text-slate-400 dark:text-slate-500">Best day</div>
+              <div class="text-2xl font-bold">{{ dashboard.maxSolvedInADay > 0 ? fmt(dashboard.maxSolvedInADay) : '—' }}</div>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">solved in a single day</div>
+            </div>
           </div>
-          <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-400 dark:text-slate-500">
-            🏆 longest: {{ fmt(dashboard.longestStreak) }} day(s)
+          <p v-else-if="!dashErr" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+
+          <div>
+            <div class="flex items-center gap-2 mb-2">
+              <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+                <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
+                        @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
+                        :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+                  {{ g[1] }}
+                </button>
+              </span>
+            </div>
+            <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
+              <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
+            </div>
+            <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
           </div>
+
+          <div v-if="topicStats?.length">
+            <h3 class="font-semibold text-sm mb-1.5">Topics you're struggling with</h3>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Lowest accept rate first, across boards and practice.</p>
+            <TopicBarChart :items="topicBarItems()" />
+          </div>
+        </section>
+
+        <!-- AI usage -->
+        <section v-if="aiUsage" class="space-y-2">
+          <h2 class="font-semibold text-sm">AI tutor usage</h2>
+
+          <div v-if="aiUsage.blocked" class="text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
+            🚫 {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
+          </div>
+          <div v-else-if="aiUsage.dailyQuota > 0">
+            <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-1">
+              <span>Daily quota</span>
+              <span>{{ fmt(aiUsage.today.calls) }} / {{ fmt(aiUsage.dailyQuota) }} requests used today</span>
+            </div>
+            <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+              <span class="block h-full bg-amber-400"
+                    :style="{ width: Math.min(100, (aiUsage.today.calls / aiUsage.dailyQuota) * 100) + '%' }"></span>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+          <table class="w-full text-sm min-w-[360px]">
+            <thead>
+              <tr class="text-xs text-slate-400 dark:text-slate-500 text-left">
+                <th class="font-normal py-1"></th><th class="font-normal">Calls</th>
+                <th class="font-normal">Prompt</th><th class="font-normal">Reply</th><th class="font-normal">Total tokens</th>
+              </tr>
+            </thead>
+            <tbody class="[&_td]:py-1 [&_td:not(:first-child)]:tabular-nums">
+              <tr><td class="text-slate-500 dark:text-slate-400">Today</td>
+                <td>{{ fmt(aiUsage.today.calls) }}</td><td>{{ fmt(aiUsage.today.promptTokens) }}</td>
+                <td>{{ fmt(aiUsage.today.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.today.totalTokens) }}</td></tr>
+              <tr><td class="text-slate-500 dark:text-slate-400">This month</td>
+                <td>{{ fmt(aiUsage.month.calls) }}</td><td>{{ fmt(aiUsage.month.promptTokens) }}</td>
+                <td>{{ fmt(aiUsage.month.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.month.totalTokens) }}</td></tr>
+              <tr><td class="text-slate-500 dark:text-slate-400">All time</td>
+                <td>{{ fmt(aiUsage.allTime.calls) }}</td><td>{{ fmt(aiUsage.allTime.promptTokens) }}</td>
+                <td>{{ fmt(aiUsage.allTime.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.allTime.totalTokens) }}</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </section>
         </div>
 
-        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Best day</div>
-          <div class="text-2xl font-bold">{{ dashboard.maxSolvedInADay > 0 ? fmt(dashboard.maxSolvedInADay) : '—' }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">solved in a single day</div>
-        </div>
-      </div>
-      <p v-else-if="!dashErr" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
-
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
-            <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
-                    @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
-                    :class="engagementGranularity === g[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-              {{ g[1] }}
+        <!-- Profile -->
+        <div v-else-if="section === 'profile'" class="max-w-xl space-y-10">
+        <!-- display name -->
+        <section class="space-y-3">
+          <h2 class="font-semibold text-sm">Display name</h2>
+          <p class="text-xs text-slate-400 dark:text-slate-500">Shown on the board, wall cards and leaderboard.</p>
+          <div class="flex gap-2">
+            <input v-model="name" maxlength="40" placeholder="Your name" @keyup.enter="saveName"
+                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
+                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              {{ nameBusy ? '…' : 'Save' }}
             </button>
-          </span>
-        </div>
-        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
-          <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
-        </div>
-        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
-      </div>
-
-      <div v-if="topicStats?.length">
-        <h3 class="font-semibold text-sm mb-1.5">Topics you're struggling with</h3>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Lowest accept rate first, across boards and practice.</p>
-        <TopicBarChart :items="topicBarItems()" />
-      </div>
-    </section>
-
-    <div class="max-w-xl space-y-10">
-    <!-- display name -->
-    <section class="space-y-3">
-      <h2 class="font-semibold text-sm">Display name</h2>
-      <p class="text-xs text-slate-400 dark:text-slate-500">Shown on the board, wall cards and leaderboard.</p>
-      <div class="flex gap-2">
-        <input v-model="name" maxlength="40" placeholder="Your name" @keyup.enter="saveName"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
-                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-          {{ nameBusy ? '…' : 'Save' }}
-        </button>
-      </div>
-      <p v-if="nameErr" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
-      <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ nameMsg }}</p>
-    </section>
-
-    <!-- AI usage -->
-    <section v-if="aiUsage" class="space-y-2">
-      <h2 class="font-semibold text-sm">AI tutor usage</h2>
-
-      <div v-if="aiUsage.blocked" class="text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
-        🚫 {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
-      </div>
-      <div v-else-if="aiUsage.dailyQuota > 0">
-        <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-1">
-          <span>Daily quota</span>
-          <span>{{ fmt(aiUsage.today.calls) }} / {{ fmt(aiUsage.dailyQuota) }} requests used today</span>
-        </div>
-        <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-          <span class="block h-full bg-amber-400"
-                :style="{ width: Math.min(100, (aiUsage.today.calls / aiUsage.dailyQuota) * 100) + '%' }"></span>
-        </div>
-      </div>
-
-      <div class="overflow-x-auto">
-      <table class="w-full text-sm min-w-[360px]">
-        <thead>
-          <tr class="text-xs text-slate-400 dark:text-slate-500 text-left">
-            <th class="font-normal py-1"></th><th class="font-normal">Calls</th>
-            <th class="font-normal">Prompt</th><th class="font-normal">Reply</th><th class="font-normal">Total tokens</th>
-          </tr>
-        </thead>
-        <tbody class="[&_td]:py-1 [&_td:not(:first-child)]:tabular-nums">
-          <tr><td class="text-slate-500 dark:text-slate-400">Today</td>
-            <td>{{ fmt(aiUsage.today.calls) }}</td><td>{{ fmt(aiUsage.today.promptTokens) }}</td>
-            <td>{{ fmt(aiUsage.today.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.today.totalTokens) }}</td></tr>
-          <tr><td class="text-slate-500 dark:text-slate-400">This month</td>
-            <td>{{ fmt(aiUsage.month.calls) }}</td><td>{{ fmt(aiUsage.month.promptTokens) }}</td>
-            <td>{{ fmt(aiUsage.month.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.month.totalTokens) }}</td></tr>
-          <tr><td class="text-slate-500 dark:text-slate-400">All time</td>
-            <td>{{ fmt(aiUsage.allTime.calls) }}</td><td>{{ fmt(aiUsage.allTime.promptTokens) }}</td>
-            <td>{{ fmt(aiUsage.allTime.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.allTime.totalTokens) }}</td></tr>
-        </tbody>
-      </table>
-      </div>
-    </section>
-
-    <!-- change password -->
-    <section v-if="auth.user?.hasPassword === false" class="space-y-3">
-      <h2 class="font-semibold text-sm">Set a password</h2>
-      <p class="text-sm text-slate-500 dark:text-slate-400">
-        You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.
-      </p>
-      <div class="space-y-3">
-        <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="next2" type="password" placeholder="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
-        <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
-        <button @click="setPassword" :disabled="pwBusy || !next"
-                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-          {{ pwBusy ? '…' : 'Set password' }}
-        </button>
-      </div>
-    </section>
-    <section v-else class="space-y-3">
-      <h2 class="font-semibold text-sm">Change password</h2>
-      <div class="space-y-3">
-        <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
-               @keyup.enter="changePassword"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
-        <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
-        <button @click="changePassword" :disabled="pwBusy || !cur || !next"
-                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-          {{ pwBusy ? '…' : 'Update password' }}
-        </button>
-      </div>
-    </section>
-
-    <ConnectedAccounts />
-
-    <PasskeySettings />
-
-    <MfaSettings />
-
-    <!-- delete account -->
-    <section class="space-y-3 border border-red-200 dark:border-red-500/30 rounded-xl p-4">
-      <h2 class="font-semibold text-sm text-red-600 dark:text-red-400">Delete account</h2>
-      <p class="text-sm text-slate-500 dark:text-slate-400">
-        Permanently removes your account, your submissions, and your practice progress.
-        <span v-if="auth.isTeacher">Boards you own — and everyone's work on them — go too.</span>
-        This cannot be undone.
-      </p>
-
-      <button v-if="!showDelete" @click="showDelete = true"
-              class="border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 rounded-lg px-4 py-2 text-sm font-medium">
-        Delete my account…
-      </button>
-
-      <template v-else>
-        <input v-model="delPw" type="password" placeholder="Confirm with your password" autocomplete="current-password"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-
-        <div v-if="ownedBoards" class="text-sm bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">
-          <p class="text-red-700 dark:text-red-300 font-medium">These boards will be deleted with all their submissions:</p>
-          <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300">
-            <li v-for="b in ownedBoards" :key="b.slug">{{ b.title }}</li>
-          </ul>
+          </div>
+          <p v-if="nameErr" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
+          <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ nameMsg }}</p>
+        </section>
         </div>
 
-        <p v-if="delErr" class="text-sm text-red-600 dark:text-red-400">{{ delErr }}</p>
+        <!-- Security -->
+        <div v-else-if="section === 'security'" class="max-w-xl space-y-10">
+        <!-- change password -->
+        <section v-if="auth.user?.hasPassword === false" class="space-y-3">
+          <h2 class="font-semibold text-sm">Set a password</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.
+          </p>
+          <div class="space-y-3">
+            <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <input v-model="next2" type="password" placeholder="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+            <button @click="setPassword" :disabled="pwBusy || !next"
+                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              {{ pwBusy ? '…' : 'Set password' }}
+            </button>
+          </div>
+        </section>
+        <section v-else class="space-y-3">
+          <h2 class="font-semibold text-sm">Change password</h2>
+          <div class="space-y-3">
+            <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
+                   @keyup.enter="changePassword"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+            <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+            <button @click="changePassword" :disabled="pwBusy || !cur || !next"
+                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+              {{ pwBusy ? '…' : 'Update password' }}
+            </button>
+          </div>
+        </section>
 
-        <div class="flex gap-2">
-          <button @click="deleteAccount(!!ownedBoards)" :disabled="delBusy || !delPw"
-                  class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-            {{ delBusy ? '…' : ownedBoards ? 'Yes, delete everything' : 'Delete account' }}
+        <ConnectedAccounts />
+
+        <PasskeySettings />
+
+        <MfaSettings />
+        </div>
+
+        <!-- Danger zone -->
+        <div v-else class="max-w-xl space-y-10">
+        <!-- delete account -->
+        <section class="space-y-3 border border-red-200 dark:border-red-500/30 rounded-xl p-4">
+          <h2 class="font-semibold text-sm text-red-600 dark:text-red-400">Delete account</h2>
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Permanently removes your account, your submissions, and your practice progress.
+            <span v-if="auth.isTeacher">Boards you own — and everyone's work on them — go too.</span>
+            This cannot be undone.
+          </p>
+
+          <button v-if="!showDelete" @click="showDelete = true"
+                  class="border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 rounded-lg px-4 py-2 text-sm font-medium">
+            Delete my account…
           </button>
-          <button @click="showDelete = false; ownedBoards = null; delPw = ''; delErr = ''"
-                  class="text-slate-500 dark:text-slate-400 rounded-lg px-4 py-2 text-sm">
-            Cancel
-          </button>
+
+          <template v-else>
+            <input v-model="delPw" type="password" placeholder="Confirm with your password" autocomplete="current-password"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+
+            <div v-if="ownedBoards" class="text-sm bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">
+              <p class="text-red-700 dark:text-red-300 font-medium">These boards will be deleted with all their submissions:</p>
+              <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300">
+                <li v-for="b in ownedBoards" :key="b.slug">{{ b.title }}</li>
+              </ul>
+            </div>
+
+            <p v-if="delErr" class="text-sm text-red-600 dark:text-red-400">{{ delErr }}</p>
+
+            <div class="flex gap-2">
+              <button @click="deleteAccount(!!ownedBoards)" :disabled="delBusy || !delPw"
+                      class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                {{ delBusy ? '…' : ownedBoards ? 'Yes, delete everything' : 'Delete account' }}
+              </button>
+              <button @click="showDelete = false; ownedBoards = null; delPw = ''; delErr = ''"
+                      class="text-slate-500 dark:text-slate-400 rounded-lg px-4 py-2 text-sm">
+                Cancel
+              </button>
+            </div>
+          </template>
+        </section>
         </div>
-      </template>
-    </section>
+      </div>
     </div>
   </div>
 </template>

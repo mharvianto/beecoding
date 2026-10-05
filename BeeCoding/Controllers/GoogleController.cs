@@ -44,7 +44,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     private IActionResult ToApp(string path) => Redirect(Request.PathBase + path);
 
     private IActionResult Fail(string message, string mode) =>
-        ToApp((mode == "link" ? "/account?googleError=" : "/login?error=") + Uri.EscapeDataString(message));
+        ToApp((mode == "link" ? "/account/security?googleError=" : "/login?error=") + Uri.EscapeDataString(message));
 
     // ---------------------------------------------------------------- browser round-trip
 
@@ -114,7 +114,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
         if (mine is null) _db.ExternalLogins.Add(new ExternalLogin { UserId = st.UserId, Provider = Provider, Subject = who.Subject, Email = who.Email });
         else { mine.Subject = who.Subject; mine.Email = who.Email; }
         await _db.SaveChangesAsync();
-        return ToApp("/account?google=linked");
+        return ToApp("/account/security?google=linked");
     }
 
     // ---------------------------------------------------------------- finishing from the SPA

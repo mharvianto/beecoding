@@ -20,7 +20,7 @@ function hide(until) {
 }
 const notNow = () => hide(Date.now() + SNOOZE_MS);
 const never = () => hide(Number.MAX_SAFE_INTEGER);
-const setUp = () => router.push({ path: '/account', hash: '#two-step' });
+const setUp = () => router.push({ path: '/account/security', hash: '#two-step' });
 </script>
 
 <template>
