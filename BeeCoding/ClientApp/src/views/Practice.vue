@@ -230,6 +230,7 @@ onMounted(() => {
       <select v-model="sort" @change="search"
               class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="">Sort: default</option>
+        <option value="likes">Most liked</option>
         <option value="submissions">Most submissions</option>
         <option value="acrate">Highest AC rate</option>
         <option value="acrate_asc">Lowest AC rate</option>
@@ -268,6 +269,8 @@ onMounted(() => {
               :title="`${p.submissionCount} submission(s) across every user`">
           {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
         </span>
+        <span class="hidden sm:block text-[11px] w-9 text-right tabular-nums" :class="p.liked ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'"
+              :title="`${p.likes} like(s)`">{{ p.likes ? `♥ ${p.likes}` : '' }}</span>
         <LevelBadge :level="p.level" />
         <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>

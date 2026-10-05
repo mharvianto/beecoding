@@ -626,6 +626,48 @@ public class EmailVerificationToken
     public DateTime? UsedAt { get; set; }
 }
 
+public enum ReportCategory { WrongInput, ConstraintViolation, WrongOutput, StatementUnclear, Other }
+public enum ReportStatus { Open, Resolved, Dismissed }
+
+/// <summary>A user's "like" on a problem. Exactly one of <see cref="BankProblemId"/> (a practice / bank
+/// problem) or <see cref="ProblemId"/> (a problem on a board) is set; one like per user per problem.</summary>
+public class ProblemLike
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User? User { get; set; }
+    public int? BankProblemId { get; set; }
+    public int? ProblemId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A user's report that a problem is wrong: test input that doesn't match the statement or breaks
+/// its constraints, an expected output that looks off, an unclear statement. Reviewed by the problem's owner
+/// (or any platform admin), who resolves or dismisses it. Same either-or target as <see cref="ProblemLike"/>.</summary>
+public class ProblemReport
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User? User { get; set; }
+    public int? BankProblemId { get; set; }
+    public int? ProblemId { get; set; }
+
+    public ReportCategory Category { get; set; }
+
+    [MaxLength(1200)]
+    public string Message { get; set; } = "";
+
+    public ReportStatus Status { get; set; } = ReportStatus.Open;
+
+    /// <summary>The reviewer's reply / what was done about it.</summary>
+    [MaxLength(1200)]
+    public string Note { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ResolvedAt { get; set; }
+    public int? ResolvedByUserId { get; set; }
+}
+
 /// <summary>An in-app notification for a wall-post author: someone reacted to or commented on
 /// their card. Reactions on the same post coalesce into one unread row (see NotificationService)
 /// so a burst of emoji doesn't flood the bell.</summary>

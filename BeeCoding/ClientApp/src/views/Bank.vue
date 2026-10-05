@@ -100,8 +100,15 @@ async function load() {
     items.value = await api.get(`/api/bank?${p}`);
   } catch (e) { error.value = e.message; }
 }
+// open "this problem is wrong" reports per bank problem (for the 🚩 badge on the cards)
+const openReports = ref({});
+async function loadOpenReports() {
+  try { openReports.value = (await api.get('/api/problem-reports/open-counts')).bank || {}; } catch { /* no badges */ }
+}
+
 onMounted(async () => {
   load();
+  loadOpenReports();
   try { aiEnabled.value = (await api.get('/api/ai/enabled'))?.enabled === true; } catch { /* ignore */ }
   // resume a generation that was running when we last left the page
   let pending = null;
@@ -195,6 +202,9 @@ onBeforeUnmount(() => { pollStopped = true; });
         <div class="flex items-start justify-between gap-2">
           <h3 class="font-semibold text-sm">{{ b.title }}</h3>
           <div class="flex items-center gap-1 shrink-0">
+            <RouterLink v-if="openReports[b.id]" :to="`/reports/problems?bank=${b.id}`" @click.stop
+                        class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
+                        :title="`${openReports[b.id]} open report(s) — click to review`">🚩 {{ openReports[b.id] }}</RouterLink>
             <span v-if="b.generatedByAi" class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
             <span v-if="b.pendingReview" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   title="An admin reviews AI-generated problems before they're shared with other teachers">

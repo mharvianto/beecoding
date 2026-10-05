@@ -14,6 +14,7 @@ const routes = [
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
   { path: '/join/:code', component: () => import('./views/JoinBoard.vue'), props: true },
   { path: '/bank', component: () => import('./views/Bank.vue'), meta: { teacherOnly: true } },
+  { path: '/reports/problems', component: () => import('./views/ProblemReports.vue'), meta: { teacherOnly: true } },
   { path: '/bank/new', component: () => import('./views/ProblemEdit.vue'), meta: { teacherOnly: true } },
   { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true, meta: { teacherOnly: true } },
   { path: '/practice', component: () => import('./views/Practice.vue') },

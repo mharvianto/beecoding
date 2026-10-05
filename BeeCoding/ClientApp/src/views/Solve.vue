@@ -9,6 +9,7 @@ import MonacoEditor from '../components/MonacoEditor.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import LevelBadge from '../components/LevelBadge.vue';
+import ProblemFeedback from '../components/ProblemFeedback.vue';
 import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
@@ -311,6 +312,7 @@ function ago(ts) {
         <LevelBadge :level="problem.level" />
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+        <span class="ml-auto"><ProblemFeedback kind="board" :board-slug="props.slug" :slug="props.problemSlug" /></span>
       </div>
       <div class="text-xs text-slate-400 dark:text-slate-500 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB

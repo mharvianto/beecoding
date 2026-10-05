@@ -42,8 +42,15 @@ async function loadAll() {
 
 async function onBankAdded() { picking.value = false; await loadAll(); }
 
+// open "this problem is wrong" reports per problem (staff only)
+const openReports = ref({});
+async function loadOpenReports() {
+  try { openReports.value = (await api.get('/api/problem-reports/open-counts')).board || {}; } catch { /* no badges */ }
+}
+
 onMounted(async () => {
   try { await loadAll(); } catch (e) { error.value = e.message; }
+  if (isStaff.value) loadOpenReports();
 });
 
 const filtered = computed(() => {
@@ -296,6 +303,9 @@ async function reorderGroupTo(id, target, pos) {
                   {{ p.title }}
                   <LevelBadge :level="p.level" />
                   <span v-if="p.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
+                  <RouterLink v-if="isStaff && openReports[p.id]" :to="`/reports/problems?problem=${p.id}`"
+                              class="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
+                              :title="`${openReports[p.id]} open report(s) — click to review`">🚩 {{ openReports[p.id] }}</RouterLink>
                   <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
                         class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
                 </div>

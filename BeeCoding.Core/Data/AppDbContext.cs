@@ -20,6 +20,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<UserPasskey> UserPasskeys => Set<UserPasskey>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
+    public DbSet<ProblemLike> ProblemLikes => Set<ProblemLike>();
+    public DbSet<ProblemReport> ProblemReports => Set<ProblemReport>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
@@ -108,6 +110,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<MfaRecoveryCode>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique().HasFilter("BankProblemId IS NOT NULL");
+        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.ProblemId }).IsUnique().HasFilter("ProblemId IS NOT NULL");
+        b.Entity<ProblemLike>().HasIndex(x => x.BankProblemId);
+        b.Entity<ProblemLike>().HasIndex(x => x.ProblemId);
+        b.Entity<ProblemLike>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProblemReport>().HasIndex(x => new { x.Status, x.CreatedAt });
+        b.Entity<ProblemReport>().HasIndex(x => x.BankProblemId);
+        b.Entity<ProblemReport>().HasIndex(x => x.ProblemId);
+        b.Entity<ProblemReport>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<EmailLoginCode>().HasIndex(x => new { x.UserId, x.CreatedAt });
         b.Entity<EmailLoginCode>()
             .HasOne(x => x.User).WithMany()

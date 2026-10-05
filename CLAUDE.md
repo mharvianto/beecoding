@@ -126,6 +126,15 @@ ungrouped problems). Exam mode is therefore per problem, not per board —
 `VisibilityService` takes an `examMode` bool rather than a `Board`. Always `Include(Group)`
 where you call `GroupAccess`; an unloaded group on a grouped problem fails closed.
 
+### Problem feedback (likes + reports)
+
+Anyone who can open a problem can like it and report it as wrong (input that doesn't match the statement or
+breaks its constraints, wrong expected output, unclear text) — `ProblemFeedbackController`, UI in
+`ProblemFeedback.vue` on both Solve pages. `ProblemLike`/`ProblemReport` target either a bank problem
+(`BankProblemId`, practice) or a board problem (`ProblemId`), never both. Reports are reviewed on
+`/reports/problems` by the problem's owner (board staff for a board problem) and by platform admins
+(`Reviewable()` is the single place that scopes who sees what); the user menu carries the open count.
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

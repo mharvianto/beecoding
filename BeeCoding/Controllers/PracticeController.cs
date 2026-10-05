@@ -93,6 +93,15 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             .ToListAsync();
         var statsById = stats.ToDictionary(s => s.BankProblemId);
 
+        // likes: how many in total, and which the caller has liked
+        var likeCounts = await _db.ProblemLikes
+            .Where(l => l.BankProblemId != null && ids.Contains(l.BankProblemId.Value))
+            .GroupBy(l => l.BankProblemId!.Value).Select(g => new { Id = g.Key, N = g.Count() })
+            .ToDictionaryAsync(x => x.Id, x => x.N);
+        var likedByMe = (await _db.ProblemLikes
+            .Where(l => l.UserId == UserId && l.BankProblemId != null && ids.Contains(l.BankProblemId.Value))
+            .Select(l => l.BankProblemId!.Value).ToListAsync()).ToHashSet();
+
         var list = problems.Select(p =>
         {
             byId.TryGetValue(p.Id, out var m);
@@ -103,7 +112,8 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
                 m?.Best ?? 0,
                 m?.Solved ?? false,
                 st?.Total ?? 0,
-                st is { Total: > 0 } ? (double)st.Accepted / st.Total : 0);
+                st is { Total: > 0 } ? (double)st.Accepted / st.Total : 0,
+                likeCounts.GetValueOrDefault(p.Id), likedByMe.Contains(p.Id));
         });
 
         list = status?.ToLowerInvariant() switch
@@ -118,6 +128,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         {
             "submissions" => list.OrderByDescending(x => x.SubmissionCount).ThenBy(x => x.Title),
             "acrate" => list.OrderByDescending(x => x.AcRate).ThenBy(x => x.Title),
+            "likes" => list.OrderByDescending(x => x.Likes).ThenBy(x => x.Title),
             "acrate_asc" => list.OrderBy(x => x.SubmissionCount == 0 ? 2.0 : x.AcRate).ThenBy(x => x.Title),
             _ => list,   // default: already Level, Title from the query above
         };

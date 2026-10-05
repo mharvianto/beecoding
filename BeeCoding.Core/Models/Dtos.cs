@@ -30,6 +30,16 @@ public record MfaOfferSnoozeDto(bool Forever = false);
 
 // ---- Synced display preferences ----
 public record PreferencesDto(int UserId, Dictionary<string, string> Values);
+
+// ---- Problem feedback: likes and "this problem is wrong" reports ----
+public record ProblemFeedbackDto(int Likes, bool Liked, bool Reported);
+public record ProblemReportCreateDto(string Category, string Message);
+public record ProblemReportRowDto(int Id, string Kind, string ProblemTitle, string? ProblemSlug, string? BoardSlug, int? BankProblemId, int? ProblemId,
+    string Category, string Message, string Status, string Note, DateTime CreatedAt, DateTime? ResolvedAt,
+    string ReporterName, string? ReporterEmail, string? ResolvedByName);
+public record ProblemReportPageDto(int Total, int Page, int PageSize, int OpenTotal, List<ProblemReportRowDto> Rows);
+public record ProblemReportReviewDto(string Status, string? Note);
+public record OpenReportCountsDto(Dictionary<int, int> Bank, Dictionary<int, int> Board);
 public record PreferencesPatchDto(Dictionary<string, string?> Values);
 
 // ---- Sign in with Google ----
@@ -320,7 +330,8 @@ public record AdminUserImportResult(int Created, int Existing, int Errors, List<
 public record PracticeSummaryDto(
     int Id, string Slug, string Title, string AllowedLanguages, string Level, string Tags,
     string MyVerdict, double MyBestScore, bool Solved,
-    int SubmissionCount = 0, double AcRate = 0);   // across every user, not just the caller
+    int SubmissionCount = 0, double AcRate = 0,    // across every user, not just the caller
+    int Likes = 0, bool Liked = false);
 
 public record PracticePageDto(
     int Total, int Solved, int Page, int PageSize, List<PracticeSummaryDto> Items);

@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useProblemReports } from '../stores/problemReports';
 import { useAuth } from '../stores/auth';
 import { theme, setTheme } from '../lib/theme';
 
@@ -8,6 +9,8 @@ import { theme, setTheme } from '../lib/theme';
 const emit = defineEmits(['logout']);
 const auth = useAuth();
 const open = ref(false);
+const reports = useProblemReports();
+onMounted(() => { if (auth.isTeacher) reports.refresh(); });
 
 const THEMES = [['light', '☀️', 'Light'], ['dark', '🌙', 'Dark'], ['system', '🖥️', 'System']];
 const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() || '?';
@@ -23,6 +26,7 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
             :class="auth.isTeacher
               ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
               : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'">{{ auth.user.role }}</span>
+      <span v-if="auth.isTeacher && reports.open > 0" class="w-2 h-2 rounded-full bg-rose-500 -ml-1" :title="`${reports.open} open problem report(s)`"></span>
       <span class="text-[10px] leading-none">▾</span>
     </button>
 
@@ -36,6 +40,11 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
         <RouterLink to="/account" @click="open = false"
                     class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
           ⚙️ Account settings
+        </RouterLink>
+        <RouterLink v-if="auth.isTeacher" to="/reports/problems" @click="open = false"
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+          🚩 Problem reports
+          <span v-if="reports.open > 0" class="ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 tabular-nums">{{ reports.open }}</span>
         </RouterLink>
         <div class="px-3 py-2">
           <div class="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Theme</div>
