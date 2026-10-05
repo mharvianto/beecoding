@@ -233,6 +233,8 @@ builder.Services.AddSingleton<PlatformRuntimeConfig>();
 builder.Services.AddSingleton<SubmitCooldown>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddScoped<MfaService>();
+builder.Services.AddScoped<MfaPolicy>();
+builder.Services.AddScoped<MeDtoBuilder>();
 builder.Services.AddSingleton<PasskeyService>();
 builder.Services.AddHttpClient("google", c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton<GoogleAuthService>();
@@ -359,6 +361,7 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
     runtimeConfig.Set(platformRuntime.LspEnabled, platformRuntime.JudgeRateLimitMs);
+    runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }
 
 // Build the sandbox runner + probe capabilities before serving traffic.
@@ -459,6 +462,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<EmailVerificationGate>();   // no-op unless Auth:RequireVerifiedEmail
+app.UseMiddleware<MfaRequirementGate>();      // no-op unless an Admin > Users > 2-step policy toggle is on
 
 app.MapControllers();
 app.MapHub<BoardHub>("/hubs/board");

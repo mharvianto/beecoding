@@ -13,6 +13,15 @@ public class PlatformRuntimeConfig
     public bool LspEnabled { get; private set; }
     public int JudgeRateLimitMs { get; private set; } = 1500;
 
+    public bool MfaRequireAdmin { get; private set; }
+    public bool MfaRequireOrgAdmin { get; private set; }
+    public bool MfaRequireTeacher { get; private set; }
+
+    public void SetMfaPolicy(bool admin, bool orgAdmin, bool teacher)
+    {
+        MfaRequireAdmin = admin; MfaRequireOrgAdmin = orgAdmin; MfaRequireTeacher = teacher;
+    }
+
     public void Set(bool lspEnabled, int judgeRateLimitMs)
     {
         LspEnabled = lspEnabled;

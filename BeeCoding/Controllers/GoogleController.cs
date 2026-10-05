@@ -16,7 +16,7 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [Route("api/auth/google")]
 public class GoogleController(AppDbContext db, GoogleAuthService google, MfaService mfa,
-    PasswordService pw, LoginThrottle throttle, AdminAccess admin, IConfiguration cfg) : ApiControllerBase
+    PasswordService pw, LoginThrottle throttle, MeDtoBuilder me, IConfiguration cfg) : ApiControllerBase
 {
     private const string Provider = "google";
     private const string CookieName = "beecoding.google";
@@ -28,7 +28,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     private readonly MfaService _mfa = mfa;
     private readonly PasswordService _pw = pw;
     private readonly LoginThrottle _throttle = throttle;
-    private readonly AdminAccess _admin = admin;
+    private readonly MeDtoBuilder _me = me;
     private readonly IConfiguration _cfg = cfg;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
@@ -161,7 +161,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
 
         if (await _mfa.ChallengeAsync(user) is { } challenge) return challenge;
         await CookieSignIn.SignInAsync(HttpContext, user);
-        return await MeDtoBuilder.BuildAsync(_db, _admin, user);
+        return await _me.BuildAsync(user);
     }
 
     /// <summary>A new person: pick a role (and teacher code if needed) and an account is created, signed in, email verified.</summary>
@@ -189,7 +189,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
         await _db.SaveChangesAsync();
 
         await CookieSignIn.SignInAsync(HttpContext, user);
-        return await MeDtoBuilder.BuildAsync(_db, _admin, user);
+        return await _me.BuildAsync(user);
     }
 
     // ---------------------------------------------------------------- account settings

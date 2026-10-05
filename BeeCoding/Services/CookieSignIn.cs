@@ -14,7 +14,11 @@ public static class CookieSignIn
 {
     private const string CookieName = "beecoding.auth";   // must match Program.cs's o.Cookie.Name
 
-    public static Task SignInAsync(HttpContext ctx, User user)
+    /// <summary>Claim saying how the session began; "lti" sessions come from an LMS launch (the LMS is the
+    /// identity provider) and are exempt from the two-step-verification requirement.</summary>
+    public const string ViaClaim = "beecoding:via";
+
+    public static Task SignInAsync(HttpContext ctx, User user, string? via = null)
     {
         var claims = new List<Claim>
         {
@@ -23,6 +27,7 @@ public static class CookieSignIn
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Role.ToString()),
         };
+        if (via is not null) claims.Add(new Claim(ViaClaim, via));
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
         return ctx.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,

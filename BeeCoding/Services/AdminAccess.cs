@@ -27,6 +27,11 @@ public class AdminAccess(IConfiguration cfg)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Any(e => string.Equals(e, email, StringComparison.OrdinalIgnoreCase));
 
+    /// <summary>The <c>Admin:Emails</c> list, lower-cased.</summary>
+    public List<string> ConfiguredEmails() =>
+        (_cfg["Admin:Emails"] ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(e => e.ToLowerInvariant()).ToList();
+
     public bool IsAdminEmail(string? email) =>
         !string.IsNullOrWhiteSpace(email) && (IsConfiguredAdmin(email) || _dbAdmins.Contains(email));
 

@@ -63,6 +63,7 @@ function loadTabData(id, force = false) {
     if (!aiOverrides.value) loadAiOverrides();
   } else if (id === 'users') {
     if (!users.value) loadUsers();
+    if (!mfaPolicy.value) loadMfaPolicy();
     if (!boards.value) loadBoards();   // populates the CSV-import board picker too
   } else if (id === 'boards' && !boards.value) loadBoards();
   else if (id === 'submissions' && !submissionRows.value) loadSubmissions();
@@ -293,6 +294,29 @@ function usersNextPage() { if (usersPage.value * usersPageSize.value < usersTota
 async function markVerified(u) {
   err.value = '';
   try { await api.post(`/api/admin-ui/users/${u.id}/verify-email`); u.emailVerified = true; } catch (e) { err.value = e.message; }
+}
+
+// ---- two-step verification policy: which roles must use it ----
+const mfaPolicy = ref(null);   // { requireAdmin, requireOrgAdmin, requireTeacher, adminsWithout, orgAdminsWithout, teachersWithout }
+const mfaPolicyBusy = ref(false);
+const MFA_GROUPS = [
+  { key: 'requireAdmin', without: 'adminsWithout', label: 'Admins' },
+  { key: 'requireOrgAdmin', without: 'orgAdminsWithout', label: 'Organization admins' },
+  { key: 'requireTeacher', without: 'teachersWithout', label: 'Teachers' },
+];
+async function loadMfaPolicy() {
+  try { mfaPolicy.value = await api.get('/api/admin-ui/mfa-policy'); } catch (e) { err.value = e.message; }
+}
+async function toggleMfaPolicy(g) {
+  const p = mfaPolicy.value;
+  const turningOn = !p[g.key];
+  if (turningOn && p[g.without] > 0
+      && !confirm(`${p[g.without]} ${g.label.toLowerCase()} don't have two-step verification yet. They will be held on their Account page until they turn it on. Continue?`)) return;
+  err.value = '';
+  mfaPolicyBusy.value = true;
+  try {
+    mfaPolicy.value = await api.put('/api/admin-ui/mfa-policy', { ...p, [g.key]: turningOn });
+  } catch (e) { err.value = e.message; } finally { mfaPolicyBusy.value = false; }
 }
 
 // ---- remove a user's second factor (lost device + lost recovery codes) ----
@@ -1145,6 +1169,21 @@ onMounted(async () => {
 
     <!-- Users -->
     <section v-show="tab === 'users'">
+      <!-- two-step verification policy -->
+      <div v-if="mfaPolicy" class="mb-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
+        <div class="flex items-center gap-2">
+          <h2 class="font-semibold text-sm">🔒 Require two-step verification</h2>
+          <span class="text-xs text-slate-400 dark:text-slate-500">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
+        </div>
+        <div class="flex flex-wrap gap-x-6 gap-y-2">
+          <label v-for="g in MFA_GROUPS" :key="g.key" class="flex items-center gap-2 text-sm cursor-pointer">
+            <input type="checkbox" :checked="mfaPolicy[g.key]" :disabled="mfaPolicyBusy" @click.prevent="toggleMfaPolicy(g)" class="accent-amber-500 w-4 h-4" />
+            <span>{{ g.label }}</span>
+            <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'"
+                  :title="mfaPolicy[g.without] + ' without two-step verification'">· {{ mfaPolicy[g.without] }} without</span>
+          </label>
+        </div>
+      </div>
       <div class="flex gap-2 mb-3">
         <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
                class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />

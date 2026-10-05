@@ -6,7 +6,8 @@ public record LoginDto(string Email, string Password);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
     bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
     bool HasPassword = true,      // false => created via Google; no password until the user sets one
-    bool MfaEnabled = false);     // has an authenticator app or email code on (drives the "turn on 2-step" offer)
+    bool MfaEnabled = false,      // has an authenticator app or email code on (drives the "turn on 2-step" offer)
+    bool MfaRequired = false);    // the platform policy requires it for this account (admin / org admin / teacher)
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----
@@ -276,6 +277,11 @@ public record SysstatResultDto(string Hostname, string Metric, List<SysstatPoint
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs);
+
+/// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
+/// (so the admin sees the impact before switching a group on).</summary>
+public record AdminMfaPolicyDto(bool RequireAdmin, bool RequireOrgAdmin, bool RequireTeacher,
+    int AdminsWithout = 0, int OrgAdminsWithout = 0, int TeachersWithout = 0);
 
 // ---- Admin: AI-generated problem review queue ----
 public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSample);

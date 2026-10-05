@@ -47,6 +47,8 @@ router.beforeEach(async (to) => {
   if (auth.user) await auth.loadConfig();
   // The server locks unverified accounts out of the app: park them on the verification screen.
   if (auth.mustVerify && to.path !== '/verify-email' && !to.meta.public) return { path: '/verify-email' };
+  // ...and accounts the platform requires to use two-step verification stay on Account > Security until they do.
+  if (auth.mustSetupMfa && !to.path.startsWith('/account/security') && !to.meta.public && !to.meta.anon) return { path: '/account/security' };
   if (to.meta.public) return true;                       // privacy / terms — anyone
   if (!to.meta.anon && !auth.user) return { path: '/login', query: { r: to.fullPath } };
   if (to.meta.anon && auth.user) return { path: '/boards' };

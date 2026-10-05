@@ -103,6 +103,11 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
     <p class="text-sm text-slate-500 dark:text-slate-400">
       After your password, sign-in also asks for a code, so a stolen password alone is not enough. Turn on one or more methods and pick the one you want each time you sign in.
     </p>
+    <p v-if="auth.user?.mfaRequired" class="text-sm rounded-lg px-3 py-2"
+       :class="hasFactor ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300'">
+      <template v-if="hasFactor">✓ Required for your role, and it's on.</template>
+      <template v-else>Required for your role: turn on an authenticator app or email code to keep using BeeCoding.</template>
+    </p>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
     <div v-if="status" class="space-y-3">

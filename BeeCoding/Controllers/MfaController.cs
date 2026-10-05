@@ -15,13 +15,16 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [Route("api/auth/mfa")]
 public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
-    LoginThrottle throttle, AdminAccess admin) : ApiControllerBase
+    LoginThrottle throttle, MeDtoBuilder me, MfaPolicy policy) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
     private readonly MfaService _mfa = mfa;
     private readonly LoginThrottle _throttle = throttle;
-    private readonly AdminAccess _admin = admin;
+    private readonly MeDtoBuilder _me = me;
+    private readonly MfaPolicy _policy = policy;
+
+    private const string RequiredMessage = "Two-step verification is required for your role, so your last method can't be removed. Add another method first.";
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
     private static string ThrottleKey(int userId) => $"mfa:{userId}";
@@ -43,7 +46,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     {
         _throttle.RecordSuccess(ClientIp, ThrottleKey(user.Id));
         await CookieSignIn.SignInAsync(HttpContext, user);
-        return await MeDtoBuilder.BuildAsync(_db, _admin, user);
+        return await _me.BuildAsync(user);
     }
 
     /// <summary>Second step with an authenticator-app code or a recovery code.</summary>
@@ -151,6 +154,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
+        if (user.EmailMfaEnabledAt == null && await _policy.AppliesToAsync(user.Id, user.Email, user.Role)) return Conflict(RequiredMessage);
         user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0;
         await _db.SaveChangesAsync();
         await DropRecoveryCodesIfNoFactorAsync(user);
@@ -197,6 +201,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
+        if (user.TotpEnabledAt == null && await _policy.AppliesToAsync(user.Id, user.Email, user.Role)) return Conflict(RequiredMessage);
         user.EmailMfaEnabledAt = null;
         await _db.SaveChangesAsync();
         await DropRecoveryCodesIfNoFactorAsync(user);

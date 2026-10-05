@@ -15,6 +15,8 @@ export const useAuth = defineStore('auth', {
     // signed in, the server can send mail, and this account's address isn't confirmed yet
     needsVerification: (s) => !!s.user && s.config.emailVerification && s.user.emailVerified === false,
     // ...and the server locks unverified accounts to the verification screen
+    // the platform requires two-step verification for this account (admin / org admin / teacher) and it isn't on yet
+    mustSetupMfa: (s) => !!s.user && s.user.mfaRequired === true && s.user.mfaEnabled !== true,
     mustVerify() { return this.needsVerification && this.config.requireVerifiedEmail && !this.user.isAdmin; },
   },
   actions: {

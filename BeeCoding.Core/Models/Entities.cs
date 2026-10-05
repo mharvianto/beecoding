@@ -892,5 +892,11 @@ public class PlatformRuntimeSettings
     /// <summary>Minimum spacing (ms) between a user's run/submit requests — see RateLimiter.</summary>
     public int JudgeRateLimitMs { get; set; } = 1500;
 
+    /// <summary>Two-step verification policy: accounts in these groups must have an authenticator app or
+    /// email code turned on before they can use the app (see MfaRequirementGate). Off by default.</summary>
+    public bool MfaRequireAdmin { get; set; }
+    public bool MfaRequireOrgAdmin { get; set; }
+    public bool MfaRequireTeacher { get; set; }
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

@@ -107,7 +107,7 @@ public class LtiController(
             return BadRequest($"Unrecognized deployment_id '{claims.DeploymentId}' for this platform registration.");
 
         var user = await _provisioning.FindOrCreateUserAsync(platform, claims);
-        await CookieSignIn.SignInAsync(HttpContext, user);
+        await CookieSignIn.SignInAsync(HttpContext, user, via: "lti");
         var isInstructor = LtiClaims.IsInstructor(claims.Roles);
 
         if (claims.MessageType == LtiClaims.MessageTypeDeepLinking)

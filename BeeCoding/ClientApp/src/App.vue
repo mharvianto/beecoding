@@ -11,6 +11,7 @@ import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import MfaOfferBanner from './components/MfaOfferBanner.vue';
+import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications } from './stores/notifications';
 import { useUndoToast } from './stores/undoToast';
@@ -40,7 +41,9 @@ const showFooter = computed(() =>
 const focusRoute = computed(() => route.path === '/playground' || /^\/boards\/[^/]+\/live$/.test(route.path));
 
 // keep the header XP in sync with who's logged in
-watch(() => auth.user?.id, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
+// (accounts held on the 2-step setup screen can't call the API yet, so nothing is loaded for them)
+const activeUserId = computed(() => (auth.mustSetupMfa ? null : auth.user?.id));
+watch(activeUserId, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
 
 // Bell + live toasts for reactions/comments on my wall posts. No toast when the user is
 // already on the board it's about — the card itself shows the new feedback there.
@@ -50,7 +53,7 @@ notifications.onMemberRemoved = (e) => {
   if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');
   undoToast.show(`You were removed from “${e.boardTitle}”.`);
 };
-watch(() => auth.user?.id, (id) => (id ? notifications.start() : notifications.stop()), { immediate: true });
+watch(activeUserId, (id) => (id ? notifications.start() : notifications.stop()), { immediate: true });
 
 // Celebrate a level-up anywhere in the app. `levelBaseline` is the level as of the
 // last hydration; null while logged out — so a fresh login that loads level 5 does
@@ -141,7 +144,8 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </header>
-    <VerifyEmailBanner v-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
+    <MfaRequiredBanner v-if="auth.mustSetupMfa" />
+    <VerifyEmailBanner v-else-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
     <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !route.path.startsWith('/account/security')" />
     <main class="flex-1 min-h-0 flex flex-col">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">

@@ -13,7 +13,7 @@ namespace BeeCoding.Controllers;
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
-    MfaService mfa, PasskeyService passkeys, GoogleAuthService google) : ApiControllerBase
+    MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -27,6 +27,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly MfaService _mfa = mfa;
     private readonly PasskeyService _passkeys = passkeys;
     private readonly GoogleAuthService _google = google;
+    private readonly MeDtoBuilder _me = me;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -278,5 +279,5 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     // CookieSignIn.
     private Task SignInAsync(User user) => CookieSignIn.SignInAsync(HttpContext, user);
 
-    private Task<MeDto> MeDtoAsync(User user) => MeDtoBuilder.BuildAsync(_db, _admin, user);
+    private Task<MeDto> MeDtoAsync(User user) => _me.BuildAsync(user, User);
 }

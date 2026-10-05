@@ -15,7 +15,7 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [Route("api/auth/passkeys")]
 public class PasskeyController(AppDbContext db, PasswordService pw, MfaService mfa, PasskeyService passkeys,
-    LoginThrottle throttle, AdminAccess admin) : ApiControllerBase
+    LoginThrottle throttle, MeDtoBuilder me) : ApiControllerBase
 {
     private const string StateLogin = "passkey-login";
     private const string StateRegister = "passkey-register";
@@ -25,7 +25,7 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
     private readonly MfaService _mfa = mfa;       // only for its sealed, short-lived state blobs
     private readonly PasskeyService _passkeys = passkeys;
     private readonly LoginThrottle _throttle = throttle;
-    private readonly AdminAccess _admin = admin;
+    private readonly MeDtoBuilder _me = me;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
     private string ThrottleKey => $"passkey:{ClientIp}";
@@ -76,7 +76,7 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
 
         _throttle.RecordSuccess(ClientIp, ThrottleKey);
         await CookieSignIn.SignInAsync(HttpContext, user);
-        return await MeDtoBuilder.BuildAsync(_db, _admin, user);
+        return await _me.BuildAsync(user);
     }
 
     // ======================== account settings ========================

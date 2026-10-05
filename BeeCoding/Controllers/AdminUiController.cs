@@ -600,6 +600,39 @@ public class AdminUiController(
         }
     }
 
+    /// <summary>Who must use two-step verification, and how many accounts in each group still don't have it.
+    /// Off by default; a required account without a factor is held on its Account page (MfaRequirementGate).</summary>
+    [HttpGet("mfa-policy")]
+    public async Task<ActionResult<AdminMfaPolicyDto>> GetMfaPolicy() => await MfaPolicyDtoAsync();
+
+    [HttpPut("mfa-policy")]
+    public async Task<ActionResult<AdminMfaPolicyDto>> SetMfaPolicy(AdminMfaPolicyDto dto)
+    {
+        var row = await _db.PlatformRuntimeSettings.FindAsync(1);
+        if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
+        row.MfaRequireAdmin = dto.RequireAdmin;
+        row.MfaRequireOrgAdmin = dto.RequireOrgAdmin;
+        row.MfaRequireTeacher = dto.RequireTeacher;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _runtimeConfig.SetMfaPolicy(row.MfaRequireAdmin, row.MfaRequireOrgAdmin, row.MfaRequireTeacher);
+        await _audit.RecordAsync(UserId, ActorEmail, "mfa-policy-set", "RuntimeConfig", row.Id,
+            $"admin={row.MfaRequireAdmin}, orgAdmin={row.MfaRequireOrgAdmin}, teacher={row.MfaRequireTeacher}");
+        return await MfaPolicyDtoAsync();
+    }
+
+    private async Task<AdminMfaPolicyDto> MfaPolicyDtoAsync()
+    {
+        var noFactor = _db.Users.Where(u => u.DeletedAt == null && u.TotpEnabledAt == null && u.EmailMfaEnabledAt == null);
+        var adminEmails = _admin.ConfiguredEmails();
+        int admins = await noFactor.CountAsync(u => u.IsAdmin || adminEmails.Contains(u.Email));
+        int orgAdmins = await noFactor.CountAsync(u => _db.OrganizationMemberships.Any(m => m.UserId == u.Id && m.Role == OrgRole.Admin));
+        int teachers = await noFactor.CountAsync(u => u.Role == UserRole.Teacher);
+        return new AdminMfaPolicyDto(_runtimeConfig.MfaRequireAdmin, _runtimeConfig.MfaRequireOrgAdmin, _runtimeConfig.MfaRequireTeacher,
+            admins, orgAdmins, teachers);
+    }
+
     /// <summary>The handful of judge/LSP knobs that are safe to flip without a restart (see
     /// PlatformRuntimeSettings/PlatformRuntimeConfig) — everything else in JudgeOptions/
     /// LspOptions (queue backend, concurrency limits, RequireSandbox) stays

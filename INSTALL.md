@@ -799,6 +799,15 @@ Dua fitur terpisah di **Account**:
   (`Users.TotpSecret`), recovery code hanya hash-nya.
 - Login lewat LTI (LMS) tidak diminta langkah kedua: LMS yang menjadi penyedia identitasnya.
 
+**Mewajibkan MFA untuk peran tertentu** (default **mati**): di **Admin → Users → 🔒 Require two-step verification** ada tiga
+saklar — *Admins*, *Organization admins*, dan *Teachers* — masing-masing dengan jumlah akun yang belum punya MFA (peringatan
+konfirmasi muncul bila ada). Akun dalam grup yang dinyalakan dan belum punya authenticator/kode email **ditahan di
+Account → Security** (banner merah; semua `/api` dan `/hubs` selain `/api/auth/*` menjawab 403 `mfa_required`) sampai
+menyalakan salah satunya, dan metode terakhirnya tidak bisa dilepas selama kewajiban berlaku. Pengaturan disimpan di DB
+(tabel `PlatformRuntimeSettings`), langsung berlaku tanpa restart, dan tercatat di audit log. Sesi dari peluncuran LTI
+dikecualikan (LMS yang jadi penyedia identitas). Admin yang terkunci hanya perlu menyalakan authenticator di Account;
+passkey saja tidak dihitung sebagai pemenuhan, karena login password tetap satu faktor.
+
 **Passkey** (WebAuthn) adalah cara **masuk tanpa password**: tombol **Sign in with a passkey** di halaman login, tanpa
 mengetik email atau password. Passkey disimpan di perangkat (sidik jari / wajah / PIN), tidak bisa di-phishing, dan
 selalu memakai *user verification*, jadi login passkey sudah dua faktor dan **tidak** meminta kode authenticator lagi.
