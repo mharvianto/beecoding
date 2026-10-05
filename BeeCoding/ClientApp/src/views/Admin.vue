@@ -295,6 +295,13 @@ async function markVerified(u) {
   try { await api.post(`/api/admin-ui/users/${u.id}/verify-email`); u.emailVerified = true; } catch (e) { err.value = e.message; }
 }
 
+// ---- remove a user's second factor (lost device + lost recovery codes) ----
+async function resetMfa(u) {
+  err.value = '';
+  if (!confirm(`Remove two-step verification for ${u.email}? They will sign in with just their password.`)) return;
+  try { await api.post(`/api/admin-ui/users/${u.id}/reset-mfa`); u.mfaEnabled = false; } catch (e) { err.value = e.message; }
+}
+
 // ---- one-off password-reset link for a user (works without outgoing email) ----
 const resetLink = ref(null);   // { user, url, expiresAt }
 const resetLinkCopied = ref(false);
@@ -1180,12 +1187,14 @@ onMounted(async () => {
             <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
             <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
             <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
+            <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
           <div v-if="u.id !== auth.user?.id" class="mt-2 flex gap-3">
             <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success" title="Mark this email address as verified">✓ Mark verified</button>
             <button @click="issueResetLink(u)" class="row-action-btn" title="Create a one-time password-reset link">🔑 Reset link</button>
+            <button v-if="u.mfaEnabled" @click="resetMfa(u)" class="row-action-btn" title="Remove two-step verification">🔓 Reset 2FA</button>
             <button v-if="!u.isAdmin" @click="grantAdmin(u)" class="row-action-btn row-action-btn--accent">Make admin</button>
             <button v-else @click="revokeAdmin(u)" class="row-action-btn">Revoke admin</button>
             <button @click="deleteUser(u)" class="row-action-btn row-action-btn--danger">Delete</button>
@@ -1223,6 +1232,7 @@ onMounted(async () => {
                 <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
                 <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
                 <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
+                <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
@@ -1232,6 +1242,7 @@ onMounted(async () => {
                 <template v-if="u.id !== auth.user?.id">
                   <button v-if="!u.emailVerified" @click="markVerified(u)" class="row-action-btn row-action-btn--success mr-1" title="Mark this email address as verified">✓ Mark verified</button>
                   <button @click="issueResetLink(u)" class="row-action-btn mr-1" title="Create a one-time password-reset link">🔑 Reset link</button>
+                  <button v-if="u.mfaEnabled" @click="resetMfa(u)" class="row-action-btn mr-1" title="Remove two-step verification">🔓 Reset 2FA</button>
                   <button v-if="!u.isAdmin" @click="grantAdmin(u)"
                           class="row-action-btn row-action-btn--accent mr-1">Make admin</button>
                   <button v-else @click="revokeAdmin(u)"

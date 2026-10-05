@@ -772,6 +772,34 @@ export Auth__RequireVerifiedEmail=true
 - Mode ketat otomatis **tidak aktif** bila `Email` belum dikonfigurasi, jadi server yang salah konfigurasi
   tidak mengunci semua orang.
 
+### Verifikasi dua langkah (MFA)
+
+Setiap user bisa menyalakan langkah kedua saat login lewat **Account → Two-step verification**:
+
+- **Aplikasi authenticator** (Google/Microsoft Authenticator, 1Password, Authy; TOTP 6 digit). Selalu tersedia,
+  tanpa konfigurasi.
+- **Passkey / security key** (WebAuthn). Hanya muncul bila `Auth:Passkeys:RpId` diisi — passkey terikat ke
+  domain, jadi butuh **HTTPS + nama domain** (`localhost` boleh untuk pengembangan; `http://ip:port` tidak jalan).
+- **Recovery code** (10 kode sekali pakai) dibuat saat faktor pertama dinyalakan, untuk masuk bila perangkat hilang.
+
+Alurnya: password benar → layar kode / passkey → sesi dibuat. Melepas faktor atau membuat recovery code baru
+meminta password. Reset password lewat email **tidak** melewati langkah kedua.
+
+```bash
+export Auth__Passkeys__RpId=harvianto.my.id            # domain tanpa skema/port; kosong = passkey mati
+export Auth__Passkeys__RpName=BeeCoding                 # nama yang tampil di dialog passkey (opsional)
+export Auth__Passkeys__Origins=https://harvianto.my.id  # origin halaman (opsional; default https://{RpId}), pisahkan koma bila lebih dari satu
+```
+
+- `RpId` jangan diganti setelah ada yang mendaftar: semua passkey lama jadi tidak berlaku (authenticator tetap
+  bisa dipakai karena TOTP/recovery tidak terpengaruh).
+- User yang kehilangan perangkat **dan** recovery code: admin menekan **Admin → Users → 🔓 Reset 2FA** (tercatat di
+  audit log). Setelah itu user masuk hanya dengan password dan bisa mendaftar ulang.
+- Tiket langkah-pertama (5 menit) dan state passkey memakai ASP.NET Data Protection, sama seperti cookie login,
+  jadi pada deploy multi-instance key-ring harus dibagi (lihat DEPLOY.md). Secret TOTP disimpan apa adanya di DB
+  (kolom `Users.TotpSecret`), recovery code hanya hash-nya.
+- Login lewat LTI (LMS) tidak diminta langkah kedua: LMS yang menjadi penyedia identitasnya.
+
 ### Tutor AI (hint, bukan jawaban)
 
 Dengan `Ai:Enabled=true` + `Ai:ApiKey` terisi, muncul panel **🤖 AI tutor** di halaman

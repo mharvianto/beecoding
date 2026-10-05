@@ -41,6 +41,17 @@ public class User
     /// configured and, for a hard gate, <c>Auth:RequireVerifiedEmail</c> is on.</summary>
     public DateTime? EmailVerifiedAt { get; set; }
 
+    /// <summary>Base32 secret of the user's authenticator app (TOTP, RFC 6238). Set at the start of
+    /// setup but only counts once <see cref="TotpEnabledAt"/> is set (after a first valid code).</summary>
+    [MaxLength(64)]
+    public string? TotpSecret { get; set; }
+
+    /// <summary>When the authenticator app was confirmed. Null = no TOTP second factor.</summary>
+    public DateTime? TotpEnabledAt { get; set; }
+
+    /// <summary>Time step (unix seconds / 30) of the last accepted TOTP code, so a code can't be replayed.</summary>
+    public long TotpLastStep { get; set; }
+
     [MaxLength(120)]
     public string DisplayName { get; set; } = "";
 
@@ -474,6 +485,47 @@ public class PostComment
     public string Body { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A single-use backup code for signing in when the second-factor device is lost. Only the
+/// SHA-256 of the code is stored; the plain codes are shown once when generated.</summary>
+public class MfaRecoveryCode
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(64)]
+    public string CodeHash { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UsedAt { get; set; }
+}
+
+/// <summary>A registered WebAuthn credential (passkey / security key) used as a second factor.</summary>
+public class UserPasskey
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    /// <summary>The authenticator's credential id, unique across all users.</summary>
+    [MaxLength(1024)]
+    public byte[] CredentialId { get; set; } = Array.Empty<byte>();
+
+    /// <summary>COSE-encoded public key.</summary>
+    public byte[] PublicKey { get; set; } = Array.Empty<byte>();
+
+    public long SignCount { get; set; }
+
+    /// <summary>Label the user gave the device ("iPhone", "YubiKey").</summary>
+    [MaxLength(80)]
+    public string Name { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastUsedAt { get; set; }
 }
 
 /// <summary>A single-use, time-limited password-reset link. Only the SHA-256 of the token is

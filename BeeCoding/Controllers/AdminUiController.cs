@@ -29,11 +29,12 @@ public class AdminUiController(
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
-    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets)
+    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets, MfaService mfa)
     : ApiControllerBase
 {
     private readonly BoardBulkService _bulk = bulk;
     private readonly PasswordResetService _resets = resets;
+    private readonly MfaService _mfa = mfa;
     private readonly SysstatService _sysstat = sysstat;
     private readonly PlagiarismService _plagiarism = plagiarism;
     private readonly ProgressService _progress = progress;
@@ -184,10 +185,12 @@ public class AdminUiController(
         var subsByUser = await _db.Submissions.Where(s => ids.Contains(s.UserId)).GroupBy(s => s.UserId)
             .Select(g => new { g.Key, C = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.C);
 
+        var withPasskey = (await _db.UserPasskeys.Where(p => ids.Contains(p.UserId)).Select(p => p.UserId).Distinct().ToListAsync()).ToHashSet();
         var rows = users.Select(u => new AdminUserRow(
             u.Id, u.Email, u.DisplayName, u.Role.ToString(), _admin.IsAdminEmail(u.Email),
             u.Xp, u.CreatedAt,
-            ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null)).ToList();
+            ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null,
+            u.TotpEnabledAt != null || withPasskey.Contains(u.Id))).ToList();
 
         return new AdminUserPageDto(rows, total, page, pageSize);
     }
@@ -463,6 +466,18 @@ public class AdminUiController(
         user.EmailVerifiedAt ??= DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "email-verified-by-admin", "User", user.Id, user.Email);
+        return NoContent();
+    }
+
+    /// <summary>Remove every second factor (authenticator app, passkeys, recovery codes) from a user who
+    /// lost their device and their recovery codes. They sign in with just their password afterwards.</summary>
+    [HttpPost("users/{id:int}/reset-mfa")]
+    public async Task<IActionResult> ResetUserMfa(int id)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && u.DeletedAt == null);
+        if (user is null) return NotFound();
+        await _mfa.ClearAllAsync(user);
+        await _audit.RecordAsync(UserId, ActorEmail, "mfa-reset-by-admin", "User", user.Id, user.Email);
         return NoContent();
     }
 

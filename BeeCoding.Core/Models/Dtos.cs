@@ -7,10 +7,24 @@ public record MeDto(int Id, string Email, string DisplayName, string Role, bool 
     bool EmailVerified = true);   // false => the account's email hasn't been confirmed yet
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
+// ---- Second factor (MFA) ----
+/// <summary>Login answer when the password was right but the account has a second factor: no session
+/// yet, just a short-lived ticket plus the methods the user can finish with ("totp", "passkey", "recovery").</summary>
+public record MfaChallengeDto(bool MfaRequired, string Ticket, string[] Methods);
+public record MfaVerifyDto(string Ticket, string Method, string Code);
+public record MfaTicketDto(string Ticket);
+public record MfaPasswordDto(string Password);
+public record MfaCodeDto(string Code);
+public record PasskeyDto(int Id, string Name, DateTime CreatedAt, DateTime? LastUsedAt);
+public record MfaStatusDto(bool PasskeysAvailable, bool TotpEnabled, List<PasskeyDto> Passkeys, int RecoveryCodesLeft);
+public record TotpSetupDto(string Secret, string Uri);
+public record MfaRecoveryCodesDto(List<string>? RecoveryCodes);
+public record PasskeyNameDto(string Name);
+
 // ---- Forgot / reset password ----
 /// <summary>PasswordReset / EmailVerification are available when outgoing email is configured;
 /// RequireVerifiedEmail means unverified accounts are locked to the verification screen.</summary>
-public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false);
+public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false);
 public record VerifyEmailDto(string Token);
 public record ForgotPasswordDto(string Email);
 public record ResetPasswordDto(string Token, string NewPassword);
@@ -136,7 +150,7 @@ public record AdminIngestResultDto(
 
 // ---- Admin panel (cookie-authed, Admin:Emails) ----
 public record AdminUserRow(int Id, string Email, string DisplayName, string Role, bool IsAdmin,
-    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions, bool EmailVerified = true);
+    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions, bool EmailVerified = true, bool MfaEnabled = false);
 public record AdminUserPageDto(List<AdminUserRow> Rows, int Total, int Page, int PageSize);
 
 public record AdminAiUsageBucket(int Calls, long PromptTokens, long CompletionTokens, long TotalTokens);

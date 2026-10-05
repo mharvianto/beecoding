@@ -12,7 +12,8 @@ namespace BeeCoding.Controllers;
 
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
-    EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification) : ApiControllerBase
+    EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
+    MfaService mfa, PasskeyService passkeys) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -23,6 +24,8 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly PasswordResetService _resets = resets;
     private readonly ResetRequestThrottle _resetThrottle = resetThrottle;
     private readonly EmailVerificationService _verification = verification;
+    private readonly MfaService _mfa = mfa;
+    private readonly PasskeyService _passkeys = passkeys;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -74,7 +77,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<ActionResult<MeDto>> Login(LoginDto dto)
+    public async Task<ActionResult<object>> Login(LoginDto dto)
     {
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         var ip = ClientIp;
@@ -90,6 +93,18 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         }
 
         _throttle.RecordSuccess(ip, email);
+
+        // Right password but the account has a second factor: no session yet, just a ticket that
+        // the /api/auth/mfa/* endpoints trade for one once the second factor checks out.
+        if (await _mfa.HasMfaAsync(user))
+        {
+            var methods = new List<string>();
+            if (user.TotpEnabledAt != null) methods.Add("totp");
+            if (_passkeys.Enabled && await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id)) methods.Add("passkey");
+            methods.Add("recovery");
+            return new MfaChallengeDto(true, _mfa.IssueTicket(user.Id), methods.ToArray());
+        }
+
         await SignInAsync(user);
         return await MeDtoAsync(user);
     }
@@ -138,7 +153,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
     [HttpGet("config")]
     [AllowAnonymous]
-    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required);
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled);
 
     /// <summary>
     /// Email a reset link. Always answers 204 whether or not the address has an account (no
@@ -267,12 +282,5 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     // CookieSignIn.
     private Task SignInAsync(User user) => CookieSignIn.SignInAsync(HttpContext, user);
 
-    private async Task<MeDto> MeDtoAsync(User user)
-    {
-        var isAdmin = IsAdmin(user.Email);
-        // A platform super admin can manage every organization (see OrgAccess.CanManageAsync),
-        // so they should see the Organization nav link too, not just members with OrgRole.Admin.
-        var hasOrgAdmin = isAdmin || await _db.OrganizationMemberships.AnyAsync(m => m.UserId == user.Id && m.Role == OrgRole.Admin);
-        return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin, user.EmailVerifiedAt != null);
-    }
+    private Task<MeDto> MeDtoAsync(User user) => MeDtoBuilder.BuildAsync(_db, _admin, user);
 }

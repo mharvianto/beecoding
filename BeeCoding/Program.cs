@@ -232,6 +232,8 @@ builder.Services.AddSingleton<RateLimiter>();
 builder.Services.AddSingleton<PlatformRuntimeConfig>();
 builder.Services.AddSingleton<SubmitCooldown>();
 builder.Services.AddSingleton<LoginThrottle>();
+builder.Services.AddScoped<MfaService>();
+builder.Services.AddSingleton<PasskeyService>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 
 // The web tier always applies verdicts + notifies. It runs the compute worker itself only

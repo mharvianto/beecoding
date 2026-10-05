@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 import { api } from '../lib/api';
+import { getPasskey } from '../lib/webauthn';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
     user: null,
     ready: false,
-    // public server capabilities: { passwordReset, emailVerification, requireVerifiedEmail }
-    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false },
+    // public server capabilities: { passwordReset, emailVerification, requireVerifiedEmail, passkeys }
+    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false },
     configLoaded: false,
   }),
   getters: {
@@ -31,8 +32,20 @@ export const useAuth = defineStore('auth', {
       try { this.config = await api.get('/api/auth/config'); } catch { /* keep the defaults (features off) */ }
       this.configLoaded = true;
     },
+    // Resolves to null once signed in, or to { ticket, methods } when the account needs a second factor.
     async login(email, password) {
-      this.user = await api.post('/api/auth/login', { email, password });
+      const r = await api.post('/api/auth/login', { email, password });
+      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods };
+      this.user = r;
+      return null;
+    },
+    async verifyMfa(ticket, method, code) {
+      this.user = await api.post('/api/auth/mfa/verify', { ticket, method, code });
+    },
+    async verifyMfaPasskey(ticket) {
+      const { options, state } = await api.post('/api/auth/mfa/passkey/options', { ticket });
+      const response = await getPasskey(options);
+      this.user = await api.post('/api/auth/mfa/passkey/verify', { ticket, state, response });
     },
     async register(payload) {
       this.user = await api.post('/api/auth/register', payload);

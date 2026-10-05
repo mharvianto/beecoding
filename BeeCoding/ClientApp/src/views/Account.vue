@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth';
 import { useProgress } from '../stores/progress';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
+import MfaSettings from '../components/MfaSettings.vue';
 import { localDayKey } from '../lib/localDay';
 
 const auth = useAuth();
@@ -299,6 +300,8 @@ async function deleteAccount(force = false) {
         </button>
       </div>
     </section>
+
+    <MfaSettings />
 
     <!-- delete account -->
     <section class="space-y-3 max-w-md border border-red-200 dark:border-red-500/30 rounded-xl p-4">
