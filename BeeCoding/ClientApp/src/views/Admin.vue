@@ -1174,11 +1174,11 @@ onMounted(async () => {
     <section v-show="tab === 'users'">
       <!-- two-step verification policy -->
       <div v-if="mfaPolicy" class="mb-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
-        <div class="flex items-center gap-2">
-          <h2 class="font-semibold text-sm">🔒 Require two-step verification</h2>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
+          <h2 class="font-semibold text-sm whitespace-nowrap">🔒 Require two-step verification</h2>
           <span class="text-xs text-slate-400 dark:text-slate-500">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
         </div>
-        <div class="flex flex-wrap gap-x-6 gap-y-2">
+        <div class="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5 pt-1">
           <label v-for="g in MFA_GROUPS" :key="g.key" class="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" :checked="mfaPolicy[g.key]" :disabled="mfaPolicyBusy" @click.prevent="toggleMfaPolicy(g)" class="accent-amber-500 w-4 h-4" />
             <span>{{ g.label }}</span>
@@ -1187,10 +1187,10 @@ onMounted(async () => {
           </label>
         </div>
       </div>
-      <div class="flex gap-2 mb-3">
+      <div class="flex gap-2 mb-3 flex-wrap items-center">
         <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="searchUsers" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+               class="flex-1 min-w-[10rem] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <button @click="searchUsers" class="self-stretch text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="recalculateProgress" :disabled="recalcBusy"
                 class="row-action-btn row-action-btn--accent shrink-0 disabled:opacity-50"
                 title="Rebuild everyone's streak / longest streak / best-day-solved from raw submission history">
@@ -1219,6 +1219,10 @@ onMounted(async () => {
               <div class="font-medium text-sm truncate">{{ u.displayName }} <span class="text-slate-400 font-normal">#{{ u.id }}</span></div>
               <div class="text-[11px] text-slate-400 truncate">{{ u.email }}</div>
             </div>
+            <div v-if="u.id !== auth.user?.id" class="shrink-0 -mt-1 -mr-1">
+              <AdminUserActions :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)" @reset-mfa="resetMfa(u)"
+                                @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
+            </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap mt-2">
             <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
@@ -1233,10 +1237,6 @@ onMounted(async () => {
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
-          <div v-if="u.id !== auth.user?.id" class="mt-1 flex justify-end">
-            <AdminUserActions :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)" @reset-mfa="resetMfa(u)"
-                              @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
-          </div>
         </div>
         <p v-if="users && !users.length" class="text-slate-400 dark:text-slate-500 text-sm">No users.</p>
       </div>
