@@ -100,6 +100,14 @@ function syncUrl() {
 
 // filter change -> back to first page
 function search() { page.value = 1; syncUrl(); load(); }
+
+// Anything other than the default view (search text, level, status, sort)?
+const hasFilters = computed(() => !!(q.value.trim() || level.value || status.value || sort.value));
+// Back to the default view; syncUrl() also updates the remembered "last query", so the next bare /practice starts clean too.
+function clearFilters() {
+  q.value = ''; level.value = ''; status.value = ''; sort.value = '';
+  search();
+}
 function go(n) {
   const t = Math.min(Math.max(1, n), totalPages.value);
   if (t !== page.value) { page.value = t; syncUrl(); load(); }
@@ -227,6 +235,9 @@ onMounted(() => {
         <option value="acrate_asc">Lowest AC rate</option>
       </select>
       <button @click="search" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+      <button v-if="hasFilters" @click="clearFilters"
+              class="text-sm border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-3 py-2"
+              title="Reset search, level, status and sort">✕ Clear filters</button>
     </div>
 
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
