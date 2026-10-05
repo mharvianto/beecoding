@@ -185,12 +185,11 @@ public class AdminUiController(
         var subsByUser = await _db.Submissions.Where(s => ids.Contains(s.UserId)).GroupBy(s => s.UserId)
             .Select(g => new { g.Key, C = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.C);
 
-        var withPasskey = (await _db.UserPasskeys.Where(p => ids.Contains(p.UserId)).Select(p => p.UserId).Distinct().ToListAsync()).ToHashSet();
         var rows = users.Select(u => new AdminUserRow(
             u.Id, u.Email, u.DisplayName, u.Role.ToString(), _admin.IsAdminEmail(u.Email),
             u.Xp, u.CreatedAt,
             ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null,
-            u.TotpEnabledAt != null || withPasskey.Contains(u.Id))).ToList();
+            u.TotpEnabledAt != null)).ToList();
 
         return new AdminUserPageDto(rows, total, page, pageSize);
     }
@@ -469,8 +468,8 @@ public class AdminUiController(
         return NoContent();
     }
 
-    /// <summary>Remove every second factor (authenticator app, passkeys, recovery codes) from a user who
-    /// lost their device and their recovery codes. They sign in with just their password afterwards.</summary>
+    /// <summary>Remove the authenticator app and recovery codes from a user who lost their device and their
+    /// recovery codes. They sign in with just their password afterwards (passkeys are untouched).</summary>
     [HttpPost("users/{id:int}/reset-mfa")]
     public async Task<IActionResult> ResetUserMfa(int id)
     {

@@ -13,7 +13,6 @@ public static class MeDtoBuilder
         // A platform super admin can manage every organization (see OrgAccess.CanManageAsync),
         // so they should see the Organization nav link too, not just members with OrgRole.Admin.
         var hasOrgAdmin = isAdmin || await db.OrganizationMemberships.AnyAsync(m => m.UserId == user.Id && m.Role == OrgRole.Admin);
-        var mfa = user.TotpEnabledAt != null || await db.UserPasskeys.AnyAsync(p => p.UserId == user.Id);
-        return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin, user.EmailVerifiedAt != null, user.HasPassword, mfa);
+        return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin, user.EmailVerifiedAt != null, user.HasPassword, user.TotpEnabledAt != null);
     }
 }

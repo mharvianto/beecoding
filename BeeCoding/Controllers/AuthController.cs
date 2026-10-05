@@ -84,7 +84,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         // Right password but the account has a second factor: no session yet, just a ticket that
         // the /api/auth/mfa/* endpoints trade for one once the second factor checks out.
-        if (await _mfa.ChallengeAsync(user, _passkeys.Enabled) is { } challenge) return challenge;
+        if (await _mfa.ChallengeAsync(user) is { } challenge) return challenge;
 
         await SignInAsync(user);
         return await MeDtoAsync(user);

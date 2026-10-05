@@ -10,7 +10,7 @@ namespace BeeCoding.Services;
 /// <summary>
 /// Second-factor sign-in: authenticator-app codes (TOTP, RFC 6238), single-use recovery codes, and the
 /// short-lived "password was right, second factor pending" ticket that links the two login steps.
-/// Passkeys live in <see cref="PasskeyService"/>.
+/// Passkeys are a separate, passwordless way in — see <see cref="PasskeyService"/>.
 /// </summary>
 public class MfaService(AppDbContext db, IDataProtectionProvider dp)
 {
@@ -21,20 +21,12 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp)
     private readonly AppDbContext _db = db;
     private readonly ITimeLimitedDataProtector _tickets = dp.CreateProtector("beecoding.mfa-ticket").ToTimeLimitedDataProtector();
 
-    public async Task<bool> HasMfaAsync(User user) =>
-        user.TotpEnabledAt != null || await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id);
+    public Task<bool> HasMfaAsync(User user) => Task.FromResult(user.TotpEnabledAt != null);
 
     /// <summary>If the account has a second factor, the "finish with these methods" answer that replaces a
     /// session after a correct password (or a Google sign-in); null when it can sign in right away.</summary>
-    public async Task<MfaChallengeDto?> ChallengeAsync(User user, bool passkeysEnabled)
-    {
-        if (!await HasMfaAsync(user)) return null;
-        var methods = new List<string>();
-        if (user.TotpEnabledAt != null) methods.Add("totp");
-        if (passkeysEnabled && await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id)) methods.Add("passkey");
-        methods.Add("recovery");
-        return new MfaChallengeDto(true, IssueTicket(user.Id), methods.ToArray());
-    }
+    public async Task<MfaChallengeDto?> ChallengeAsync(User user) =>
+        await HasMfaAsync(user) ? new MfaChallengeDto(true, IssueTicket(user.Id), new[] { "totp", "recovery" }) : null;
 
     // ---- login ticket ------------------------------------------------------
 
@@ -168,11 +160,10 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp)
 
     private static string HashCode(string raw) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(raw)));
 
-    /// <summary>Removes every second factor and recovery code (admin reset / last factor removed).</summary>
+    /// <summary>Removes the authenticator app and recovery codes (admin reset). Passkeys are a sign-in method, not a second factor, so they stay.</summary>
     public async Task ClearAllAsync(User user)
     {
         user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0;
-        _db.UserPasskeys.RemoveRange(_db.UserPasskeys.Where(p => p.UserId == user.Id));
         _db.MfaRecoveryCodes.RemoveRange(_db.MfaRecoveryCodes.Where(c => c.UserId == user.Id));
         await _db.SaveChangesAsync();
     }

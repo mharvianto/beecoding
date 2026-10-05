@@ -5,10 +5,12 @@ using Fido2NetLib.Objects;
 namespace BeeCoding.Services;
 
 /// <summary>
-/// WebAuthn (passkeys / security keys) as a second sign-in factor. Off unless <c>Auth:Passkeys:RpId</c>
-/// is set: passkeys are bound to a domain, so they need HTTPS and a real host name (localhost works
-/// for development). Config: <c>RpId</c> (the registrable domain), <c>RpName</c> (shown by the
-/// authenticator), <c>Origins</c> (allowed page origins; defaults to <c>https://{RpId}</c>).
+/// Passkeys (WebAuthn) as a passwordless way to sign in: "Sign in with a passkey" needs no email or password.
+/// Credentials are discoverable and always need user verification (biometrics / device PIN), so a passkey
+/// sign-in is already two factors and skips the authenticator-app step. Off unless <c>Auth:Passkeys:RpId</c>
+/// is set: passkeys are bound to a domain, so they need HTTPS and a real host name (localhost works for
+/// development). Config: <c>RpId</c> (the registrable domain), <c>RpName</c> (shown by the authenticator),
+/// <c>Origins</c> (allowed page origins; defaults to <c>https://{RpId}</c>).
 /// </summary>
 public class PasskeyService
 {
@@ -34,15 +36,18 @@ public class PasskeyService
 
     public bool Enabled => _fido2 is not null;
 
+    /// <summary>The user handle stored in the passkey: it must map back to the account at sign-in.</summary>
+    public static byte[] UserHandle(int userId) => BitConverter.GetBytes(userId);
+
     public CredentialCreateOptions CreationOptions(User user, IEnumerable<byte[]> existingIds) =>
         _fido2!.RequestNewCredential(new RequestNewCredentialParams
         {
-            User = new Fido2User { Id = BitConverter.GetBytes(user.Id), Name = user.Email, DisplayName = user.DisplayName },
+            User = new Fido2User { Id = UserHandle(user.Id), Name = user.Email, DisplayName = user.DisplayName },
             ExcludeCredentials = existingIds.Select(id => new PublicKeyCredentialDescriptor(id)).ToList(),
             AuthenticatorSelection = new AuthenticatorSelection
             {
-                ResidentKey = ResidentKeyRequirement.Preferred,
-                UserVerification = UserVerificationRequirement.Preferred,
+                ResidentKey = ResidentKeyRequirement.Required,   // discoverable: the browser can offer it without an email
+                UserVerification = UserVerificationRequirement.Required,
             },
             AttestationPreference = AttestationConveyancePreference.None,
         });
@@ -56,14 +61,15 @@ public class PasskeyService
             IsCredentialIdUniqueToUserCallback = (p, _) => isUnique(p.CredentialId),
         });
 
-    public AssertionOptions AssertionOptions(IEnumerable<byte[]> credentialIds) =>
+    /// <summary>A challenge with no allow-list: the browser shows whichever passkeys it has for this site.</summary>
+    public AssertionOptions LoginOptions() =>
         _fido2!.GetAssertionOptions(new GetAssertionOptionsParams
         {
-            AllowedCredentials = credentialIds.Select(id => new PublicKeyCredentialDescriptor(id)).ToList(),
-            UserVerification = UserVerificationRequirement.Preferred,
+            AllowedCredentials = new List<PublicKeyCredentialDescriptor>(),
+            UserVerification = UserVerificationRequirement.Required,
         });
 
-    public Task<VerifyAssertionResult> CompleteAssertionAsync(
+    public Task<VerifyAssertionResult> CompleteLoginAsync(
         AuthenticatorAssertionRawResponse response, AssertionOptions options, UserPasskey stored) =>
         _fido2!.MakeAssertionAsync(new MakeAssertionParams
         {
@@ -71,6 +77,7 @@ public class PasskeyService
             OriginalOptions = options,
             StoredPublicKey = stored.PublicKey,
             StoredSignatureCounter = (uint)stored.SignCount,
-            IsUserHandleOwnerOfCredentialIdCallback = (_, _) => Task.FromResult(true),   // not discoverable: the user is already known from the password step
+            // the handle the authenticator returns must be the one this credential was created for
+            IsUserHandleOwnerOfCredentialIdCallback = (p, _) => Task.FromResult(p.UserHandle.AsSpan().SequenceEqual(UserHandle(stored.UserId))),
         });
 }

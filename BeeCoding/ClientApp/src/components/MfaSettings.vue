@@ -2,11 +2,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '../stores/auth';
 import { api } from '../lib/api';
-import { createPasskey, passkeysSupported } from '../lib/webauthn';
 import QrCode from './QrCode.vue';
 
 const auth = useAuth();
-const status = ref(null);          // { passkeysAvailable, totpEnabled, passkeys: [], recoveryCodesLeft }
+const status = ref(null);          // { totpEnabled, recoveryCodesLeft }
 const error = ref('');
 const busy = ref(false);
 
@@ -14,22 +13,18 @@ const setup = ref(null);           // { secret, uri } while an authenticator app
 const setupCode = ref('');
 const secretCopied = ref(false);
 
-const passkeyName = ref('');
-const renaming = ref(null);        // { id, name }
-
-const pending = ref(null);         // { kind: 'totp' | 'passkey' | 'codes', id? } waiting for the password
+const pending = ref(null);         // { kind: 'totp' | 'codes' } waiting for the password
 const password = ref('');
 
 const codes = ref(null);           // freshly issued recovery codes, shown once
 const codesCopied = ref(false);
 
-const canUsePasskeys = computed(() => status.value?.passkeysAvailable && passkeysSupported());
-const hasFactor = computed(() => status.value && (status.value.totpEnabled || status.value.passkeys.length > 0));
+const hasFactor = computed(() => !!status.value?.totpEnabled);
 
 async function load() {
   try { status.value = await api.get('/api/auth/mfa'); } catch (e) { error.value = e.message; return; }
   // keep the "turn on two-step" offer in the header in step with reality
-  if (auth.user && auth.user.mfaEnabled !== hasFactor.value) auth.user.mfaEnabled = !!hasFactor.value;
+  if (auth.user && auth.user.mfaEnabled !== hasFactor.value) auth.user.mfaEnabled = hasFactor.value;
 }
 onMounted(load);
 
@@ -55,33 +50,17 @@ async function copySecret() {
   try { await navigator.clipboard.writeText(setup.value.secret); secretCopied.value = true; setTimeout(() => (secretCopied.value = false), 1500); } catch { /* ignore */ }
 }
 
-// ---- passkeys ----
-const addPasskey = () => guarded(async () => {
-  const { options, state } = await api.post('/api/auth/mfa/passkeys/options');
-  const response = await createPasskey(options);
-  const r = await api.post('/api/auth/mfa/passkeys', { state, name: passkeyName.value, response });
-  passkeyName.value = '';
-  if (r.recoveryCodes) codes.value = r.recoveryCodes;
-  await load();
-});
-const saveRename = () => guarded(async () => {
-  await api.patch(`/api/auth/mfa/passkeys/${renaming.value.id}`, { name: renaming.value.name });
-  renaming.value = null;
-  await load();
-});
-
 // ---- actions that need the password ----
-function ask(kind, id = null) { pending.value = { kind, id }; password.value = ''; error.value = ''; }
+function ask(kind) { pending.value = { kind }; password.value = ''; error.value = ''; }
 const confirmPending = () => guarded(async () => {
-  const { kind, id } = pending.value;
+  const { kind } = pending.value;
   if (kind === 'totp') await api.post('/api/auth/mfa/totp/disable', { password: password.value });
-  else if (kind === 'passkey') await api.del(`/api/auth/mfa/passkeys/${id}`, { password: password.value });
   else codes.value = (await api.post('/api/auth/mfa/recovery-codes', { password: password.value })).recoveryCodes;
   pending.value = null;
   await load();
 });
 const pendingLabel = computed(() => ({
-  totp: 'Remove authenticator app', passkey: 'Remove passkey', codes: 'Generate new codes',
+  totp: 'Remove authenticator app', codes: 'Generate new codes',
 }[pending.value?.kind] || ''));
 
 // ---- recovery codes ----
@@ -97,7 +76,6 @@ function downloadCodes() {
   URL.revokeObjectURL(a.href);
 }
 
-const when = (iso) => new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleDateString();
 const inputCls = 'border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm';
 const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50';
 </script>
@@ -106,7 +84,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
   <section id="two-step" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Two-step verification</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400 max-w-xl">
-      After your password, sign-in also asks for a second step, so a stolen password alone is not enough.
+      After your password, sign-in also asks for a code from an authenticator app, so a stolen password alone is not enough.
     </p>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
@@ -137,37 +115,6 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
             <button @click="enableTotp" :disabled="busy || !setupCode" :class="primaryBtn">Turn on</button>
             <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
-        </div>
-      </div>
-
-      <!-- passkeys -->
-      <div v-if="status.passkeysAvailable" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
-        <div class="font-medium text-sm">Passkeys and security keys</div>
-        <p v-if="!canUsePasskeys" class="text-sm text-slate-500 dark:text-slate-400">
-          This browser can't use passkeys here. Passkeys need a secure (HTTPS) connection and a browser that supports WebAuthn.
-        </p>
-        <ul v-if="status.passkeys.length" class="divide-y divide-slate-100 dark:divide-slate-800">
-          <li v-for="k in status.passkeys" :key="k.id" class="py-2 flex items-center gap-2 flex-wrap">
-            <template v-if="renaming?.id === k.id">
-              <input v-model="renaming.name" maxlength="80" @keyup.enter="saveRename" :class="[inputCls, 'flex-1 min-w-0']" />
-              <button @click="saveRename" :disabled="busy" class="row-action-btn row-action-btn--success">Save</button>
-              <button @click="renaming = null" class="row-action-btn">Cancel</button>
-            </template>
-            <template v-else>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium truncate">🔑 {{ k.name }}</div>
-                <div class="text-xs text-slate-400 dark:text-slate-500">
-                  Added {{ when(k.createdAt) }} · {{ k.lastUsedAt ? `last used ${when(k.lastUsedAt)}` : 'not used yet' }}
-                </div>
-              </div>
-              <button @click="renaming = { id: k.id, name: k.name }" class="row-action-btn">Rename</button>
-              <button @click="ask('passkey', k.id)" class="row-action-btn row-action-btn--danger">Remove</button>
-            </template>
-          </li>
-        </ul>
-        <div v-if="canUsePasskeys" class="flex flex-wrap gap-2">
-          <input v-model="passkeyName" maxlength="80" placeholder="Name, e.g. My phone" @keyup.enter="addPasskey" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-          <button @click="addPasskey" :disabled="busy" :class="primaryBtn">Add a passkey</button>
         </div>
       </div>
 

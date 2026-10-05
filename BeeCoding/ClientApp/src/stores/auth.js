@@ -53,10 +53,11 @@ export const useAuth = defineStore('auth', {
     async verifyMfa(ticket, method, code) {
       this.user = await api.post('/api/auth/mfa/verify', { ticket, method, code });
     },
-    async verifyMfaPasskey(ticket) {
-      const { options, state } = await api.post('/api/auth/mfa/passkey/options', { ticket });
+    // Passwordless: no email or password, the browser offers the passkeys it holds for this site.
+    async loginWithPasskey() {
+      const { options, state } = await api.post('/api/auth/passkeys/login/options');
       const response = await getPasskey(options);
-      this.user = await api.post('/api/auth/mfa/passkey/verify', { ticket, state, response });
+      this.user = await api.post('/api/auth/passkeys/login/verify', { state, response });
     },
     async register(payload) {
       this.user = await api.post('/api/auth/register', payload);

@@ -15,7 +15,7 @@ namespace BeeCoding.Controllers;
 /// sign-up when it is new. Accounts with a second factor still finish it.
 /// </summary>
 [Route("api/auth/google")]
-public class GoogleController(AppDbContext db, GoogleAuthService google, MfaService mfa, PasskeyService passkeys,
+public class GoogleController(AppDbContext db, GoogleAuthService google, MfaService mfa,
     PasswordService pw, LoginThrottle throttle, AdminAccess admin, IConfiguration cfg) : ApiControllerBase
 {
     private const string Provider = "google";
@@ -26,7 +26,6 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     private readonly AppDbContext _db = db;
     private readonly GoogleAuthService _google = google;
     private readonly MfaService _mfa = mfa;
-    private readonly PasskeyService _passkeys = passkeys;
     private readonly PasswordService _pw = pw;
     private readonly LoginThrottle _throttle = throttle;
     private readonly AdminAccess _admin = admin;
@@ -91,7 +90,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
         {
             known.LastLoginAt = DateTime.UtcNow;
             await _db.SaveChangesAsync();
-            if (await _mfa.ChallengeAsync(linked, _passkeys.Enabled) is { } c)
+            if (await _mfa.ChallengeAsync(linked) is { } c)
                 return ToApp($"/login?mfa={Uri.EscapeDataString(c.Ticket)}&r={Uri.EscapeDataString(st.Return)}");
             await CookieSignIn.SignInAsync(HttpContext, linked);
             return ToApp(st.Return);
@@ -160,7 +159,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
         user.EmailVerifiedAt ??= DateTime.UtcNow;   // Google vouched for this very address
         await _db.SaveChangesAsync();
 
-        if (await _mfa.ChallengeAsync(user, _passkeys.Enabled) is { } challenge) return challenge;
+        if (await _mfa.ChallengeAsync(user) is { } challenge) return challenge;
         await CookieSignIn.SignInAsync(HttpContext, user);
         return await MeDtoBuilder.BuildAsync(_db, _admin, user);
     }

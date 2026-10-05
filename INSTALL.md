@@ -772,18 +772,30 @@ export Auth__RequireVerifiedEmail=true
 - Mode ketat otomatis **tidak aktif** bila `Email` belum dikonfigurasi, jadi server yang salah konfigurasi
   tidak mengunci semua orang.
 
-### Verifikasi dua langkah (MFA)
+### Verifikasi dua langkah (MFA) dan passkey
 
-Setiap user bisa menyalakan langkah kedua saat login lewat **Account → Two-step verification**:
+Dua fitur terpisah di **Account**:
 
-- **Aplikasi authenticator** (Google/Microsoft Authenticator, 1Password, Authy; TOTP 6 digit). Selalu tersedia,
-  tanpa konfigurasi.
-- **Passkey / security key** (WebAuthn). Hanya muncul bila `Auth:Passkeys:RpId` diisi — passkey terikat ke
-  domain, jadi butuh **HTTPS + nama domain** (`localhost` boleh untuk pengembangan; `http://ip:port` tidak jalan).
-- **Recovery code** (10 kode sekali pakai) dibuat saat faktor pertama dinyalakan, untuk masuk bila perangkat hilang.
+**Verifikasi dua langkah** (*Two-step verification*) menambah kode setelah password:
 
-Alurnya: password benar → layar kode / passkey → sesi dibuat. Melepas faktor atau membuat recovery code baru
-meminta password. Reset password lewat email **tidak** melewati langkah kedua.
+- **Aplikasi authenticator** (Google/Microsoft Authenticator, 1Password, Authy; TOTP 6 digit). Selalu tersedia, tanpa
+  konfigurasi.
+- **Recovery code** (10 kode sekali pakai) dibuat saat authenticator dinyalakan, untuk masuk bila HP hilang.
+- Alurnya: password benar (atau Google) → layar kode → sesi dibuat. Melepas authenticator atau membuat recovery code
+  baru meminta password. Reset password lewat email **tidak** melewati langkah kedua.
+- User yang belum menyalakannya melihat banner biru yang menawarkannya ("Not now" menyembunyikan 14 hari,
+  "Don't ask again" selamanya; disimpan di browser).
+- Kehilangan HP **dan** recovery code: admin menekan **Admin → Users → 🔓 Reset 2FA** (tercatat di audit log).
+  Setelah itu user masuk hanya dengan password dan bisa mendaftar ulang.
+- Tiket langkah-pertama (5 menit) memakai ASP.NET Data Protection, sama seperti cookie login, jadi pada deploy
+  multi-instance key-ring harus dibagi (lihat DEPLOY.md). Secret TOTP disimpan apa adanya di DB
+  (`Users.TotpSecret`), recovery code hanya hash-nya.
+- Login lewat LTI (LMS) tidak diminta langkah kedua: LMS yang menjadi penyedia identitasnya.
+
+**Passkey** (WebAuthn) adalah cara **masuk tanpa password**: tombol **Sign in with a passkey** di halaman login, tanpa
+mengetik email atau password. Passkey disimpan di perangkat (sidik jari / wajah / PIN), tidak bisa di-phishing, dan
+selalu memakai *user verification*, jadi login passkey sudah dua faktor dan **tidak** meminta kode authenticator lagi.
+User mendaftarkannya di **Account → Passkeys**; password tetap ada sebagai jalur cadangan.
 
 ```bash
 export Auth__Passkeys__RpId=harvianto.my.id            # domain tanpa skema/port; kosong = passkey mati
@@ -791,14 +803,10 @@ export Auth__Passkeys__RpName=BeeCoding                 # nama yang tampil di di
 export Auth__Passkeys__Origins=https://harvianto.my.id  # origin halaman (opsional; default https://{RpId}), pisahkan koma bila lebih dari satu
 ```
 
-- `RpId` jangan diganti setelah ada yang mendaftar: semua passkey lama jadi tidak berlaku (authenticator tetap
-  bisa dipakai karena TOTP/recovery tidak terpengaruh).
-- User yang kehilangan perangkat **dan** recovery code: admin menekan **Admin → Users → 🔓 Reset 2FA** (tercatat di
-  audit log). Setelah itu user masuk hanya dengan password dan bisa mendaftar ulang.
-- Tiket langkah-pertama (5 menit) dan state passkey memakai ASP.NET Data Protection, sama seperti cookie login,
-  jadi pada deploy multi-instance key-ring harus dibagi (lihat DEPLOY.md). Secret TOTP disimpan apa adanya di DB
-  (kolom `Users.TotpSecret`), recovery code hanya hash-nya.
-- Login lewat LTI (LMS) tidak diminta langkah kedua: LMS yang menjadi penyedia identitasnya.
+- Passkey terikat ke domain: butuh **HTTPS + nama domain** (`localhost` boleh untuk pengembangan; `http://ip:port`
+  tidak jalan). Jangan ganti `RpId` setelah ada yang mendaftar — semua passkey lama jadi tidak berlaku (user masuk
+  dengan password dan mendaftar ulang).
+- Memutus passkey meminta password. Untuk akun yang dibuat lewat Google dan belum punya password, set password dulu.
 
 ### Login dengan Google
 

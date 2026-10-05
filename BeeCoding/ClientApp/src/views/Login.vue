@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
 import GoogleButton from '../components/GoogleButton.vue';
+import { passkeysSupported } from '../lib/webauthn';
 
 const auth = useAuth();
 const router = useRouter();
@@ -16,6 +17,7 @@ const busy = ref(false);
 const canReset = ref(false);   // outgoing email configured on the server
 const justReset = route.query.reset === '1';
 const googleOn = ref(false);
+const passkeysOn = ref(false);
 const linkInfo = ref(null);    // { ticket, email, name }: Google found an existing account for this email
 
 onMounted(async () => {
@@ -23,6 +25,7 @@ onMounted(async () => {
     const cfg = await api.get('/api/auth/config');
     canReset.value = cfg.passwordReset === true;
     googleOn.value = cfg.google === true;
+    passkeysOn.value = cfg.passkeys === true && passkeysSupported();
   } catch { /* keep them hidden */ }
 
   // Redirects back from the Google round trip (see GoogleController.Callback)
@@ -46,9 +49,8 @@ function done() { router.push(route.query.r || '/boards'); }
 
 async function enterChallenge(next) {
   challenge.value = next;
-  mfaMode.value = next.methods.includes('totp') ? 'totp' : next.methods.includes('passkey') ? 'passkey' : 'recovery';
+  mfaMode.value = next.methods.includes('totp') ? 'totp' : 'recovery';
   mfaCode.value = '';
-  if (mfaMode.value === 'passkey') await usePasskey();
 }
 
 async function submitLink() {
@@ -97,7 +99,7 @@ async function usePasskey() {
   error.value = '';
   busy.value = true;
   try {
-    await auth.verifyMfaPasskey(challenge.value.ticket);
+    await auth.loginWithPasskey();
     done();
   } catch (e) {
     error.value = e.message;
@@ -134,18 +136,12 @@ function backToPassword(clearError = true) {
           <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" required autofocus
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-wider text-center font-mono" />
         </template>
-        <p v-else class="text-sm text-slate-600 dark:text-slate-300">Confirm with your passkey or security key.</p>
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button v-if="mfaMode !== 'passkey'" :disabled="busy || !mfaCode"
+        <button :disabled="busy || !mfaCode"
                 class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Verify' }}
         </button>
-        <button v-else type="button" @click="usePasskey" :disabled="busy"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
-          {{ busy ? '…' : '🔑 Use passkey' }}
-        </button>
         <div class="text-sm flex flex-col gap-1.5 text-amber-600 dark:text-amber-400">
-          <button v-if="mfaMode !== 'passkey' && challenge.methods.includes('passkey')" type="button" @click="mfaMode = 'passkey'; error = ''; usePasskey()" class="text-left">Use a passkey instead</button>
           <button v-if="mfaMode !== 'totp' && challenge.methods.includes('totp')" type="button" @click="mfaMode = 'totp'; mfaCode = ''; error = ''" class="text-left">Use my authenticator app</button>
           <button v-if="mfaMode !== 'recovery'" type="button" @click="mfaMode = 'recovery'; mfaCode = ''; error = ''" class="text-left">Use a recovery code</button>
           <button type="button" @click="backToPassword()" class="text-left text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
@@ -176,11 +172,15 @@ function backToPassword(clearError = true) {
           {{ busy ? '…' : 'Sign in' }}
         </button>
       </form>
-      <div v-if="googleOn && !challenge && !linkInfo" class="mt-4 space-y-3">
+      <div v-if="(googleOn || passkeysOn) && !challenge && !linkInfo" class="mt-4 space-y-3">
         <div class="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
           <span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>or<span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>
         </div>
-        <GoogleButton :return-to="route.query.r ? String(route.query.r) : ''" />
+        <button v-if="passkeysOn" type="button" @click="usePasskey" :disabled="busy"
+                class="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50">
+          🔑 Sign in with a passkey
+        </button>
+        <GoogleButton v-if="googleOn" :return-to="route.query.r ? String(route.query.r) : ''" />
       </div>
       <p v-if="canReset && !challenge && !linkInfo" class="text-sm mt-3">
         <RouterLink to="/forgot-password" class="text-amber-600 dark:text-amber-400">Forgot your password?</RouterLink>

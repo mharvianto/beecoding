@@ -8,6 +8,7 @@ import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MfaSettings from '../components/MfaSettings.vue';
 import ConnectedAccounts from '../components/ConnectedAccounts.vue';
+import PasskeySettings from '../components/PasskeySettings.vue';
 import { localDayKey } from '../lib/localDay';
 
 const auth = useAuth();
@@ -344,6 +345,8 @@ async function deleteAccount(force = false) {
     </section>
 
     <ConnectedAccounts />
+
+    <PasskeySettings />
 
     <MfaSettings />
 
