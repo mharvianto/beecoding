@@ -189,7 +189,7 @@ public class AdminUiController(
             u.Id, u.Email, u.DisplayName, u.Role.ToString(), _admin.IsAdminEmail(u.Email),
             u.Xp, u.CreatedAt,
             ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null,
-            u.TotpEnabledAt != null)).ToList();
+            u.TotpEnabledAt != null || u.EmailMfaEnabledAt != null)).ToList();
 
         return new AdminUserPageDto(rows, total, page, pageSize);
     }
@@ -468,7 +468,7 @@ public class AdminUiController(
         return NoContent();
     }
 
-    /// <summary>Remove the authenticator app and recovery codes from a user who lost their device and their
+    /// <summary>Remove the authenticator app, email code and recovery codes from a user who lost their device and their
     /// recovery codes. They sign in with just their password afterwards (passkeys are untouched).</summary>
     [HttpPost("users/{id:int}/reset-mfa")]
     public async Task<IActionResult> ResetUserMfa(int id)

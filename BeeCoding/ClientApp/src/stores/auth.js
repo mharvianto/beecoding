@@ -35,7 +35,7 @@ export const useAuth = defineStore('auth', {
     // Resolves to null once signed in, or to { ticket, methods } when the account needs a second factor.
     async login(email, password) {
       const r = await api.post('/api/auth/login', { email, password });
-      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods };
+      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
       this.user = r;
       return null;
     },
@@ -43,12 +43,15 @@ export const useAuth = defineStore('auth', {
     // Same result shape as login(): null once signed in, or { ticket, methods } when a second factor is needed.
     async googleLink(ticket, password) {
       const r = await api.post('/api/auth/google/link', { ticket, password });
-      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods };
+      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
       this.user = r;
       return null;
     },
     async googleRegister(payload) {
       this.user = await api.post('/api/auth/google/register', payload);
+    },
+    async sendEmailCode(ticket) {
+      await api.post('/api/auth/mfa/email/send', { ticket });
     },
     async verifyMfa(ticket, method, code) {
       this.user = await api.post('/api/auth/mfa/verify', { ticket, method, code });

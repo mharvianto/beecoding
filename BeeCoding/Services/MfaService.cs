@@ -12,21 +12,47 @@ namespace BeeCoding.Services;
 /// short-lived "password was right, second factor pending" ticket that links the two login steps.
 /// Passkeys are a separate, passwordless way in — see <see cref="PasskeyService"/>.
 /// </summary>
-public class MfaService(AppDbContext db, IDataProtectionProvider dp)
+public class MfaService(AppDbContext db, IDataProtectionProvider dp, EmailService email)
 {
     public const string Issuer = "BeeCoding";
     public const int RecoveryCodeCount = 10;
     private static readonly TimeSpan TicketLifetime = TimeSpan.FromMinutes(5);
 
     private readonly AppDbContext _db = db;
+    private readonly EmailService _email = email;
     private readonly ITimeLimitedDataProtector _tickets = dp.CreateProtector("beecoding.mfa-ticket").ToTimeLimitedDataProtector();
 
-    public Task<bool> HasMfaAsync(User user) => Task.FromResult(user.TotpEnabledAt != null);
+    public Task<bool> HasMfaAsync(User user) => Task.FromResult(user.TotpEnabledAt != null || user.EmailMfaEnabledAt != null);
+
+    public bool EmailAvailable => _email.IsConfigured;
 
     /// <summary>If the account has a second factor, the "finish with these methods" answer that replaces a
     /// session after a correct password (or a Google sign-in); null when it can sign in right away.</summary>
-    public async Task<MfaChallengeDto?> ChallengeAsync(User user) =>
-        await HasMfaAsync(user) ? new MfaChallengeDto(true, IssueTicket(user.Id), new[] { "totp", "recovery" }) : null;
+    public async Task<MfaChallengeDto?> ChallengeAsync(User user)
+    {
+        if (!await HasMfaAsync(user)) return null;
+        var methods = Methods(user);
+        return new MfaChallengeDto(true, IssueTicket(user.Id), methods, methods.Contains("email") ? MaskEmail(user.Email) : null);
+    }
+
+    /// <summary>The ways this user can finish signing in, in the order they are offered. "email" is only
+    /// offered while the server can actually send mail; recovery codes are always the way out.</summary>
+    public string[] Methods(User user)
+    {
+        var m = new List<string>();
+        if (user.TotpEnabledAt != null) m.Add("totp");
+        if (user.EmailMfaEnabledAt != null && _email.IsConfigured) m.Add("email");
+        m.Add("recovery");
+        return m.ToArray();
+    }
+
+    public static string MaskEmail(string email)
+    {
+        var at = email.IndexOf('@');
+        if (at <= 0) return email;
+        var local = email[..at];
+        return (local.Length <= 2 ? local[..1] : local[..2]) + "***" + email[at..];
+    }
 
     // ---- login ticket ------------------------------------------------------
 
@@ -122,6 +148,63 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp)
         return bytes.ToArray();
     }
 
+    // ---- email codes -------------------------------------------------------
+
+    public const int EmailCodeMinutes = 10;
+    private const int EmailSendsPer15Min = 3;
+    private const int EmailMaxAttempts = 5;
+
+    private static string EmailCodeHash(int userId, string code) => HashCode($"{userId}:{code}");
+
+    /// <summary>Email a fresh 6-digit code. Capped at a few per quarter hour; an older unused code stops
+    /// working. <paramref name="purpose"/> only changes the wording. Returns an error message, or null when sent.</summary>
+    public async Task<(string? Error, int Status)> SendEmailCodeAsync(User user, bool signIn)
+    {
+        if (!_email.IsConfigured) return ("Email isn't set up on this server.", StatusCodes.Status503ServiceUnavailable);
+
+        var now = DateTime.UtcNow;
+        await _db.EmailLoginCodes.Where(c => c.UserId == user.Id && c.CreatedAt < now.AddDays(-1)).ExecuteDeleteAsync();
+        if (await _db.EmailLoginCodes.CountAsync(c => c.UserId == user.Id && c.CreatedAt > now.AddMinutes(-15)) >= EmailSendsPer15Min)
+            return ("Too many codes requested. Wait a few minutes and try again.", StatusCodes.Status429TooManyRequests);
+
+        await _db.EmailLoginCodes.Where(c => c.UserId == user.Id && c.UsedAt == null).ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now));
+        var code = RandomNumberGenerator.GetInt32(1_000_000).ToString("D6");
+        var row = new EmailLoginCode { UserId = user.Id, CodeHash = EmailCodeHash(user.Id, code), CreatedAt = now, ExpiresAt = now.AddMinutes(EmailCodeMinutes) };
+        _db.EmailLoginCodes.Add(row);
+        await _db.SaveChangesAsync();
+
+        var body = signIn
+            ? $"Your BeeCoding sign-in code is {code}\n\nIt works once and expires in {EmailCodeMinutes} minutes.\n\n" +
+              "If you weren't trying to sign in, someone may know your password. Please change it."
+            : $"Your BeeCoding code to turn on email verification is {code}\n\nIt works once and expires in {EmailCodeMinutes} minutes.\n\n" +
+              "If you didn't ask for this, you can ignore this email.";
+        if (!await _email.SendAsync(user.Email, $"{code} is your BeeCoding code", body + "\n"))
+        {
+            _db.EmailLoginCodes.Remove(row);
+            await _db.SaveChangesAsync();
+            return ("Couldn't send the email. Try again shortly.", StatusCodes.Status503ServiceUnavailable);
+        }
+        return (null, 0);
+    }
+
+    /// <summary>Checks a code against the newest unused one. Five wrong guesses burn it.</summary>
+    public async Task<bool> VerifyEmailCodeAsync(User user, string? code)
+    {
+        var digits = new string((code ?? "").Where(char.IsDigit).ToArray());
+        if (digits.Length != 6) return false;
+        var now = DateTime.UtcNow;
+        var row = await _db.EmailLoginCodes.Where(c => c.UserId == user.Id && c.UsedAt == null && c.ExpiresAt > now)
+            .OrderByDescending(c => c.CreatedAt).FirstOrDefaultAsync();
+        if (row is null) return false;
+
+        row.Attempts++;
+        bool ok = CryptographicOperations.FixedTimeEquals(
+            Encoding.ASCII.GetBytes(row.CodeHash), Encoding.ASCII.GetBytes(EmailCodeHash(user.Id, digits)));
+        if (ok || row.Attempts >= EmailMaxAttempts) row.UsedAt = now;
+        await _db.SaveChangesAsync();
+        return ok;
+    }
+
     // ---- recovery codes ----------------------------------------------------
 
     private const string CodeAlphabet = "abcdefghjkmnpqrstuvwxyz23456789";   // no look-alikes (i l o 0 1)
@@ -163,7 +246,8 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp)
     /// <summary>Removes the authenticator app and recovery codes (admin reset). Passkeys are a sign-in method, not a second factor, so they stay.</summary>
     public async Task ClearAllAsync(User user)
     {
-        user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0;
+        user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0; user.EmailMfaEnabledAt = null;
+        _db.EmailLoginCodes.RemoveRange(_db.EmailLoginCodes.Where(c => c.UserId == user.Id));
         _db.MfaRecoveryCodes.RemoveRange(_db.MfaRecoveryCodes.Where(c => c.UserId == user.Id));
         await _db.SaveChangesAsync();
     }

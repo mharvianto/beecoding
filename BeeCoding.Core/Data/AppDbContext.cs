@@ -19,6 +19,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
     public DbSet<UserPasskey> UserPasskeys => Set<UserPasskey>();
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
+    public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
     public DbSet<PostComment> PostComments => Set<PostComment>();
@@ -105,6 +106,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<MfaRecoveryCode>().HasIndex(x => new { x.UserId, x.CodeHash });
         b.Entity<MfaRecoveryCode>()
+            .HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<EmailLoginCode>().HasIndex(x => new { x.UserId, x.CreatedAt });
+        b.Entity<EmailLoginCode>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<ExternalLogin>().HasIndex(x => new { x.Provider, x.Subject }).IsUnique();

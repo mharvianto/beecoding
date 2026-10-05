@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
@@ -33,7 +33,8 @@ onMounted(async () => {
   try {
     if (route.query.mfa) {
       const ticket = String(route.query.mfa);
-      enterChallenge({ ticket, methods: await api.post('/api/auth/mfa/methods', { ticket }) });
+      const m = await api.post('/api/auth/mfa/methods', { ticket });
+      enterChallenge({ ticket, methods: m.methods, emailHint: m.emailHint });
     } else if (route.query.link) {
       const ticket = String(route.query.link);
       linkInfo.value = { ticket, ...(await api.post('/api/auth/google/pending', { ticket })) };
@@ -41,16 +42,46 @@ onMounted(async () => {
   } catch (e) { error.value = e.message; }
 });
 
-const challenge = ref(null);   // { ticket, methods } once the password was right but a second factor is needed
-const mfaMode = ref('totp');   // 'totp' | 'recovery'
+const challenge = ref(null);   // { ticket, methods, emailHint } once the password was right but a second factor is needed
+const mfaMode = ref('totp');   // one of challenge.methods: 'totp' | 'email' | 'recovery'
 const mfaCode = ref('');
+const emailSent = ref(false);
+const resendIn = ref(0);
+let resendTimer = null;
+const MODE_LABEL = { totp: 'Use my authenticator app', email: 'Email me a code', recovery: 'Use a recovery code' };
+
+onBeforeUnmount(() => clearInterval(resendTimer));
 
 function done() { router.push(route.query.r || '/boards'); }
 
 async function enterChallenge(next) {
   challenge.value = next;
-  mfaMode.value = next.methods.includes('totp') ? 'totp' : 'recovery';
+  emailSent.value = false;
+  switchMode(['totp', 'email', 'recovery'].find((m) => next.methods.includes(m)) || 'recovery');
+}
+
+function switchMode(m) {
+  mfaMode.value = m;
   mfaCode.value = '';
+  error.value = '';
+}
+
+async function sendEmailCode() {
+  error.value = '';
+  busy.value = true;
+  try {
+    await auth.sendEmailCode(challenge.value.ticket);
+    emailSent.value = true;
+    mfaCode.value = '';
+    resendIn.value = 30;
+    clearInterval(resendTimer);
+    resendTimer = setInterval(() => { if (--resendIn.value <= 0) clearInterval(resendTimer); }, 1000);
+  } catch (e) {
+    error.value = e.message;
+    if (/sign-in expired/i.test(e.message)) backToPassword(false);
+  } finally {
+    busy.value = false;
+  }
 }
 
 async function submitLink() {
@@ -89,7 +120,7 @@ async function submitCode() {
     done();
   } catch (e) {
     error.value = e.message;
-    if (/expired/i.test(e.message)) backToPassword(false);
+    if (/sign-in expired/i.test(e.message)) backToPassword(false);
   } finally {
     busy.value = false;
   }
@@ -109,6 +140,7 @@ async function usePasskey() {
 }
 
 function backToPassword(clearError = true) {
+  clearInterval(resendTimer);
   challenge.value = null;
   password.value = '';
   mfaCode.value = '';
@@ -131,19 +163,37 @@ function backToPassword(clearError = true) {
           <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
         </template>
+        <template v-else-if="mfaMode === 'email'">
+          <template v-if="!emailSent">
+            <p class="text-sm text-slate-600 dark:text-slate-300">We'll email a 6-digit code to <b>{{ challenge.emailHint }}</b>.</p>
+            <button type="button" @click="sendEmailCode" :disabled="busy"
+                    class="w-full border border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg py-2 font-medium disabled:opacity-50">
+              {{ busy ? '…' : 'Send code' }}
+            </button>
+          </template>
+          <template v-else>
+            <p class="text-sm text-slate-600 dark:text-slate-300">Enter the code we sent to <b>{{ challenge.emailHint }}</b>. It expires in 10 minutes.</p>
+            <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
+            <button type="button" @click="sendEmailCode" :disabled="busy || resendIn > 0" class="text-sm text-amber-600 dark:text-amber-400 disabled:text-slate-400 disabled:dark:text-slate-500">
+              {{ resendIn > 0 ? `Send again in ${resendIn}s` : 'Send a new code' }}
+            </button>
+          </template>
+        </template>
         <template v-else-if="mfaMode === 'recovery'">
           <p class="text-sm text-slate-600 dark:text-slate-300">Enter one of your recovery codes. Each code works once.</p>
           <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" required autofocus
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-wider text-center font-mono" />
         </template>
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button :disabled="busy || !mfaCode"
+        <button v-if="mfaMode !== 'email' || emailSent" :disabled="busy || !mfaCode"
                 class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Verify' }}
         </button>
         <div class="text-sm flex flex-col gap-1.5 text-amber-600 dark:text-amber-400">
-          <button v-if="mfaMode !== 'totp' && challenge.methods.includes('totp')" type="button" @click="mfaMode = 'totp'; mfaCode = ''; error = ''" class="text-left">Use my authenticator app</button>
-          <button v-if="mfaMode !== 'recovery'" type="button" @click="mfaMode = 'recovery'; mfaCode = ''; error = ''" class="text-left">Use a recovery code</button>
+          <template v-for="m in challenge.methods" :key="m">
+            <button v-if="m !== mfaMode" type="button" @click="switchMode(m)" class="text-left">{{ MODE_LABEL[m] }}</button>
+          </template>
           <button type="button" @click="backToPassword()" class="text-left text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
         </div>
       </form>

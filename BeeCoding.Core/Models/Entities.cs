@@ -53,6 +53,9 @@ public class User
     /// <summary>When the authenticator app was confirmed. Null = no TOTP second factor.</summary>
     public DateTime? TotpEnabledAt { get; set; }
 
+    /// <summary>When the user turned on "email me a code" as a second factor. Null = off.</summary>
+    public DateTime? EmailMfaEnabledAt { get; set; }
+
     /// <summary>Time step (unix seconds / 30) of the last accepted TOTP code, so a code can't be replayed.</summary>
     public long TotpLastStep { get; set; }
 
@@ -512,6 +515,24 @@ public class ExternalLogin
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
+}
+
+/// <summary>A 6-digit code emailed to the user as a second factor (or to prove the email works when turning
+/// the factor on). Only a hash is stored; it expires quickly and burns after too many wrong guesses.</summary>
+public class EmailLoginCode
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(64)]
+    public string CodeHash { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? UsedAt { get; set; }
+    public int Attempts { get; set; }
 }
 
 /// <summary>A single-use backup code for signing in when the second-factor device is lost. Only the

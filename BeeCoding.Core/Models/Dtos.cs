@@ -6,19 +6,20 @@ public record LoginDto(string Email, string Password);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
     bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
     bool HasPassword = true,      // false => created via Google; no password until the user sets one
-    bool MfaEnabled = false);     // has an authenticator app (drives the "turn on 2-step" offer)
+    bool MfaEnabled = false);     // has an authenticator app or email code on (drives the "turn on 2-step" offer)
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----
 /// <summary>Login answer when the password was right but the account has a second factor: no session
-/// yet, just a short-lived ticket plus the methods the user can finish with ("totp", "recovery").</summary>
-public record MfaChallengeDto(bool MfaRequired, string Ticket, string[] Methods);
+/// yet, just a short-lived ticket plus the methods the user can finish with ("totp", "email", "recovery").</summary>
+public record MfaChallengeDto(bool MfaRequired, string Ticket, string[] Methods, string? EmailHint = null);
+public record MfaMethodsDto(string[] Methods, string? EmailHint);
 public record MfaVerifyDto(string Ticket, string Method, string Code);
 public record MfaTicketDto(string Ticket);
 public record MfaPasswordDto(string Password);
 public record MfaCodeDto(string Code);
 public record PasskeyDto(int Id, string Name, DateTime CreatedAt, DateTime? LastUsedAt);
-public record MfaStatusDto(bool TotpEnabled, int RecoveryCodesLeft);
+public record MfaStatusDto(bool TotpEnabled, bool EmailEnabled, bool EmailAvailable, int RecoveryCodesLeft);
 public record PasskeyStatusDto(bool Available, List<PasskeyDto> Passkeys);
 public record TotpSetupDto(string Secret, string Uri);
 public record MfaRecoveryCodesDto(List<string>? RecoveryCodes);

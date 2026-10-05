@@ -57,13 +57,19 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         bool ok = dto.Method switch
         {
             "totp" => user.TotpEnabledAt != null && await _mfa.VerifyTotpAsync(user, dto.Code),
+            "email" => user.EmailMfaEnabledAt != null && await _mfa.VerifyEmailCodeAsync(user, dto.Code),
             "recovery" => await _mfa.UseRecoveryCodeAsync(user.Id, dto.Code),
             _ => false,
         };
         if (!ok)
         {
             _throttle.RecordFailure(ClientIp, ThrottleKey(user.Id));
-            return Unauthorized(dto.Method == "recovery" ? "That recovery code is wrong or already used." : "Wrong code. Check your authenticator app and try again.");
+            return Unauthorized(dto.Method switch
+            {
+                "recovery" => "That recovery code is wrong or already used.",
+                "email" => "Wrong or expired code. Ask for a new one and try again.",
+                _ => "Wrong code. Check your authenticator app and try again.",
+            });
         }
         return await FinishLoginAsync(user);
     }
@@ -72,12 +78,24 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     /// hands the browser a ticket by redirect instead of by JSON).</summary>
     [HttpPost("methods")]
     [AllowAnonymous]
-    public async Task<ActionResult<string[]>> Methods(MfaTicketDto dto)
+    public async Task<ActionResult<MfaMethodsDto>> Methods(MfaTicketDto dto)
     {
         var (user, fail) = await LoadForTicketAsync(dto.Ticket);
         if (user is null) return fail!;
-        var c = await _mfa.ChallengeAsync(user);
-        return c?.Methods ?? Array.Empty<string>();
+        var methods = _mfa.Methods(user);
+        return new MfaMethodsDto(methods, methods.Contains("email") ? MfaService.MaskEmail(user.Email) : null);
+    }
+
+    /// <summary>Email the user a sign-in code (they chose "email me a code" on the second-step screen).</summary>
+    [HttpPost("email/send")]
+    [AllowAnonymous]
+    public async Task<IActionResult> SendSignInEmailCode(MfaTicketDto dto)
+    {
+        var (user, fail) = await LoadForTicketAsync(dto.Ticket);
+        if (user is null) return fail!;
+        if (user.EmailMfaEnabledAt == null) return BadRequest("Email codes aren't turned on for this account.");
+        var (error, status) = await _mfa.SendEmailCodeAsync(user, signIn: true);
+        return error is null ? NoContent() : StatusCode(status, error);
     }
 
     // ======================== account settings ========================
@@ -88,7 +106,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
-        return new MfaStatusDto(user.TotpEnabledAt != null, await _mfa.RecoveryCodesLeftAsync(user.Id));
+        return new MfaStatusDto(user.TotpEnabledAt != null, user.EmailMfaEnabledAt != null, _mfa.EmailAvailable, await _mfa.RecoveryCodesLeftAsync(user.Id));
     }
 
     /// <summary>Start setting up an authenticator app: a fresh secret (not active until a code confirms it).</summary>
@@ -139,6 +157,52 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         return NoContent();
     }
 
+    // ---- email code as a second factor ----
+
+    /// <summary>Start turning on email codes: sends a code to the account's address to prove it works.</summary>
+    [HttpPost("email/setup")]
+    [Authorize]
+    public async Task<IActionResult> EmailSetup()
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        if (user.EmailMfaEnabledAt != null) return Conflict("Email codes are already turned on.");
+        var (error, status) = await _mfa.SendEmailCodeAsync(user, signIn: false);
+        return error is null ? NoContent() : StatusCode(status, error);
+    }
+
+    [HttpPost("email/enable")]
+    [Authorize]
+    public async Task<ActionResult<MfaRecoveryCodesDto>> EmailEnable(MfaCodeDto dto)
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        if (user.EmailMfaEnabledAt != null) return Conflict("Email codes are already turned on.");
+        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id)))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
+        if (!await _mfa.VerifyEmailCodeAsync(user, dto.Code))
+        {
+            _throttle.RecordFailure(ClientIp, ThrottleKey(user.Id));
+            return BadRequest("That code is wrong or expired. Send a new one and try again.");
+        }
+        user.EmailMfaEnabledAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return new MfaRecoveryCodesDto(await EnsureRecoveryCodesAsync(user));
+    }
+
+    [HttpPost("email/disable")]
+    [Authorize]
+    public async Task<IActionResult> EmailDisable(MfaPasswordDto dto)
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
+        user.EmailMfaEnabledAt = null;
+        await _db.SaveChangesAsync();
+        await DropRecoveryCodesIfNoFactorAsync(user);
+        return NoContent();
+    }
+
     /// <summary>Issue a fresh set of recovery codes (the old ones stop working).</summary>
     [HttpPost("recovery-codes")]
     [Authorize]
@@ -147,7 +211,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
-        if (!await _mfa.HasMfaAsync(user)) return BadRequest("Set up an authenticator app first.");
+        if (!await _mfa.HasMfaAsync(user)) return BadRequest("Turn on an authenticator app or email codes first.");
         return new MfaRecoveryCodesDto(await _mfa.RegenerateRecoveryCodesAsync(user));
     }
 

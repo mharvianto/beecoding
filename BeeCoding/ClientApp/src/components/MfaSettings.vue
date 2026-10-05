@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import QrCode from './QrCode.vue';
 
 const auth = useAuth();
-const status = ref(null);          // { totpEnabled, recoveryCodesLeft }
+const status = ref(null);          // { totpEnabled, emailEnabled, emailAvailable, recoveryCodesLeft }
 const error = ref('');
 const busy = ref(false);
 
@@ -19,7 +19,7 @@ const password = ref('');
 const codes = ref(null);           // freshly issued recovery codes, shown once
 const codesCopied = ref(false);
 
-const hasFactor = computed(() => !!status.value?.totpEnabled);
+const hasFactor = computed(() => !!(status.value?.totpEnabled || status.value?.emailEnabled));
 
 async function load() {
   try { status.value = await api.get('/api/auth/mfa'); } catch (e) { error.value = e.message; return; }
@@ -50,17 +50,34 @@ async function copySecret() {
   try { await navigator.clipboard.writeText(setup.value.secret); secretCopied.value = true; setTimeout(() => (secretCopied.value = false), 1500); } catch { /* ignore */ }
 }
 
+// ---- email code ----
+const emailStep = ref(false);      // a code was emailed and is awaited
+const emailCode = ref('');
+const startEmail = () => guarded(async () => {
+  await api.post('/api/auth/mfa/email/setup');
+  emailStep.value = true;
+  emailCode.value = '';
+});
+const cancelEmail = () => { emailStep.value = false; emailCode.value = ''; error.value = ''; };
+const enableEmail = () => guarded(async () => {
+  const r = await api.post('/api/auth/mfa/email/enable', { code: emailCode.value });
+  emailStep.value = false;
+  if (r.recoveryCodes) codes.value = r.recoveryCodes;
+  await load();
+});
+
 // ---- actions that need the password ----
 function ask(kind) { pending.value = { kind }; password.value = ''; error.value = ''; }
 const confirmPending = () => guarded(async () => {
   const { kind } = pending.value;
   if (kind === 'totp') await api.post('/api/auth/mfa/totp/disable', { password: password.value });
+  else if (kind === 'email') await api.post('/api/auth/mfa/email/disable', { password: password.value });
   else codes.value = (await api.post('/api/auth/mfa/recovery-codes', { password: password.value })).recoveryCodes;
   pending.value = null;
   await load();
 });
 const pendingLabel = computed(() => ({
-  totp: 'Remove authenticator app', codes: 'Generate new codes',
+  totp: 'Remove authenticator app', email: 'Turn off email codes', codes: 'Generate new codes',
 }[pending.value?.kind] || ''));
 
 // ---- recovery codes ----
@@ -84,7 +101,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
   <section id="two-step" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Two-step verification</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400">
-      After your password, sign-in also asks for a code from an authenticator app, so a stolen password alone is not enough.
+      After your password, sign-in also asks for a code, so a stolen password alone is not enough. Turn on one or more methods and pick the one you want each time you sign in.
     </p>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
@@ -114,6 +131,32 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
                    @keyup.enter="enableTotp" :class="[inputCls, 'w-36 tracking-widest text-center']" />
             <button @click="enableTotp" :disabled="busy || !setupCode" :class="primaryBtn">Turn on</button>
             <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- email code -->
+      <div v-if="status.emailAvailable || status.emailEnabled" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
+        <div class="flex items-center gap-2">
+          <div class="font-medium text-sm">Email code</div>
+          <span v-if="status.emailEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">on</span>
+          <button v-if="status.emailEnabled" @click="ask('email')" class="ml-auto row-action-btn row-action-btn--danger">Turn off</button>
+          <button v-else-if="!emailStep" @click="startEmail" :disabled="busy" :class="['ml-auto', primaryBtn]">Set up</button>
+        </div>
+        <p v-if="!status.emailEnabled && !emailStep" class="text-sm text-slate-500 dark:text-slate-400">
+          Get a 6-digit code at <b>{{ auth.user?.email }}</b> each time you sign in. No app needed, but it is only as safe as your inbox.
+        </p>
+        <p v-if="status.emailEnabled && !status.emailAvailable" class="text-sm text-amber-700 dark:text-amber-300">
+          This server can't send email right now, so this method is unavailable at sign-in. Use another method or a recovery code.
+        </p>
+        <div v-if="emailStep" class="space-y-3">
+          <p class="text-sm text-slate-600 dark:text-slate-300">We sent a code to <b>{{ auth.user?.email }}</b>. Enter it to turn this on.</p>
+          <div class="flex flex-wrap gap-2">
+            <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456"
+                   @keyup.enter="enableEmail" :class="[inputCls, 'w-36 tracking-widest text-center']" />
+            <button @click="enableEmail" :disabled="busy || !emailCode" :class="primaryBtn">Turn on</button>
+            <button @click="startEmail" :disabled="busy" class="text-sm text-amber-600 dark:text-amber-400 px-2">Send again</button>
+            <button @click="cancelEmail" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
         </div>
       </div>

@@ -780,9 +780,16 @@ Dua fitur terpisah di **Account**:
 
 - **Aplikasi authenticator** (Google/Microsoft Authenticator, 1Password, Authy; TOTP 6 digit). Selalu tersedia, tanpa
   konfigurasi.
-- **Recovery code** (10 kode sekali pakai) dibuat saat authenticator dinyalakan, untuk masuk bila HP hilang.
-- Alurnya: password benar (atau Google) → layar kode → sesi dibuat. Melepas authenticator atau membuat recovery code
-  baru meminta password. Reset password lewat email **tidak** melewati langkah kedua.
+- **Kode lewat email** (opsional): kode 6 digit dikirim ke email akun saat login. Hanya muncul bila config `Email` terisi
+  (lihat *Lupa password*). Berlaku 10 menit, sekali pakai, maks. 3 kiriman per 15 menit per akun, dan hangus setelah 5 tebakan
+  salah. Lebih lemah daripada authenticator (aman hanya sebanyak inbox-nya), jadi dipasang sebagai pilihan tambahan.
+- **Beberapa metode sekaligus**: user boleh menyalakan authenticator dan email; saat login layar kode menampilkan
+  pilihan metode yang bisa dipakai (authenticator / email / recovery code). MFA **tidak wajib**.
+- **Recovery code** (10 kode sekali pakai) dibuat saat metode pertama dinyalakan, untuk masuk bila HP hilang atau email
+  tidak terkirim.
+- Alurnya: password benar (atau Google) → layar kode → sesi dibuat. Melepas metode atau membuat recovery code
+  baru meminta password. Bila SMTP dimatikan setelah user memilih email sebagai satu-satunya metode, ia hanya bisa
+  masuk dengan recovery code (atau admin menekan Reset 2FA). Reset password lewat email **tidak** melewati langkah kedua.
 - User yang belum menyalakannya melihat banner biru yang menawarkannya ("Not now" menyembunyikan 14 hari,
   "Don't ask again" selamanya; disimpan di browser).
 - Kehilangan HP **dan** recovery code: admin menekan **Admin → Users → 🔓 Reset 2FA** (tercatat di audit log).
