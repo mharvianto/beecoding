@@ -4,7 +4,8 @@ namespace BeeCoding.Models;
 public record RegisterDto(string Email, string Password, string DisplayName, string Role, string? TeacherCode = null);
 public record LoginDto(string Email, string Password);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
-    bool EmailVerified = true);   // false => the account's email hasn't been confirmed yet
+    bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
+    bool HasPassword = true);     // false => created via Google; no password until the user sets one
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----
@@ -21,10 +22,18 @@ public record TotpSetupDto(string Secret, string Uri);
 public record MfaRecoveryCodesDto(List<string>? RecoveryCodes);
 public record PasskeyNameDto(string Name);
 
+// ---- Sign in with Google ----
+public record GoogleTicketDto(string Ticket);
+public record GooglePendingDto(string Email, string Name);
+public record GoogleLinkDto(string Ticket, string Password);
+public record GoogleRegisterDto(string Ticket, string? DisplayName, string? Role, string? TeacherCode);
+public record GoogleStatusDto(bool Linked, string? Email);
+public record SetPasswordDto(string NewPassword);
+
 // ---- Forgot / reset password ----
 /// <summary>PasswordReset / EmailVerification are available when outgoing email is configured;
 /// RequireVerifiedEmail means unverified accounts are locked to the verification screen.</summary>
-public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false);
+public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false, bool Google = false);
 public record VerifyEmailDto(string Token);
 public record ForgotPasswordDto(string Email);
 public record ResetPasswordDto(string Token, string NewPassword);

@@ -800,6 +800,34 @@ export Auth__Passkeys__Origins=https://harvianto.my.id  # origin halaman (opsion
   (kolom `Users.TotpSecret`), recovery code hanya hash-nya.
 - Login lewat LTI (LMS) tidak diminta langkah kedua: LMS yang menjadi penyedia identitasnya.
 
+### Login dengan Google
+
+Tombol **Continue with Google** muncul di Login/Register bila `Auth:Google:ClientId` dan `ClientSecret` terisi.
+
+1. Google Cloud Console → *APIs & Services* → *Credentials* → **Create credentials → OAuth client ID** → tipe
+   **Web application**.
+2. **Authorized redirect URIs**: `https://harvianto.my.id/beecoding/api/auth/google/callback` (domain + `PathBase` bila
+   ada + `/api/auth/google/callback`; harus persis sama).
+3. *OAuth consent screen*: isi nama aplikasi & email, lalu ubah status dari *Testing* ke **In production** — selama
+   *Testing* hanya akun penguji yang bisa masuk. Scope yang dipakai hanya `openid email profile` (tanpa review panjang).
+
+```bash
+export Auth__Google__ClientId=1234-abc.apps.googleusercontent.com
+export Auth__Google__ClientSecret=GOCSPX-...
+export App__PublicUrl=https://harvianto.my.id/beecoding   # wajib: redirect URI dibangun dari sini
+```
+
+Perilaku:
+- Identitas Google dicocokkan lewat `sub` (id tetap dari Google), bukan email, lalu disimpan di tabel `ExternalLogins`.
+- Email **belum punya akun** → user memilih Student/Teacher (kode undangan guru tetap berlaku) dan akun dibuat, email
+  otomatis terverifikasi. Akun ini belum punya password; **Account → Set a password** menambahkannya.
+- Email **sudah punya akun** → tidak ditautkan otomatis (akun yang didaftarkan orang lain dengan email itu bisa
+  dibajak). User diminta memasukkan password akun itu sekali; setelah itu Google bisa dipakai.
+- Google yang melaporkan `email_verified=false` ditolak.
+- Akun yang punya verifikasi dua langkah tetap diminta langkah keduanya setelah Google.
+- **Account → Connected accounts** untuk menghubungkan/memutus Google (memutus & hapus akun butuh password).
+- Alur memakai PKCE + `state`/`nonce` di cookie `beecoding.google` (5 menit). Tidak butuh paket tambahan.
+
 ### Tutor AI (hint, bukan jawaban)
 
 Dengan `Ai:Enabled=true` + `Ai:ApiKey` terisi, muncul panel **🤖 AI tutor** di halaman

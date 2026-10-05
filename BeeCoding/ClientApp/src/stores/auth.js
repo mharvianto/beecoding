@@ -7,7 +7,7 @@ export const useAuth = defineStore('auth', {
     user: null,
     ready: false,
     // public server capabilities: { passwordReset, emailVerification, requireVerifiedEmail, passkeys }
-    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false },
+    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false, google: false },
     configLoaded: false,
   }),
   getters: {
@@ -38,6 +38,17 @@ export const useAuth = defineStore('auth', {
       if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods };
       this.user = r;
       return null;
+    },
+    // Google found an existing account for this email: prove it with the account's password to connect them.
+    // Same result shape as login(): null once signed in, or { ticket, methods } when a second factor is needed.
+    async googleLink(ticket, password) {
+      const r = await api.post('/api/auth/google/link', { ticket, password });
+      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods };
+      this.user = r;
+      return null;
+    },
+    async googleRegister(payload) {
+      this.user = await api.post('/api/auth/google/register', payload);
     },
     async verifyMfa(ticket, method, code) {
       this.user = await api.post('/api/auth/mfa/verify', { ticket, method, code });

@@ -36,6 +36,10 @@ public class User
 
     public string PasswordHash { get; set; } = "";
 
+    /// <summary>False for accounts created through "Sign in with Google": <see cref="PasswordHash"/> is
+    /// then a random value nobody knows, until the user sets a password themselves.</summary>
+    public bool HasPassword { get; set; } = true;
+
     /// <summary>When the user proved they own <see cref="Email"/> (by following an emailed link, or an
     /// admin / LMS vouching for it). Null = not verified. Only enforced when outgoing email is
     /// configured and, for a hard gate, <c>Auth:RequireVerifiedEmail</c> is on.</summary>
@@ -485,6 +489,29 @@ public class PostComment
     public string Body { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A sign-in identity from an external provider (Google), tied to a local account. Matched on
+/// (<see cref="Provider"/>, <see cref="Subject"/>) — the provider's stable user id — never on email.</summary>
+public class ExternalLogin
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(32)]
+    public string Provider { get; set; } = "";
+
+    [MaxLength(255)]
+    public string Subject { get; set; } = "";
+
+    /// <summary>The provider's email for this identity when it was linked (display only).</summary>
+    [MaxLength(256)]
+    public string Email { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? LastLoginAt { get; set; }
 }
 
 /// <summary>A single-use backup code for signing in when the second-factor device is lost. Only the

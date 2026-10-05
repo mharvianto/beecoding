@@ -234,6 +234,8 @@ builder.Services.AddSingleton<SubmitCooldown>();
 builder.Services.AddSingleton<LoginThrottle>();
 builder.Services.AddScoped<MfaService>();
 builder.Services.AddSingleton<PasskeyService>();
+builder.Services.AddHttpClient("google", c => c.Timeout = TimeSpan.FromSeconds(15));
+builder.Services.AddSingleton<GoogleAuthService>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 
 // The web tier always applies verdicts + notifies. It runs the compute worker itself only

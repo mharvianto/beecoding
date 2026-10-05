@@ -7,6 +7,7 @@ import { useProgress } from '../stores/progress';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MfaSettings from '../components/MfaSettings.vue';
+import ConnectedAccounts from '../components/ConnectedAccounts.vue';
 import { localDayKey } from '../lib/localDay';
 
 const auth = useAuth();
@@ -105,6 +106,21 @@ async function changePassword() {
     await auth.changePassword(cur.value, next.value);
     cur.value = next.value = next2.value = '';
     pwMsg.value = 'Password updated.';
+  } catch (e) { pwErr.value = e.message; }
+  finally { pwBusy.value = false; }
+}
+
+// first password for an account created through Google
+async function setPassword() {
+  pwMsg.value = ''; pwErr.value = '';
+  if (next.value.length < 8) { pwErr.value = 'Password must be at least 8 characters.'; return; }
+  if (next.value !== next2.value) { pwErr.value = 'Passwords do not match.'; return; }
+  pwBusy.value = true;
+  try {
+    await api.post('/api/auth/set-password', { newPassword: next.value });
+    await auth.fetchMe();
+    next.value = next2.value = '';
+    pwMsg.value = 'Password set. You can now also sign in with your email and password.';
   } catch (e) { pwErr.value = e.message; }
   finally { pwBusy.value = false; }
 }
@@ -282,7 +298,25 @@ async function deleteAccount(force = false) {
     </section>
 
     <!-- change password -->
-    <section class="space-y-3">
+    <section v-if="auth.user?.hasPassword === false" class="space-y-3">
+      <h2 class="font-semibold text-sm">Set a password</h2>
+      <p class="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
+        You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.
+      </p>
+      <div class="max-w-sm space-y-3">
+        <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <input v-model="next2" type="password" placeholder="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
+               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+        <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+        <button @click="setPassword" :disabled="pwBusy || !next"
+                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+          {{ pwBusy ? '…' : 'Set password' }}
+        </button>
+      </div>
+    </section>
+    <section v-else class="space-y-3">
       <h2 class="font-semibold text-sm">Change password</h2>
       <div class="max-w-sm space-y-3">
         <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
@@ -300,6 +334,8 @@ async function deleteAccount(force = false) {
         </button>
       </div>
     </section>
+
+    <ConnectedAccounts />
 
     <MfaSettings />
 

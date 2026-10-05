@@ -24,6 +24,18 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp)
     public async Task<bool> HasMfaAsync(User user) =>
         user.TotpEnabledAt != null || await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id);
 
+    /// <summary>If the account has a second factor, the "finish with these methods" answer that replaces a
+    /// session after a correct password (or a Google sign-in); null when it can sign in right away.</summary>
+    public async Task<MfaChallengeDto?> ChallengeAsync(User user, bool passkeysEnabled)
+    {
+        if (!await HasMfaAsync(user)) return null;
+        var methods = new List<string>();
+        if (user.TotpEnabledAt != null) methods.Add("totp");
+        if (passkeysEnabled && await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id)) methods.Add("passkey");
+        methods.Add("recovery");
+        return new MfaChallengeDto(true, IssueTicket(user.Id), methods.ToArray());
+    }
+
     // ---- login ticket ------------------------------------------------------
 
     /// <summary>Issued after a correct password when the account has a second factor. It proves only

@@ -72,6 +72,18 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa, 
         return await FinishLoginAsync(user);
     }
 
+    /// <summary>Which second-factor methods an in-progress login can finish with (used when Google sign-in
+    /// hands the browser a ticket by redirect instead of by JSON).</summary>
+    [HttpPost("methods")]
+    [AllowAnonymous]
+    public async Task<ActionResult<string[]>> Methods(MfaTicketDto dto)
+    {
+        var (user, fail) = await LoadForTicketAsync(dto.Ticket);
+        if (user is null) return fail!;
+        var c = await _mfa.ChallengeAsync(user, _passkeys.Enabled);
+        return c?.Methods ?? Array.Empty<string>();
+    }
+
     /// <summary>Begin a passkey login: the challenge the browser must sign with one of the user's passkeys.</summary>
     [HttpPost("passkey/options")]
     [AllowAnonymous]
@@ -176,7 +188,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa, 
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
-        if (!_pw.Verify(user, dto.Password ?? "")) return BadRequest("Password is wrong.");
+        if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
         user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0;
         await _db.SaveChangesAsync();
         await DropRecoveryCodesIfNoFactorAsync(user);
@@ -190,7 +202,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa, 
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
-        if (!_pw.Verify(user, dto.Password ?? "")) return BadRequest("Password is wrong.");
+        if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
         if (!await _mfa.HasMfaAsync(user)) return BadRequest("Set up an authenticator app or a passkey first.");
         return new MfaRecoveryCodesDto(await _mfa.RegenerateRecoveryCodesAsync(user));
     }
@@ -261,7 +273,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa, 
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
-        if (!_pw.Verify(user, dto.Password ?? "")) return BadRequest("Password is wrong.");
+        if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
         var key = await _db.UserPasskeys.FirstOrDefaultAsync(p => p.Id == id && p.UserId == UserId);
         if (key is null) return NotFound();
         _db.UserPasskeys.Remove(key);

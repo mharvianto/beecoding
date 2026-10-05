@@ -13,7 +13,7 @@ namespace BeeCoding.Controllers;
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
-    MfaService mfa, PasskeyService passkeys) : ApiControllerBase
+    MfaService mfa, PasskeyService passkeys, GoogleAuthService google) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -26,6 +26,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly EmailVerificationService _verification = verification;
     private readonly MfaService _mfa = mfa;
     private readonly PasskeyService _passkeys = passkeys;
+    private readonly GoogleAuthService _google = google;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -40,22 +41,9 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         if (PasswordPolicy.Validate(dto.Password, email) is string pwErr) return BadRequest(pwErr);
         if (string.IsNullOrWhiteSpace(dto.DisplayName)) return BadRequest("Display name is required.");
 
-        // Self-service registration only creates Students. A Teacher account requires the
-        // shared invite code (Auth:TeacherSignupCode); when that config is unset, teacher
-        // self-signup is disabled entirely (make teachers via the DB / an existing teacher).
-        var wantsTeacher = dto.Role?.Equals("Teacher", StringComparison.OrdinalIgnoreCase) == true;
-        var role = UserRole.Student;
-        if (wantsTeacher)
-        {
-            var code = _cfg["Auth:TeacherSignupCode"];
-            if (string.IsNullOrEmpty(code))
-                return BadRequest("Teacher self-registration is disabled on this server.");
-            if (!CryptographicOperations.FixedTimeEquals(
-                    System.Text.Encoding.UTF8.GetBytes(dto.TeacherCode ?? ""),
-                    System.Text.Encoding.UTF8.GetBytes(code)))
-                return BadRequest("Invalid teacher code.");
-            role = UserRole.Teacher;
-        }
+        var (resolved, roleError) = SignupRole.Resolve(_cfg, dto.Role, dto.TeacherCode);
+        if (resolved is null) return BadRequest(roleError);
+        var role = resolved.Value;
 
         if (await _db.Users.AnyAsync(u => u.Email == email))
             return Conflict("An account with that email already exists.");
@@ -96,14 +84,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         // Right password but the account has a second factor: no session yet, just a ticket that
         // the /api/auth/mfa/* endpoints trade for one once the second factor checks out.
-        if (await _mfa.HasMfaAsync(user))
-        {
-            var methods = new List<string>();
-            if (user.TotpEnabledAt != null) methods.Add("totp");
-            if (_passkeys.Enabled && await _db.UserPasskeys.AnyAsync(p => p.UserId == user.Id)) methods.Add("passkey");
-            methods.Add("recovery");
-            return new MfaChallengeDto(true, _mfa.IssueTicket(user.Id), methods.ToArray());
-        }
+        if (await _mfa.ChallengeAsync(user, _passkeys.Enabled) is { } challenge) return challenge;
 
         await SignInAsync(user);
         return await MeDtoAsync(user);
@@ -153,7 +134,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
     [HttpGet("config")]
     [AllowAnonymous]
-    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled);
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled, _google.Enabled);
 
     /// <summary>
     /// Email a reset link. Always answers 204 whether or not the address has an account (no
@@ -246,6 +227,21 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         return NoContent();
     }
 
+    /// <summary>Set a first password on an account created through Google (which has none).</summary>
+    [HttpPost("set-password")]
+    [Authorize]
+    public async Task<IActionResult> SetPassword(SetPasswordDto dto)
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        if (user.HasPassword) return Conflict("This account already has a password. Use Change password.");
+        if (PasswordPolicy.Validate(dto.NewPassword, user.Email) is string pwErr) return BadRequest(pwErr);
+        user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
+        user.HasPassword = true;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
     /// <summary>Permanently delete the caller's own account and everything owned by it.</summary>
     [HttpDelete("account")]
     [Authorize]
@@ -253,8 +249,8 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
-        if (!_pw.Verify(user, dto.Password ?? ""))
-            return BadRequest("Password is wrong.");
+        if (_pw.Reauth(user, dto.Password) is string reauthErr)
+            return BadRequest(reauthErr);
 
         // Board.OwnerId is Restrict — a teacher's boards must go first (they carry other
         // people's submissions/posts, so require an explicit opt-in).

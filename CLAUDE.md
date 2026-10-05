@@ -178,6 +178,7 @@ calling anything that takes a `localDay` param (see `lib/localDay.js`).
 default), `Ai` (AI tutor, off by default — needs `Ai:Enabled=true` + `Ai:ApiKey`),
 `Admin:Emails`/`Admin:Token` (platform admin access + scripted bank-ingest auth),
 `Email` (SMTP for password-reset and email-verification links; unset = both are hidden/off, admins can still issue a reset link or mark an email verified from Admin → Users) + `App:PublicUrl` (base URL used in those links), `Auth:RequireVerifiedEmail` (hard gate: unverified accounts can only reach `/api/auth/*`; ignored while `Email` is unset; platform admins exempt — see `EmailVerificationGate`),
+`Auth:Google:ClientId`/`ClientSecret` (Sign in with Google via OIDC code+PKCE; needs `App:PublicUrl`; unset = button hidden; never auto-links on email — see `GoogleController`),
 `Auth:Passkeys:RpId`/`RpName`/`Origins` (WebAuthn passkeys as a second sign-in factor; unset = passkeys off — TOTP authenticator apps + recovery codes always work; see `MfaController`/`MfaService`/`PasskeyService`),
 `Auth:TeacherSignupCode`, `Realtime` (Redis backend for presence/drafts/lecture-mode
 stores). `BeeCoding/appsettings.json` and `beecoding.db` are local dev state — do not
