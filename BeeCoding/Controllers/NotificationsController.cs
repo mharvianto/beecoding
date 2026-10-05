@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Controllers;
 
-/// <summary>The navbar bell: reactions/comments on the caller's own wall posts.</summary>
+/// <summary>The navbar bell: reactions/comments on the caller's wall posts, problem reports and their outcomes.</summary>
 [ApiController]
 [Authorize]
 [Route("api/notifications")]
@@ -19,17 +19,8 @@ public class NotificationsController(AppDbContext db, NotificationService notifi
     [HttpGet]
     public async Task<ActionResult<NotificationListDto>> List()
     {
-        // Joins drop notifications whose board or problem has since been (soft-)deleted.
-        var rows = await (from n in _db.Notifications
-                          where n.UserId == UserId
-                          join b in _db.Boards on n.BoardId equals b.Id
-                          join p in _db.Problems on n.ProblemId equals p.Id
-                          orderby n.CreatedAt descending
-                          select new { n, b.Slug, BoardTitle = b.Title, ProblemTitle = p.Title })
-            .Take(30).ToListAsync();
-
-        var items = rows.Select(r => NotificationService.ToDto(r.n, r.Slug, r.BoardTitle, r.ProblemTitle)).ToList();
-        return new NotificationListDto(await _notifications.UnreadCountAsync(UserId), items);
+        // Wall notifications whose board or problem was since (soft-)deleted are dropped; report ones always show.
+        return new NotificationListDto(await _notifications.UnreadCountAsync(UserId), await _notifications.ListAsync(UserId, 30));
     }
 
     [HttpPost("{id:int}/read")]

@@ -679,7 +679,8 @@ public class Notification
     public int UserId { get; set; }
     public User? User { get; set; }
 
-    /// <summary>"reaction" or "comment".</summary>
+    /// <summary>"reaction" / "comment" (wall cards), "report" (a problem of yours was reported) or
+    /// "report-update" (your report was resolved or dismissed).</summary>
     [MaxLength(16)]
     public string Kind { get; set; } = "";
 
@@ -700,6 +701,17 @@ public class Notification
     /// <summary>First part of the comment, for a comment notification.</summary>
     [MaxLength(200)]
     public string? Snippet { get; set; }
+
+    /// <summary>Set for the two report kinds (which have no board/post: BoardId/ProblemId/PostId stay 0).</summary>
+    public int? ReportId { get; set; }
+
+    /// <summary>The problem's title as it was when the report notification was created.</summary>
+    [MaxLength(200)]
+    public string? TargetTitle { get; set; }
+
+    /// <summary>App-relative page the notification opens (report kinds).</summary>
+    [MaxLength(300)]
+    public string? Link { get; set; }
 
     /// <summary>How many reactions this (coalesced) row stands for.</summary>
     public int Count { get; set; } = 1;

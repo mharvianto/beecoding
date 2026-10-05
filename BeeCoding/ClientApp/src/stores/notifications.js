@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia';
+import { useProblemReports } from './problemReports';
 import { api } from '../lib/api';
 import { createBoardConnection } from '../lib/signalr';
 
@@ -46,6 +47,7 @@ export const useNotifications = defineStore('notifications', {
     },
 
     ingest({ item, unread }) {
+      if (item.kind === 'report') useProblemReports().refresh();   // keep the open-reports count in the user menu current
       this.items = [item, ...this.items.filter((n) => n.id !== item.id)].slice(0, 30);
       this.unread = unread;
       if (this.suppressToast?.(item)) return;
@@ -76,8 +78,18 @@ export const useNotifications = defineStore('notifications', {
   },
 });
 
+/** Where a notification leads: report kinds carry their own page, wall ones open the card on its board. */
+export function notificationTarget(n) {
+  return n.link ? n.link : { path: `/boards/${n.boardSlug}`, query: { problem: String(n.problemId), post: String(n.postId) } };
+}
+
 /** One-line description shared by the bell list and the toast. */
 export function notificationText(n) {
+  if (n.kind === 'report') return `${n.actorName} reported a problem — ${n.snippet}`;
+  if (n.kind === 'report-update') {
+    const verdict = n.emoji === '✅' ? 'resolved' : 'dismissed';
+    return `Your report was ${verdict} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
+  }
   const who = n.actorIsStaff ? `${n.actorName} 👨‍🏫` : n.actorName;
   if (n.kind === 'comment') return `${who} commented: “${n.snippet}”`;
   return n.count > 1

@@ -429,7 +429,8 @@ public record NoteDto(string Note);
 // ---- In-app notifications (reactions / comments on my wall post) ----
 public record NotificationDto(
     int Id, string Kind, string BoardSlug, string BoardTitle, int ProblemId, string ProblemTitle, int PostId,
-    string ActorName, bool ActorIsStaff, string? Emoji, string? Snippet, int Count, DateTime CreatedAt, bool Read);
+    string ActorName, bool ActorIsStaff, string? Emoji, string? Snippet, int Count, DateTime CreatedAt, bool Read,
+    string? Link = null);   // report kinds: the page to open
 public record NotificationListDto(int Unread, List<NotificationDto> Items);
 public record ReactDto(string Emoji);
 public record CommentBodyDto(string Body);

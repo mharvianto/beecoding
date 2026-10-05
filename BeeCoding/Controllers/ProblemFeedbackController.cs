@@ -14,7 +14,8 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-public class ProblemFeedbackController(AppDbContext db, BoardService boards, VisibilityService vis, AdminAccess admin) : ApiControllerBase
+public class ProblemFeedbackController(AppDbContext db, BoardService boards, VisibilityService vis, AdminAccess admin,
+    NotificationService notifications) : ApiControllerBase
 {
     private const int MaxReportsPerDay = 10;
     private const int MinMessage = 10;
@@ -24,6 +25,7 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
     private readonly BoardService _boards = boards;
     private readonly VisibilityService _vis = vis;
     private readonly AdminAccess _admin = admin;
+    private readonly NotificationService _notifications = notifications;
 
     private record Target(int? BankId, int? ProblemId);
 
@@ -48,6 +50,29 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
         bool staff = me is not null ? _vis.IsStaff(me.Role) : isAdmin;
         if (!staff && !GroupAccess.StudentVisible(p, DateTime.UtcNow)) return null;
         return new Target(null, p.Id);
+    }
+
+    private static readonly Dictionary<ReportCategory, string> CategoryLabels = new()
+    {
+        [ReportCategory.WrongInput] = "Input doesn't match the statement",
+        [ReportCategory.ConstraintViolation] = "Input breaks the constraints",
+        [ReportCategory.WrongOutput] = "Expected output looks wrong",
+        [ReportCategory.StatementUnclear] = "Statement is unclear",
+        [ReportCategory.Other] = "Other",
+    };
+
+    /// <summary>Title, the page that opens the problem, and who reviews reports on it.</summary>
+    private async Task<(string Title, string OpenLink, List<int> Reviewers)> DescribeAsync(Target t)
+    {
+        if (t.BankId is int bid)
+        {
+            var b = await _db.BankProblems.IgnoreQueryFilters().Where(x => x.Id == bid).Select(x => new { x.Title, x.Slug, x.OwnerId }).FirstAsync();
+            return (b.Title, $"/practice/{b.Slug}", new List<int> { b.OwnerId });
+        }
+        var p = await _db.Problems.IgnoreQueryFilters().Where(x => x.Id == t.ProblemId).Select(x => new { x.Title, x.Slug, x.BoardId, BoardSlug = x.Board!.Slug }).FirstAsync();
+        var staff = await _db.BoardMemberships.Where(m => m.BoardId == p.BoardId && (m.Role == MembershipRole.Owner || m.Role == MembershipRole.Teacher))
+            .Select(m => m.UserId).ToListAsync();
+        return (p.Title, $"/boards/{p.BoardSlug}/problems/{p.Slug}", staff);
     }
 
     private IQueryable<ProblemLike> LikesOf(Target t) =>
@@ -83,8 +108,15 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
         if (await ReportsOf(t).AnyAsync(r => r.UserId == UserId && r.Status == ReportStatus.Open && r.Category == category))
             return Conflict("You already reported this. It's waiting for the author to review.");
 
-        _db.ProblemReports.Add(new ProblemReport { UserId = UserId, BankProblemId = t.BankId, ProblemId = t.ProblemId, Category = category, Message = message });
+        var report = new ProblemReport { UserId = UserId, BankProblemId = t.BankId, ProblemId = t.ProblemId, Category = category, Message = message };
+        _db.ProblemReports.Add(report);
         await _db.SaveChangesAsync();
+
+        // ring the bell for whoever can act on it: the bank problem's owner, or the board's staff
+        var info = await DescribeAsync(t);
+        var reporter = await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstAsync();
+        await _notifications.ReportFiledAsync(report, reporter, info.Title, CategoryLabels[category], info.Reviewers,
+            t.BankId is int bid ? $"/reports/problems?bank={bid}" : $"/reports/problems?problem={t.ProblemId}");
         return NoContent();
     }
 
@@ -199,6 +231,11 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
         r.ResolvedAt = status == ReportStatus.Open ? null : DateTime.UtcNow;
         r.ResolvedByUserId = status == ReportStatus.Open ? null : UserId;
         await _db.SaveChangesAsync();
+
+        // tell the person who filed it what became of their report
+        var info = await DescribeAsync(new Target(r.BankProblemId, r.ProblemId));
+        var reviewer = await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstAsync();
+        await _notifications.ReportReviewedAsync(r, UserId, reviewer, info.Title, info.OpenLink);
         return NoContent();
     }
 

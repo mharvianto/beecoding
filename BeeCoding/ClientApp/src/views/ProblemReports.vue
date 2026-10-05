@@ -11,8 +11,8 @@ const queue = useProblemReports();
 
 const status = ref('Open');
 const page = ref(1);
-const bankProblemId = ref(route.query.bank ? Number(route.query.bank) : null);
-const problemId = ref(route.query.problem ? Number(route.query.problem) : null);
+const bankProblemId = ref(0);   // narrow to one problem (0 = all): from the 🚩 badges and the bell
+const problemId = ref(0);
 const data = ref(null);
 const error = ref('');
 const pageSize = 20;
@@ -20,6 +20,8 @@ const pageSize = 20;
 const url = useUrlQuery({
   status: { ref: status, def: 'Open', allowed: ['Open', 'Resolved', 'Dismissed', 'All'] },
   page: { ref: page, def: 1, int: true },
+  bank: { ref: bankProblemId, def: 0, int: true },
+  problem: { ref: problemId, def: 0, int: true },
 }, { onExternalChange: () => load() });
 
 async function load() {
@@ -39,7 +41,7 @@ onMounted(() => { url.read(); load(); });
 const lastPage = computed(() => Math.max(1, Math.ceil((data.value?.total || 0) / pageSize)));
 function setStatus(s) { status.value = s; page.value = 1; load(); }
 function go(n) { page.value = Math.min(Math.max(1, n), lastPage.value); load(); }
-function clearProblem() { bankProblemId.value = null; problemId.value = null; page.value = 1; history.replaceState(null, '', location.pathname); load(); }
+function clearProblem() { bankProblemId.value = 0; problemId.value = 0; page.value = 1; load(); }
 
 const CATEGORY = {
   WrongInput: ['Input mismatch', 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'],

@@ -6,7 +6,8 @@ using Microsoft.EntityFrameworkCore;
 namespace BeeCoding.Services;
 
 /// <summary>
-/// In-app notifications for wall-post authors: someone reacted to or commented on their card.
+/// In-app notifications: someone reacted to or commented on a wall card (to its author), a problem was reported
+/// (to its owner / board staff), or a report was resolved or dismissed (to the reporter).
 /// Rows are persisted (so the navbar bell survives reloads and offline time) and also pushed
 /// live over SignalR. Reactions on the same post coalesce into one unread row; an author never
 /// gets notified about their own activity.
@@ -73,13 +74,61 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier)
 
     public async Task<int> UnreadCountAsync(int userId) => await UnreadQuery(userId).CountAsync();
 
-    /// <summary>Unread rows whose board and problem still exist (soft-deleted ones are hidden).</summary>
-    public IQueryable<Notification> UnreadQuery(int userId) =>
-        from n in _db.Notifications
-        where n.UserId == userId && n.ReadAt == null
-        join b in _db.Boards on n.BoardId equals b.Id
-        join p in _db.Problems on n.ProblemId equals p.Id
-        select n;
+    /// <summary>Rows that still make sense to show: report notifications always, wall ones while their board and
+    /// problem still exist (soft-deleted ones are hidden).</summary>
+    public IQueryable<Notification> VisibleQuery(int userId) =>
+        _db.Notifications.Where(n => n.UserId == userId
+            && (n.ReportId != null || (_db.Boards.Any(b => b.Id == n.BoardId) && _db.Problems.Any(p => p.Id == n.ProblemId))));
+
+    public IQueryable<Notification> UnreadQuery(int userId) => VisibleQuery(userId).Where(n => n.ReadAt == null);
+
+    /// <summary>The newest notifications for the bell, wall and report kinds together.</summary>
+    public async Task<List<NotificationDto>> ListAsync(int userId, int take)
+    {
+        var rows = await VisibleQuery(userId).OrderByDescending(n => n.CreatedAt).Take(take).ToListAsync();
+        var boardIds = rows.Where(n => n.ReportId == null).Select(n => n.BoardId).Distinct().ToList();
+        var problemIds = rows.Where(n => n.ReportId == null).Select(n => n.ProblemId).Distinct().ToList();
+        var boards = await _db.Boards.Where(b => boardIds.Contains(b.Id)).Select(b => new { b.Id, b.Slug, b.Title }).ToDictionaryAsync(b => b.Id);
+        var problems = await _db.Problems.Where(p => problemIds.Contains(p.Id)).Select(p => new { p.Id, p.Title }).ToDictionaryAsync(p => p.Id);
+        return rows.Select(n => n.ReportId != null
+            ? ToDto(n, "", "", n.TargetTitle ?? "")
+            : ToDto(n, boards[n.BoardId].Slug, boards[n.BoardId].Title, problems[n.ProblemId].Title)).ToList();
+    }
+
+    // ---- problem reports ----------------------------------------------------
+
+    /// <summary>A new "this problem is wrong" report: tell the people who can act on it (never the reporter).</summary>
+    public async Task ReportFiledAsync(ProblemReport report, string reporterName, string problemTitle, string categoryLabel,
+        IEnumerable<int> recipientUserIds, string link)
+    {
+        foreach (var uid in recipientUserIds.Where(u => u != report.UserId).Distinct())
+        {
+            var n = new Notification
+            {
+                UserId = uid, Kind = "report", ReportId = report.Id, ActorUserId = report.UserId, ActorName = Trim(reporterName, 120),
+                Emoji = "🚩", TargetTitle = Trim(problemTitle, 200), Link = link,
+                Snippet = Trim($"{categoryLabel}: {report.Message}", 200),
+            };
+            _db.Notifications.Add(n);
+            await _db.SaveChangesAsync();
+            await PushAsync(n);
+        }
+    }
+
+    /// <summary>The reviewer resolved or dismissed the report: tell the person who filed it.</summary>
+    public async Task ReportReviewedAsync(ProblemReport report, int reviewerId, string reviewerName, string problemTitle, string link)
+    {
+        if (reviewerId == report.UserId || report.Status == ReportStatus.Open) return;
+        var n = new Notification
+        {
+            UserId = report.UserId, Kind = "report-update", ReportId = report.Id, ActorUserId = reviewerId, ActorName = Trim(reviewerName, 120),
+            Emoji = report.Status == ReportStatus.Resolved ? "✅" : "✖️", TargetTitle = Trim(problemTitle, 200), Link = link,
+            Snippet = string.IsNullOrWhiteSpace(report.Note) ? null : Trim(report.Note, 200),
+        };
+        _db.Notifications.Add(n);
+        await _db.SaveChangesAsync();
+        await PushAsync(n);
+    }
 
     private Task<Notification?> UnreadReactionAsync(Post post) =>
         _db.Notifications.FirstOrDefaultAsync(x =>
@@ -101,6 +150,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier)
 
     private async Task<NotificationDto?> ToDtoAsync(Notification n)
     {
+        if (n.ReportId != null) return ToDto(n, "", "", n.TargetTitle ?? "");
         var ctx = await (from b in _db.Boards
                          join p in _db.Problems on n.ProblemId equals p.Id
                          where b.Id == n.BoardId
@@ -110,7 +160,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier)
 
     public static NotificationDto ToDto(Notification n, string boardSlug, string boardTitle, string problemTitle) =>
         new(n.Id, n.Kind, boardSlug, boardTitle, n.ProblemId, problemTitle, n.PostId, n.ActorName, n.ActorIsStaff,
-            n.Emoji, n.Snippet, n.Count, n.CreatedAt, n.ReadAt != null);
+            n.Emoji, n.Snippet, n.Count, n.CreatedAt, n.ReadAt != null, n.Link);
 
     private static string Trim(string s, int max) => s.Length > max ? s[..max] : s;
 }

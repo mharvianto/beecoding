@@ -133,7 +133,10 @@ breaks its constraints, wrong expected output, unclear text) — `ProblemFeedbac
 `ProblemFeedback.vue` on both Solve pages. `ProblemLike`/`ProblemReport` target either a bank problem
 (`BankProblemId`, practice) or a board problem (`ProblemId`), never both. Reports are reviewed on
 `/reports/problems` by the problem's owner (board staff for a board problem) and by platform admins
-(`Reviewable()` is the single place that scopes who sees what); the user menu carries the open count.
+(`Reviewable()` is the single place that scopes who sees what); the user menu carries the open count. The bell
+(`NotificationService`) rings the bank problem's owner / the board's staff on a new report (`report`) and the
+reporter when it is resolved or dismissed (`report-update`); those rows have no board/post (`ReportId` set,
+`Link` says where they lead).
 
 ### Soft delete via EF global query filters
 

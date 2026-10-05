@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useNotifications, notificationText } from '../stores/notifications';
+import { useNotifications, notificationText, notificationTarget } from '../stores/notifications';
 
 const notif = useNotifications();
 const router = useRouter();
@@ -26,7 +26,7 @@ async function go(n) {
   open.value = false;
   notif.markRead(n);
   notif.dismissToast(n.id);
-  router.push({ path: `/boards/${n.boardSlug}`, query: { problem: String(n.problemId), post: String(n.postId) } });
+  router.push(notificationTarget(n));
 }
 </script>
 
@@ -56,11 +56,11 @@ async function go(n) {
             <span class="mt-1.5 w-2 h-2 rounded-full shrink-0" :class="n.read ? 'bg-transparent' : 'bg-amber-500'"></span>
             <span class="min-w-0">
               <span class="block text-sm text-slate-700 dark:text-slate-200 break-words">{{ notificationText(n) }}</span>
-              <span class="block text-[11px] text-slate-400 dark:text-slate-500 truncate">{{ n.problemTitle }} · {{ n.boardTitle }} · {{ ago(n.createdAt) }}</span>
+              <span class="block text-[11px] text-slate-400 dark:text-slate-500 truncate">{{ n.problemTitle }}<template v-if="n.boardTitle"> · {{ n.boardTitle }}</template> · {{ ago(n.createdAt) }}</span>
             </span>
           </button>
           <p v-if="!notif.items.length" class="px-3 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
-            Nothing yet — reactions and comments on your cards show up here.
+            Nothing yet — reactions and comments on your cards, and updates on problem reports, show up here.
           </p>
         </div>
       </div>

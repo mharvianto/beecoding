@@ -1,6 +1,6 @@
 <script setup>
 import { useRouter } from 'vue-router';
-import { useNotifications, notificationText } from '../stores/notifications';
+import { useNotifications, notificationText, notificationTarget } from '../stores/notifications';
 
 const notif = useNotifications();
 const router = useRouter();
@@ -8,7 +8,7 @@ const router = useRouter();
 function go(n) {
   notif.dismissToast(n.id);
   notif.markRead(n);
-  router.push({ path: `/boards/${n.boardSlug}`, query: { problem: String(n.problemId), post: String(n.postId) } });
+  router.push(notificationTarget(n));
 }
 </script>
 
@@ -21,7 +21,7 @@ function go(n) {
         <span class="shrink-0">{{ n.kind === 'comment' ? '💬' : (n.emoji || '🔔') }}</span>
         <span class="min-w-0">
           <span class="block break-words">{{ notificationText(n) }}</span>
-          <span class="block text-[11px] text-slate-300 truncate">{{ n.problemTitle }} · {{ n.boardTitle }}</span>
+          <span class="block text-[11px] text-slate-300 truncate">{{ n.problemTitle }}<template v-if="n.boardTitle"> · {{ n.boardTitle }}</template></span>
         </span>
         <span @click.stop="notif.dismissToast(n.id)" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss">✕</span>
       </button>
