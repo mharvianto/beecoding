@@ -76,7 +76,9 @@ async function logout() {
 // expose it as --app-h; the root uses it as its height (see style.css).
 function syncViewportHeight() {
   const vv = window.visualViewport;
-  const h = vv ? vv.height : window.innerHeight;
+  // vv.height shrinks under pinch-zoom (innerHeight / scale); scaling it back keeps the app at
+  // full height there, while a keyboard (scale stays 1) still shrinks it.
+  const h = vv ? vv.height * vv.scale : window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
 }
 onMounted(() => {
