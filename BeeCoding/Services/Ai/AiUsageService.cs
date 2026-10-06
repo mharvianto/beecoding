@@ -9,7 +9,7 @@ public record AiUsageDto(
     AiUsageBucketDto Today, AiUsageBucketDto Month, AiUsageBucketDto AllTime,
     int DailyQuota, bool Blocked, string? BlockedReason);
 
-/// <summary>Per-user, per-day rollup of AI token consumption.</summary>
+/// <summary>Per-user, per-day rollup of AI token consumption. "Day" is the user's own calendar day, so the daily quota resets at their midnight.</summary>
 public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime, AiProviderRuntime provider)
 {
     private readonly AppDbContext _db = db;
@@ -39,7 +39,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime, AiProvid
         if (blocked) return (false, reason);
         if (quota <= 0) return (false, "Your AI access has been disabled by an admin.");
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = await UserClock.LocalTodayAsync(_db, userId, ct);
         var used = await _db.AiUsages.Where(x => x.UserId == userId && x.Day == today)
             .Select(x => x.Calls).FirstOrDefaultAsync(ct);
         return used >= quota
@@ -49,7 +49,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime, AiProvid
 
     public async Task RecordAsync(int userId, int promptTokens, int completionTokens, CancellationToken ct = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = await UserClock.LocalTodayAsync(_db, userId, ct);
         var row = await _db.AiUsages.FirstOrDefaultAsync(x => x.UserId == userId && x.Day == today, ct);
         if (row is null)
         {
@@ -74,7 +74,7 @@ public class AiUsageService(AppDbContext db, AiRuntimeSettings runtime, AiProvid
 
     public async Task<AiUsageDto> SummaryAsync(int userId, string role, int? organizationId, CancellationToken ct = default)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = await UserClock.LocalTodayAsync(_db, userId, ct);
         var monthStart = new DateOnly(today.Year, today.Month, 1);
         var rows = await _db.AiUsages.Where(x => x.UserId == userId).ToListAsync(ct);
 

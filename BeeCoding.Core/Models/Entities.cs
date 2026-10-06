@@ -62,6 +62,11 @@ public class User
     /// "Don't ask again" = far future). Kept on the server so it follows the user across devices.</summary>
     public DateTime? MfaOfferHiddenUntil { get; set; }
 
+    /// <summary>The browser's last reported offset from UTC, in minutes (WIB = 420). Sent on every request as
+    /// <c>X-UTC-Offset</c> (see <c>UtcOffsetMiddleware</c>). Lets the server work out the user's local calendar day
+    /// where no request is at hand, e.g. the AI daily quota (<see cref="AiUsage.Day"/>).</summary>
+    public int UtcOffsetMinutes { get; set; }
+
     /// <summary>When the user turned on "email me a code" as a second factor. Null = off.</summary>
     public DateTime? EmailMfaEnabledAt { get; set; }
 
@@ -790,7 +795,8 @@ public class AiUsage
     public int UserId { get; set; }
     public User? User { get; set; }
 
-    /// <summary>UTC calendar day.</summary>
+    /// <summary>The user's local calendar day (UTC plus <see cref="User.UtcOffsetMinutes"/>). Rows from before
+    /// that offset was tracked are UTC days.</summary>
     public DateOnly Day { get; set; }
 
     public int Calls { get; set; }

@@ -4,7 +4,8 @@ async function request(method, url, body) {
   const opts = {
     method,
     credentials: 'include',
-    headers: {},
+    // The server derives the user's local calendar day from this (AI daily quota), see UtcOffsetMiddleware.
+    headers: { 'X-UTC-Offset': String(-new Date().getTimezoneOffset()) },
   };
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';

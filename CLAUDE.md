@@ -167,6 +167,8 @@ for later "solved today" aggregation (`ProgressService.CountSolvedOnLocalDayAsyn
 practice combined) — always pass the browser's local date, not `toISOString()` (UTC), when
 calling anything that takes a `localDay` param (see `lib/localDay.js`).
 
+The AI daily quota and `AiUsage.Day` use the user's local calendar day too, but server-side code often has no request at hand (background AI jobs), so the browser's UTC offset rides on every request as `X-UTC-Offset` (`lib/api.js`), `UtcOffsetMiddleware` stores it in `User.UtcOffsetMinutes`, and `UserClock.LocalTodayAsync` turns it into a day. Rows from before that are UTC days.
+
 ### Frontend conventions
 
 - Charts with an hourly/daily/weekly granularity toggle persist the choice in

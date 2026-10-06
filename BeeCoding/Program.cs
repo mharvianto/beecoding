@@ -461,6 +461,7 @@ app.UseWebSockets();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<UtcOffsetMiddleware>();
 app.UseMiddleware<EmailVerificationGate>();   // no-op unless Auth:RequireVerifiedEmail
 app.UseMiddleware<MfaRequirementGate>();      // no-op unless an Admin > Users > 2-step policy toggle is on
 
