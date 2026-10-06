@@ -261,11 +261,12 @@ onMounted(() => {
           <span v-if="p.tags" class="md:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">{{ p.tags }}</span>
           <span class="sm:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">
             {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
+            <span v-if="p.likes" :class="p.liked ? 'text-rose-500' : ''"> · ♥ {{ p.likes }}</span>
           </span>
         </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
         <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ p.tags }}</span>
-        <span class="hidden sm:block text-[11px] text-slate-400 dark:text-slate-500 w-24 text-right tabular-nums"
+        <span class="hidden sm:block text-[11px] text-slate-400 dark:text-slate-500 w-36 whitespace-nowrap text-right tabular-nums"
               :title="`${p.submissionCount} submission(s) across every user`">
           {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
         </span>
