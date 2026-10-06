@@ -179,8 +179,10 @@ public record AdminIngestResultDto(
 
 // ---- Admin panel (cookie-authed, Admin:Emails) ----
 public record AdminUserRow(int Id, string Email, string DisplayName, string Role, bool IsAdmin,
-    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions, bool EmailVerified = true, bool MfaEnabled = false);
-public record AdminUserPageDto(List<AdminUserRow> Rows, int Total, int Page, int PageSize);
+    int Xp, DateTime CreatedAt, int OwnedBoards, int Submissions, bool EmailVerified = true, bool MfaEnabled = false, bool HasPasskey = false);
+/// <summary>Sign-in security headcount across every active user (not just the current page).</summary>
+public record AdminUserSecurityStats(int Users, int EmailVerified, int Mfa, int Passkey);
+public record AdminUserPageDto(List<AdminUserRow> Rows, int Total, int Page, int PageSize, AdminUserSecurityStats? Stats = null);
 
 public record AdminAiUsageBucket(int Calls, long PromptTokens, long CompletionTokens, long TotalTokens);
 public record AdminAiUsageRow(int UserId, string Email, string DisplayName,

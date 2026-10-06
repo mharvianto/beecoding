@@ -39,6 +39,14 @@ const aiPageSize = ref(25);
 const aiTotal = ref(0);
 const users = ref(null);
 const userQ = ref('');
+const userFilter = ref('');
+const userStats = ref(null);
+// Sign-in security headcount chips above the users table: each one filters the list to who is (or isn't) covered.
+const SECURITY_CHIPS = [
+  { key: 'verified', label: 'Email verified', stat: 'emailVerified', miss: 'unverified', missLabel: 'unverified' },
+  { key: 'mfa', label: '2FA on', stat: 'mfa', miss: 'no-mfa', missLabel: 'without' },
+  { key: 'passkey', label: 'Passkey', stat: 'passkey' },
+];
 const usersPage = ref(1);
 const usersPageSize = ref(25);
 const usersTotal = ref(0);
@@ -281,13 +289,16 @@ async function loadUsers() {
   try {
     const p = new URLSearchParams({ page: String(usersPage.value), pageSize: String(usersPageSize.value) });
     if (userQ.value.trim()) p.set('q', userQ.value.trim());
+    if (userFilter.value) p.set('filter', userFilter.value);
     const result = await api.get(`/api/admin-ui/users?${p}`);
     users.value = result.rows;
+    userStats.value = result.stats;
     usersTotal.value = result.total;
     const last = lastPage(result.total, usersPageSize.value);
     if (usersPage.value > last) { usersPage.value = last; await loadUsers(); }
   } catch (e) { err.value = e.message; }
 }
+function setUserFilter(f) { userFilter.value = userFilter.value === f ? '' : f; usersPage.value = 1; loadUsers(); }
 function searchUsers() { usersPage.value = 1; loadUsers(); }
 function usersPrevPage() { if (usersPage.value > 1) { usersPage.value--; loadUsers(); } }
 function usersNextPage() { if (usersPage.value * usersPageSize.value < usersTotal.value) { usersPage.value++; loadUsers(); } }
@@ -790,7 +801,7 @@ async function importProblems(ev) {
 const url = useUrlQuery(() => {
   switch (tab.value) {
     case 'ai': return { page: { ref: aiPage, def: 1, int: true } };
-    case 'users': return { q: { ref: userQ, def: '' }, page: { ref: usersPage, def: 1, int: true } };
+    case 'users': return { q: { ref: userQ, def: '' }, filter: { ref: userFilter, def: '' }, page: { ref: usersPage, def: 1, int: true } };
     case 'submissions': return {
       q: { ref: submissionQ, def: '' },
       source: { ref: submissionSource, def: '' },
@@ -1187,6 +1198,20 @@ onMounted(async () => {
           </label>
         </div>
       </div>
+      <div v-if="userStats" class="flex flex-wrap gap-2 mb-3 text-xs">
+        <div v-for="c in SECURITY_CHIPS" :key="c.key" class="inline-flex items-center rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <button @click="setUserFilter(c.key)" :aria-pressed="userFilter === c.key"
+                  class="px-2.5 py-1 tabular-nums"
+                  :class="userFilter === c.key ? 'bg-emerald-500 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  :title="`Show only users with: ${c.label}`">
+            {{ c.label }} <b>{{ userStats[c.stat] }}</b><span class="text-slate-400" :class="{ 'text-white/80': userFilter === c.key }"> / {{ userStats.users }}</span>
+          </button>
+          <button v-if="c.miss" @click="setUserFilter(c.miss)" :aria-pressed="userFilter === c.miss"
+                  class="px-2 py-1 tabular-nums border-l border-slate-200 dark:border-slate-800"
+                  :class="userFilter === c.miss ? 'bg-amber-500 text-white' : 'text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  :title="`Show only users ${c.missLabel}`">{{ userStats.users - userStats[c.stat] }} {{ c.missLabel }}</button>
+        </div>
+      </div>
       <div class="flex gap-2 mb-3 flex-wrap items-center">
         <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
                class="flex-1 min-w-[10rem] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
@@ -1234,6 +1259,7 @@ onMounted(async () => {
             <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
             <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
             <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
+            <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in">🔑 passkey</span>
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
@@ -1271,6 +1297,7 @@ onMounted(async () => {
                 <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
                 <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
                 <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
+                <span v-if="u.hasPasskey" class="ml-1 inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in">🔑 passkey</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>

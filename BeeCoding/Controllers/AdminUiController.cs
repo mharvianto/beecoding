@@ -164,12 +164,28 @@ public class AdminUiController(
     // ---- users -------------------------------------------------------------
     [HttpGet("users")]
     public async Task<ActionResult<AdminUserPageDto>> Users(
-        [FromQuery] string? q, [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
+        [FromQuery] string? q, [FromQuery] string? filter, [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
-        var query = _db.Users.Where(u => u.DeletedAt == null);
+        var active = _db.Users.Where(u => u.DeletedAt == null);
+        var stats = new AdminUserSecurityStats(
+            await active.CountAsync(),
+            await active.CountAsync(u => u.EmailVerifiedAt != null),
+            await active.CountAsync(u => u.TotpEnabledAt != null || u.EmailMfaEnabledAt != null),
+            await active.CountAsync(u => _db.UserPasskeys.Any(k => k.UserId == u.Id)));
+
+        var query = active;
+        query = filter switch
+        {
+            "verified" => query.Where(u => u.EmailVerifiedAt != null),
+            "unverified" => query.Where(u => u.EmailVerifiedAt == null),
+            "mfa" => query.Where(u => u.TotpEnabledAt != null || u.EmailMfaEnabledAt != null),
+            "no-mfa" => query.Where(u => u.TotpEnabledAt == null && u.EmailMfaEnabledAt == null),
+            "passkey" => query.Where(u => _db.UserPasskeys.Any(k => k.UserId == u.Id)),
+            _ => query,
+        };
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
@@ -185,13 +201,15 @@ public class AdminUiController(
         var subsByUser = await _db.Submissions.Where(s => ids.Contains(s.UserId)).GroupBy(s => s.UserId)
             .Select(g => new { g.Key, C = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.C);
 
+        var passkeyUsers = (await _db.UserPasskeys.Where(k => ids.Contains(k.UserId)).Select(k => k.UserId).Distinct().ToListAsync()).ToHashSet();
+
         var rows = users.Select(u => new AdminUserRow(
             u.Id, u.Email, u.DisplayName, u.Role.ToString(), _admin.IsAdminEmail(u.Email),
             u.Xp, u.CreatedAt,
             ownedByUser.GetValueOrDefault(u.Id), subsByUser.GetValueOrDefault(u.Id), u.EmailVerifiedAt != null,
-            u.TotpEnabledAt != null || u.EmailMfaEnabledAt != null)).ToList();
+            u.TotpEnabledAt != null || u.EmailMfaEnabledAt != null, passkeyUsers.Contains(u.Id))).ToList();
 
-        return new AdminUserPageDto(rows, total, page, pageSize);
+        return new AdminUserPageDto(rows, total, page, pageSize, stats);
     }
 
     /// <summary>Soft-delete a user (blocks login immediately; an active session is signed
