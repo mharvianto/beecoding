@@ -1510,6 +1510,7 @@ public class AdminUiController(
     }
 
     [HttpPost("problems/import")]
+    [RequestSizeLimit(BodyLimits.AdminImportBytes)]   // a whole problem bank can be tens of MB
     public async Task<ActionResult<AdminImportResult>> Import(AdminProblemBundle bundle, [FromQuery] bool replaceExisting = true)
     {
         int created = 0, updated = 0, skipped = 0;

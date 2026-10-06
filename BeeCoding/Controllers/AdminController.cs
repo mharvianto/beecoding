@@ -87,6 +87,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
 
     /// <summary>Create or update a batch of bank problems.</summary>
     [HttpPost("bank-problems")]
+    [RequestSizeLimit(BodyLimits.AdminImportBytes)]   // a whole problem bank can be tens of MB
     public async Task<ActionResult<AdminIngestResultDto>> Ingest(AdminIngestDto dto)
     {
         if (Gate() is { } fail) return fail;

@@ -466,6 +466,7 @@ Buka `https://<domain-atau-IP>/`. Uji API: `curl -k https://<host>/api/auth/me` 
 | SignalR putus-nyambung / "WebSocket closed" | Pastikan blok `map $http_upgrade` ada dan header `Upgrade`/`Connection` diteruskan. |
 | Login berhasil tapi langsung ter-logout | app harus di belakang HTTPS **dan** menerima `X-Forwarded-Proto` (sudah default). Jangan campur akses `http://` dan `https://`. |
 | 413 Request Entity Too Large saat submit | naikkan `client_max_body_size`. |
+| 413 saat impor bank soal / `POST /api/admin/bank-problems` | file lebih besar dari `client_max_body_size` nginx. Pasang blok `location ~ ^/api/(admin|admin-ui)/` dengan `client_max_body_size 100m` (lihat *Impor bank soal besar*). Aplikasi sendiri menerima sampai 100 MB di dua endpoint itu. |
 | 502 Bad Gateway | `beecoding.service` mati / bukan di `127.0.0.1:8080`. Cek `systemctl status beecoding`. |
 | certbot: `cannot load certificate ".../beecoding.crt"` saat `nginx -t` | Config sudah punya blok `listen 443 ssl` menunjuk file yang belum ada. Mulai dari config **HTTP-only** (langkah 3), baru jalankan `certbot --nginx`. |
 | certbot: `Timeout during connect (likely firewall problem)` | DNS benar, tapi port 80 dari internet tidak sampai ke server (ISP blokir / NAT ganda / CGNAT). Buka port 80+443 di router, atau pakai **Opsi C (Cloudflare Tunnel)**, atau **Opsi B (self-signed)** untuk LAN. |
@@ -772,6 +773,33 @@ export Auth__RequireVerifiedEmail=true
 - Mode ketat otomatis **tidak aktif** bila `Email` belum dikonfigurasi, jadi server yang salah konfigurasi
   tidak mengunci semua orang.
 
+### Impor bank soal besar (sampai 100 MB)
+
+Satu berkas bank soal (soal + semua test case) bisa puluhan MB. Dua endpoint impor — `POST /api/admin/bank-problems`
+(skrip, header `X-Admin-Token`) dan `POST /api/admin-ui/problems/import` (Admin → Problems) — menerima body sampai
+**100 MB** (`BodyLimits.AdminImportBytes`); endpoint lain tetap dibatasi `Kestrel:MaxRequestBodyMb` (default 32 MB).
+Body yang lebih besar dijawab `413`. Nginx harus ikut dilonggarkan khusus untuk route itu, jangan global:
+
+```nginx
+location ~ ^/api/(admin|admin-ui)/ {
+    client_max_body_size 100m;          # impor bank soal
+    proxy_read_timeout   300s;          # memproses puluhan MB butuh waktu
+    proxy_request_buffering off;        # teruskan streaming, jangan tampung di disk nginx
+    proxy_pass http://beecoding;
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+Output program peserta yang dibaca judge dibatasi `Judge:MaxOutputBytes` (default **4 MB** per run; lebih dari itu dipotong
+dan dibaca sebagai Wrong Answer), cukup untuk soal yang mencetak ratusan ribu bilangan.
+
+Server membaca dan mengurai seluruh JSON di memori, jadi berkas 80 MB memakai beberapa ratus MB RAM sesaat; impor
+sebaiknya dilakukan di luar jam sibuk. Mengimpor ulang berkas yang sama aman (upsert per *(owner, judul)*).
+
 ### Verifikasi dua langkah (MFA) dan passkey
 
 Dua fitur terpisah di **Account**:
@@ -882,7 +910,7 @@ paling bawah** sekarang — bisa di-override tanpa restart lewat tab **AI** di `
 - Ikat Kestrel ke localhost: `Environment=ASPNETCORE_URLS=http://127.0.0.1:8080` (nginx yang menghadap publik).
 - `Auth__TeacherSignupCode` diisi (atau biarkan kosong → tak ada guru baru dari form). Peran Teacher = bisa menulis soal → jangan biarkan siapa pun mengambilnya.
 - `Admin__Token` panjang & acak, hanya via `Environment=` di unit systemd — **jangan** taruh di `appsettings.json` yang ter-commit.
-- Di nginx, batasi body untuk route judge: `location /api/run { client_max_body_size 1m; proxy_pass http://beecoding; ... }` — biarkan `100m` hanya untuk `/api/admin/`.
+- Di nginx, batasi body untuk route judge: `location /api/run { client_max_body_size 1m; proxy_pass http://beecoding; ... }` — biarkan `100m` hanya untuk route impor admin (lihat *Impor bank soal besar* di bawah).
 - Header keamanan (CSP, `X-Frame-Options`, `X-Content-Type-Options`, HSTS saat HTTPS) sudah dikirim aplikasi otomatis.
 - Statement soal disanitasi (DOMPurify) sebelum dirender — aman dari HTML/script sisipan.
 - Login sudah di-throttle otomatis di level aplikasi (8 gagal / 15 menit per akun, 25 per IP → `429`) — `limit_req` nginx tambahan di sini sifatnya opsional, cuma menahan volume kasar sebelum sampai ke app.

@@ -22,8 +22,9 @@ public class JudgeOptions
     /// <summary>Extra wall-clock grace on top of a problem's time limit before the parent force-kills.</summary>
     public int HardWallBufferMs { get; set; } = 800;
 
-    /// <summary>Max stdout/stderr bytes captured per run (rest is truncated).</summary>
-    public int MaxOutputBytes { get; set; } = 256 * 1024;
+    /// <summary>Max stdout/stderr bytes captured per run (rest is truncated, so a longer correct answer reads as Wrong Answer).
+    /// 4 MB: large problems legitimately print a few hundred thousand numbers; a runaway print loop is still cut off.</summary>
+    public int MaxOutputBytes { get; set; } = 4 * 1024 * 1024;
 
     /// <summary>Ad-hoc "Run" defaults when no problem context is supplied.</summary>
     public int RunTimeLimitMs { get; set; } = 1000;
