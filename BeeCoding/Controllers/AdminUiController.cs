@@ -932,9 +932,8 @@ public class AdminUiController(
     [HttpPost("organizations")]
     public async Task<ActionResult<OrganizationDto>> CreateOrganization(AdminUpsertOrganizationDto dto)
     {
-        var name = (dto.Name ?? "").Trim();
-        var slug = (dto.Slug ?? "").Trim().ToLowerInvariant();
-        if (name.Length == 0 || slug.Length == 0) return BadRequest("Name and slug are required.");
+        var (name, slug, problem) = ParseOrganization(dto);
+        if (problem is not null) return BadRequest(problem);
         if (await _db.Organizations.AnyAsync(o => o.Slug == slug)) return Conflict("That slug is already used.");
 
         var org = new Organization { Name = name, Slug = slug };
@@ -942,6 +941,37 @@ public class AdminUiController(
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "create", "Organization", org.Id, org.Name);
         return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt);
+    }
+
+    /// <summary>Rename an organization and/or change its slug. The slug only appears in URLs (/org-admin/&lt;slug&gt;,
+    /// the leaderboard scope), nothing references it, so old links simply stop matching.</summary>
+    [HttpPut("organizations/{id:int}")]
+    public async Task<ActionResult<OrganizationDto>> UpdateOrganization(int id, AdminUpsertOrganizationDto dto)
+    {
+        var (name, slug, problem) = ParseOrganization(dto);
+        if (problem is not null) return BadRequest(problem);
+        var org = await _db.Organizations.FindAsync(id);
+        if (org is null) return NotFound();
+        if (await _db.Organizations.AnyAsync(o => o.Slug == slug && o.Id != id)) return Conflict("That slug is already used.");
+
+        var before = $"{org.Name} ({org.Slug})";
+        org.Name = name;
+        org.Slug = slug;
+        await _db.SaveChangesAsync();
+        if (before != $"{org.Name} ({org.Slug})")
+            await _audit.RecordAsync(UserId, ActorEmail, "update", "Organization", org.Id, $"{before} -> {org.Name} ({org.Slug})");
+        return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt);
+    }
+
+    private static (string Name, string Slug, string? Problem) ParseOrganization(AdminUpsertOrganizationDto dto)
+    {
+        var name = (dto.Name ?? "").Trim();
+        var slug = (dto.Slug ?? "").Trim().ToLowerInvariant();
+        if (name.Length == 0 || slug.Length == 0) return (name, slug, "Name and slug are required.");
+        if (name.Length > 160) return (name, slug, "Name is too long (160 characters max).");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(slug, "^[a-z0-9][a-z0-9-]{0,63}$"))
+            return (name, slug, "Slug can only use lowercase letters, digits and hyphens (64 characters max).");
+        return (name, slug, null);
     }
 
     [HttpDelete("organizations/{id:int}")]

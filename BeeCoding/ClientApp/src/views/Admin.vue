@@ -673,6 +673,18 @@ async function createOrganization() {
     await loadOrganizations();
   } catch (e) { err.value = e.message; }
 }
+const orgEdit = ref(null);   // { id, name, slug } while a row is being edited
+function startOrgEdit(o) { orgEdit.value = { id: o.id, name: o.name, slug: o.slug }; }
+async function saveOrgEdit() {
+  const e = orgEdit.value;
+  if (!e || !e.name.trim() || !e.slug.trim()) return;
+  err.value = '';
+  try {
+    await api.put(`/api/admin-ui/organizations/${e.id}`, { name: e.name, slug: e.slug });
+    orgEdit.value = null;
+    await loadOrganizations();
+  } catch (x) { err.value = x.message; }
+}
 async function deleteOrganization(o) {
   if (!(await confirmDialog.ask(`Delete organization "${o.name}"? Its boards/LTI platforms stay but become unaffiliated; members lose Org Admin access to it.`, { confirmLabel: 'Delete' }))) return;
   err.value = '';
@@ -1957,7 +1969,7 @@ onMounted(async () => {
       <p class="text-xs text-slate-400 dark:text-slate-500">
         Each organization gets its own boards, members, and AI quota — manage members/boards
         for one via <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
-        (this page only creates/removes the organization itself).
+        (this page only creates, renames and removes the organization itself).
       </p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)"
@@ -1970,11 +1982,28 @@ onMounted(async () => {
       <!-- mobile: cards -->
       <div v-if="tableView === 'card'" class="space-y-2">
         <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="flex items-start justify-between gap-2">
-            <div class="font-medium text-sm">{{ o.name }}</div>
-            <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger shrink-0">Delete</button>
-          </div>
-          <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
+          <template v-if="orgEdit?.id === o.id">
+            <div class="space-y-2">
+              <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="Name"
+                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+              <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug"
+                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+              <div class="flex gap-2">
+                <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">Save</button>
+                <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="flex items-start justify-between gap-2">
+              <div class="font-medium text-sm">{{ o.name }}</div>
+              <div class="flex gap-1 shrink-0">
+                <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent">Edit</button>
+                <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button>
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
+          </template>
         </div>
         <p v-if="organizations && !organizations.length" class="text-slate-400 dark:text-slate-500 text-sm">No organizations yet.</p>
       </div>
@@ -1990,10 +2019,26 @@ onMounted(async () => {
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
             <tr v-for="o in organizations" :key="o.id" class="border-b border-slate-100 dark:border-slate-800/60">
-              <td class="font-medium">{{ o.name }}</td>
-              <td class="text-[11px] text-slate-400">{{ o.slug }}</td>
-              <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
-              <td><button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button></td>
+              <template v-if="orgEdit?.id === o.id">
+                <td><input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
+                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
+                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                <td></td>
+                <td class="whitespace-nowrap">
+                  <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium mr-1">Save</button>
+                  <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
+                </td>
+              </template>
+              <template v-else>
+                <td class="font-medium">{{ o.name }}</td>
+                <td class="text-[11px] text-slate-400">{{ o.slug }}</td>
+                <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
+                <td class="whitespace-nowrap">
+                  <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
+                  <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button>
+                </td>
+              </template>
             </tr>
             <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No organizations yet.</td></tr>
           </tbody>
