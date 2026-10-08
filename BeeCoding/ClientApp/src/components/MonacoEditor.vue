@@ -95,6 +95,15 @@ function toggleLsp() {
 let lspClient = null;
 let lspDisposables = [];
 let changeTimer = null;
+let changePending = false;
+// Send the edit to clangd now instead of waiting out the debounce — requests that depend on the cursor position
+// (completion, hover, signature help) must see the same text the editor has.
+function flushChange() {
+  clearTimeout(changeTimer);
+  if (!changePending || !lspClient || !editor) return;
+  changePending = false;
+  lspClient.didChange(editor.getValue());
+}
 
 const COMPLETION_KIND = {           // LSP CompletionItemKind -> monaco
   1: 18, 2: 1, 3: 1, 4: 0, 5: 3, 6: 4, 7: 6, 8: 7, 9: 8, 10: 9, 11: 12, 12: 13,
@@ -107,12 +116,17 @@ const toLspPos = (p) => ({ line: p.lineNumber - 1, character: p.column - 1 });
 const toMonacoRange = (r) => new monaco.Range(r.start.line + 1, r.start.character + 1, r.end.line + 1, r.end.character + 1);
 const asText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map(asText).join('\n\n') : (c?.value ?? ''));
 
-function toMonacoCompletion(it, fallbackRange) {
+// clangd computes its textEdit range against ITS copy of the file. If that copy is a keystroke behind the editor
+// the range is off and accepting "angka" after typing "an" leaves "anangka". So the range is only trusted when it
+// is on the cursor line and ends at the cursor; otherwise the word under the cursor is replaced.
+function toMonacoCompletion(it, fallbackRange, position) {
   const edit = it.textEdit;
   let range = fallbackRange;
   const e = edit?.range || edit?.replace;
   if (e) {
-    range = new monaco.Range(e.start.line + 1, e.start.character + 1, e.end.line + 1, e.end.character + 1);
+    const r = new monaco.Range(e.start.line + 1, e.start.character + 1, e.end.line + 1, e.end.character + 1);
+    if (r.startLineNumber === position.lineNumber && r.endLineNumber === position.lineNumber
+        && r.endColumn === position.column && r.startColumn <= fallbackRange.startColumn) range = r;
   }
   return {
     label: (it.label || '').replace(/^\s+/, ''),   // clangd left-pads labels
@@ -144,8 +158,9 @@ async function initLsp() {
   }
 
   lspDisposables.push(editor.onDidChangeModelContent(() => {
+    changePending = true;
     clearTimeout(changeTimer);
-    changeTimer = setTimeout(() => lspClient?.didChange(editor.getValue()), 250);
+    changeTimer = setTimeout(flushChange, 250);
   }));
 
   const mine = () => lspClient && editor && editor.getModel();
@@ -154,17 +169,19 @@ async function initLsp() {
     triggerCharacters: ['.', '>', ':', '<', '"', '/', ' '],
     async provideCompletionItems(model, position, ctx) {
       if (!mine() || model !== editor.getModel()) return { suggestions: [] };
+      flushChange();
       const r = await lspClient.completion(toLspPos(position), ctx?.triggerCharacter);
       const items = r?.items ?? (Array.isArray(r) ? r : []);
       const w = model.getWordUntilPosition(position);
       const range = new monaco.Range(position.lineNumber, w.startColumn, position.lineNumber, w.endColumn);
-      return { suggestions: items.map((it) => toMonacoCompletion(it, range)), incomplete: !!r?.isIncomplete };
+      return { suggestions: items.map((it) => toMonacoCompletion(it, range, position)), incomplete: !!r?.isIncomplete };
     },
   }));
 
   lspDisposables.push(monaco.languages.registerHoverProvider(props.language, {
     async provideHover(model, position) {
       if (!mine() || model !== editor.getModel()) return null;
+      flushChange();
       const h = await lspClient.hover(toLspPos(position));
       if (!h?.contents) return null;
       return { contents: [{ value: asText(h.contents) }] };
@@ -176,6 +193,7 @@ async function initLsp() {
     signatureHelpRetriggerCharacters: [','],
     async provideSignatureHelp(model, position) {
       if (!mine() || model !== editor.getModel()) return null;
+      flushChange();
       const s = await lspClient.signatureHelp(toLspPos(position));
       if (!s?.signatures?.length) return null;
       return {
@@ -218,6 +236,7 @@ async function initLsp() {
 
 function disposeLsp() {
   clearTimeout(changeTimer);
+  changePending = false;
   lspDisposables.forEach((d) => { try { d.dispose(); } catch { /* ignore */ } });
   lspDisposables = [];
   try { if (editor?.getModel()) monaco.editor.setModelMarkers(editor.getModel(), 'clangd', []); } catch { /* ignore */ }
