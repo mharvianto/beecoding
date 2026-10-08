@@ -185,6 +185,7 @@ The AI daily quota and `AiUsage.Day` use the user's local calendar day too, but 
   idiom. Draft autosaves (`lib/draft.js`) self-expire (1 day after a solved problem, 1 week
   otherwise), pruned once per app load, not per save.
 - Display preferences that should follow the user across devices (site/editor theme, fonts, default language, table/board view, chart granularity, ...) are still read and written through plain `localStorage`, but the keys listed in `lib/prefs.js` (`SYNCED_KEYS`, mirrored by the allowlist in `PreferencesController`) are mirrored to `User.Preferences` — pulled before the app loads (`main.js` → `boot.js`), pushed debounced on write. To sync a new preference add its key to BOTH lists. Per-device state (drafts, celebration markers, last queries) deliberately stays local.
+- Custom code snippets (`lib/snippets.js`, edited at Account → Editor) are a synced preference (`beecoding.editor.snippets`, a JSON array) offered by one shared Monaco completion provider for `c`/`cpp`, independent of clangd.
 - Auth/session itself is an `HttpOnly` cookie, never `localStorage` — don't change that.
 
 ### Config surface (`appsettings.json`, all overridable via `Section__Key` env vars)

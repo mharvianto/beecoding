@@ -14,7 +14,7 @@ export const SYNCED_KEYS = [
   'beecoding.theme', 'beecoding.tableView', 'beecoding.boardView', 'beecoding.playground.focus',
   'beecoding.lang', 'beecoding.aiLang',
   'beecoding.editor.theme', 'beecoding.editor.fontFamily', 'beecoding.editor.fontSize',
-  'beecoding.editor.customTheme', 'beecoding.editor.customThemeName', 'beecoding.editor.cppFormatStyle', 'beecoding.editor.lsp',
+  'beecoding.editor.customTheme', 'beecoding.editor.customThemeName', 'beecoding.editor.cppFormatStyle', 'beecoding.editor.lsp', 'beecoding.editor.snippets',
   'beecoding.account.engagementGranularity',
   'beecoding.board.stats.engagementGranularity', 'beecoding.board.stats.aiGranularity',
   'beecoding.orgAdmin.engagementGranularity', 'beecoding.orgAdmin.aiGranularity',

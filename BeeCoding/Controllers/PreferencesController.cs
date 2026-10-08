@@ -20,14 +20,15 @@ public class PreferencesController(AppDbContext db) : ApiControllerBase
 {
     private const int MaxValueChars = 400;
     private const int MaxThemeChars = 150_000;
-    private const int MaxTotalChars = 300_000;
+    private const int MaxSnippetChars = 130_000;
+    private const int MaxTotalChars = 450_000;
 
     private static readonly HashSet<string> Keys = new()
     {
         "beecoding.theme", "beecoding.tableView", "beecoding.boardView", "beecoding.playground.focus",
         "beecoding.lang", "beecoding.aiLang",
         "beecoding.editor.theme", "beecoding.editor.fontFamily", "beecoding.editor.fontSize",
-        "beecoding.editor.customTheme", "beecoding.editor.customThemeName", "beecoding.editor.cppFormatStyle", "beecoding.editor.lsp",
+        "beecoding.editor.customTheme", "beecoding.editor.customThemeName", "beecoding.editor.cppFormatStyle", "beecoding.editor.lsp", "beecoding.editor.snippets",
         "beecoding.account.engagementGranularity",
         "beecoding.board.stats.engagementGranularity", "beecoding.board.stats.aiGranularity",
         "beecoding.orgAdmin.engagementGranularity", "beecoding.orgAdmin.aiGranularity",
@@ -59,7 +60,7 @@ public class PreferencesController(AppDbContext db) : ApiControllerBase
         {
             if (!Keys.Contains(key)) continue;
             if (value is null) { values.Remove(key); continue; }
-            if (value.Length > (key == "beecoding.editor.customTheme" ? MaxThemeChars : MaxValueChars))
+            if (value.Length > (key == "beecoding.editor.customTheme" ? MaxThemeChars : key == "beecoding.editor.snippets" ? MaxSnippetChars : MaxValueChars))
                 return BadRequest($"The value for {key} is too large.");
             values[key] = value;
         }

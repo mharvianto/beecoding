@@ -4,6 +4,7 @@ import * as monaco from 'monaco-editor';
 import { theme as appTheme } from '../lib/theme';
 import { editorFontSize, setEditorFontSize, DEFAULT_FONT } from '../lib/editorFont';
 import { CppLsp } from '../lib/cpplsp';
+import { ensureSnippetProvider } from '../lib/snippets';
 import { withBase } from '../lib/base';
 import {
   editorThemePref, editorFontFamily, setEditorTheme, setEditorFontFamily,
@@ -246,6 +247,7 @@ function disposeLsp() {
 
 // ---- editor lifecycle -------------------------------------------------------
 onMounted(() => {
+  ensureSnippetProvider();
   editor = monaco.editor.create(el.value, {
     value: props.modelValue,
     language: props.language,
