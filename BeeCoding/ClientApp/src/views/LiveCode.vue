@@ -9,7 +9,7 @@ import SplitPane from '../components/SplitPane.vue';
 import StdinFileButton from '../components/StdinFileButton.vue';
 import InputFileName from '../components/InputFileName.vue';
 import AiHint from '../components/AiHint.vue';
-import { CODE_TEMPLATES } from '../lib/templates';
+import { CODE_TEMPLATES, isPristine } from '../lib/templates';
 import { editorFontSize } from '../lib/editorFont';
 import { playgroundFocus } from '../lib/playgroundFocus';
 
@@ -29,6 +29,7 @@ const storeKey = computed(() =>
   !board.value ? '' : `beecoding.livecode.${isStaff.value ? '' : 'student.'}${board.value.id}`);
 const stdinKey = computed(() => (storeKey.value ? storeKey.value + '.stdin' : ''));
 const fileKey = computed(() => (storeKey.value ? storeKey.value + '.inputFile' : ''));
+const langKey = computed(() => (storeKey.value ? storeKey.value + '.lang' : ''));
 const code = ref(CODE_TEMPLATES.cpp);
 const liveLang = ref('cpp');
 
@@ -109,7 +110,10 @@ function pushNow() {
 
 function setLang(l) {
   if (l === liveLang.value) return;
+  // swap the boilerplate only if nothing of one's own has been written yet (same as the Solve pages)
+  if (isPristine(code.value)) code.value = CODE_TEMPLATES[l] || '';
   liveLang.value = l;
+  try { localStorage.setItem('beecoding.lang', l); } catch { /* ignore */ }   // the account-wide default language
 }
 function resetTemplate() {
   code.value = CODE_TEMPLATES[liveLang.value] || '';
@@ -154,7 +158,10 @@ watch(code, () => {
     try { if (storeKey.value) localStorage.setItem(storeKey.value, code.value); } catch { /* ignore */ }
   }, 400);
 });
-watch(liveLang, pushSoon);
+watch(liveLang, () => {
+  pushSoon();
+  try { if (langKey.value) localStorage.setItem(langKey.value, liveLang.value); } catch { /* ignore */ }
+});
 watch(stdin, () => {
   if (isStaff.value) pushSoon();
   try { if (stdinKey.value) localStorage.setItem(stdinKey.value, stdin.value); } catch { /* ignore */ }
@@ -174,9 +181,16 @@ onMounted(async () => {
   try { board.value = await api.get(`/api/boards/${props.slug}`); }
   catch (e) { error.value = e.message; return; }
 
+  // Language: what this board's live editor last used, else the account's default language (Solve/Practice keep it
+  // in beecoding.lang, synced across devices), else C++.
+  try {
+    const isLang = (l) => (l === 'c' || l === 'cpp' ? l : null);
+    liveLang.value = isLang(localStorage.getItem(langKey.value)) || isLang(localStorage.getItem('beecoding.lang')) || 'cpp';
+    code.value = CODE_TEMPLATES[liveLang.value] || code.value;
+  } catch { /* ignore */ }
   try {
     const saved = localStorage.getItem(storeKey.value);
-    if (saved && saved.trim()) code.value = saved;
+    if (saved && saved.trim() && !isPristine(saved)) code.value = saved;   // an untouched template follows the language
   } catch { /* ignore */ }
   try {
     const s = localStorage.getItem(stdinKey.value);
