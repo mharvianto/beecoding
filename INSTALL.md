@@ -794,6 +794,23 @@ location ~ ^/api/(admin|admin-ui)/ {
 }
 ```
 
+Kalau aplikasi jalan di subpath (§4C, mis. `/beecoding`), awali regex dengan prefix itu: path yang dilihat nginx
+adalah `/beecoding/api/admin-ui/...`, jadi blok di atas tidak akan cocok.
+
+```nginx
+location ~ ^/beecoding/api/(admin|admin-ui)/ {
+    client_max_body_size 100m;
+    proxy_read_timeout   300s;
+    proxy_request_buffering off;
+    proxy_pass http://beecoding;        # tanpa trailing slash, path diteruskan utuh
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
 Output program peserta yang dibaca judge dibatasi `Judge:MaxOutputBytes` (default **4 MB** per run; lebih dari itu dipotong
 dan dibaca sebagai Wrong Answer), cukup untuk soal yang mencetak ratusan ribu bilangan.
 
