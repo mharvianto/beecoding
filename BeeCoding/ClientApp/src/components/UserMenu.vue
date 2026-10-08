@@ -46,6 +46,14 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
           🚩 Problem reports
           <span v-if="reports.open > 0" class="ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 tabular-nums">{{ reports.open }}</span>
         </RouterLink>
+        <RouterLink v-if="auth.user.hasOrgAdmin" to="/org-admin" @click="open = false"
+                    class="block px-3 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+          🏢 Organization
+        </RouterLink>
+        <RouterLink v-if="auth.user.isAdmin" to="/admin" @click="open = false"
+                    class="block px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+          🛡️ Admin
+        </RouterLink>
         <div class="px-3 py-2">
           <div class="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Theme</div>
           <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">

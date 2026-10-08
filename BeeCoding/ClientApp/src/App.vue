@@ -130,8 +130,6 @@ onBeforeUnmount(() => {
           <RouterLink to="/playground" @click="mobileNavOpen = false">Playground</RouterLink>
           <RouterLink to="/leaderboard" @click="mobileNavOpen = false">Leaderboard</RouterLink>
           <RouterLink v-if="auth.isTeacher" to="/bank" @click="mobileNavOpen = false">Problem bank</RouterLink>
-          <RouterLink v-if="auth.user?.hasOrgAdmin" to="/org-admin" class="text-violet-600 dark:text-violet-400" @click="mobileNavOpen = false">Organization</RouterLink>
-          <RouterLink v-if="auth.user?.isAdmin" to="/admin" class="text-rose-600 dark:text-rose-400" @click="mobileNavOpen = false">Admin</RouterLink>
         </nav>
 
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
