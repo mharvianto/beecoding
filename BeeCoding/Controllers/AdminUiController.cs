@@ -164,7 +164,8 @@ public class AdminUiController(
     // ---- users -------------------------------------------------------------
     [HttpGet("users")]
     public async Task<ActionResult<AdminUserPageDto>> Users(
-        [FromQuery] string? q, [FromQuery] string? filter, [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
+        [FromQuery] string? q, [FromQuery] string? filter, [FromQuery] string? sort, [FromQuery] string? dir,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
@@ -193,7 +194,21 @@ public class AdminUiController(
         }
 
         var total = await query.CountAsync();
-        var users = await query.OrderBy(u => u.Id).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+        // Whitelisted sort columns (the table headers); Id is always the tiebreaker so pages stay stable.
+        bool desc = string.Equals(dir, "desc", StringComparison.OrdinalIgnoreCase);
+        IOrderedQueryable<User> Order<TKey>(System.Linq.Expressions.Expression<Func<User, TKey>> key) =>
+            desc ? query.OrderByDescending(key).ThenBy(u => u.Id) : query.OrderBy(key).ThenBy(u => u.Id);
+        var ordered = sort switch
+        {
+            "name" => Order(u => u.DisplayName.ToLower()),
+            "role" => Order(u => u.Role),
+            "xp" => Order(u => u.Xp),
+            "boards" => Order(u => _db.Boards.Count(b => b.OwnerId == u.Id)),
+            "subs" => Order(u => _db.Submissions.Count(s => s.UserId == u.Id)),
+            "joined" => Order(u => u.CreatedAt),
+            _ => Order(u => u.Id),
+        };
+        var users = await ordered.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
         var ids = users.Select(u => u.Id).ToList();
         var ownedByUser = await _db.Boards.Where(b => ids.Contains(b.OwnerId)).GroupBy(b => b.OwnerId)
@@ -1143,12 +1158,28 @@ public class AdminUiController(
 
     // ---- AI usage --------------------------------------------------------------
     [HttpGet("ai-usage")]
-    public async Task<ActionResult<AdminAiUsagePageDto>> AiUsage([FromQuery] int page = 1, [FromQuery] int pageSize = 25)
+    public async Task<ActionResult<AdminAiUsagePageDto>> AiUsage(
+        [FromQuery] string? sort, [FromQuery] string? dir, [FromQuery] int page = 1, [FromQuery] int pageSize = 25)
     {
         page = Math.Max(1, page);
         pageSize = Math.Clamp(pageSize, 1, 200);
 
         var all = await AiUsageAllRowsAsync();
+        // Whitelisted columns; default (and tiebreaker) is all-time tokens, highest first. Token and call columns
+        // sort by tokens, calls break the tie.
+        bool desc = !string.Equals(dir, "asc", StringComparison.OrdinalIgnoreCase);
+        Func<AdminAiUsageRow, AdminAiUsageBucket> bucket = sort switch
+        {
+            "today" => r => r.Today,
+            "month" => r => r.Month,
+            _ => r => r.AllTime,
+        };
+        if (sort == "user")
+            all = (desc ? all.OrderByDescending(r => r.DisplayName, StringComparer.OrdinalIgnoreCase) : all.OrderBy(r => r.DisplayName, StringComparer.OrdinalIgnoreCase))
+                .ThenBy(r => r.UserId).ToList();
+        else
+            all = (desc ? all.OrderByDescending(r => bucket(r).TotalTokens).ThenByDescending(r => bucket(r).Calls) : all.OrderBy(r => bucket(r).TotalTokens).ThenBy(r => bucket(r).Calls))
+                .ThenBy(r => r.UserId).ToList();
         var pageRows = all.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         return new AdminAiUsagePageDto(pageRows, all.Count, page, pageSize);
     }

@@ -7,6 +7,7 @@ import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import AdminUserActions from '../components/AdminUserActions.vue';
+import SortTh from '../components/SortTh.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
@@ -40,6 +41,19 @@ const aiTotal = ref(0);
 const users = ref(null);
 const userQ = ref('');
 const userFilter = ref('');
+const usersSort = ref('');      // '' = by id
+const usersDir = ref('asc');
+const aiSort = ref('');         // '' = all-time tokens, highest first
+const aiDir = ref('desc');
+// Clicking a column sorts by it (text A→Z, numbers high→low first); clicking the active column flips the direction.
+const TEXT_COLUMNS = new Set(['name', 'role', 'user']);
+const firstDir = (field, idFirst) => (TEXT_COLUMNS.has(field) || (field === '' && idFirst) ? 'asc' : 'desc');
+function nextSort(sortRef, dirRef, field, idFirst) {
+  if (sortRef.value === field) dirRef.value = dirRef.value === 'asc' ? 'desc' : 'asc';
+  else { sortRef.value = field; dirRef.value = firstDir(field, idFirst); }
+}
+const USER_SORTS = [['', '#'], ['name', 'Name'], ['role', 'Role'], ['xp', 'XP'], ['boards', 'Boards'], ['subs', 'Subs'], ['joined', 'Joined']];
+const AI_SORTS = [['', 'All time'], ['user', 'User'], ['today', 'Today'], ['month', 'This month']];
 const userStats = ref(null);
 // Sign-in security headcount chips above the users table: each one filters the list to who is (or isn't) covered.
 const SECURITY_CHIPS = [
@@ -273,6 +287,8 @@ async function loadAi() {
   url.write();
   try {
     const p = new URLSearchParams({ page: String(aiPage.value), pageSize: String(aiPageSize.value) });
+    if (aiSort.value) p.set('sort', aiSort.value);
+    p.set('dir', aiDir.value);
     const result = await api.get(`/api/admin-ui/ai-usage?${p}`);
     aiRows.value = result.rows;
     aiTotal.value = result.total;
@@ -290,6 +306,8 @@ async function loadUsers() {
     const p = new URLSearchParams({ page: String(usersPage.value), pageSize: String(usersPageSize.value) });
     if (userQ.value.trim()) p.set('q', userQ.value.trim());
     if (userFilter.value) p.set('filter', userFilter.value);
+    if (usersSort.value) p.set('sort', usersSort.value);
+    p.set('dir', usersDir.value);
     const result = await api.get(`/api/admin-ui/users?${p}`);
     users.value = result.rows;
     userStats.value = result.stats;
@@ -298,6 +316,8 @@ async function loadUsers() {
     if (usersPage.value > last) { usersPage.value = last; await loadUsers(); }
   } catch (e) { err.value = e.message; }
 }
+function sortUsers(field) { nextSort(usersSort, usersDir, field, true); usersPage.value = 1; loadUsers(); }
+function sortAi(field) { nextSort(aiSort, aiDir, field, false); aiPage.value = 1; loadAi(); }
 function setUserFilter(f) { userFilter.value = userFilter.value === f ? '' : f; usersPage.value = 1; loadUsers(); }
 function searchUsers() { usersPage.value = 1; loadUsers(); }
 function usersPrevPage() { if (usersPage.value > 1) { usersPage.value--; loadUsers(); } }
@@ -812,8 +832,8 @@ async function importProblems(ev) {
 // so a tab switch and the load that follows it can't race on the not-yet-updated route.
 const url = useUrlQuery(() => {
   switch (tab.value) {
-    case 'ai': return { page: { ref: aiPage, def: 1, int: true } };
-    case 'users': return { q: { ref: userQ, def: '' }, filter: { ref: userFilter, def: '' }, page: { ref: usersPage, def: 1, int: true } };
+    case 'ai': return { sort: { ref: aiSort, def: '' }, dir: { ref: aiDir, def: 'desc' }, page: { ref: aiPage, def: 1, int: true } };
+    case 'users': return { q: { ref: userQ, def: '' }, filter: { ref: userFilter, def: '' }, sort: { ref: usersSort, def: '' }, dir: { ref: usersDir, def: 'asc' }, page: { ref: usersPage, def: 1, int: true } };
     case 'submissions': return {
       q: { ref: submissionQ, def: '' },
       source: { ref: submissionSource, def: '' },
@@ -1145,6 +1165,15 @@ onMounted(async () => {
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
+          <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <label for="ai-sort">Sort by</label>
+            <select id="ai-sort" :value="aiSort" @change="aiSort = $event.target.value; aiDir = firstDir(aiSort, false); aiPage = 1; loadAi()"
+                    class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1.5 py-1">
+              <option v-for="[k, l] in AI_SORTS" :key="k" :value="k">{{ l }}</option>
+            </select>
+            <button type="button" @click="aiDir = aiDir === 'asc' ? 'desc' : 'asc'; aiPage = 1; loadAi()" class="row-action-btn"
+                    :title="aiDir === 'asc' ? 'Ascending' : 'Descending'">{{ aiDir === 'asc' ? '▲' : '▼' }}</button>
+          </div>
           <div v-for="r in aiRows" :key="r.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ r.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
@@ -1162,10 +1191,10 @@ onMounted(async () => {
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
-                <th class="font-normal py-1.5 pr-3">User</th>
-                <th class="font-normal px-2">Today (calls / tokens)</th>
-                <th class="font-normal px-2">This month</th>
-                <th class="font-normal px-2">All time</th>
+                <SortTh class="py-1.5" field="user" label="User" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
+                <SortTh field="today" label="Today (calls / tokens)" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
+                <SortTh field="month" label="This month" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
+                <SortTh field="" label="All time" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top">
@@ -1245,6 +1274,15 @@ onMounted(async () => {
 
       <!-- mobile: cards -->
       <div v-if="tableView === 'card'" class="space-y-2">
+        <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <label for="users-sort">Sort by</label>
+          <select id="users-sort" :value="usersSort" @change="usersSort = $event.target.value; usersDir = firstDir(usersSort, true); usersPage = 1; loadUsers()"
+                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1.5 py-1">
+            <option v-for="[k, l] in USER_SORTS" :key="k" :value="k">{{ l }}</option>
+          </select>
+          <button type="button" @click="usersDir = usersDir === 'asc' ? 'desc' : 'asc'; usersPage = 1; loadUsers()" class="row-action-btn"
+                  :title="usersDir === 'asc' ? 'Ascending' : 'Descending'">{{ usersDir === 'asc' ? '▲' : '▼' }}</button>
+        </div>
         <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 px-1">
           <input type="checkbox" :checked="selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
                  @change="selectAllUsers($event.target.checked)" /> Select all
@@ -1288,10 +1326,14 @@ onMounted(async () => {
                 <input type="checkbox" :checked="!!users?.length && selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
                        @change="selectAllUsers($event.target.checked)" />
               </th>
-              <th class="font-normal py-1.5 pr-3">#</th><th class="font-normal pr-3">Name / email</th>
-              <th class="font-normal pr-3">Role</th><th class="font-normal pr-3">XP</th>
-              <th class="font-normal pr-3">Boards</th><th class="font-normal pr-3">Subs</th>
-              <th class="font-normal pr-3">Joined</th><th class="font-normal pr-3"></th>
+              <SortTh class="py-1.5" field="" label="#" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="name" label="Name / email" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="role" label="Role" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="xp" label="XP" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="boards" label="Boards" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="subs" label="Subs" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <SortTh field="joined" label="Joined" :sort="usersSort" :dir="usersDir" @sort="sortUsers" />
+              <th class="font-normal pr-3"></th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
