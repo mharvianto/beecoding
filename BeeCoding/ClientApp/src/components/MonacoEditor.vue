@@ -392,7 +392,11 @@ function download() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${props.filename}.${ext}`;
+  // <name>_yyyyMMddHHmmss.<ext> in the browser's local time: every download gets a distinct, sortable name
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  a.download = `${props.filename}_${stamp}.${ext}`;
   a.click();
   URL.revokeObjectURL(url);
 }
