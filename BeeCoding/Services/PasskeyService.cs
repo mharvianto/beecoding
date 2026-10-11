@@ -28,8 +28,8 @@ public class PasskeyService
 
         _fido2 = new Fido2(new Fido2Configuration
         {
-            ServerDomain = rpId,
-            ServerName = string.IsNullOrWhiteSpace(cfg["Auth:Passkeys:RpName"]) ? "BeeCoding" : cfg["Auth:Passkeys:RpName"]!,
+            RPID = rpId,
+            RPName = string.IsNullOrWhiteSpace(cfg["Auth:Passkeys:RpName"]) ? "BeeCoding" : cfg["Auth:Passkeys:RpName"]!,
             Origins = origins,
         });
     }
