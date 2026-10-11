@@ -1,24 +1,62 @@
-name: Deploy to production
+name: Build & release
 
-# Requires a self-hosted runner registered on the production VM — see INSTALL.md §4D.
-# This job never runs actions/checkout: it updates the existing clone at /srv/beecoding
-# in place, so appsettings.json / the runtime database on the server are never touched.
+# Build dilakukan di runner GitHub karena server produksi (1 GB RAM) tidak kuat build
+# frontend. Hasilnya diunggah sebagai GitHub Release; server mengambil release terbaru
+# lewat ~/deploy-beecoding.sh (dijalankan beecoding-deploy.timer setiap 2 menit).
 on:
   push:
     branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  ASSET: beecoding-linux-arm64.tar.gz
 
 jobs:
-  deploy:
-    runs-on: [self-hosted]
+  build:
+    runs-on: ubuntu-latest
     steps:
-      - name: Pull latest master
-        run: cd /srv/beecoding && git pull --ff-only origin master
+      - uses: actions/checkout@v4
 
-      - name: Publish
-        run: cd /srv/beecoding/BeeCoding && "$HOME/.dotnet/dotnet" publish -c Release -o out
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
 
-      - name: Restart service
-        run: sudo systemctl restart beecoding
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: BeeCoding/ClientApp/package-lock.json
 
-      - name: Health check
-        run: sleep 3 && curl -fsS http://127.0.0.1:8080/health
+      - name: Publish (linux-arm64)
+        env:
+          VITE_BASE_PATH: /beecoding/
+        run: dotnet publish BeeCoding/BeeCoding.csproj -c Release -r linux-arm64 --self-contained false -o out
+
+      - name: Package
+        run: |
+          tar -czf "$ASSET" -C out .
+          sha256sum "$ASSET" > "$ASSET.sha256"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="build-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+          git log -1 --format='Commit %H%n%n%s' > notes.txt
+          gh release create "$TAG" "$ASSET" "$ASSET.sha256" \
+            --title "$TAG" --notes-file notes.txt --target "$GITHUB_SHA" --latest
+
+      - name: Delete old releases (keep 5)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,createdAt \
+            -q '[.[] | select(.tagName | startswith("build-"))] | sort_by(.createdAt) | reverse | .[5:] | .[].tagName' |
+            while read -r tag; do gh release delete "$tag" --yes --cleanup-tag; done
