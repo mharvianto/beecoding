@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
 import SubmissionView from './SubmissionView.vue';
+import { LETTER_THRESHOLD, letter } from '../lib/problemLabel';
 
 const props = defineProps({
   students: Array,
@@ -15,6 +16,10 @@ const props = defineProps({
 const emit = defineEmits(['toggle-hide', 'remove']);
 
 const viewSubmissionId = ref(null);
+
+// Many problems: columns are headed A, B, C … (full title in the tooltip and in the key under the grid).
+const lettered = computed(() => props.problems.length >= LETTER_THRESHOLD);
+const problemPath = (p) => `/boards/${props.boardSlug}/problems/${p.slug}`;
 
 const cellMap = computed(() => {
   const m = {};
@@ -35,10 +40,12 @@ function solvedCount(userId) {
       <thead>
         <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
           <th class="text-left font-medium px-3 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Student</th>
-          <th v-for="p in problems" :key="p.id" class="px-2 py-2 font-medium whitespace-nowrap">
-            <RouterLink v-if="boardSlug && p.slug" :to="`/boards/${boardSlug}/problems/${p.slug}`"
-                        class="hover:text-amber-600 dark:hover:text-amber-400 hover:underline" :title="`Open “${p.title}”`">{{ p.title }}</RouterLink>
-            <template v-else>{{ p.title }}</template>
+          <th v-for="(p, i) in problems" :key="p.id" class="px-2 py-2 font-medium whitespace-nowrap" :class="{ 'text-center': lettered }">
+            <RouterLink v-if="boardSlug && p.slug" :to="problemPath(p)"
+                        class="hover:text-amber-600 dark:hover:text-amber-400 hover:underline"
+                        :title="lettered ? `${letter(i)} · ${p.title}` : `Open “${p.title}”`"
+                        :aria-label="lettered ? `${letter(i)}: ${p.title}` : undefined">{{ lettered ? letter(i) : p.title }}</RouterLink>
+            <span v-else :title="lettered ? `${letter(i)} · ${p.title}` : undefined">{{ lettered ? letter(i) : p.title }}</span>
           </th>
           <th class="px-3 py-2 font-medium">Solved</th>
         </tr>
@@ -86,6 +93,17 @@ function solvedCount(userId) {
         </tr>
       </tbody>
     </table>
+
+    <details v-if="lettered" class="border-t border-slate-100 dark:border-slate-800 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+      <summary class="cursor-pointer select-none">Column key — {{ problems.length }} problems (hover a letter for its title)</summary>
+      <ul class="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+        <li v-for="(p, i) in problems" :key="p.id" class="flex gap-2 min-w-0">
+          <span class="font-semibold text-slate-600 dark:text-slate-300 w-7 shrink-0">{{ letter(i) }}</span>
+          <RouterLink v-if="boardSlug && p.slug" :to="problemPath(p)" class="truncate hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ p.title }}</RouterLink>
+          <span v-else class="truncate">{{ p.title }}</span>
+        </li>
+      </ul>
+    </details>
 
     <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />
   </div>

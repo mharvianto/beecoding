@@ -59,6 +59,8 @@ All five visibility rules live in one place: `Services/VisibilityService.cs`.
    problem, plus a sheet with every attempt) and `GET /api/boards/{slug}/export/answers.zip?pick=best|latest`
    (source code, one folder per problem and one file per student). Both take `problem=<slug>` or `group=<id>`
    (`0` = problems without a group) to cover a single problem or group; the ⬇ menus on the Problems page do this.
+   With 5 or more problems the grid heads its columns A, B, C … (title in the tooltip and in a column key) and the
+   downloads use the same letters.
    Verdict and score come from the student's best attempt (highest score, then newest). Each download is
    written to the audit log (`BoardExportController`).
 

@@ -27,7 +27,34 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
 
     /// <param name="ScopeFile">Short label for the file name ("" = the whole board).</param>
     /// <param name="ScopeNote">One sentence naming what the download covers, for the workbook notes and the audit log.</param>
-    private sealed record Export(Board Board, List<BoardMembership> Students, List<Problem> Problems, string ScopeFile, string ScopeNote);
+    /// <param name="Labels">Problem id to its column label: "A", "B", … once the board has <see cref="LetterThreshold"/> or more problems
+    /// (the same letters the board's progress grid shows), otherwise "1", "2", …. Taken over the whole board, not the downloaded scope.</param>
+    private sealed record Export(Board Board, List<BoardMembership> Students, List<Problem> Problems, string ScopeFile, string ScopeNote,
+        Dictionary<int, string> Labels);
+
+    /// <summary>From this many problems on, the progress grid (and these downloads) label problems A, B, C … instead of by full title.</summary>
+    private const int LetterThreshold = 5;
+
+    /// <summary>A, B, … Z, AA, AB, …</summary>
+    private static string Letter(int i)
+    {
+        var s = "";
+        do { s = (char)('A' + i % 26) + s; i = i / 26 - 1; } while (i >= 0);
+        return s;
+    }
+
+    /// <summary>Labels in the order and over the set of problems the progress grid shows (student-visible ones, by position);
+    /// problems the grid leaves out (hidden, or in a hidden or not yet open group) are labelled "-".</summary>
+    private static Dictionary<int, string> LabelProblems(IEnumerable<Problem> ordered)
+    {
+        var all = ordered.ToList();
+        var now = DateTime.UtcNow;
+        var shown = all.Where(p => GroupAccess.StudentVisible(p, now)).ToList();
+        bool letters = shown.Count >= LetterThreshold;
+        var labels = all.ToDictionary(p => p.Id, _ => "-");
+        for (var i = 0; i < shown.Count; i++) labels[shown[i].Id] = letters ? Letter(i) : (i + 1).ToString();
+        return labels;
+    }
 
     /// <summary>The board with its students and problems, or the failure to return. Owner, teacher or platform admin only.
     /// <paramref name="problem"/> (a problem slug) or <paramref name="group"/> (a group id; 0 = problems without a group)
@@ -46,6 +73,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         var students = board.Members.Where(m => m.Role == MembershipRole.Student)
             .OrderBy(m => m.User!.DisplayName).ThenBy(m => m.UserId).ToList();
         var problems = board.Problems.OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
+        var labels = LabelProblems(problems);
 
         string scopeFile = "", scopeNote = "Semua soal";
         if (!string.IsNullOrWhiteSpace(problem))
@@ -73,7 +101,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
                 scopeNote = $"Grup: {g.Title}";
             }
         }
-        return (new Export(board, students, problems, scopeFile, scopeNote), null);
+        return (new Export(board, students, problems, scopeFile, scopeNote, labels), null);
     }
 
     /// <summary>The caller's own UTC offset (stored from the browser, see UtcOffsetMiddleware), so timestamps read in their local time.</summary>
@@ -120,11 +148,12 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         // ---- Rekap: one row per student ----
         var ws = wb.Worksheets.Add("Rekap");
         var headers = new List<string> { "Nama", "Email" };
-        foreach (var (p, i) in problems.Select((p, i) => (p, i)))
+        foreach (var p in problems)
         {
-            headers.Add($"{i + 1}. {p.Title} - Verdict");
-            headers.Add($"{i + 1}. {p.Title} - Skor (%)");
-            headers.Add($"{i + 1}. {p.Title} - Percobaan");
+            var name = Display(data, p);
+            headers.Add($"{name} - Verdict");
+            headers.Add($"{name} - Skor (%)");
+            headers.Add($"{name} - Percobaan");
         }
         headers.Add("Soal Accepted");
         headers.Add("Rata-rata skor (%)");
@@ -164,6 +193,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
             $"Board: {board.Title}",
             $"Cakupan: {data.ScopeNote}",
             $"Diunduh: {(DateTime.UtcNow + offset):yyyy-MM-dd HH:mm} ({OffsetLabel(offset)}) oleh {ActorEmail}",
+            "Huruf atau angka di depan nama soal sama dengan label kolom pada grid board (\"-\" = soal yang disembunyikan dari siswa).",
             "Verdict dan skor tiap soal diambil dari percobaan terbaik siswa (skor tertinggi; bila sama, yang terbaru).",
             "Skor adalah persentase poin test case yang lulus. Soal yang belum dicoba dihitung skor 0 pada rata-rata.",
             "\"Soal Accepted\" menghitung soal dengan verdict Accepted dan skor 100%.",
@@ -177,7 +207,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         string[] logHeaders = { $"Waktu ({OffsetLabel(offset)})", "Nama", "Email", "Soal", "Bahasa", "Verdict", "Skor (%)", "Runtime (ms)", "Memori (KB)" };
         for (var c = 0; c < logHeaders.Length; c++) log.Cell(1, c + 1).Value = logHeaders[c];
         var byStudent = students.ToDictionary(s => s.UserId, s => s.User!);
-        var titleById = problems.ToDictionary(p => p.Id, p => p.Title);
+        var titleById = problems.ToDictionary(p => p.Id, p => Display(data, p));
         var rowNo = 2;
         foreach (var s in subs.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id))
         {
@@ -226,10 +256,10 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
         {
             var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            for (var i = 0; i < problems.Count; i++)
+            foreach (var p in problems)
             {
-                var p = problems[i];
-                var folder = $"{i + 1:00} {Safe(p.Title)}";
+                var label = data.Labels[p.Id];
+                var folder = label == "-" ? $"{Safe(p.Title)} (tersembunyi)" : $"{(label.All(char.IsDigit) ? label.PadLeft(2, '0') : label)}. {Safe(p.Title)}";
                 foreach (var m in students)
                 {
                     if (!byKey.TryGetValue((m.UserId, p.Id), out var list) || list.Count == 0) continue;
@@ -256,6 +286,9 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         var t = System.Text.RegularExpressions.Regex.Replace((s ?? "").ToLowerInvariant(), @"[^\p{L}\p{N}]+", "-").Trim('-');
         return t.Length == 0 ? "x" : t.Length > 40 ? t[..40].TrimEnd('-') : t;
     }
+
+    /// <summary>"A. Title", or "Title (tersembunyi)" for a problem the grid leaves out.</summary>
+    private static string Display(Export d, Problem p) => d.Labels[p.Id] == "-" ? $"{p.Title} (tersembunyi)" : $"{d.Labels[p.Id]}. {p.Title}";
 
     private static string Scoped(Export d) => d.ScopeFile.Length == 0 ? "" : d.ScopeFile + "-";
 
