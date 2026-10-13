@@ -5,7 +5,7 @@ import { ref } from 'vue';
 // localStorage (see lib/theme.js for the idiom) — never blocks if storage is unavailable.
 const FONT_KEY = 'beecoding.editor.fontSize';
 export const MIN_FONT = 9;
-export const MAX_FONT = 28;
+export const MAX_FONT = 36;
 
 const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 export const DEFAULT_FONT = coarse ? 14 : 13;
