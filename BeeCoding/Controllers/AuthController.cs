@@ -135,7 +135,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
     [HttpGet("config")]
     [AllowAnonymous]
-    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled, _google.Enabled);
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled, _google.Enabled, BuildInfo.Commit, BuildInfo.BuiltAt);
 
     /// <summary>
     /// Email a reset link. Always answers 204 whether or not the address has an account (no

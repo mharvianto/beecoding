@@ -7,7 +7,7 @@ export const useAuth = defineStore('auth', {
     user: null,
     ready: false,
     // public server capabilities: { passwordReset, emailVerification, requireVerifiedEmail, passkeys }
-    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false, google: false },
+    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false, google: false, build: null, builtAt: null },
     configLoaded: false,
   }),
   getters: {

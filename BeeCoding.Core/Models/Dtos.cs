@@ -53,7 +53,8 @@ public record SetPasswordDto(string NewPassword);
 // ---- Forgot / reset password ----
 /// <summary>PasswordReset / EmailVerification are available when outgoing email is configured;
 /// RequireVerifiedEmail means unverified accounts are locked to the verification screen.</summary>
-public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false, bool Google = false);
+public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false, bool Google = false,
+    string? Build = null, string? BuiltAt = null);   // short commit hash + UTC build time, shown in the footer
 public record VerifyEmailDto(string Token);
 public record ForgotPasswordDto(string Email);
 public record ResetPasswordDto(string Token, string NewPassword);
