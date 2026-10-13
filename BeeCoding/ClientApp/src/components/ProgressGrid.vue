@@ -10,6 +10,7 @@ const props = defineProps({
   isStaff: Boolean,
   canRemove: Boolean,   // board owner: may remove a student from the board
   currentUserId: Number,
+  boardSlug: { type: String, default: '' },   // lets a problem's column header open that problem
 });
 const emit = defineEmits(['toggle-hide', 'remove']);
 
@@ -35,7 +36,9 @@ function solvedCount(userId) {
         <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
           <th class="text-left font-medium px-3 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Student</th>
           <th v-for="p in problems" :key="p.id" class="px-2 py-2 font-medium whitespace-nowrap">
-            {{ p.title }}
+            <RouterLink v-if="boardSlug && p.slug" :to="`/boards/${boardSlug}/problems/${p.slug}`"
+                        class="hover:text-amber-600 dark:hover:text-amber-400 hover:underline" :title="`Open “${p.title}”`">{{ p.title }}</RouterLink>
+            <template v-else>{{ p.title }}</template>
           </th>
           <th class="px-3 py-2 font-medium">Solved</th>
         </tr>

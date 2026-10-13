@@ -340,6 +340,7 @@ onBeforeUnmount(async () => {
       :is-staff="progress.viewerIsStaff"
       :can-remove="board.isOwner"
       :current-user-id="auth.user?.id"
+      :board-slug="slug"
       @toggle-hide="toggleHide"
       @remove="removeStudent" />
 
