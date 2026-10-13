@@ -5,7 +5,7 @@ import { ref, nextTick, onBeforeUnmount } from 'vue';
 // fixed coordinates, so it isn't clipped by an overflow-x-auto table; it flips upward near the bottom
 // of the screen. Closes on outside click, Escape, scroll, resize, or after picking an item.
 // Items are plain <button class="row-menu-item"> (see style.css) in the default slot.
-defineProps({ label: { type: String, default: 'Actions' } });
+defineProps({ label: { type: String, default: 'Actions' }, icon: { type: String, default: '⋮' } });
 
 const open = ref(false);
 const btn = ref(null);
@@ -66,7 +66,7 @@ onBeforeUnmount(close);
 <template>
   <button ref="btn" type="button" @click="toggle" :aria-label="label" :title="label" aria-haspopup="menu" :aria-expanded="open"
           class="inline-flex items-center justify-center w-8 h-8 rounded-md text-lg leading-none text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800"
-          :class="{ 'bg-slate-100 dark:bg-slate-800': open }">⋮</button>
+          :class="{ 'bg-slate-100 dark:bg-slate-800': open }">{{ icon }}</button>
   <Teleport to="body">
     <div v-if="open" ref="panel" role="menu" @click="close" :style="{ top: pos.top + 'px', left: pos.left + 'px' }"
          class="fixed z-50 min-w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1">

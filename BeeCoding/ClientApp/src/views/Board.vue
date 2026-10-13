@@ -3,6 +3,7 @@ import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
+import { downloadFile } from '../lib/download';
 import { useAuth } from '../stores/auth';
 import { createBoardConnection } from '../lib/signalr';
 import { useUndoToast } from '../stores/undoToast';
@@ -99,6 +100,17 @@ async function saveTags() {
 }
 
 const settingsOpen = ref(false);
+
+// Staff downloads: results workbook (verdict + score) and the students' source code as a ZIP.
+const exportOpen = ref(false);
+const exporting = ref(false);
+async function exportFile(path, fallbackName) {
+  exportOpen.value = false;
+  exporting.value = true;
+  try { await downloadFile(`/api/boards/${props.slug}/export/${path}`, fallbackName); }
+  catch (e) { error.value = e.message; }
+  finally { exporting.value = false; }
+}
 
 async function deleteBoard() {
   const title = board.value.title;
@@ -213,6 +225,30 @@ onBeforeUnmount(async () => {
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         🧾 Submissions
       </RouterLink>
+      <div class="relative">
+        <button @click="exportOpen = !exportOpen" :disabled="exporting" :aria-expanded="exportOpen"
+                class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 disabled:opacity-60">
+          {{ exporting ? '⏳ Preparing…' : '⬇ Download' }}
+        </button>
+        <div v-if="exportOpen" class="fixed inset-0 z-40" @click="exportOpen = false"></div>
+        <div v-if="exportOpen"
+             class="absolute left-0 z-50 mt-1 w-80 max-w-[90vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
+          <button @click="exportFile('results.xlsx', 'results.xlsx')"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            📊 Results (Excel)
+            <span class="block text-[11px] text-slate-400 dark:text-slate-500">Verdict, score and attempts per student and problem, plus every attempt</span>
+          </button>
+          <button @click="exportFile('answers.zip?pick=best', 'answers.zip')"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            📁 Answers (ZIP) — best attempt
+            <span class="block text-[11px] text-slate-400 dark:text-slate-500">Source code, one folder per problem, one file per student</span>
+          </button>
+          <button @click="exportFile('answers.zip?pick=latest', 'answers.zip')"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            📁 Answers (ZIP) — latest attempt
+          </button>
+        </div>
+      </div>
 
       <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
             title="Exam mode is on for ungrouped problems">🔒 Exam mode{{ hasGroups ? ' (ungrouped)' : '' }}</span>

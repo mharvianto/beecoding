@@ -6,6 +6,7 @@ import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
 import BankPicker from '../components/BankPicker.vue';
 import GroupEditor from '../components/GroupEditor.vue';
+import ExportMenu from '../components/ExportMenu.vue';
 import { useConfirmDialog } from '../stores/confirmDialog';
 
 const props = defineProps({ slug: { type: String, required: true } });
@@ -269,6 +270,7 @@ async function reorderGroupTo(id, target, pos) {
           </button>
           <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : 'Ungrouped' }}</h2>
           <span class="text-xs text-slate-400 dark:text-slate-500">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
+          <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
             <span v-if="sec.group.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
             <span v-if="sec.group.examMode" class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">🔒 exam</span>
@@ -277,6 +279,7 @@ async function reorderGroupTo(id, target, pos) {
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'">{{ stateLabel(sec.group) }}</span>
             <span v-if="isStaff" class="ml-auto flex items-center gap-1">
+              <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" title="Move group up"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" title="Move group down"><span>↓</span></button>
               <button @click="editingGroup = sec.group" class="row-action-btn"><span>✏️</span><span class="max-sm:hidden">Edit</span></button>
@@ -331,6 +334,7 @@ async function reorderGroupTo(id, target, pos) {
               <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
                 <span>✏️</span><span class="max-sm:hidden">Edit</span>
               </button>
+              <ExportMenu v-if="isStaff" :slug="slug" :problem="p.slug" label="Download results and answers for this problem" @error="error = $event" />
               <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5 ml-1">
                 {{ isStaff ? 'View' : 'Solve' }}
               </RouterLink>

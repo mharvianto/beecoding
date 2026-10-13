@@ -54,6 +54,14 @@ everyone's progress — with layered controls over who can see whose answers.
 
 All five visibility rules live in one place: `Services/VisibilityService.cs`.
 
+5c. **Download results and answers** (staff only, board page → *Download*) —
+   `GET /api/boards/{slug}/export/results.xlsx` (one row per student with verdict, score and attempts per
+   problem, plus a sheet with every attempt) and `GET /api/boards/{slug}/export/answers.zip?pick=best|latest`
+   (source code, one folder per problem and one file per student). Both take `problem=<slug>` or `group=<id>`
+   (`0` = problems without a group) to cover a single problem or group; the ⬇ menus on the Problems page do this.
+   Verdict and score come from the student's best attempt (highest score, then newest). Each download is
+   written to the audit log (`BoardExportController`).
+
 6. **Problem bank** (`/bank`, teachers) — a reusable library of problems, private by default
    with a per-problem "share" toggle. Other teachers browsing a shared problem see only its
    **sample** tests; copying it onto their board carries the hidden tests server-side, so
