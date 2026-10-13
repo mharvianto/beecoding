@@ -9,8 +9,8 @@ import { pruneDrafts } from './lib/draft';
 pruneDrafts();
 
 // Monaco: use its bundled workers via Vite ?worker imports (no CDN).
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+import editorWorker from 'monaco-editor/editor/editor.worker?worker';
+import tsWorker from 'monaco-editor/language/typescript/ts.worker?worker';
 
 self.MonacoEnvironment = {
   getWorker(_, label) {
