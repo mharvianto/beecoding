@@ -897,6 +897,38 @@ Perilaku:
 - **Account → Connected accounts** untuk menghubungkan/memutus Google (memutus & hapus akun butuh password).
 - Alur memakai PKCE + `state`/`nonce` di cookie `beecoding.google` (5 menit). Tidak butuh paket tambahan.
 
+### Cloudflare Turnstile (pemeriksaan manusia di form login)
+
+Turnstile memasang kotak verifikasi di **Sign in**, **Register**, dan **Forgot password**. Mati selama salah satu kunci
+kosong; saat menyala, server menolak form tanpa token yang valid.
+
+1. Dashboard Cloudflare → *Turnstile* → widget → **Hostname Management**: isi domain app (mis. `harvianto.my.id`).
+   Untuk uji lokal, tambahkan `localhost` pada widget terpisah atau pakai kunci uji Cloudflare.
+2. Simpan **site key** (publik) dan **secret key** (rahasia) sebagai environment variable service, bukan di berkas
+   yang di-commit. Untuk systemd: `sudo systemctl edit beecoding`, lalu
+
+```ini
+[Service]
+Environment=Auth__Turnstile__SiteKey=0x4AAAAAAA...
+Environment=Auth__Turnstile__SecretKey=0x4AAAAAAA...
+```
+
+3. `sudo systemctl restart beecoding`. Widget muncul sendiri di tiga form tadi, tanpa build ulang frontend.
+
+Perilaku:
+- Token diverifikasi ke `https://challenges.cloudflare.com/turnstile/v0/siteverify` dan hanya diterima bila
+  `success`, `action` sama dengan form (`login`, `register`, `forgot-password`), dan `hostname` ada di daftar yang
+  diizinkan. Daftar itu: `Auth:Turnstile:Hostnames` (dipisah koma) bila diisi, kalau tidak host dari `App:PublicUrl`,
+  kalau tidak host request. **Jangan** memasukkan `localhost` di produksi.
+- Token kosong, lebih dari 2048 karakter, jawaban Cloudflare yang tidak terbaca, atau gagal terhubung ke Cloudflare
+  semuanya **menolak** form (gagal tertutup). Server perlu akses keluar ke `challenges.cloudflare.com`.
+- Token hanya berlaku sekali; form meminta token baru setelah setiap kiriman.
+- CSP otomatis mengizinkan `https://challenges.cloudflare.com` (script, frame, connect) hanya saat Turnstile menyala.
+  Bila memakai `Security:ContentSecurityPolicy` sendiri, tambahkan origin itu secara manual.
+- Yang **tidak** dilindungi: login Google, passkey, dan langkah kedua MFA (masing-masing sudah punya bukti lain atau tiket sekali pakai).
+- Kunci uji Cloudflare (`1x00000000000000000000AA` / `1x0000000000000000000000000000000AA`) membuat widget selalu lolos,
+  tetapi jawaban siteverify-nya tidak menyertakan `action`, jadi server tetap menolaknya. Pakai widget sungguhan untuk uji menyeluruh.
+
 ### Tutor AI (hint, bukan jawaban)
 
 Dengan `Ai:Enabled=true` + `Ai:ApiKey` terisi, muncul panel **🤖 AI tutor** di halaman

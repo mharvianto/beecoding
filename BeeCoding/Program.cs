@@ -238,6 +238,8 @@ builder.Services.AddScoped<MeDtoBuilder>();
 builder.Services.AddSingleton<PasskeyService>();
 builder.Services.AddHttpClient("google", c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddSingleton<GoogleAuthService>();
+builder.Services.AddHttpClient("turnstile", c => c.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddSingleton<TurnstileService>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 
 // The web tier always applies verdicts + notifies. It runs the compute worker itself only
@@ -388,13 +390,18 @@ if (!string.IsNullOrWhiteSpace(pathBase))
 var cspCfg = builder.Configuration["Security:ContentSecurityPolicy"];
 var cspOff = string.Equals(cspCfg, "off", StringComparison.OrdinalIgnoreCase);
 var customCsp = !cspOff && !string.IsNullOrWhiteSpace(cspCfg) ? cspCfg : null;
+// Cloudflare Turnstile loads its script, frame and verification calls from this origin, so allow it only while it is on.
+var turnstileOrigin = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Turnstile:SiteKey"])
+                      && !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Turnstile:SecretKey"])
+    ? " https://challenges.cloudflare.com" : "";
 var defaultCspBase =
     "default-src 'self'; " +
     "img-src 'self' data: blob:; " +
     "style-src 'self' 'unsafe-inline'; " +
-    "script-src 'self' blob:; " +          // blob: for Vite's Monaco worker shim
+    $"script-src 'self' blob:{turnstileOrigin}; " +          // blob: for Vite's Monaco worker shim
     "worker-src 'self' blob:; " +
-    "connect-src 'self'; " +
+    $"connect-src 'self'{turnstileOrigin}; " +
+    (turnstileOrigin.Length > 0 ? $"frame-src 'self'{turnstileOrigin}; " : "") +
     "font-src 'self' data:; " +
     "object-src 'none'; base-uri 'self'";
 app.Use(async (ctx, next) =>

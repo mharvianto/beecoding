@@ -1,7 +1,13 @@
 <script setup>
 import { ref } from 'vue';
 import { api } from '../lib/api';
+import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import TurnstileWidget from '../components/TurnstileWidget.vue';
+
+const auth = useAuth();
+const human = ref('');   // Turnstile token
+const turnstile = ref(null);
 
 const email = ref('');
 const busy = ref(false);
@@ -12,12 +18,13 @@ async function submit() {
   error.value = '';
   busy.value = true;
   try {
-    await api.post('/api/auth/forgot-password', { email: email.value });
+    await api.post('/api/auth/forgot-password', { email: email.value, turnstileToken: human.value });
     sent.value = true;   // same message whether or not the address has an account
   } catch (e) {
     error.value = e.message;
   } finally {
     busy.value = false;
+    turnstile.value?.reset();   // the token is spent whether or not the request worked
   }
 }
 </script>
@@ -37,8 +44,9 @@ async function submit() {
         <p class="text-sm text-slate-500 dark:text-slate-400">Enter your account email and we'll send you a link to choose a new password.</p>
         <input v-model="email" type="email" placeholder="Email" required autofocus
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+        <TurnstileWidget ref="turnstile" action="forgot-password" v-model:token="human" />
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button :disabled="busy"
+        <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
                 class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Send reset link' }}
         </button>

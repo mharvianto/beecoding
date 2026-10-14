@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
 import GoogleButton from '../components/GoogleButton.vue';
+import TurnstileWidget from '../components/TurnstileWidget.vue';
 
 const auth = useAuth();
 const router = useRouter();
@@ -12,6 +13,8 @@ const route = useRoute();
 const form = ref({ displayName: '', email: '', password: '', role: 'Student', teacherCode: '' });
 const error = ref('');
 const busy = ref(false);
+const human = ref('');   // Turnstile token (not asked for a sign-up that Google already vouched for)
+const turnstile = ref(null);
 
 const googleOn = ref(false);
 const google = ref(null);   // { ticket, email } when finishing a sign-up that started with Google
@@ -35,13 +38,14 @@ async function submit() {
     if (google.value) {
       await auth.googleRegister({ ticket: google.value.ticket, displayName: form.value.displayName, role: form.value.role, teacherCode: form.value.teacherCode });
     } else {
-      await auth.register(form.value);
+      await auth.register({ ...form.value, turnstileToken: human.value });
     }
     router.push(route.query.r || '/boards');
   } catch (e) {
     error.value = e.message;
   } finally {
     busy.value = false;
+    turnstile.value?.reset();   // the token is spent whether or not the sign-up worked
   }
 }
 </script>
@@ -84,8 +88,9 @@ async function submit() {
       </div>
       <input v-if="form.role === 'Teacher'" v-model="form.teacherCode" placeholder="Teacher invite code"
              class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+      <TurnstileWidget v-if="!google" ref="turnstile" action="register" v-model:token="human" />
       <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-      <button :disabled="busy"
+      <button :disabled="busy || (!google && !!auth.config.turnstileSiteKey && !human)"
               class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
         {{ busy ? '…' : 'Register' }}
       </button>

@@ -5,6 +5,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
 import GoogleButton from '../components/GoogleButton.vue';
+import TurnstileWidget from '../components/TurnstileWidget.vue';
 import { passkeysSupported } from '../lib/webauthn';
 
 const auth = useAuth();
@@ -18,6 +19,8 @@ const canReset = ref(false);   // outgoing email configured on the server
 const justReset = route.query.reset === '1';
 const googleOn = ref(false);
 const passkeysOn = ref(false);
+const human = ref('');         // Turnstile token for the password form
+const turnstile = ref(null);
 const linkInfo = ref(null);    // { ticket, email, name }: Google found an existing account for this email
 
 onMounted(async () => {
@@ -102,13 +105,14 @@ async function submit() {
   error.value = '';
   busy.value = true;
   try {
-    const next = await auth.login(email.value, password.value);
+    const next = await auth.login(email.value, password.value, human.value);
     if (next) { await enterChallenge(next); return; }
     done();
   } catch (e) {
     error.value = e.message;
   } finally {
     busy.value = false;
+    turnstile.value?.reset();   // the token is spent whether or not the sign-in worked
   }
 }
 
@@ -216,8 +220,9 @@ function backToPassword(clearError = true) {
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <input v-model="password" type="password" placeholder="Password" required
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+        <TurnstileWidget ref="turnstile" action="login" v-model:token="human" />
         <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button :disabled="busy"
+        <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
                 class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Sign in' }}
         </button>

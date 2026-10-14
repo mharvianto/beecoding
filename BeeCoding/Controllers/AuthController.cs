@@ -13,7 +13,7 @@ namespace BeeCoding.Controllers;
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
-    MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me) : ApiControllerBase
+    MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me, TurnstileService turnstile) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -27,16 +27,25 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly MfaService _mfa = mfa;
     private readonly PasskeyService _passkeys = passkeys;
     private readonly GoogleAuthService _google = google;
+    private readonly TurnstileService _turnstile = turnstile;
     private readonly MeDtoBuilder _me = me;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
     private bool IsAdmin(string email) => _admin.IsAdminEmail(email);
 
+    /// <summary>Null while the Turnstile check passes (or is off); otherwise the 400 to return. <paramref name="action"/>
+    /// must match the <c>data-action</c> of the widget on that form.</summary>
+    private async Task<ActionResult?> RequireHumanAsync(string? token, string action) =>
+        !_turnstile.Enabled || await _turnstile.VerifyAsync(token, action, ClientIp, Request.Host.Host, HttpContext.RequestAborted)
+            ? null
+            : BadRequest("Please complete the verification check and try again.");
+
     [HttpPost("register")]
     [AllowAnonymous]
     public async Task<ActionResult<MeDto>> Register(RegisterDto dto)
     {
+        if (await RequireHumanAsync(dto.TurnstileToken, "register") is { } notHuman) return notHuman;
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         if (email.Length < 3 || !email.Contains('@')) return BadRequest("Invalid email.");
         if (PasswordPolicy.Validate(dto.Password, email) is string pwErr) return BadRequest(pwErr);
@@ -73,6 +82,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         if (_throttle.IsBlocked(ip, email))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
+        if (await RequireHumanAsync(dto.TurnstileToken, "login") is { } notHuman) return notHuman;
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null || user.DeletedAt is not null || !_pw.Verify(user, dto.Password ?? ""))
@@ -135,7 +145,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// <summary>What the login page needs to know: is "forgot password" available (outgoing email configured)?</summary>
     [HttpGet("config")]
     [AllowAnonymous]
-    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled, _google.Enabled, BuildInfo.Commit, BuildInfo.BuiltAt);
+    public ActionResult<AuthConfigDto> Config() => new AuthConfigDto(_email.IsConfigured, _verification.Available, _verification.Required, _passkeys.Enabled, _google.Enabled, BuildInfo.Commit, BuildInfo.BuiltAt, _turnstile.PublicSiteKey);
 
     /// <summary>
     /// Email a reset link. Always answers 204 whether or not the address has an account (no
@@ -147,6 +157,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
     {
         if (!_email.IsConfigured) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Password reset by email isn't set up on this server. Ask an administrator.");
+        if (await RequireHumanAsync(dto.TurnstileToken, "forgot-password") is { } notHuman) return notHuman;
 
         var address = (dto.Email ?? "").Trim().ToLowerInvariant();
         if (address.Length is 0 or > 256 || !address.Contains('@')) return NoContent();

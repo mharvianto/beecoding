@@ -1,8 +1,8 @@
 namespace BeeCoding.Models;
 
 // ---- Auth ----
-public record RegisterDto(string Email, string Password, string DisplayName, string Role, string? TeacherCode = null);
-public record LoginDto(string Email, string Password);
+public record RegisterDto(string Email, string Password, string DisplayName, string Role, string? TeacherCode = null, string? TurnstileToken = null);
+public record LoginDto(string Email, string Password, string? TurnstileToken = null);
 public record MeDto(int Id, string Email, string DisplayName, string Role, bool IsAdmin = false, bool HasOrgAdmin = false,
     bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
     bool HasPassword = true,      // false => created via Google; no password until the user sets one
@@ -54,9 +54,10 @@ public record SetPasswordDto(string NewPassword);
 /// <summary>PasswordReset / EmailVerification are available when outgoing email is configured;
 /// RequireVerifiedEmail means unverified accounts are locked to the verification screen.</summary>
 public record AuthConfigDto(bool PasswordReset, bool EmailVerification = false, bool RequireVerifiedEmail = false, bool Passkeys = false, bool Google = false,
-    string? Build = null, string? BuiltAt = null);   // short commit hash + UTC build time, shown in the footer
+    string? Build = null, string? BuiltAt = null,   // short commit hash + UTC build time, shown in the footer
+    string? TurnstileSiteKey = null);                // set while the Turnstile human check is on
 public record VerifyEmailDto(string Token);
-public record ForgotPasswordDto(string Email);
+public record ForgotPasswordDto(string Email, string? TurnstileToken = null);
 public record ResetPasswordDto(string Token, string NewPassword);
 public record AdminResetLinkDto(string Url, DateTime ExpiresAt);
 public record UpdateProfileDto(string DisplayName);

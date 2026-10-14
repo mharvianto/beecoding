@@ -7,7 +7,7 @@ export const useAuth = defineStore('auth', {
     user: null,
     ready: false,
     // public server capabilities: { passwordReset, emailVerification, requireVerifiedEmail, passkeys }
-    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false, google: false, build: null, builtAt: null },
+    config: { passwordReset: false, emailVerification: false, requireVerifiedEmail: false, passkeys: false, google: false, build: null, builtAt: null, turnstileSiteKey: null },
     configLoaded: false,
   }),
   getters: {
@@ -35,8 +35,8 @@ export const useAuth = defineStore('auth', {
       this.configLoaded = true;
     },
     // Resolves to null once signed in, or to { ticket, methods } when the account needs a second factor.
-    async login(email, password) {
-      const r = await api.post('/api/auth/login', { email, password });
+    async login(email, password, turnstileToken = '') {
+      const r = await api.post('/api/auth/login', { email, password, turnstileToken });
       if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
       this.user = r;
       return null;
