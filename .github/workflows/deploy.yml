@@ -17,6 +17,7 @@ concurrency:
 
 env:
   ASSET: beecoding-linux-arm64.tar.gz
+  ASSET_X64: beecoding-linux-x64.tar.gz
 
 jobs:
   build:
@@ -39,10 +40,16 @@ jobs:
           VITE_BASE_PATH: /beecoding/
         run: dotnet publish BeeCoding/BeeCoding.csproj -c Release -r linux-arm64 --self-contained false -o out
 
+      # Frontend sudah dibangun oleh publish di atas, jadi npm tidak dijalankan lagi.
+      - name: Publish (linux-x64)
+        run: dotnet publish BeeCoding/BeeCoding.csproj -c Release -r linux-x64 --self-contained false -p:BuildClient=false -o out-x64
+
       - name: Package
         run: |
           tar -czf "$ASSET" -C out .
           sha256sum "$ASSET" > "$ASSET.sha256"
+          tar -czf "$ASSET_X64" -C out-x64 .
+          sha256sum "$ASSET_X64" > "$ASSET_X64.sha256"
 
       - name: Create release
         env:
@@ -50,7 +57,7 @@ jobs:
         run: |
           TAG="build-$(date -u +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
           git log -1 --format='Commit %H%n%n%s' > notes.txt
-          gh release create "$TAG" "$ASSET" "$ASSET.sha256" \
+          gh release create "$TAG" "$ASSET" "$ASSET.sha256" "$ASSET_X64" "$ASSET_X64.sha256" \
             --title "$TAG" --notes-file notes.txt --target "$GITHUB_SHA" --latest
 
       - name: Delete old releases (keep 5)
