@@ -394,13 +394,18 @@ var customCsp = !cspOff && !string.IsNullOrWhiteSpace(cspCfg) ? cspCfg : null;
 var turnstileOrigin = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Turnstile:SiteKey"])
                       && !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Turnstile:SecretKey"])
     ? " https://challenges.cloudflare.com" : "";
+// Cloudflare Web Analytics is injected by the Cloudflare proxy (beacon script + one inline snippet), so allow it only while Security:CloudflareAnalytics is on.
+// The inline snippet is allowed by hash; if Cloudflare changes it, update the hash from the console error.
+var cfAnalytics = builder.Configuration.GetValue<bool>("Security:CloudflareAnalytics");
+var cfScript = cfAnalytics ? " https://static.cloudflareinsights.com 'sha256-qu1Sr0/EvF547W6M3HyRRQem6s5k0PdpDe0UgJZP6Ro='" : "";
+var cfConnect = cfAnalytics ? " https://cloudflareinsights.com" : "";
 var defaultCspBase =
     "default-src 'self'; " +
     "img-src 'self' data: blob:; " +
     "style-src 'self' 'unsafe-inline'; " +
-    $"script-src 'self' blob:{turnstileOrigin}; " +          // blob: for Vite's Monaco worker shim
+    $"script-src 'self' blob:{turnstileOrigin}{cfScript}; " +          // blob: for Vite's Monaco worker shim
     "worker-src 'self' blob:; " +
-    $"connect-src 'self'{turnstileOrigin}; " +
+    $"connect-src 'self'{turnstileOrigin}{cfConnect}; " +
     (turnstileOrigin.Length > 0 ? $"frame-src 'self'{turnstileOrigin}; " : "") +
     "font-src 'self' data:; " +
     "object-src 'none'; base-uri 'self'";
