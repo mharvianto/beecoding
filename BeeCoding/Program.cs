@@ -395,9 +395,9 @@ var turnstileOrigin = !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Tur
                       && !string.IsNullOrWhiteSpace(builder.Configuration["Auth:Turnstile:SecretKey"])
     ? " https://challenges.cloudflare.com" : "";
 // Cloudflare Web Analytics is injected by the Cloudflare proxy (beacon script + one inline snippet), so allow it only while Security:CloudflareAnalytics is on.
-// The inline snippet is allowed by hash; if Cloudflare changes it, update the hash from the console error.
+// The inline snippets are allowed by hash; if Cloudflare changes one, add or update its hash from the console error.
 var cfAnalytics = builder.Configuration.GetValue<bool>("Security:CloudflareAnalytics");
-var cfScript = cfAnalytics ? " https://static.cloudflareinsights.com 'sha256-qu1Sr0/EvF547W6M3HyRRQem6s5k0PdpDe0UgJZP6Ro='" : "";
+var cfScript = cfAnalytics ? " https://static.cloudflareinsights.com 'sha256-qu1Sr0/EvF547W6M3HyRRQem6s5k0PdpDe0UgJZP6Ro=' 'sha256-FSKD7HtGGL1JHRL8tPVfhpDMOi2yFxugfgyW7UzF9WQ='" : "";
 var cfConnect = cfAnalytics ? " https://cloudflareinsights.com" : "";
 var defaultCspBase =
     "default-src 'self'; " +
