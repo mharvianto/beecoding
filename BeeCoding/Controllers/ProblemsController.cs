@@ -31,7 +31,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
 
         var problems = await _db.Problems
             .Where(p => p.BoardId == boardId.Value)
-            .Include(p => p.TestCases)
+            // The list only needs the sample tests (hidden tests can be megabytes of stdin/expected output and are
+            // returned by the single-problem GET the editor uses), so don't even load them from the database.
+            .Include(p => p.TestCases.Where(t => t.IsSample))
             .Include(p => p.Group)
             .OrderBy(p => p.Position).ThenBy(p => p.Id)
             .ToListAsync();
@@ -75,7 +77,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var (boardId, err) = await RequireOwnerAsync(slug);
         if (err is not null) return err;
 
-        var p = await _db.Problems.Include(x => x.TestCases)
+        // No test cases loaded: this only flips a flag, so the response carries an empty testCases list instead of
+        // echoing every (possibly megabyte-sized) test back. Callers read groupId / hidden from it.
+        var p = await _db.Problems
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p is null) return NotFound();
 
@@ -92,7 +96,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var (boardId, err) = await RequireOwnerAsync(slug);
         if (err is not null) return err;
 
-        var p = await _db.Problems.Include(x => x.TestCases)
+        // No test cases loaded: this only flips a flag, so the response carries an empty testCases list instead of
+        // echoing every (possibly megabyte-sized) test back. Callers read groupId / hidden from it.
+        var p = await _db.Problems
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p is null) return NotFound();
         if (dto.GroupId is int gid && !await _db.ProblemGroups.AnyAsync(g => g.Id == gid && g.BoardId == boardId!.Value))
