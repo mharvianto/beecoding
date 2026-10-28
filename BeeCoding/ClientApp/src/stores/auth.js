@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { api } from '../lib/api';
 import { getPasskey } from '../lib/webauthn';
+import { detachPush } from '../lib/browserNotify';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
@@ -68,6 +69,7 @@ export const useAuth = defineStore('auth', {
       this.user = await api.post('/api/auth/register', payload);
     },
     async logout() {
+      await detachPush(api);   // the push endpoint belongs to this account: don't leave it behind on a shared browser
       await api.post('/api/auth/logout');
       this.user = null;
     },

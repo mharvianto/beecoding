@@ -15,6 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Submission> Submissions => Set<Submission>();
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
     public DbSet<MfaRecoveryCode> MfaRecoveryCodes => Set<MfaRecoveryCode>();
     public DbSet<UserPasskey> UserPasskeys => Set<UserPasskey>();
@@ -129,6 +130,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<UserPasskey>().HasIndex(x => x.CredentialId).IsUnique();
         b.Entity<UserPasskey>()
+            .HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<WebPushSubscription>().HasIndex(x => x.Endpoint).IsUnique();
+        b.Entity<WebPushSubscription>().HasIndex(x => x.UserId);
+        b.Entity<WebPushSubscription>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<Notification>()

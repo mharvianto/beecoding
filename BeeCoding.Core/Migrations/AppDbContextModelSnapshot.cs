@@ -15,7 +15,7 @@ namespace BeeCoding.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("BeeCoding.Models.AiHintProgress", b =>
                 {
@@ -1551,6 +1551,47 @@ namespace BeeCoding.Migrations
                     b.ToTable("UserPasskeys");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.WebPushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WebPushSubscriptions");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.AiHintProgress", b =>
                 {
                     b.HasOne("BeeCoding.Models.User", "User")
@@ -1979,6 +2020,17 @@ namespace BeeCoding.Migrations
                 });
 
             modelBuilder.Entity("BeeCoding.Models.UserPasskey", b =>
+                {
+                    b.HasOne("BeeCoding.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.WebPushSubscription", b =>
                 {
                     b.HasOne("BeeCoding.Models.User", "User")
                         .WithMany()

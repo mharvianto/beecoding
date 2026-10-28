@@ -15,6 +15,8 @@ import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
 import { onSignedIn, onSignedOut } from './lib/prefs';
 import NotificationToast from './components/NotificationToast.vue';
 import { useNotifications, notificationTarget } from './stores/notifications';
+import { refreshPush } from './lib/browserNotify';
+import { api } from './lib/api';
 import { useUndoToast } from './stores/undoToast';
 import { celebrate } from './lib/confetti';
 import { playgroundFocus } from './lib/playgroundFocus';
@@ -58,7 +60,9 @@ notifications.onMemberRemoved = (e) => {
   if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');
   undoToast.show(`You were removed from “${e.boardTitle}”.`);
 };
-watch(activeUserId, (id) => (id ? notifications.start() : notifications.stop()), { immediate: true });
+watch(activeUserId, (id) => { if (id) { notifications.start(); refreshPush(api); } else notifications.stop(); }, { immediate: true });
+// A notification clicked while the app is open in another tab: the service worker asks us to route there.
+navigator.serviceWorker?.addEventListener('message', (e) => { if (e.data?.type === 'navigate' && typeof e.data.url === 'string') router.push(e.data.url); });
 
 // Celebrate a level-up anywhere in the app. `levelBaseline` is the level as of the
 // last hydration; null while logged out — so a fresh login that loads level 5 does

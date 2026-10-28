@@ -12,8 +12,9 @@ namespace BeeCoding.Services;
 /// live over SignalR. Reactions on the same post coalesce into one unread row; an author never
 /// gets notified about their own activity.
 /// </summary>
-public class NotificationService(AppDbContext db, IBoardNotifier notifier)
+public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPushService webPush)
 {
+    private readonly WebPushService _webPush = webPush;
     private readonly AppDbContext _db = db;
     private readonly IBoardNotifier _notifier = notifier;
 
@@ -146,6 +147,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier)
         var dto = await ToDtoAsync(n);
         if (dto is null) return;
         await _notifier.NotificationAsync(n.UserId, dto, await UnreadCountAsync(n.UserId));
+        _webPush.Queue(n.UserId, dto);
     }
 
     private async Task<NotificationDto?> ToDtoAsync(Notification n)

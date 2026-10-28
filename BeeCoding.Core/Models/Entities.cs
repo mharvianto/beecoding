@@ -969,3 +969,24 @@ public class PlatformRuntimeSettings
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>One browser's Web Push subscription for a user (the service-worker side of the bell). The endpoint is
+/// unique: re-subscribing from the same browser, even as another user, moves the row instead of duplicating it.</summary>
+public class WebPushSubscription
+{
+    public int Id { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    [MaxLength(1000)]
+    public string Endpoint { get; set; } = "";
+    [MaxLength(200)]
+    public string P256dh { get; set; } = "";
+    [MaxLength(100)]
+    public string Auth { get; set; } = "";
+    [MaxLength(300)]
+    public string? UserAgent { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

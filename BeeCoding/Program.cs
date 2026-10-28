@@ -240,6 +240,10 @@ builder.Services.AddHttpClient("google", c => c.Timeout = TimeSpan.FromSeconds(1
 builder.Services.AddSingleton<GoogleAuthService>();
 builder.Services.AddHttpClient("turnstile", c => c.Timeout = TimeSpan.FromSeconds(5));
 builder.Services.AddSingleton<TurnstileService>();
+// Web Push goes to user-supplied endpoints: never follow redirects (see WebPushService).
+builder.Services.AddHttpClient("webpush", c => c.Timeout = TimeSpan.FromSeconds(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddSingleton<WebPushService>();
 builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 
 // The web tier always applies verdicts + notifies. It runs the compute worker itself only
