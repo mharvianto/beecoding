@@ -26,7 +26,7 @@ public class PreferencesController(AppDbContext db) : ApiControllerBase
     private static readonly HashSet<string> Keys = new()
     {
         "beecoding.theme", "beecoding.tableView", "beecoding.boardView", "beecoding.playground.focus",
-        "beecoding.lang", "beecoding.aiLang",
+        "beecoding.lang", "beecoding.aiLang", "beecoding.notify.browser",
         "beecoding.editor.theme", "beecoding.editor.fontFamily", "beecoding.editor.fontSize",
         "beecoding.editor.customTheme", "beecoding.editor.customThemeName", "beecoding.editor.cppFormatStyle", "beecoding.editor.lsp", "beecoding.editor.snippets",
         "beecoding.account.engagementGranularity",

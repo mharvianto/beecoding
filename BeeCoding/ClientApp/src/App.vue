@@ -14,7 +14,7 @@ import MfaOfferBanner from './components/MfaOfferBanner.vue';
 import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
 import { onSignedIn, onSignedOut } from './lib/prefs';
 import NotificationToast from './components/NotificationToast.vue';
-import { useNotifications } from './stores/notifications';
+import { useNotifications, notificationTarget } from './stores/notifications';
 import { useUndoToast } from './stores/undoToast';
 import { celebrate } from './lib/confetti';
 import { playgroundFocus } from './lib/playgroundFocus';
@@ -52,6 +52,7 @@ watch(activeUserId, (id) => (id ? progress.refresh() : progress.reset()), { imme
 // Bell + live toasts for reactions/comments on my wall posts. No toast when the user is
 // already on the board it's about — the card itself shows the new feedback there.
 notifications.suppressToast = (n) => route.path === `/boards/${n.boardSlug}`;
+notifications.onBrowserClick = (n) => { notifications.markRead(n); router.push(notificationTarget(n)); };
 // The teacher removed this user from a board: if they're inside it, send them back to the list.
 notifications.onMemberRemoved = (e) => {
   if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');

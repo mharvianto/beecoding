@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { useProblemReports } from './problemReports';
 import { api } from '../lib/api';
 import { createBoardConnection } from '../lib/signalr';
+import { showBrowserNotification } from '../lib/browserNotify';
 
 const TOAST_MS = 6000;
 
@@ -17,6 +18,7 @@ export const useNotifications = defineStore('notifications', {
     conn: null,
     suppressToast: null,   // (item) => boolean
     onMemberRemoved: null, // ({ boardId, boardSlug, boardTitle }) => void — set by App.vue
+    onBrowserClick: null,  // (item) => void — opens the notification's target; set by App.vue
   }),
   actions: {
     async load() {
@@ -50,6 +52,7 @@ export const useNotifications = defineStore('notifications', {
       if (item.kind === 'report') useProblemReports().refresh();   // keep the open-reports count in the user menu current
       this.items = [item, ...this.items.filter((n) => n.id !== item.id)].slice(0, 30);
       this.unread = unread;
+      showBrowserNotification({ id: item.id, title: item.problemTitle || 'BeeCoding', body: notificationText(item) }, () => this.onBrowserClick?.(item));
       if (this.suppressToast?.(item)) return;
       this.toasts = [item, ...this.toasts.filter((t) => t.id !== item.id)].slice(0, 3);
       setTimeout(() => this.dismissToast(item.id), TOAST_MS);

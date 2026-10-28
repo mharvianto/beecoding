@@ -10,6 +10,7 @@ import MfaSettings from '../components/MfaSettings.vue';
 import ConnectedAccounts from '../components/ConnectedAccounts.vue';
 import PasskeySettings from '../components/PasskeySettings.vue';
 import SnippetSettings from '../components/SnippetSettings.vue';
+import BrowserNotificationSettings from '../components/BrowserNotificationSettings.vue';
 import { localDayKey } from '../lib/localDay';
 
 const auth = useAuth();
@@ -342,6 +343,7 @@ async function deleteAccount(force = false) {
           <p v-if="nameErr" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
           <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ nameMsg }}</p>
         </section>
+        <BrowserNotificationSettings />
         </div>
 
         <!-- Editor -->
