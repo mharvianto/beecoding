@@ -738,7 +738,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                 maxTokens: Math.Max(4000, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
-                _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
+                _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "a solution");
             try
             {
                 using var doc = ParseJsonObjectLoose(content, "check-problem");
@@ -805,7 +805,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                 maxTokens: Math.Max(2500, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
-                _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
+                _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "its assessment");
             try
             {
                 using var doc = ParseJsonObjectLoose(content, "triage-report");
@@ -939,7 +939,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
     /// caller can retry instead of parsing a half-written JSON payload.
     /// </summary>
     private async Task<(string Text, int Prompt, int Completion, bool Complete)> CollectStreamAsync(
-        HttpRequestMessage req, string estPromptText, int idleSeconds, int hardSeconds, CancellationToken ct)
+        HttpRequestMessage req, string estPromptText, int idleSeconds, int hardSeconds, CancellationToken ct,
+        string what = "the problem")
     {
         idleSeconds = Math.Max(10, idleSeconds);
         using var hard = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -950,7 +951,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         HttpResponseMessage resp;
         try { resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, idle.Token); }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-        { throw new AiUnavailableException("The AI took too long to start writing the problem."); }
+        { throw new AiUnavailableException($"The AI took too long to start writing {what} — try again in a moment."); }
         catch (HttpRequestException ex)
         { _log.LogWarning(ex, "AI generate stream request failed"); throw new AiUnavailableException("Couldn't reach the AI."); }
 
@@ -976,7 +977,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                 string? line;
                 try { line = await reader.ReadLineAsync(idle.Token); }
                 catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-                { throw new AiUnavailableException("The AI stalled while writing the problem."); }
+                { throw new AiUnavailableException($"The AI stalled while writing {what} — try again."); }
                 if (line is null) break;   // stream ended — `complete` says whether that was clean
 
                 idle.CancelAfter(TimeSpan.FromSeconds(idleSeconds));   // got bytes -> reset the idle window

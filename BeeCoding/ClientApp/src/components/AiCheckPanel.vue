@@ -36,7 +36,7 @@ async function run() {
   error.value = ''; result.value = null; busy.value = true;
   try {
     const { jobId } = await api.post(triage ? `/api/ai/triage-report/${props.id}` : `/api/ai/check-problem/bank/${props.id}`);
-    for (let n = 0; n < 150 && !stopped; n++) {   // ~5 min ceiling
+    for (let n = 0; n < 240 && !stopped; n++) {   // ~8 min ceiling: triage is two sequential AI calls
       await new Promise((r) => setTimeout(r, 2000));
       if (stopped) return;
       let r;
@@ -66,11 +66,11 @@ const ACTION = {
 </script>
 
 <template>
-  <div v-if="available">
+  <div v-if="available" class="min-w-0">
     <button @click="run" :disabled="busy" class="row-action-btn row-action-btn--accent disabled:opacity-50">
       <span>🤖</span><span>{{ busy ? (triage ? 'Triaging…' : 'Checking…') : (triage ? 'AI triage' : 'AI check') }}</span>
     </button>
-    <pre v-if="error" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-40 overflow-auto mt-2">{{ error }}</pre>
+    <pre v-if="error" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words max-h-40 overflow-auto mt-2">{{ error }}</pre>
     <div v-if="result" class="mt-2 border border-violet-200 dark:border-violet-500/30 rounded-lg p-3 bg-violet-50/40 dark:bg-violet-500/5 space-y-2 text-xs">
       <template v-if="triage">
         <div class="flex items-center gap-2 flex-wrap">

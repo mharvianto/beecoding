@@ -29,6 +29,10 @@ public class AiOptions
     /// steady model finishes; a stalled one fails fast.</summary>
     public int GenerateIdleTimeoutSeconds { get; set; } = 45;
 
+    /// <summary>Idle window for the admin AI check / report triage. These ask the model to actually solve the problem,
+    /// so the first byte can take much longer than when it merely writes one.</summary>
+    public int CheckIdleTimeoutSeconds { get; set; } = 120;
+
     /// <summary>Pass <c>chat_template_kwargs.thinking</c> to the model (slower, more thorough).</summary>
     public bool Thinking { get; set; }
 

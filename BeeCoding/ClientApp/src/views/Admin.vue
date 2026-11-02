@@ -1655,7 +1655,7 @@ onMounted(async () => {
       </div>
       <div v-for="row in aiReview" :key="row.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3">
         <div class="flex items-start justify-between gap-2 flex-wrap">
-          <div>
+          <div class="min-w-0 break-words">
             <div class="font-semibold text-sm">{{ row.title }}</div>
             <div class="text-[11px] text-slate-400 dark:text-slate-500">
               by {{ row.ownerName }} ({{ row.ownerEmail }}) · {{ row.level }} · {{ row.tags || 'no tags' }} ·
@@ -1664,17 +1664,17 @@ onMounted(async () => {
               created {{ when(row.createdAt) }}
             </div>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
+          <div class="flex items-center gap-2 flex-wrap">
             <button @click="expandedReview = expandedReview === row.slug ? null : row.slug"
                     class="row-action-btn">
               {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
             </button>
-            <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" />
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✓ Approve &amp; share
             </button>
           </div>
         </div>
+        <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" class="mt-2" />
 
         <div v-if="expandedReview === row.slug" class="mt-3 space-y-3">
           <div class="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 max-h-64 overflow-auto">
@@ -1687,9 +1687,9 @@ onMounted(async () => {
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto mt-1">expected: {{ t.expectedStdout }}</pre>
             </div>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
             <input v-model="rejectReasonDraft[row.slug]" placeholder="Reason (optional, goes in the audit log)"
-                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                   class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <button @click="rejectAiReview(row)" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✕ Reject (stays private)
             </button>
