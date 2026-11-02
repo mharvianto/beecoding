@@ -24,6 +24,12 @@ public record AiHintDto(
     string? TeacherCode = null,         // the teacher's current live buffer, for context / "explain this"
     bool Explain = false);              // student asked to explain the teacher's code
 
+/// <summary>One stored test as the AI check saw it. Verdict: "match" | "mismatch" | "error".</summary>
+public record AiCheckTestDto(int Index, bool IsSample, string Verdict, string? Expected, string? Actual, string? Detail);
+/// <summary>Result of the admin-only independent re-solve (see AiController.CheckBankProblem).</summary>
+public record AiCheckDto(string Title, string Language, string ReferenceSolution, int Matched, int Mismatched, int Errored,
+    string Summary, List<AiCheckTestDto> Tests);
+
 public record AiGenerateDto(string? Idea, string? Level, string? Language, int? Count, string? Lang);
 
 [ApiController]
@@ -31,7 +37,8 @@ public record AiGenerateDto(string? Idea, string? Level, string? Language, int? 
 [Route("api/ai")]
 public class AiController(AppDbContext db, BoardService boards, AiTutorService ai,
     AiUsageService usage, AiHintProgressService prog, OrgResolver orgs, IJudgeQueue queue, IOptions<AiOptions> opt,
-    IAiJobStore jobs, IServiceScopeFactory scopes, ILogger<AiController> log, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
+    IAiJobStore jobs, IServiceScopeFactory scopes, ILogger<AiController> log, PlatformRuntimeConfig runtimeConfig,
+    AdminAccess admin) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -45,6 +52,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     private readonly IServiceScopeFactory _scopes = scopes;
     private readonly ILogger<AiController> _log = log;
     private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
+    private readonly AdminAccess _admin = admin;
 
     private static readonly ConcurrentDictionary<int, long> _last = new();
 
@@ -95,6 +103,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     }
 
     [HttpGet("generate-problem/{id:guid}")]
+    [HttpGet("check-problem/{id:guid}")]
     public async Task<IActionResult> GenerateProblemStatus(Guid id)
     {
         var job = await _jobs.GetAsync(id.ToString("N"));
@@ -208,6 +217,120 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         {
             _log.LogError(ex, "generate-problem job {Job} failed", jobId);
             await Fail("Generation failed unexpectedly — try again.");
+        }
+    }
+
+    // ---- admin review aid: independent re-solve ---------------------------------
+
+    private sealed record CheckInput(string Title, string Statement, string AllowedLanguages, int TimeLimitMs, int MemoryLimitKb,
+        List<(string Stdin, string Expected, bool IsSample)> Tests);
+
+    /// <summary>
+    /// Admin-only. The AI sees only a problem's statement and writes its own solution; the judge runs it on every
+    /// stored test input and the outputs are compared with the stored expected outputs. A difference means the
+    /// stored output is wrong or the statement is ambiguous (or the AI erred) — advisory, an admin decides.
+    /// </summary>
+    [HttpPost("check-problem/bank/{bankProblemId:int}")]
+    public async Task<IActionResult> CheckBankProblem(int bankProblemId)
+    {
+        if (!IsAdminUser(_admin)) return Forbid();
+        return await StartCheckAsync(await LoadBankCheckInputAsync(bankProblemId));
+    }
+
+    /// <summary>Same check for the problem a report is about (practice or board problem).</summary>
+    [HttpPost("check-problem/report/{reportId:int}")]
+    public async Task<IActionResult> CheckReportedProblem(int reportId)
+    {
+        if (!IsAdminUser(_admin)) return Forbid();
+        var r = await _db.ProblemReports.Where(x => x.Id == reportId).Select(x => new { x.BankProblemId, x.ProblemId }).FirstOrDefaultAsync();
+        if (r is null) return NotFound();
+        if (r.BankProblemId is int bid) return await StartCheckAsync(await LoadBankCheckInputAsync(bid));
+
+        var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == r.ProblemId);
+        return await StartCheckAsync(p is null ? null : new CheckInput(p.Title, p.StatementMarkdown, p.AllowedLanguages, p.TimeLimitMs, p.MemoryLimitKb,
+            p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList()));
+    }
+
+    private async Task<CheckInput?> LoadBankCheckInputAsync(int id)
+    {
+        var b = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == id);
+        return b is null ? null : new CheckInput(b.Title, b.StatementMarkdown, b.AllowedLanguages, b.TimeLimitMs, b.MemoryLimitKb,
+            b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList());
+    }
+
+    private async Task<IActionResult> StartCheckAsync(CheckInput? input)
+    {
+        if (input is null) return NotFound();
+        if (input.Tests.Count == 0) return BadRequest("This problem has no tests to check.");
+        var orgId = await _orgs.ForUserAsync(UserId);
+        _ai.UseOrganization(orgId);
+        if (!_ai.Available) return NotFound();
+        if (RateLimited()) return StatusCode(StatusCodes.Status429TooManyRequests, "Give the AI a few seconds.");
+        var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
+        if (!allowed) return StatusCode(StatusCodes.Status429TooManyRequests, reason);
+        if (await _jobs.RunningForAsync(UserId) >= 2)
+            return StatusCode(StatusCodes.Status429TooManyRequests, "You already have AI jobs running — wait for those to finish.");
+
+        var job = await _jobs.CreateAsync(UserId);
+        _ = Task.Run(() => RunCheckAsync(job.Id, UserId, input, orgId));
+        return Accepted(new { jobId = job.Id });
+    }
+
+    private async Task RunCheckAsync(string jobId, int userId, CheckInput input, int? organizationId)
+    {
+        Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
+            _jobs.FailAsync(jobId, msg, compilerOutput, stderr);
+        try
+        {
+            using var scope = _scopes.CreateScope();
+            var sp = scope.ServiceProvider;
+            var ai = sp.GetRequiredService<AiTutorService>();
+            ai.UseOrganization(organizationId);
+            var usage = sp.GetRequiredService<AiUsageService>();
+            var queue = sp.GetRequiredService<IJudgeQueue>();
+            var ct = CancellationToken.None;
+
+            var lang = Languages.Default(input.AllowedLanguages);
+            AiTutorService.AiCheckResult gen;
+            try { gen = await ai.SolveForCheckAsync(input.Statement, lang, ct); }
+            catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
+            await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
+
+            var tests = input.Tests.Take(30).ToList();
+            RunResultDto[] results;
+            try
+            {
+                results = await Task.WhenAll(tests.Select(t =>
+                    queue.EnqueueRunAsync(lang, gen.ReferenceSolution, t.Stdin, input.TimeLimitMs, input.MemoryLimitKb, ct: ct)));
+            }
+            catch { await Fail("Timed out running the AI's solution."); return; }
+
+            static string Clip(string s) => s.Length > 400 ? s[..400] + "…" : s;
+            var rows = new List<AiCheckTestDto>();
+            for (int i = 0; i < tests.Count; i++)
+            {
+                var r = results[i];
+                if (!r.CompileOk) { await Fail("The AI's solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
+                var (_, expected, isSample) = tests[i];
+                if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
+                    rows.Add(new(i + 1, isSample, "error", null, null, r.TimedOut ? "The AI's solution timed out." : "The AI's solution crashed."));
+                else if (VerdictEvaluator.OutputMatches(r.Stdout ?? "", expected))
+                    rows.Add(new(i + 1, isSample, "match", null, null, null));
+                else
+                    rows.Add(new(i + 1, isSample, "mismatch", Clip(expected), Clip(r.Stdout ?? ""), null));
+            }
+            int matched = rows.Count(x => x.Verdict == "match"), mismatched = rows.Count(x => x.Verdict == "mismatch"), errored = rows.Count(x => x.Verdict == "error");
+            var summary = mismatched == 0 && errored == 0
+                ? $"The AI's independent solution reproduced all {matched} stored outputs."
+                : $"The AI's solution differs from {mismatched + errored} of {rows.Count} stored tests — either those expected outputs are wrong, the statement is ambiguous, or the AI erred. Look at them before deciding.";
+            if (input.Tests.Count > tests.Count) summary += $" (Only the first {tests.Count} of {input.Tests.Count} tests were checked.)";
+
+            await _jobs.CompleteAsync(jobId, new AiCheckDto(input.Title, lang, gen.ReferenceSolution, matched, mismatched, errored, summary, rows));
+        }
+        catch (Exception ex)
+        {
+            _log.LogError(ex, "check-problem job {Job} failed", jobId);
+            await Fail("The check failed unexpectedly — try again.");
         }
     }
 

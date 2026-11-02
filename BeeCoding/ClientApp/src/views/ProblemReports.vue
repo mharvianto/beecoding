@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router';
 import { api } from '../lib/api';
 import { useUrlQuery } from '../lib/urlQuery';
 import { useProblemReports } from '../stores/problemReports';
+import AiCheckPanel from '../components/AiCheckPanel.vue';
 
 // "This problem is wrong" reports for the signed-in teacher's own problems (a platform admin sees all of them).
 const route = useRoute();
@@ -125,6 +126,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
             <button @click="startReview(r, 'Dismissed')" class="row-action-btn">✕ Dismiss</button>
           </template>
           <button v-else @click="startReview(r, 'Open')" class="row-action-btn">↺ Reopen</button>
+          <AiCheckPanel kind="report" :id="r.id" class="w-full" />
         </div>
       </article>
     </div>

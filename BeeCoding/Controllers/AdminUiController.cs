@@ -1388,7 +1388,7 @@ public class AdminUiController(
             b.AllowedLanguages, b.StatementMarkdown, b.TimeLimitMs, b.MemoryLimitKb,
             b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => new AdminAiReviewTest(t.Stdin, t.ExpectedStdout, t.IsSample)).ToList(),
-            b.CreatedAt)).ToList();
+            b.CreatedAt, b.Id)).ToList();
     }
 
     /// <summary>Approve: publish it to the shared bank, as originally intended.</summary>

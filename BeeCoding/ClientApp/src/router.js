@@ -14,7 +14,7 @@ const routes = [
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
   { path: '/join/:code', component: () => import('./views/JoinBoard.vue'), props: true },
   { path: '/bank', component: () => import('./views/Bank.vue') },
-  { path: '/reports/problems', component: () => import('./views/ProblemReports.vue'), meta: { teacherOnly: true } },
+  { path: '/reports/problems', component: () => import('./views/ProblemReports.vue'), meta: { teacherOnly: true, adminToo: true } },
   { path: '/bank/new', component: () => import('./views/ProblemEdit.vue') },
   { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true },
   { path: '/practice', component: () => import('./views/Practice.vue') },
@@ -53,6 +53,6 @@ router.beforeEach(async (to) => {
   if (to.meta.public) return true;                       // privacy / terms — anyone
   if (!to.meta.anon && !auth.user) return { path: '/login', query: { r: to.fullPath } };
   if (to.meta.anon && auth.user) return { path: '/boards' };
-  if (to.meta.teacherOnly && !auth.isTeacher) return { path: '/boards' };
+  if (to.meta.teacherOnly && !auth.isTeacher && !(to.meta.adminToo && auth.user?.isAdmin)) return { path: '/boards' };
   return true;
 });

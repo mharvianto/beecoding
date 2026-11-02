@@ -323,7 +323,7 @@ public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSamp
 public record AdminAiReviewRow(
     string Slug, string Title, string OwnerEmail, string OwnerName, string Level, string Tags,
     string AllowedLanguages, string StatementMarkdown, int TimeLimitMs, int MemoryLimitKb,
-    List<AdminAiReviewTest> Tests, DateTime CreatedAt);
+    List<AdminAiReviewTest> Tests, DateTime CreatedAt, int Id = 0);
 public record AdminAiReviewActionDto(string? Reason);
 
 // ---- Admin: AI kill-switch, quotas, per-user overrides ----

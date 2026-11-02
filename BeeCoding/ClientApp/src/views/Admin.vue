@@ -11,6 +11,7 @@ import SortTh from '../components/SortTh.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
+import AiCheckPanel from '../components/AiCheckPanel.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
@@ -1668,6 +1669,7 @@ onMounted(async () => {
                     class="row-action-btn">
               {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
             </button>
+            <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" />
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✓ Approve &amp; share
             </button>
