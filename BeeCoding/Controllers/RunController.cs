@@ -61,7 +61,7 @@ public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOp
     {
         if (bankProblemId is int bid)
         {
-            var b = await _db.BankProblems.Where(b => b.Id == bid && b.IsPublic)
+            var b = await _db.BankProblems.Where(b => b.Id == bid && (b.IsPublic || b.OwnerId == UserId))
                 .Select(b => new { b.BannedHeaders, b.BannedSymbols, b.AllowedLanguages, b.InputFileName }).FirstOrDefaultAsync();
             return b is null ? (null, null, null, null) : (b.BannedHeaders, b.BannedSymbols, b.AllowedLanguages, b.InputFileName);
         }

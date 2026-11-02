@@ -75,11 +75,11 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
 
     public async Task<int> UnreadCountAsync(int userId) => await UnreadQuery(userId).CountAsync();
 
-    /// <summary>Rows that still make sense to show: report notifications always, wall ones while their board and
+    /// <summary>Rows that still make sense to show: report/proposal notifications always, wall ones while their board and
     /// problem still exist (soft-deleted ones are hidden).</summary>
     public IQueryable<Notification> VisibleQuery(int userId) =>
         _db.Notifications.Where(n => n.UserId == userId
-            && (n.ReportId != null || (_db.Boards.Any(b => b.Id == n.BoardId) && _db.Problems.Any(p => p.Id == n.ProblemId))));
+            && (n.ReportId != null || n.ProposalId != null || (_db.Boards.Any(b => b.Id == n.BoardId) && _db.Problems.Any(p => p.Id == n.ProblemId))));
 
     public IQueryable<Notification> UnreadQuery(int userId) => VisibleQuery(userId).Where(n => n.ReadAt == null);
 
@@ -87,11 +87,11 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task<List<NotificationDto>> ListAsync(int userId, int take)
     {
         var rows = await VisibleQuery(userId).OrderByDescending(n => n.CreatedAt).Take(take).ToListAsync();
-        var boardIds = rows.Where(n => n.ReportId == null).Select(n => n.BoardId).Distinct().ToList();
-        var problemIds = rows.Where(n => n.ReportId == null).Select(n => n.ProblemId).Distinct().ToList();
+        var boardIds = rows.Where(n => n.ReportId == null && n.ProposalId == null).Select(n => n.BoardId).Distinct().ToList();
+        var problemIds = rows.Where(n => n.ReportId == null && n.ProposalId == null).Select(n => n.ProblemId).Distinct().ToList();
         var boards = await _db.Boards.Where(b => boardIds.Contains(b.Id)).Select(b => new { b.Id, b.Slug, b.Title }).ToDictionaryAsync(b => b.Id);
         var problems = await _db.Problems.Where(p => problemIds.Contains(p.Id)).Select(p => new { p.Id, p.Title }).ToDictionaryAsync(p => p.Id);
-        return rows.Select(n => n.ReportId != null
+        return rows.Select(n => n.ReportId != null || n.ProposalId != null
             ? ToDto(n, "", "", n.TargetTitle ?? "")
             : ToDto(n, boards[n.BoardId].Slug, boards[n.BoardId].Title, problems[n.ProblemId].Title)).ToList();
     }
@@ -131,6 +131,48 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         await PushAsync(n);
     }
 
+    // ---- problem proposals / practice review -------------------------------
+
+    /// <summary>A member proposed a problem for a board: tell the board owner.</summary>
+    public async Task ProposalFiledAsync(ProblemProposal proposal, int ownerId, string proposerName, string problemTitle, string link)
+    {
+        if (ownerId == proposal.ProposerId) return;
+        var n = new Notification
+        {
+            UserId = ownerId, Kind = "proposal", ProposalId = proposal.Id, ActorUserId = proposal.ProposerId, ActorName = Trim(proposerName, 120),
+            Emoji = "💡", TargetTitle = Trim(problemTitle, 200), Link = link,
+            Snippet = string.IsNullOrWhiteSpace(proposal.Note) ? null : Trim(proposal.Note, 200),
+        };
+        _db.Notifications.Add(n);
+        await _db.SaveChangesAsync();
+        await PushAsync(n);
+    }
+
+    /// <summary>The board owner approved or declined a proposal: tell the proposer.</summary>
+    public async Task ProposalReviewedAsync(ProblemProposal proposal, int reviewerId, string reviewerName, string problemTitle, string link) =>
+        await ReviewedAsync("proposal-update", proposal.Id, proposal.ProposerId, reviewerId, reviewerName, problemTitle, link,
+            proposal.Status == ProposalStatus.Approved, proposal.ReviewNote);
+
+    /// <summary>An admin approved or rejected a practice submission: tell its owner. Not tied to a
+    /// proposal row, so ProposalId is 0 (non-null is what makes the bell show a board-less row).</summary>
+    public async Task PracticeReviewedAsync(int ownerId, int reviewerId, string reviewerName, string problemTitle, bool approved, string? note) =>
+        await ReviewedAsync("practice-review", 0, ownerId, reviewerId, reviewerName, problemTitle, "/bank", approved, note);
+
+    private async Task ReviewedAsync(string kind, int proposalId, int toUserId, int reviewerId, string reviewerName,
+        string problemTitle, string link, bool approved, string? note)
+    {
+        if (toUserId == reviewerId) return;
+        var n = new Notification
+        {
+            UserId = toUserId, Kind = kind, ProposalId = proposalId, ActorUserId = reviewerId, ActorName = Trim(reviewerName, 120),
+            Emoji = approved ? "✅" : "✖️", TargetTitle = Trim(problemTitle, 200), Link = link,
+            Snippet = string.IsNullOrWhiteSpace(note) ? null : Trim(note, 200),
+        };
+        _db.Notifications.Add(n);
+        await _db.SaveChangesAsync();
+        await PushAsync(n);
+    }
+
     private Task<Notification?> UnreadReactionAsync(Post post) =>
         _db.Notifications.FirstOrDefaultAsync(x =>
             x.UserId == post.UserId && x.PostId == post.Id && x.Kind == "reaction" && x.ReadAt == null);
@@ -152,7 +194,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
 
     private async Task<NotificationDto?> ToDtoAsync(Notification n)
     {
-        if (n.ReportId != null) return ToDto(n, "", "", n.TargetTitle ?? "");
+        if (n.ReportId != null || n.ProposalId != null) return ToDto(n, "", "", n.TargetTitle ?? "");
         var ctx = await (from b in _db.Boards
                          join p in _db.Problems on n.ProblemId equals p.Id
                          where b.Id == n.BoardId

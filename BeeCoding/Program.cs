@@ -367,6 +367,7 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
     runtimeConfig.Set(platformRuntime.LspEnabled, platformRuntime.JudgeRateLimitMs);
+    runtimeConfig.SetStudentMaxProblems(platformRuntime.StudentMaxProblems);
     runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }
 

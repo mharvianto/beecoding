@@ -7,6 +7,7 @@ import LevelBadge from '../components/LevelBadge.vue';
 import BankPicker from '../components/BankPicker.vue';
 import GroupEditor from '../components/GroupEditor.vue';
 import ExportMenu from '../components/ExportMenu.vue';
+import MarkdownBlock from '../components/MarkdownBlock.vue';
 import { useConfirmDialog } from '../stores/confirmDialog';
 
 const props = defineProps({ slug: { type: String, required: true } });
@@ -49,9 +50,43 @@ async function loadOpenReports() {
   try { openReports.value = (await api.get('/api/problem-reports/open-counts')).board || {}; } catch { /* no badges */ }
 }
 
+// Problems that board members proposed from their own bank (owner only). Approving copies one onto
+// the board as a hidden problem, so nothing reaches students until the owner unhides it.
+const proposals = ref([]);
+const openProposal = ref(null);     // id whose statement/tests are expanded
+const rejecting = ref(null);        // { id, reason }
+const proposalBusy = ref(false);
+const pendingProposals = computed(() => proposals.value.filter((p) => p.status === 'Pending'));
+const answeredProposals = computed(() => proposals.value.filter((p) => p.status !== 'Pending'));
+
+async function loadProposals() {
+  try { proposals.value = await api.get(`/api/boards/${props.slug}/proposals`); } catch { /* panel stays empty */ }
+}
+
+async function approveProposal(p) {
+  error.value = ''; proposalBusy.value = true;
+  try {
+    await api.post(`/api/boards/${props.slug}/proposals/${p.id}/approve`);
+    await Promise.all([loadProposals(), loadAll()]);
+  } catch (e) { error.value = e.message; }
+  finally { proposalBusy.value = false; }
+}
+
+async function rejectProposal() {
+  const r = rejecting.value;
+  error.value = ''; proposalBusy.value = true;
+  try {
+    await api.post(`/api/boards/${props.slug}/proposals/${r.id}/reject`, { reason: r.reason.trim() || null });
+    rejecting.value = null;
+    await loadProposals();
+  } catch (e) { error.value = e.message; }
+  finally { proposalBusy.value = false; }
+}
+
 onMounted(async () => {
   try { await loadAll(); } catch (e) { error.value = e.message; }
   if (isStaff.value) loadOpenReports();
+  if (board.value?.isOwner) loadProposals();
 });
 
 const filtered = computed(() => {
@@ -243,6 +278,55 @@ async function reorderGroupTo(id, target, pos) {
       </div>
     </div>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+
+    <section v-if="board?.isOwner && proposals.length"
+             class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">
+      <h2 class="text-sm font-semibold mb-2">💡 Proposed problems
+        <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white">{{ pendingProposals.length }}</span>
+      </h2>
+      <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+        Approving adds the problem to this board <b>hidden</b>, with all of its tests — unhide it when you want students to see it.
+      </p>
+      <ul class="space-y-2">
+        <li v-for="p in proposals" :key="p.id"
+            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2">
+          <div class="flex items-start justify-between gap-2 flex-wrap">
+            <div class="min-w-0">
+              <button @click="openProposal = openProposal === p.id ? null : p.id" class="font-medium text-sm text-left hover:underline">{{ p.title }}</button>
+              <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
+                <LevelBadge :level="p.level" /> by {{ p.proposerName }} · {{ p.testCases.length }} tests
+                <span v-if="p.status !== 'Pending'" class="px-1.5 py-0.5 rounded-full"
+                      :class="p.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">
+                  {{ p.status === 'Approved' ? 'approved' : 'declined' }}
+                </span>
+              </div>
+              <p v-if="p.note" class="text-xs text-slate-500 dark:text-slate-400 mt-1">“{{ p.note }}”</p>
+              <p v-if="p.reviewNote" class="text-xs text-rose-600 dark:text-rose-400 mt-1">Declined: {{ p.reviewNote }}</p>
+            </div>
+            <div v-if="p.status === 'Pending'" class="flex items-center gap-1 shrink-0">
+              <button @click="approveProposal(p)" :disabled="proposalBusy" class="row-action-btn row-action-btn--success"><span>✅</span><span>Approve</span></button>
+              <button @click="rejecting = { id: p.id, reason: '' }" :disabled="proposalBusy" class="row-action-btn row-action-btn--danger"><span>✖️</span><span>Decline</span></button>
+            </div>
+          </div>
+          <div v-if="rejecting && rejecting.id === p.id" class="mt-2 flex gap-2 flex-wrap">
+            <input v-model="rejecting.reason" maxlength="300" placeholder="Reason (optional, the student sees it)"
+                   class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+            <button @click="rejectProposal" :disabled="proposalBusy" class="bg-rose-600 text-white rounded-lg px-3 py-1 text-sm">Decline</button>
+            <button @click="rejecting = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
+          </div>
+          <div v-if="openProposal === p.id" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
+            <MarkdownBlock :text="p.statementMarkdown" />
+            <details class="text-xs">
+              <summary class="cursor-pointer text-slate-500 dark:text-slate-400">Tests ({{ p.testCases.length }})</summary>
+              <div v-for="(t, i) in p.testCases" :key="t.id ?? i" class="mt-1 grid grid-cols-2 gap-2">
+                <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.stdin }}</pre>
+                <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.expectedStdout }}</pre>
+              </div>
+            </details>
+          </div>
+        </li>
+      </ul>
+    </section>
 
     <input v-model="q" type="search" placeholder="Search by title or tag..."
            class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 mb-3" />

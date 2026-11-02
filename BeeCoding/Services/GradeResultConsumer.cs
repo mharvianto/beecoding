@@ -136,7 +136,11 @@ public sealed class GradeResultConsumer(
 
         int xp = 0;
         bool solvedNow = sub.Verdict == Verdict.Accepted && sub.Score >= 1.0;
-        if (solvedNow)
+        // A student who wrote the problem (approved from their own submission) earns no XP or streak day
+        // for solving it — they know the answer. Teachers solving their own bank problems are unaffected.
+        bool ownStudentProblem = sub.UserId == problem.OwnerId
+            && await db.Users.AnyAsync(u => u.Id == sub.UserId && u.Role == UserRole.Student, ct);
+        if (solvedNow && !ownStudentProblem)
         {
             xp = await progress.AwardSolveAsync(sub.UserId, ProgressService.BankKey(problem.Id), problem.Level, ct);
             var localDay = sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow);

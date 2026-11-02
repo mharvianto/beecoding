@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<BankProblem> BankProblems => Set<BankProblem>();
     public DbSet<BankTestCase> BankTestCases => Set<BankTestCase>();
     public DbSet<BankSubmission> BankSubmissions => Set<BankSubmission>();
+    public DbSet<ProblemProposal> ProblemProposals => Set<ProblemProposal>();
     public DbSet<SolveRecord> SolveRecords => Set<SolveRecord>();
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
@@ -119,6 +120,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<ProblemReport>().HasIndex(x => new { x.Status, x.CreatedAt });
         b.Entity<ProblemReport>().HasIndex(x => x.BankProblemId);
         b.Entity<ProblemReport>().HasIndex(x => x.ProblemId);
+        b.Entity<ProblemProposal>().HasIndex(x => new { x.BoardId, x.Status });
+        b.Entity<ProblemProposal>().HasIndex(x => x.ProposerId);
+        b.Entity<ProblemProposal>().HasOne(x => x.Proposer).WithMany().HasForeignKey(x => x.ProposerId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProblemProposal>().HasOne(x => x.Board).WithMany().HasForeignKey(x => x.BoardId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<ProblemProposal>().HasOne(x => x.BankProblem).WithMany().HasForeignKey(x => x.BankProblemId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<ProblemReport>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<EmailLoginCode>().HasIndex(x => new { x.UserId, x.CreatedAt });
         b.Entity<EmailLoginCode>()

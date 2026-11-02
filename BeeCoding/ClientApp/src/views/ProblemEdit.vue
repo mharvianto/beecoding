@@ -2,10 +2,12 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
 import ProblemEditor from '../components/ProblemEditor.vue';
 
 const undoToast = useUndoToast();
+const auth = useAuth();
 
 // One page for all four routes:
 //   /bank/new  /bank/:problemSlug/edit
@@ -125,9 +127,10 @@ onMounted(async () => {
     <ProblemEditor v-else
       :problem="problem"
       :show-bank-fields="!isBoard"
+      :student-mode="!isBoard && !auth.isTeacher"
       :error="error"
       :busy="busy"
-      :can-regen-tests="!isBoard && aiEnabled && !!editSlug"
+      :can-regen-tests="!isBoard && auth.isTeacher && aiEnabled && !!editSlug"
       :regen-busy="regenBusy"
       :add-extreme-busy="addExtremeBusy"
       @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"

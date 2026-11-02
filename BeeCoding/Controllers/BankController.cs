@@ -15,17 +15,29 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAccess admin, AuditLog audit) : ApiControllerBase
+public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAccess admin, AuditLog audit, NotificationService notifications, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
 {
+    /// <summary>A student's bank is private to them and only a staging area: nothing reaches practice or a board
+    /// without a reviewer (see SubmitForPractice / ProposeToBoard). These caps keep it from being abused as storage;
+    /// the problem count is admin-configurable (PlatformRuntimeConfig.StudentMaxProblems).</summary>
+    private const int MaxStudentTests = 30;
+    private const int MaxPendingPerUser = 10;
+
     private readonly AppDbContext _db = db;
     private readonly IBoardNotifier _notifier = notifier;
     private readonly AdminAccess _admin = admin;
     private readonly AuditLog _audit = audit;
+    private readonly NotificationService _notifications = notifications;
+    private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
 
-    private IQueryable<BankProblem> Readable() =>
-        _db.BankProblems.Where(b => b.OwnerId == UserId || b.IsPublic);
+    private bool IsStudent => CurrentRole == "Student";
 
-    [Authorize(Roles = "Teacher")]
+    // Students see their own problems only — the shared bank is a teacher feature (practice already
+    // lists the public ones to them).
+    private IQueryable<BankProblem> Readable() => IsStudent
+        ? _db.BankProblems.Where(b => b.OwnerId == UserId)
+        : _db.BankProblems.Where(b => b.OwnerId == UserId || b.IsPublic);
+
     [HttpGet("api/bank")]
     public async Task<ActionResult<IEnumerable<BankSummaryDto>>> List(
         [FromQuery] string? q, [FromQuery] string? tag, [FromQuery] string? scope,
@@ -34,7 +46,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         var query = (scope ?? "all").ToLowerInvariant() switch
         {
             "mine" => _db.BankProblems.Where(b => b.OwnerId == UserId),
-            "public" => _db.BankProblems.Where(b => b.IsPublic && b.OwnerId != UserId),
+            "public" => _db.BankProblems.Where(b => !IsStudent && b.IsPublic && b.OwnerId != UserId),
             _ => Readable(),
         };
 
@@ -64,7 +76,6 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         return rows.Select(b => Mapping.ToSummary(b, UserId)).ToList();
     }
 
-    [Authorize(Roles = "Teacher")]
     [HttpGet("api/bank/{slug}")]
     public async Task<ActionResult<BankProblemDto>> Get(string slug)
     {
@@ -75,12 +86,19 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         return b is null ? NotFound() : Mapping.ToDto(b, UserId);
     }
 
-    [Authorize(Roles = "Teacher")]
     [HttpPost("api/bank")]
     public async Task<ActionResult<BankProblemDto>> Create(UpsertBankProblemDto dto)
     {
+        if (IsStudent)
+        {
+            var max = _runtimeConfig.StudentMaxProblems;
+            if (await _db.BankProblems.CountAsync(x => x.OwnerId == UserId) >= max)
+                return Conflict(max == 0 ? "Students can't create problems right now." : $"You can keep up to {max} problems in your bank — delete one first.");
+            if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
+        }
         var b = new BankProblem { OwnerId = UserId };
         Apply(b, dto);
+        if (IsStudent) b.IsPublic = false;   // a student never publishes directly
         _db.BankProblems.Add(b);
         await _db.SaveChangesAsync();
 
@@ -88,7 +106,6 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         return Mapping.ToDto(b, UserId);
     }
 
-    [Authorize(Roles = "Teacher")]
     [HttpPut("api/bank/{slug}")]
     public async Task<ActionResult<BankProblemDto>> Update(string slug, UpsertBankProblemDto dto)
     {
@@ -98,6 +115,16 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
             .FirstOrDefaultAsync(x => x.Slug == slug);
         if (b is null) return NotFound();
         if (b.OwnerId != UserId) return Forbid();
+        if (IsStudent)
+        {
+            // Frozen while a reviewer may be looking at it, and once it is live in practice.
+            if (b.IsPublic || b.PendingReview)
+                return Conflict("This problem is under review or already published, so it can't be edited.");
+            if (await _db.ProblemProposals.AnyAsync(x => x.BankProblemId == b.Id && x.Status == ProposalStatus.Pending))
+                return Conflict("This problem has a pending board proposal, so it can't be edited.");
+            if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
+        }
+        bool wasPublic = b.IsPublic;
 
         // Captured before Apply() adds any brand-new TestCase rows to b.TestCases — those
         // start with Id 0 (not yet persisted) and must never reach the removal filter below,
@@ -105,6 +132,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         var existingIds = b.TestCases.Select(t => t.Id).ToHashSet();
 
         Apply(b, dto);
+        if (IsStudent) b.IsPublic = wasPublic;
         if (dto.TestCases is not null)
         {
             var keep = dto.TestCases.Where(t => t.Id is > 0).Select(t => t.Id!.Value).ToHashSet();
@@ -145,6 +173,76 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "restore", "BankProblem", b.Id, b.Title);
         return NoContent();
+    }
+
+    /// <summary>Ask for the problem to be published to practice. An admin reviews it in the same queue as AI-generated
+    /// problems (Admin → review); until then it stays private to its owner.</summary>
+    [HttpPost("api/bank/{slug}/submit-practice")]
+    public async Task<IActionResult> SubmitForPractice(string slug)
+    {
+        var b = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
+        if (b is null) return NotFound();
+        if (b.OwnerId != UserId) return Forbid();
+        if (b.IsPublic) return Conflict("This problem is already public.");
+        if (b.PendingReview) return Conflict("This problem is already waiting for review.");
+        if (string.IsNullOrWhiteSpace(b.Title) || string.IsNullOrWhiteSpace(b.StatementMarkdown))
+            return BadRequest("Add a title and a statement first.");
+        if (b.TestCases.Count == 0) return BadRequest("Add at least one test case first.");
+        if (await _db.BankProblems.CountAsync(x => x.OwnerId == UserId && x.PendingReview) >= MaxPendingPerUser)
+            return Conflict($"You already have {MaxPendingPerUser} problems waiting for review.");
+
+        b.PendingReview = true;
+        b.ReviewNote = null;
+        b.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Ask the owner of a board you belong to to add this problem to it. They approve or decline from the
+    /// board's Problems page; approval copies it onto the board, hidden.</summary>
+    [HttpPost("api/bank/{slug}/propose/{boardSlug}")]
+    public async Task<IActionResult> ProposeToBoard(string slug, string boardSlug, ProposeDto dto)
+    {
+        var b = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
+        if (b is null) return NotFound();
+        if (b.OwnerId != UserId) return Forbid();
+
+        var board = await _db.Boards.FirstOrDefaultAsync(x => x.Slug == boardSlug);
+        if (board is null || !await _db.BoardMemberships.AnyAsync(m => m.BoardId == board.Id && m.UserId == UserId))
+            return NotFound();
+        if (board.OwnerId == UserId) return BadRequest("You own this board — add the problem to it directly.");
+        if (b.TestCases.Count == 0) return BadRequest("Add at least one test case first.");
+        if (await _db.ProblemProposals.AnyAsync(x => x.BankProblemId == b.Id && x.BoardId == board.Id && x.Status == ProposalStatus.Pending))
+            return Conflict("This problem is already proposed to that board.");
+        if (await _db.ProblemProposals.CountAsync(x => x.ProposerId == UserId && x.Status == ProposalStatus.Pending) >= MaxPendingPerUser)
+            return Conflict($"You already have {MaxPendingPerUser} proposals waiting for a reply.");
+
+        var note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
+        var proposal = new ProblemProposal
+        {
+            BankProblemId = b.Id, BoardId = board.Id, ProposerId = UserId,
+            Note = note is { Length: > 300 } ? note[..300] : note,
+        };
+        _db.ProblemProposals.Add(proposal);
+        await _db.SaveChangesAsync();
+
+        var name = await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstAsync();
+        await _notifications.ProposalFiledAsync(proposal, board.OwnerId, name, b.Title, $"/boards/{board.Slug}/problems");
+        return NoContent();
+    }
+
+    /// <summary>The caller's proposals for one of their bank problems, newest first.</summary>
+    [HttpGet("api/bank/{slug}/proposals")]
+    public async Task<ActionResult<IEnumerable<MyProposalDto>>> MyProposals(string slug)
+    {
+        var b = await _db.BankProblems.FirstOrDefaultAsync(x => x.Slug == slug);
+        if (b is null) return NotFound();
+        if (b.OwnerId != UserId) return Forbid();
+
+        return await _db.ProblemProposals.Where(x => x.BankProblemId == b.Id)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new MyProposalDto(x.Id, x.Board!.Slug, x.Board.Title, x.Status.ToString(), x.Note, x.ReviewNote, x.CreatedAt))
+            .ToListAsync();
     }
 
     /// <summary>Copy a bank problem (with all its tests) onto a board the caller owns.</summary>

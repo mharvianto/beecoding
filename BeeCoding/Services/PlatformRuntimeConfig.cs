@@ -17,6 +17,10 @@ public class PlatformRuntimeConfig
     public bool MfaRequireOrgAdmin { get; private set; }
     public bool MfaRequireTeacher { get; private set; }
 
+    public int StudentMaxProblems { get; private set; } = 50;
+
+    public void SetStudentMaxProblems(int max) => StudentMaxProblems = Math.Max(0, max);
+
     public void SetMfaPolicy(bool admin, bool orgAdmin, bool teacher)
     {
         MfaRequireAdmin = admin; MfaRequireOrgAdmin = orgAdmin; MfaRequireTeacher = teacher;

@@ -257,6 +257,10 @@ namespace BeeCoding.Migrations
                     b.Property<bool>("PendingReview")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -834,6 +838,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("ProblemId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("ProposalId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime?>("ReadAt")
                         .HasColumnType("TEXT");
 
@@ -970,6 +977,9 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("MfaRequireTeacher")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("StudentMaxProblems")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1241,6 +1251,49 @@ namespace BeeCoding.Migrations
                         .HasFilter("ProblemId IS NOT NULL");
 
                     b.ToTable("ProblemLikes");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.ProblemProposal", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BoardId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProposerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankProblemId");
+
+                    b.HasIndex("ProposerId");
+
+                    b.HasIndex("BoardId", "Status");
+
+                    b.ToTable("ProblemProposals");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.ProblemReport", b =>
@@ -1965,6 +2018,33 @@ namespace BeeCoding.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.ProblemProposal", b =>
+                {
+                    b.HasOne("BeeCoding.Models.BankProblem", "BankProblem")
+                        .WithMany()
+                        .HasForeignKey("BankProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BeeCoding.Models.Board", "Board")
+                        .WithMany()
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BeeCoding.Models.User", "Proposer")
+                        .WithMany()
+                        .HasForeignKey("ProposerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BankProblem");
+
+                    b.Navigation("Board");
+
+                    b.Navigation("Proposer");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.ProblemReport", b =>

@@ -27,7 +27,7 @@ const confirmDialog = useConfirmDialog();
 const undoToast = useUndoToast();
 const tabDefs = [
   ['dashboard', 'Dashboard'], ['ai', 'AI'], ['users', 'Users'], ['boards', 'Boards'], ['problems', 'Problems'],
-  ['submissions', 'Submissions'], ['plagiarism', 'Plagiarism'], ['review', 'AI review'], ['reports', 'Reports'], ['trash', 'Trash'],
+  ['submissions', 'Submissions'], ['plagiarism', 'Plagiarism'], ['review', 'Problem review'], ['reports', 'Reports'], ['trash', 'Trash'],
   ['audit', 'Audit log'], ['organizations', 'Organizations'], ['lti', 'LTI'],
 ];
 // Deep-linkable: /admin/users etc. — reload/share/bookmark lands on the same tab.
@@ -798,17 +798,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500 });
+const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50 });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; }
     runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -925,7 +925,7 @@ onMounted(async () => {
                 :class="dashboard.pendingAiReview
                   ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 hover:border-amber-400'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Pending AI review</div>
+          <div class="text-xs text-slate-400 dark:text-slate-500">Pending problem review</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.pendingAiReview) }}</div>
         </button>
 
@@ -1646,7 +1646,7 @@ onMounted(async () => {
                            :label-b="plagiarismCompareData.userBName" @close="plagiarismCompareData = null" />
     </section>
 
-    <!-- AI review: AI-generated bank problems held back until approved -->
+    <!-- Problem review: AI-generated and student-submitted bank problems held back until approved -->
     <section v-show="tab === 'review'">
       <div class="flex items-center gap-2 mb-3">
         <button @click="loadAiReview" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
@@ -1660,7 +1660,7 @@ onMounted(async () => {
               by {{ row.ownerName }} ({{ row.ownerEmail }}) · {{ row.level }} · {{ row.tags || 'no tags' }} ·
               {{ row.allowedLanguages ? row.allowedLanguages : 'any language' }} ·
               {{ row.tests.length }} tests ({{ row.tests.filter(t => t.isSample).length }} sample) ·
-              generated {{ when(row.createdAt) }}
+              created {{ when(row.createdAt) }}
             </div>
           </div>
           <div class="flex items-center gap-2 shrink-0">
@@ -1844,7 +1844,7 @@ onMounted(async () => {
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Judge &amp; LSP config <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
+            Judge, LSP &amp; student limits <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
           </h3>
           <div class="flex flex-wrap items-end gap-4">
             <label class="flex items-center gap-2 text-sm">
@@ -1856,6 +1856,11 @@ onMounted(async () => {
               <input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
                      class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
               <span class="text-slate-400 dark:text-slate-500">ms</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm" title="How many problems one student may keep in their own bank. 0 stops students from creating problems.">
+              <span class="text-slate-500 dark:text-slate-400">Max problems per student</span>
+              <input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
+                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
             </label>
             <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"
                     class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">

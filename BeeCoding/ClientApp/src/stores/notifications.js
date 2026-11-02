@@ -93,6 +93,11 @@ export function notificationText(n) {
     const verdict = n.emoji === '✅' ? 'resolved' : 'dismissed';
     return `Your report was ${verdict} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
   }
+  if (n.kind === 'proposal') return `${n.actorName} proposed a problem — ${n.problemTitle}${n.snippet ? `: “${n.snippet}”` : ''}`;
+  if (n.kind === 'proposal-update' || n.kind === 'practice-review') {
+    const what = n.kind === 'proposal-update' ? 'proposal' : 'practice submission';
+    return `Your ${what} “${n.problemTitle}” was ${n.emoji === '✅' ? 'approved' : 'declined'} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
+  }
   const who = n.actorIsStaff ? `${n.actorName} 👨‍🏫` : n.actorName;
   if (n.kind === 'comment') return `${who} commented: “${n.snippet}”`;
   return n.count > 1

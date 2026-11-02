@@ -134,7 +134,7 @@ onBeforeUnmount(() => {
           <RouterLink to="/practice" @click="mobileNavOpen = false">Practice</RouterLink>
           <RouterLink to="/playground" @click="mobileNavOpen = false">Playground</RouterLink>
           <RouterLink to="/leaderboard" @click="mobileNavOpen = false">Leaderboard</RouterLink>
-          <RouterLink v-if="auth.isTeacher" to="/bank" @click="mobileNavOpen = false">Problem bank</RouterLink>
+          <RouterLink to="/bank" @click="mobileNavOpen = false">{{ auth.isTeacher ? 'Problem bank' : 'My problems' }}</RouterLink>
         </nav>
 
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">

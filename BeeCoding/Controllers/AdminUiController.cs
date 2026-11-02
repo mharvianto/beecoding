@@ -29,10 +29,12 @@ public class AdminUiController(
     AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, PlatformRuntimeConfig runtimeConfig,
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
-    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets, MfaService mfa)
+    PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets, MfaService mfa,
+    NotificationService notifications)
     : ApiControllerBase
 {
     private readonly BoardBulkService _bulk = bulk;
+    private readonly NotificationService _notifications = notifications;
     private readonly PasswordResetService _resets = resets;
     private readonly MfaService _mfa = mfa;
     private readonly SysstatService _sysstat = sysstat;
@@ -595,7 +597,8 @@ public class AdminUiController(
             _runtimeConfig.LspEnabled, _runtimeConfig.JudgeRateLimitMs,
             _judgeOpt.MaxConcurrent, _judgeOpt.CompileTimeoutMs, _judgeOpt.QueueCapacity,
             _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb,
-            sysstatInstalled, Environment.MachineName);
+            sysstatInstalled, Environment.MachineName,
+            _runtimeConfig.StudentMaxProblems);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -684,18 +687,21 @@ public class AdminUiController(
     public async Task<ActionResult<AdminRuntimeConfigDto>> SetRuntimeConfig(AdminRuntimeConfigDto dto)
     {
         var rateLimitMs = Math.Clamp(dto.JudgeRateLimitMs, 0, 60_000);
+        var studentMax = Math.Clamp(dto.StudentMaxProblems, 0, 1000);
 
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.LspEnabled = dto.LspEnabled;
         row.JudgeRateLimitMs = rateLimitMs;
+        row.StudentMaxProblems = studentMax;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
         _runtimeConfig.Set(row.LspEnabled, row.JudgeRateLimitMs);
+        _runtimeConfig.SetStudentMaxProblems(row.StudentMaxProblems);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems);
     }
 
     // ---- trash: browse + restore/purge soft-deleted rows ---------------------
@@ -1395,9 +1401,11 @@ public class AdminUiController(
 
         b.PendingReview = false;
         b.IsPublic = true;
+        b.ReviewNote = null;
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "ai-review-approve", "BankProblem", b.Id, b.Title);
+        await NotifyOwnerAsync(b, approved: true, note: null);
         return NoContent();
     }
 
@@ -1409,13 +1417,25 @@ public class AdminUiController(
         if (b is null) return NotFound();
         if (!b.PendingReview) return NoContent();
 
+        var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
         b.PendingReview = false;
         b.IsPublic = false;
+        b.ReviewNote = reason is { Length: > 300 } ? reason[..300] : reason;
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         var label = string.IsNullOrWhiteSpace(dto.Reason) ? b.Title : $"{b.Title}: {dto.Reason}";
         await _audit.RecordAsync(UserId, ActorEmail, "ai-review-reject", "BankProblem", b.Id, label);
+        await NotifyOwnerAsync(b, approved: false, note: b.ReviewNote);
         return NoContent();
+    }
+
+    /// <summary>Tell the owner how their practice submission went. A teacher's AI-generated row is queued
+    /// automatically (nobody "submitted" it), so that stays silent; a student always submits explicitly.</summary>
+    private async Task NotifyOwnerAsync(BankProblem b, bool approved, string? note)
+    {
+        if (b.GeneratedByAi && !await _db.Users.AnyAsync(u => u.Id == b.OwnerId && u.Role == UserRole.Student)) return;
+        var name = await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstAsync();
+        await _notifications.PracticeReviewedAsync(b.OwnerId, UserId, name, b.Title, approved, note);
     }
 
     // ---- analytics export (CSV + Excel) — also usable as grant/report evidence ----

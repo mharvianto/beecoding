@@ -139,13 +139,26 @@ public record BulkAddResult(int BoardsUpdated, int BoardsFailed, List<BulkAddBoa
 public record BankSummaryDto(
     int Id, string Slug, string Title, string AllowedLanguages, string Level, string Tags, bool IsPublic,
     bool Mine, string OwnerName, int TestCount, int SampleCount, DateTime UpdatedAt, bool GeneratedByAi,
-    bool PendingReview);
+    bool PendingReview, string? ReviewNote = null);
 
 public record BankProblemDto(
     int Id, string Slug, string Title, string StatementMarkdown, string AllowedLanguages,
     int TimeLimitMs, int MemoryLimitKb, string Level, string Tags, bool IsPublic, bool GeneratedByAi,
     bool PendingReview, bool Mine, string OwnerName, DateTime UpdatedAt,
-    List<TestCaseDto> TestCases, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null);   // full set only for the owner; samples only otherwise
+    List<TestCaseDto> TestCases, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
+    string? ReviewNote = null);   // full set only for the owner; samples only otherwise
+
+// ---- Student/teacher problem proposals ----
+public record ProposeDto(string? Note);
+public record ProposalReviewDto(string? Reason);
+/// <summary>A proposal as the board owner reviews it (all tests are shown — approving copies them all).</summary>
+public record BoardProposalDto(
+    int Id, string BankSlug, string Title, string Level, string Tags, string StatementMarkdown,
+    string AllowedLanguages, string Status, string ProposerName, string? Note, string? ReviewNote,
+    DateTime CreatedAt, List<TestCaseDto> TestCases);
+/// <summary>A proposal as its proposer sees it.</summary>
+public record MyProposalDto(
+    int Id, string BoardSlug, string BoardTitle, string Status, string? Note, string? ReviewNote, DateTime CreatedAt);
 
 public record UpsertBankProblemDto(
     string Title, string StatementMarkdown, string AllowedLanguages,
@@ -289,14 +302,15 @@ public record AdminSystemStatusDto(
     int JudgeMaxConcurrent, int JudgeCompileTimeoutMs, int JudgeQueueCapacity,
     int LspMaxConcurrent, int LspIdleTimeoutSeconds, int LspMemoryLimitMb,
     // Host-local only — see SysstatService's doc comment on the multi-instance caveat.
-    bool SysstatInstalled, string Hostname);
+    bool SysstatInstalled, string Hostname,
+    int StudentMaxProblems = 50);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
 public record SysstatResultDto(string Hostname, string Metric, List<SysstatPointDto> Points);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
-public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs);
+public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>

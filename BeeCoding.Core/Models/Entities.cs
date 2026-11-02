@@ -351,6 +351,10 @@ public class BankProblem : IHasSlug
     /// <summary>Other teachers may browse and copy it (hidden tests are never sent to them).</summary>
     public bool IsPublic { get; set; }
 
+    /// <summary>Why a reviewer sent the problem back (practice review queue); cleared on resubmit.</summary>
+    [MaxLength(300)]
+    public string? ReviewNote { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
@@ -359,6 +363,37 @@ public class BankProblem : IHasSlug
     public DateTime? DeletedAt { get; set; }
 
     public List<BankTestCase> TestCases { get; set; } = new();
+}
+
+public enum ProposalStatus { Pending, Approved, Rejected }
+
+/// <summary>A board member's request to put one of their bank problems on a board. Approval by
+/// the board owner copies the problem onto the board (hidden), like Bank "copy to board".</summary>
+public class ProblemProposal
+{
+    public int Id { get; set; }
+
+    public int BankProblemId { get; set; }
+    public BankProblem? BankProblem { get; set; }
+
+    public int BoardId { get; set; }
+    public Board? Board { get; set; }
+
+    public int ProposerId { get; set; }
+    public User? Proposer { get; set; }
+
+    public ProposalStatus Status { get; set; } = ProposalStatus.Pending;
+
+    /// <summary>Optional message from the proposer to the board owner.</summary>
+    [MaxLength(300)]
+    public string? Note { get; set; }
+
+    /// <summary>The reviewer's reason when rejected.</summary>
+    [MaxLength(300)]
+    public string? ReviewNote { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? ReviewedAt { get; set; }
 }
 
 public class BankTestCase
@@ -710,6 +745,9 @@ public class Notification
     /// <summary>Set for the two report kinds (which have no board/post: BoardId/ProblemId/PostId stay 0).</summary>
     public int? ReportId { get; set; }
 
+    /// <summary>Set for the problem-proposal / practice-review kinds (also board-less like reports).</summary>
+    public int? ProposalId { get; set; }
+
     /// <summary>The problem's title as it was when the report notification was created.</summary>
     [MaxLength(200)]
     public string? TargetTitle { get; set; }
@@ -966,6 +1004,9 @@ public class PlatformRuntimeSettings
     public bool MfaRequireAdmin { get; set; }
     public bool MfaRequireOrgAdmin { get; set; }
     public bool MfaRequireTeacher { get; set; }
+
+    /// <summary>How many problems a student may keep in their own bank (see BankController). 0 = students can't create any.</summary>
+    public int StudentMaxProblems { get; set; } = 50;
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

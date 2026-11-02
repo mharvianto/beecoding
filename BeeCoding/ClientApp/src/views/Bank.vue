@@ -1,12 +1,16 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import { useAuth } from '../stores/auth';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
 import { useUrlQuery } from '../lib/urlQuery';
 
 const router = useRouter();
+const auth = useAuth();
+// A student's bank is a private drafting space: nothing goes live without a reviewer.
+const student = computed(() => !auth.isTeacher);
 
 const items = ref([]);
 const q = ref('');
@@ -106,6 +110,37 @@ async function loadOpenReports() {
   try { openReports.value = (await api.get('/api/problem-reports/open-counts')).bank || {}; } catch { /* no badges */ }
 }
 
+// ---- student: send a draft for review ----
+const notice = ref('');
+const boards = ref([]);
+const propose = ref(null);   // { slug, boardSlug, note, busy, error }
+
+async function submitPractice(b) {
+  error.value = ''; notice.value = '';
+  if (!confirm(`Send “${b.title}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.`)) return;
+  try {
+    await api.post(`/api/bank/${b.slug}/submit-practice`);
+    notice.value = 'Sent for review — you will get a notification when it is answered.';
+    await load();
+  } catch (e) { error.value = e.message; }
+}
+
+async function openPropose(b) {
+  propose.value = { slug: b.slug, boardSlug: '', note: '', busy: false, error: '' };
+  if (boards.value.length) return;
+  try { boards.value = (await api.get('/api/boards')).filter((x) => !x.isOwner); } catch { /* the select stays empty */ }
+}
+
+async function sendProposal() {
+  const pr = propose.value;
+  pr.error = ''; pr.busy = true;
+  try {
+    await api.post(`/api/bank/${pr.slug}/propose/${pr.boardSlug}`, { note: pr.note.trim() || null });
+    propose.value = null;
+    notice.value = 'Proposal sent to the board owner — you will get a notification when they answer.';
+  } catch (e) { pr.error = e.message; pr.busy = false; }
+}
+
 onMounted(async () => {
   load();
   loadOpenReports();
@@ -133,7 +168,12 @@ onBeforeUnmount(() => { pollStopped = true; });
         </RouterLink>
       </div>
     </div>
-    <p class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+    <p v-if="student" class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+      Write your own problems here — they stay private to you. When one is ready, send it to an admin to
+      publish it in <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>,
+      or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published.
+    </p>
+    <p v-else class="text-sm text-slate-400 dark:text-slate-500 mb-4">
       Your reusable problem library — write a problem once here, then pull it into any
       <RouterLink to="/boards" class="text-amber-600 dark:text-amber-400 hover:underline">board</RouterLink>
       you own. Mark one public and it also joins the pool everyone solves from in
@@ -163,7 +203,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       <p class="text-[11px] text-slate-400 dark:text-slate-500">
         The AI writes the statement + a reference solution; the judge runs that solution against the
         inputs, so the stored expected outputs are the real program output. Saved to your bank as a
-        private draft — review and publish it yourself. This runs in the background — you can leave
+        private draft — review it, then {{ student ? 'submit it for review yourself' : 'publish it yourself' }}. This runs in the background — you can leave
         this page and it will still finish.
       </p>
       <pre v-if="genError" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-40 overflow-auto">{{ genError }}</pre>
@@ -180,7 +220,7 @@ onBeforeUnmount(() => { pollStopped = true; });
     <div class="flex gap-2 mb-4 flex-wrap">
       <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…"
              class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <select v-model="scope" @change="load"
+      <select v-if="!student" v-model="scope" @change="load"
               class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="mine">Mine</option>
         <option value="public">Shared by others</option>
@@ -195,6 +235,7 @@ onBeforeUnmount(() => { pollStopped = true; });
     </div>
 
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="notice" class="text-sm text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <div v-for="b in items" :key="b.id"
@@ -209,6 +250,9 @@ onBeforeUnmount(() => { pollStopped = true; });
             <span v-if="b.pendingReview" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   title="An admin reviews AI-generated problems before they're shared with other teachers">
               ⏳ pending review
+            </span>
+            <span v-else-if="b.isPublic && student" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+              live in Practice
             </span>
             <span v-else-if="b.isPublic" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
               shared
@@ -226,9 +270,32 @@ onBeforeUnmount(() => { pollStopped = true; });
             {{ t }}
           </span>
         </div>
-        <RouterLink v-if="b.mine" :to="`/bank/${b.slug}/edit`" class="row-action-btn mt-3 -ml-2">
-          <span>✏️</span><span>Edit</span>
-        </RouterLink>
+        <p v-if="b.mine && b.reviewNote" class="text-[11px] text-rose-600 dark:text-rose-400 mt-2">Declined: {{ b.reviewNote }}</p>
+        <div v-if="b.mine" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
+          <RouterLink :to="`/bank/${b.slug}/edit`" class="row-action-btn">
+            <span>{{ student && (b.pendingReview || b.isPublic) ? '👁️' : '✏️' }}</span>
+            <span>{{ student && (b.pendingReview || b.isPublic) ? 'View' : 'Edit' }}</span>
+          </RouterLink>
+          <template v-if="student && !b.isPublic && !b.pendingReview">
+            <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span>📤</span><span>Submit to Practice</span></button>
+            <button @click="openPropose(b)" class="row-action-btn"><span>💡</span><span>Propose to a board</span></button>
+          </template>
+        </div>
+        <div v-if="propose && propose.slug === b.slug" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
+          <select v-model="propose.boardSlug"
+                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+            <option value="" disabled>Choose a board…</option>
+            <option v-for="bd in boards" :key="bd.slug" :value="bd.slug">{{ bd.title }}</option>
+          </select>
+          <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)"
+                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+          <p v-if="propose.error" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
+          <div class="flex gap-2">
+            <button @click="sendProposal" :disabled="propose.busy || !propose.boardSlug"
+                    class="bg-amber-500 text-white rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">Send proposal</button>
+            <button @click="propose = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
+          </div>
+        </div>
       </div>
     </div>
     <p v-if="!items.length" class="text-slate-400 dark:text-slate-500 text-sm">Nothing here yet.</p>

@@ -16,6 +16,7 @@ function togglePreview() { if (showWrite.value || !showPreview.value) showPrevie
 const props = defineProps({
   problem: Object,                 // null => new
   showBankFields: Boolean,         // tags + public toggle (bank only)
+  studentMode: Boolean,            // a student's bank draft: no direct sharing (it goes through review)
   error: String,
   busy: Boolean,
   canRegenTests: Boolean,          // show "regenerate tests with AI" (bank, existing, AI on)
@@ -151,7 +152,7 @@ function removeTest(i) { form.value.testCases.splice(i, 1); }
             <input v-model="form.tags" placeholder="loop, array, dp"
                    class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label v-if="showBankFields" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
+          <label v-if="showBankFields && !studentMode" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
             <input type="checkbox" v-model="form.isPublic" :disabled="props.problem?.pendingReview" />
             Share with other teachers
             <span v-if="props.problem?.pendingReview" class="text-[11px] text-slate-400">(awaiting admin review)</span>

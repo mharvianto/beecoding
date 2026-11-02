@@ -31,7 +31,7 @@ public record AiGenerateDto(string? Idea, string? Level, string? Language, int? 
 [Route("api/ai")]
 public class AiController(AppDbContext db, BoardService boards, AiTutorService ai,
     AiUsageService usage, AiHintProgressService prog, OrgResolver orgs, IJudgeQueue queue, IOptions<AiOptions> opt,
-    IAiJobStore jobs, IServiceScopeFactory scopes, ILogger<AiController> log) : ApiControllerBase
+    IAiJobStore jobs, IServiceScopeFactory scopes, ILogger<AiController> log, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -44,6 +44,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     private readonly IAiJobStore _jobs = jobs;
     private readonly IServiceScopeFactory _scopes = scopes;
     private readonly ILogger<AiController> _log = log;
+    private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
 
     private static readonly ConcurrentDictionary<int, long> _last = new();
 
@@ -70,7 +71,10 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         var orgId = await _orgs.ForUserAsync(UserId);
         _ai.UseOrganization(orgId);
         if (!_ai.Available) return NotFound();
-        if (CurrentRole != "Teacher") return StatusCode(StatusCodes.Status403Forbidden, "Teachers only.");
+        // Students may generate too — into their own private bank, under the problem cap and the AI daily quota.
+        bool isStudent = CurrentRole != "Teacher";
+        if (isStudent && await _db.BankProblems.CountAsync(b => b.OwnerId == UserId) >= _runtimeConfig.StudentMaxProblems)
+            return Conflict("Your problem bank is full — delete a problem first.");
         if (string.IsNullOrWhiteSpace(dto.Idea)) return BadRequest("Describe the idea or topic.");
         if (RateLimited()) return StatusCode(StatusCodes.Status429TooManyRequests, "Give the AI a few seconds.");
         var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
@@ -86,7 +90,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         // The AI call + compiling & running the reference against N tests takes minutes, far
         // longer than a request should hang. Run it detached; the client polls the job id.
         var job = await _jobs.CreateAsync(UserId);
-        _ = Task.Run(() => RunGenerateAsync(job.Id, UserId, dto.Idea!, level, wantLang, count, lang, orgId));
+        _ = Task.Run(() => RunGenerateAsync(job.Id, UserId, dto.Idea!, level, wantLang, count, lang, orgId, isStudent));
         return Accepted(new { jobId = job.Id });
     }
 
@@ -103,7 +107,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         };
     }
 
-    private async Task RunGenerateAsync(string jobId, int userId, string idea, string level, string wantLang, int count, string lang, int? organizationId)
+    private async Task RunGenerateAsync(string jobId, int userId, string idea, string level, string wantLang, int count, string lang, int? organizationId, bool isStudent)
     {
         Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
             _jobs.FailAsync(jobId, msg, compilerOutput, stderr);
@@ -173,7 +177,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 StatementMarkdown = gp.StatementMarkdown ?? "",
                 AllowedLanguages = "",          // AI problems are I/O-based — any language is fine
                 GeneratedByAi = true,
-                PendingReview = true,           // held back from other teachers until an admin approves
+                PendingReview = !isStudent,     // a teacher's is held back from other teachers until an admin approves; a student's stays a private draft until they submit it
                 Level = Mapping.ParseLevel(gp.Level),
                 Tags = Mapping.NormalizeTags(gp.Tags),
                 TimeLimitMs = gp.TimeLimitMs,
@@ -190,6 +194,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                     Points = isSample ? 0 : 1,
                     Position = pos++,
                 });
+
+            if (isStudent && await db.BankProblems.CountAsync(b => b.OwnerId == userId, ct) >= sp.GetRequiredService<PlatformRuntimeConfig>().StudentMaxProblems)
+            { await Fail("Your problem bank is full — delete a problem first."); return; }
 
             db.BankProblems.Add(problem);
             await db.SaveChangesAsync(ct);
