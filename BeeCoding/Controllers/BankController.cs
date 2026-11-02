@@ -211,6 +211,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         if (board is null || !await _db.BoardMemberships.AnyAsync(m => m.BoardId == board.Id && m.UserId == UserId))
             return NotFound();
         if (board.OwnerId == UserId) return BadRequest("You own this board — add the problem to it directly.");
+        if (!board.AllowProposals) return Conflict("The owner of this board isn't accepting proposals.");
         if (b.TestCases.Count == 0) return BadRequest("Add at least one test case first.");
         if (await _db.ProblemProposals.AnyAsync(x => x.BankProblemId == b.Id && x.BoardId == board.Id && x.Status == ProposalStatus.Pending))
             return Conflict("This problem is already proposed to that board.");
@@ -231,6 +232,45 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         return NoContent();
     }
 
+    /// <summary>Take a practice submission back while it is still waiting for review.</summary>
+    [HttpPost("api/bank/{slug}/withdraw-practice")]
+    public async Task<IActionResult> WithdrawPractice(string slug)
+    {
+        var b = await _db.BankProblems.FirstOrDefaultAsync(x => x.Slug == slug);
+        if (b is null) return NotFound();
+        if (b.OwnerId != UserId) return Forbid();
+        if (!b.PendingReview) return Conflict("This problem isn't waiting for review.");
+        // A teacher's AI draft is queued automatically, not submitted — leave that to the admin queue.
+        if (b.GeneratedByAi && !IsStudent) return Conflict("This problem was queued automatically and can't be withdrawn.");
+
+        b.PendingReview = false;
+        b.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Take a board proposal back while its owner hasn't answered it.</summary>
+    [HttpPost("api/me/proposals/{id:int}/withdraw")]
+    public async Task<IActionResult> WithdrawProposal(int id)
+    {
+        var p = await _db.ProblemProposals.FirstOrDefaultAsync(x => x.Id == id && x.ProposerId == UserId);
+        if (p is null) return NotFound();
+        if (p.Status != ProposalStatus.Pending) return Conflict("This proposal was already answered.");
+
+        p.Status = ProposalStatus.Withdrawn;
+        p.ReviewedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    /// <summary>Every proposal the caller made (recent first), so the bank can show where each problem stands.</summary>
+    [HttpGet("api/me/proposals")]
+    public async Task<IEnumerable<MyProposalDto>> AllMyProposals() =>
+        await _db.ProblemProposals.Where(x => x.ProposerId == UserId && x.BankProblem != null)
+            .OrderByDescending(x => x.CreatedAt).Take(200)
+            .Select(x => new MyProposalDto(x.Id, x.Board!.Slug, x.Board.Title, x.Status.ToString(), x.Note, x.ReviewNote, x.CreatedAt, x.BankProblem!.Slug))
+            .ToListAsync();
+
     /// <summary>The caller's proposals for one of their bank problems, newest first.</summary>
     [HttpGet("api/bank/{slug}/proposals")]
     public async Task<ActionResult<IEnumerable<MyProposalDto>>> MyProposals(string slug)
@@ -241,7 +281,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
 
         return await _db.ProblemProposals.Where(x => x.BankProblemId == b.Id)
             .OrderByDescending(x => x.CreatedAt)
-            .Select(x => new MyProposalDto(x.Id, x.Board!.Slug, x.Board.Title, x.Status.ToString(), x.Note, x.ReviewNote, x.CreatedAt))
+            .Select(x => new MyProposalDto(x.Id, x.Board!.Slug, x.Board.Title, x.Status.ToString(), x.Note, x.ReviewNote, x.CreatedAt, b.Slug))
             .ToListAsync();
     }
 

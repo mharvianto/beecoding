@@ -150,6 +150,9 @@ public class Board
     /// blur-on-leave, name watermark). Cannot truly stop a camera — makes leaks attributable.</summary>
     public bool ProtectContent { get; set; }
 
+    /// <summary>Whether members may propose problems from their own bank to this board (see ProblemProposal).</summary>
+    public bool AllowProposals { get; set; } = true;
+
     /// <summary>Comma-separated, lowercase tags for the owner's own organizing/filtering
     /// (e.g. by class, semester, cohort) — purely descriptive, no access-control meaning.</summary>
     [MaxLength(300)]
@@ -365,7 +368,7 @@ public class BankProblem : IHasSlug
     public List<BankTestCase> TestCases { get; set; } = new();
 }
 
-public enum ProposalStatus { Pending, Approved, Rejected }
+public enum ProposalStatus { Pending, Approved, Rejected, Withdrawn }
 
 /// <summary>A board member's request to put one of their bank problems on a board. Approval by
 /// the board owner copies the problem onto the board (hidden), like Bank "copy to board".</summary>

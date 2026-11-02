@@ -66,8 +66,8 @@ public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false);
 // ---- Boards ----
 public record CreateBoardDto(string Title, int? OrganizationId = null);
 public record JoinBoardDto(string Code);
-public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null);
-public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "");
+public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null, bool? AllowProposals = null);
+public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "", bool AllowProposals = true);
 
 public record MemberDto(int UserId, string DisplayName, string Role, bool HiddenByTeacher);
 public record UpdateMemberDto(bool HiddenByTeacher);
@@ -158,7 +158,8 @@ public record BoardProposalDto(
     DateTime CreatedAt, List<TestCaseDto> TestCases);
 /// <summary>A proposal as its proposer sees it.</summary>
 public record MyProposalDto(
-    int Id, string BoardSlug, string BoardTitle, string Status, string? Note, string? ReviewNote, DateTime CreatedAt);
+    int Id, string BoardSlug, string BoardTitle, string Status, string? Note, string? ReviewNote, DateTime CreatedAt,
+    string BankSlug = "");
 
 public record UpsertBankProblemDto(
     string Title, string StatementMarkdown, string AllowedLanguages,

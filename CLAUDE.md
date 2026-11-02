@@ -138,6 +138,21 @@ breaks its constraints, wrong expected output, unclear text) — `ProblemFeedbac
 reporter when it is resolved or dismissed (`report-update`); those rows have no board/post (`ReportId` set,
 `Link` says where they lead).
 
+### Student-authored problems
+
+A student's problem bank (`/bank`, "My problems") is a private drafting space: `BankController` scopes a student to
+their own rows (`Readable()`), ignores `IsPublic` from them, freezes a problem that is under review, has a pending
+proposal or is already public, and caps the bank (`PlatformRuntimeConfig.StudentMaxProblems`, admin-editable under
+Admin → System; the test-count and pending caps are constants in `BankController`). Nothing goes live without a reviewer:
+- **Practice** — `submit-practice` sets `PendingReview`, the same flag and admin queue as AI-generated problems
+  ("Problem review"); approve flips `IsPublic`, reject stores `ReviewNote`. `PracticeController.Pool()` is just
+  `IsPublic`, so approval is all it takes. AI generation works for students too, but their drafts are *not* auto-queued.
+- **Board** — `propose/{boardSlug}` creates a `ProblemProposal`; the board owner answers in `ProposalsController`
+  (approve copies the problem onto the board **hidden**, like `copy-to`). `Board.AllowProposals` lets an owner turn
+  proposals off. Both flows notify through the bell/Web Push (`Notification.ProposalId`, kinds `proposal`,
+  `proposal-update`, `practice-review`; board-less like reports).
+- A student earns no XP/streak for solving a problem they authored (`GradeResultConsumer.ApplyPracticeAsync`).
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

@@ -71,6 +71,15 @@ async function toggleExam() {
 async function toggleLecturing() {
   board.value = await api.patch(`/api/boards/${props.slug}`, { lecturingMode: !board.value.lecturingMode });
 }
+async function toggleProposals() {
+  board.value = await api.patch(`/api/boards/${props.slug}`, { allowProposals: !board.value.allowProposals });
+}
+// proposals from members waiting on the owner (badge on the Problems link)
+const pendingProposals = ref(0);
+async function loadPendingProposals() {
+  if (!board.value?.isOwner) return;
+  try { pendingProposals.value = (await api.get(`/api/boards/${props.slug}/proposals/count`)).pending; } catch { /* no badge */ }
+}
 async function removeStudent(student) {
   const ok = await confirmDialog.ask(
     `Remove ${student.displayName} from “${board.value.title}”?\nTheir submissions are kept. They can rejoin with the join code.`,
@@ -144,6 +153,7 @@ function onEsc(e) { if (e.key === 'Escape') showQr.value = false; }
 onMounted(async () => {
   window.addEventListener('keydown', onEsc);
   try { await loadAll(); } catch (e) { error.value = e.message; return; }
+  loadPendingProposals();
 
   conn = createBoardConnection();
   conn.on('progressChanged', scheduleRefresh);
@@ -274,6 +284,11 @@ onBeforeUnmount(async () => {
                   :class="board.lecturingMode ? 'text-sky-600 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
             👨‍🏫 {{ board.lecturingMode ? 'Lecturing ON — students see your code' : 'Lecturing mode' }}
           </button>
+          <button v-if="board.isOwner" @click="toggleProposals(); settingsOpen = false"
+                  class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                  :class="board.allowProposals ? 'text-slate-600 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400 font-medium'">
+            💡 {{ board.allowProposals ? 'Students can propose problems' : 'Proposals off' }}
+          </button>
           <button v-if="board.isOwner" @click="setView('grid'); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             👥 Manage students (grid)
@@ -312,7 +327,10 @@ onBeforeUnmount(async () => {
     <!-- Problems -->
     <RouterLink :to="`/boards/${board.slug}/problems`"
                 class="my-4 flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 hover:border-amber-400 dark:hover:border-amber-500">
-      <span class="text-sm font-medium">📋 Problems ({{ problems.length }})</span>
+      <span class="text-sm font-medium">📋 Problems ({{ problems.length }})
+        <span v-if="pendingProposals > 0" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white"
+              :title="`${pendingProposals} proposed problem(s) waiting for you`">💡 {{ pendingProposals }}</span>
+      </span>
       <span class="text-slate-400 dark:text-slate-500 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
     </RouterLink>
 

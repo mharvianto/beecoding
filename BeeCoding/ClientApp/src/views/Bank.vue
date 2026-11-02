@@ -102,6 +102,7 @@ async function load() {
     if (q.value.trim()) p.set('q', q.value.trim());
     if (level.value) p.set('level', level.value);
     items.value = await api.get(`/api/bank?${p}`);
+    loadProposals();
   } catch (e) { error.value = e.message; }
 }
 // open "this problem is wrong" reports per bank problem (for the 🚩 badge on the cards)
@@ -114,6 +115,29 @@ async function loadOpenReports() {
 const notice = ref('');
 const boards = ref([]);
 const propose = ref(null);   // { slug, boardSlug, note, busy, error }
+const proposalsBySlug = ref({});   // bank slug -> that problem's proposals (student view)
+
+async function loadProposals() {
+  if (!student.value) return;
+  try {
+    const rows = await api.get('/api/me/proposals');
+    const by = {};
+    for (const r of rows) (by[r.bankSlug] ||= []).push(r);
+    proposalsBySlug.value = by;
+  } catch { /* statuses just don't show */ }
+}
+
+async function withdrawPractice(b) {
+  error.value = ''; notice.value = '';
+  try { await api.post(`/api/bank/${b.slug}/withdraw-practice`); await load(); }
+  catch (e) { error.value = e.message; }
+}
+
+async function withdrawProposal(r) {
+  error.value = ''; notice.value = '';
+  try { await api.post(`/api/me/proposals/${r.id}/withdraw`); await loadProposals(); }
+  catch (e) { error.value = e.message; }
+}
 
 async function submitPractice(b) {
   error.value = ''; notice.value = '';
@@ -128,7 +152,7 @@ async function submitPractice(b) {
 async function openPropose(b) {
   propose.value = { slug: b.slug, boardSlug: '', note: '', busy: false, error: '' };
   if (boards.value.length) return;
-  try { boards.value = (await api.get('/api/boards')).filter((x) => !x.isOwner); } catch { /* the select stays empty */ }
+  try { boards.value = (await api.get('/api/boards')).filter((x) => !x.isOwner && x.allowProposals); } catch { /* the select stays empty */ }
 }
 
 async function sendProposal() {
@@ -138,6 +162,7 @@ async function sendProposal() {
     await api.post(`/api/bank/${pr.slug}/propose/${pr.boardSlug}`, { note: pr.note.trim() || null });
     propose.value = null;
     notice.value = 'Proposal sent to the board owner — you will get a notification when they answer.';
+    loadProposals();
   } catch (e) { pr.error = e.message; pr.busy = false; }
 }
 
@@ -281,6 +306,19 @@ onBeforeUnmount(() => { pollStopped = true; });
             <button @click="openPropose(b)" class="row-action-btn"><span>💡</span><span>Propose to a board</span></button>
           </template>
         </div>
+        <div v-if="b.mine && b.pendingReview && (student || !b.generatedByAi)" class="mt-1 -ml-2">
+          <button @click="withdrawPractice(b)" class="row-action-btn"><span>↩️</span><span>Withdraw from review</span></button>
+        </div>
+        <ul v-if="proposalsBySlug[b.slug]?.length" class="mt-2 space-y-1">
+          <li v-for="r in proposalsBySlug[b.slug]" :key="r.id" class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
+            <span>💡 {{ r.boardTitle }}:</span>
+            <span :class="{ 'text-amber-600 dark:text-amber-400': r.status === 'Pending', 'text-emerald-600 dark:text-emerald-400': r.status === 'Approved', 'text-rose-600 dark:text-rose-400': r.status === 'Rejected' }">
+              {{ { Pending: 'waiting', Approved: 'approved', Rejected: 'declined', Withdrawn: 'withdrawn' }[r.status] }}
+            </span>
+            <span v-if="r.reviewNote">— “{{ r.reviewNote }}”</span>
+            <button v-if="r.status === 'Pending'" @click="withdrawProposal(r)" class="underline">withdraw</button>
+          </li>
+        </ul>
         <div v-if="propose && propose.slug === b.slug" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
           <select v-model="propose.boardSlug"
                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">

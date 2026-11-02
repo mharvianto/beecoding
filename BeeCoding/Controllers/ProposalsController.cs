@@ -29,7 +29,7 @@ public class ProposalsController(AppDbContext db, IBoardNotifier notifier, Notif
         if (err is not null) return err;
 
         var rows = await _db.ProblemProposals
-            .Where(x => x.BoardId == board!.Id && x.BankProblem != null)
+            .Where(x => x.BoardId == board!.Id && x.BankProblem != null && x.Status != ProposalStatus.Withdrawn)
             .Include(x => x.BankProblem).ThenInclude(b => b!.TestCases)
             .Include(x => x.Proposer)
             .OrderBy(x => x.Status).ThenByDescending(x => x.CreatedAt)
@@ -41,6 +41,15 @@ public class ProposalsController(AppDbContext db, IBoardNotifier notifier, Notif
             x.BankProblem.StatementMarkdown, x.BankProblem.AllowedLanguages, x.Status.ToString(),
             x.Proposer?.DisplayName ?? "?", x.Note, x.ReviewNote, x.CreatedAt,
             x.BankProblem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => Mapping.ToDto(t)).ToList())).ToList();
+    }
+
+    /// <summary>How many proposals are waiting — for the badge on the board page.</summary>
+    [HttpGet("count")]
+    public async Task<ActionResult<object>> Count(string slug)
+    {
+        var (board, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+        return new { pending = await _db.ProblemProposals.CountAsync(x => x.BoardId == board!.Id && x.Status == ProposalStatus.Pending && x.BankProblem != null) };
     }
 
     [HttpPost("{id:int}/approve")]
