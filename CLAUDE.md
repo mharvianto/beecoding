@@ -153,6 +153,14 @@ Admin → System; the test-count and pending caps are constants in `BankControll
   `proposal-update`, `practice-review`; board-less like reports).
 - A student earns no XP/streak for solving a problem they authored (`GradeResultConsumer.ApplyPracticeAsync`).
 
+### AI review aids (admin only)
+
+`AiController` `check-problem/bank/{id}` and `triage-report/{id}` (UI: `AiCheckPanel.vue` in Admin → Problem review and on
+the reports page). The AI sees only the statement and writes its own solution, the judge runs it on every stored test, and
+differences from the stored expected outputs are listed; triage adds one more call that weighs the report against that
+evidence. Strictly advisory — results are only displayed, user-written text in the prompts is treated as untrusted data,
+and they share the AI kill switch, daily quota and detached-job + polling pattern with problem generation.
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

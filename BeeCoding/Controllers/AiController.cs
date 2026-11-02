@@ -30,6 +30,10 @@ public record AiCheckTestDto(int Index, bool IsSample, string Verdict, string? E
 public record AiCheckDto(string Title, string Language, string ReferenceSolution, int Matched, int Mismatched, int Errored,
     string Summary, List<AiCheckTestDto> Tests);
 
+/// <summary>Advisory triage of a problem report. Verdict: likely-valid | likely-invalid | unclear.
+/// SuggestedAction: fix-tests | fix-statement | dismiss | ask-reporter.</summary>
+public record AiTriageDto(string Verdict, string SuggestedAction, string Reasoning, AiCheckDto? Check, string? CheckNote);
+
 public record AiGenerateDto(string? Idea, string? Level, string? Language, int? Count, string? Lang);
 
 [ApiController]
@@ -104,6 +108,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
 
     [HttpGet("generate-problem/{id:guid}")]
     [HttpGet("check-problem/{id:guid}")]
+    [HttpGet("triage-report/{id:guid}")]
     public async Task<IActionResult> GenerateProblemStatus(Guid id)
     {
         var job = await _jobs.GetAsync(id.ToString("N"));
@@ -237,18 +242,27 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         return await StartCheckAsync(await LoadBankCheckInputAsync(bankProblemId));
     }
 
-    /// <summary>Same check for the problem a report is about (practice or board problem).</summary>
-    [HttpPost("check-problem/report/{reportId:int}")]
-    public async Task<IActionResult> CheckReportedProblem(int reportId)
+    /// <summary>
+    /// Admin-only. Runs the check above on the problem a report is about, then asks the AI to weigh the report against
+    /// that evidence. Advisory: the result only suggests a verdict and an action, an admin still decides.
+    /// </summary>
+    [HttpPost("triage-report/{reportId:int}")]
+    public async Task<IActionResult> TriageReport(int reportId)
     {
         if (!IsAdminUser(_admin)) return Forbid();
-        var r = await _db.ProblemReports.Where(x => x.Id == reportId).Select(x => new { x.BankProblemId, x.ProblemId }).FirstOrDefaultAsync();
+        var r = await _db.ProblemReports.Where(x => x.Id == reportId)
+            .Select(x => new { x.BankProblemId, x.ProblemId, x.Category, x.Message }).FirstOrDefaultAsync();
         if (r is null) return NotFound();
-        if (r.BankProblemId is int bid) return await StartCheckAsync(await LoadBankCheckInputAsync(bid));
 
-        var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == r.ProblemId);
-        return await StartCheckAsync(p is null ? null : new CheckInput(p.Title, p.StatementMarkdown, p.AllowedLanguages, p.TimeLimitMs, p.MemoryLimitKb,
-            p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList()));
+        CheckInput? input;
+        if (r.BankProblemId is int bid) input = await LoadBankCheckInputAsync(bid);
+        else
+        {
+            var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == r.ProblemId);
+            input = p is null ? null : new CheckInput(p.Title, p.StatementMarkdown, p.AllowedLanguages, p.TimeLimitMs, p.MemoryLimitKb,
+                p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList());
+        }
+        return await StartCheckAsync(input, triage: new TriageInput(r.Category.ToString(), r.Message));
     }
 
     private async Task<CheckInput?> LoadBankCheckInputAsync(int id)
@@ -258,7 +272,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList());
     }
 
-    private async Task<IActionResult> StartCheckAsync(CheckInput? input)
+    private sealed record TriageInput(string Category, string Message);
+
+    private async Task<IActionResult> StartCheckAsync(CheckInput? input, TriageInput? triage = null)
     {
         if (input is null) return NotFound();
         if (input.Tests.Count == 0) return BadRequest("This problem has no tests to check.");
@@ -272,11 +288,71 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             return StatusCode(StatusCodes.Status429TooManyRequests, "You already have AI jobs running — wait for those to finish.");
 
         var job = await _jobs.CreateAsync(UserId);
-        _ = Task.Run(() => RunCheckAsync(job.Id, UserId, input, orgId));
+        _ = Task.Run(() => RunCheckAsync(job.Id, UserId, input, orgId, triage));
         return Accepted(new { jobId = job.Id });
     }
 
-    private async Task RunCheckAsync(string jobId, int userId, CheckInput input, int? organizationId)
+    private sealed record CheckOutcome(AiCheckDto? Result, string? Error, string? CompilerOutput);
+
+    /// <summary>The AI re-solves from the statement; the judge runs that on every stored test; outputs are compared.</summary>
+    private static async Task<CheckOutcome> ExecuteCheckAsync(
+        AiTutorService ai, AiUsageService usage, IJudgeQueue queue, int userId, CheckInput input)
+    {
+        var ct = CancellationToken.None;
+        var lang = Languages.Default(input.AllowedLanguages);
+        AiTutorService.AiCheckResult gen;
+        try { gen = await ai.SolveForCheckAsync(input.Statement, lang, ct); }
+        catch (AiUnavailableException ex) { return new(null, ex.Message, null); }
+        await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
+
+        var tests = input.Tests.Take(30).ToList();
+        RunResultDto[] results;
+        try
+        {
+            results = await Task.WhenAll(tests.Select(t =>
+                queue.EnqueueRunAsync(lang, gen.ReferenceSolution, t.Stdin, input.TimeLimitMs, input.MemoryLimitKb, ct: ct)));
+        }
+        catch { return new(null, "Timed out running the AI's solution.", null); }
+
+        static string Clip(string s) => s.Length > 400 ? s[..400] + "…" : s;
+        var rows = new List<AiCheckTestDto>();
+        for (int i = 0; i < tests.Count; i++)
+        {
+            var r = results[i];
+            if (!r.CompileOk) return new(null, "The AI's solution didn't compile — try again.", r.CompilerOutput);
+            var (_, expected, isSample) = tests[i];
+            if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
+                rows.Add(new(i + 1, isSample, "error", null, null, r.TimedOut ? "The AI's solution timed out." : "The AI's solution crashed."));
+            else if (VerdictEvaluator.OutputMatches(r.Stdout ?? "", expected))
+                rows.Add(new(i + 1, isSample, "match", null, null, null));
+            else
+                rows.Add(new(i + 1, isSample, "mismatch", Clip(expected), Clip(r.Stdout ?? ""), null));
+        }
+        int matched = rows.Count(x => x.Verdict == "match"), mismatched = rows.Count(x => x.Verdict == "mismatch"), errored = rows.Count(x => x.Verdict == "error");
+        var summary = mismatched == 0 && errored == 0
+            ? $"The AI's independent solution reproduced all {matched} stored outputs."
+            : $"The AI's solution differs from {mismatched + errored} of {rows.Count} stored tests — either those expected outputs are wrong, the statement is ambiguous, or the AI erred. Look at them before deciding.";
+        if (input.Tests.Count > tests.Count) summary += $" (Only the first {tests.Count} of {input.Tests.Count} tests were checked.)";
+        return new(new AiCheckDto(input.Title, lang, gen.ReferenceSolution, matched, mismatched, errored, summary, rows), null, null);
+    }
+
+    /// <summary>What the triage prompt is shown about the check: the summary plus each flagged test with its input.</summary>
+    private static string DescribeEvidence(CheckInput input, CheckOutcome outcome)
+    {
+        if (outcome.Result is not { } c)
+            return "The independent check could not run (" + outcome.Error + "), so there is no objective evidence — judge from the statement alone.";
+        static string Clip(string s, int n) => s.Length > n ? s[..n] + "…" : s;
+        var sb = new StringBuilder(c.Summary + "\n");
+        foreach (var t in c.Tests.Where(t => t.Verdict != "match").Take(6))
+        {
+            sb.AppendLine($"\nTest #{t.Index} ({(t.IsSample ? "sample" : "hidden")}) — {t.Verdict}{(t.Detail is null ? "" : ": " + t.Detail)}");
+            sb.AppendLine("stdin:\n" + Clip(input.Tests[t.Index - 1].Stdin, 600));
+            if (t.Verdict == "mismatch") sb.AppendLine("stored expected stdout:\n" + t.Expected + "\nAI solution's stdout:\n" + t.Actual);
+        }
+        return sb.ToString();
+    }
+
+    private async Task RunCheckAsync(string jobId, int userId, CheckInput input, int? organizationId, TriageInput? triage)
     {
         Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
             _jobs.FailAsync(jobId, msg, compilerOutput, stderr);
@@ -288,48 +364,31 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             ai.UseOrganization(organizationId);
             var usage = sp.GetRequiredService<AiUsageService>();
             var queue = sp.GetRequiredService<IJudgeQueue>();
-            var ct = CancellationToken.None;
 
-            var lang = Languages.Default(input.AllowedLanguages);
-            AiTutorService.AiCheckResult gen;
-            try { gen = await ai.SolveForCheckAsync(input.Statement, lang, ct); }
-            catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
-            await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
+            var outcome = await ExecuteCheckAsync(ai, usage, queue, userId, input);
+            if (triage is null)
+            {
+                if (outcome.Result is null) await Fail(outcome.Error!, compilerOutput: outcome.CompilerOutput);
+                else await _jobs.CompleteAsync(jobId, outcome.Result);
+                return;
+            }
 
-            var tests = input.Tests.Take(30).ToList();
-            RunResultDto[] results;
+            // Triage still works without the objective evidence (e.g. the AI's solution didn't compile) — it just says so.
+            AiTutorService.AiTriageResult t;
             try
             {
-                results = await Task.WhenAll(tests.Select(t =>
-                    queue.EnqueueRunAsync(lang, gen.ReferenceSolution, t.Stdin, input.TimeLimitMs, input.MemoryLimitKb, ct: ct)));
+                t = await ai.TriageReportAsync(input.Title, input.Statement, triage.Category, triage.Message,
+                    DescribeEvidence(input, outcome), CancellationToken.None);
             }
-            catch { await Fail("Timed out running the AI's solution."); return; }
+            catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
+            await usage.RecordAsync(userId, t.PromptTokens, t.CompletionTokens, CancellationToken.None);
 
-            static string Clip(string s) => s.Length > 400 ? s[..400] + "…" : s;
-            var rows = new List<AiCheckTestDto>();
-            for (int i = 0; i < tests.Count; i++)
-            {
-                var r = results[i];
-                if (!r.CompileOk) { await Fail("The AI's solution didn't compile — try again.", compilerOutput: r.CompilerOutput); return; }
-                var (_, expected, isSample) = tests[i];
-                if (r.TimedOut || r.Signal != 0 || r.ExitCode != 0)
-                    rows.Add(new(i + 1, isSample, "error", null, null, r.TimedOut ? "The AI's solution timed out." : "The AI's solution crashed."));
-                else if (VerdictEvaluator.OutputMatches(r.Stdout ?? "", expected))
-                    rows.Add(new(i + 1, isSample, "match", null, null, null));
-                else
-                    rows.Add(new(i + 1, isSample, "mismatch", Clip(expected), Clip(r.Stdout ?? ""), null));
-            }
-            int matched = rows.Count(x => x.Verdict == "match"), mismatched = rows.Count(x => x.Verdict == "mismatch"), errored = rows.Count(x => x.Verdict == "error");
-            var summary = mismatched == 0 && errored == 0
-                ? $"The AI's independent solution reproduced all {matched} stored outputs."
-                : $"The AI's solution differs from {mismatched + errored} of {rows.Count} stored tests — either those expected outputs are wrong, the statement is ambiguous, or the AI erred. Look at them before deciding.";
-            if (input.Tests.Count > tests.Count) summary += $" (Only the first {tests.Count} of {input.Tests.Count} tests were checked.)";
-
-            await _jobs.CompleteAsync(jobId, new AiCheckDto(input.Title, lang, gen.ReferenceSolution, matched, mismatched, errored, summary, rows));
+            await _jobs.CompleteAsync(jobId, new AiTriageDto(t.Verdict, t.SuggestedAction, t.Reasoning, outcome.Result,
+                outcome.Result is null ? "The objective check could not run: " + outcome.Error : null));
         }
         catch (Exception ex)
         {
-            _log.LogError(ex, "check-problem job {Job} failed", jobId);
+            _log.LogError(ex, "check/triage job {Job} failed", jobId);
             await Fail("The check failed unexpectedly — try again.");
         }
     }
