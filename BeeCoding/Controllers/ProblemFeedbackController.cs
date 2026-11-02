@@ -66,7 +66,16 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
     {
         if (t.BankId is int bid)
         {
-            var b = await _db.BankProblems.IgnoreQueryFilters().Where(x => x.Id == bid).Select(x => new { x.Title, x.Slug, x.OwnerId }).FirstAsync();
+            var b = await _db.BankProblems.IgnoreQueryFilters().Where(x => x.Id == bid)
+                .Select(x => new { x.Title, x.Slug, x.OwnerId, OwnerRole = x.Owner!.Role }).FirstAsync();
+            // A student author can't open the reports page (Reviewable() gives students nothing), so a report on
+            // their published problem goes to the platform admins, who can act on it.
+            if (b.OwnerRole == UserRole.Student)
+            {
+                var emails = _admin.AllAdminEmails();
+                var admins = await _db.Users.Where(u => emails.Contains(u.Email)).Select(u => u.Id).ToListAsync();
+                return (b.Title, $"/practice/{b.Slug}", admins);
+            }
             return (b.Title, $"/practice/{b.Slug}", new List<int> { b.OwnerId });
         }
         var p = await _db.Problems.IgnoreQueryFilters().Where(x => x.Id == t.ProblemId).Select(x => new { x.Title, x.Slug, x.BoardId, BoardSlug = x.Board!.Slug }).FirstAsync();

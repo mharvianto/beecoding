@@ -35,6 +35,10 @@ public class AdminAccess(IConfiguration cfg)
     public bool IsAdminEmail(string? email) =>
         !string.IsNullOrWhiteSpace(email) && (IsConfiguredAdmin(email) || _dbAdmins.Contains(email));
 
+    /// <summary>Every admin email — config plus the DB-granted cache, lower-cased.</summary>
+    public List<string> AllAdminEmails() =>
+        ConfiguredEmails().Concat(_dbAdmins.Select(e => e.ToLowerInvariant())).Distinct().ToList();
+
     /// <summary>Replace the whole DB-granted-admin cache (called once at startup).</summary>
     public void SetDbAdmins(IEnumerable<string> emails) => _dbAdmins = new HashSet<string>(emails, StringComparer.OrdinalIgnoreCase);
 
