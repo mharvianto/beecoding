@@ -68,6 +68,12 @@ public class BoardService(AppDbContext db, VisibilityService vis)
 
         var subs = await _db.Submissions
             .Where(s => problemIds.Contains(s.ProblemId))
+            // Only the columns the grid reads — loading Code/CompilerOutput of every attempt is wasteful.
+            .Select(s => new Submission
+            {
+                Id = s.Id, UserId = s.UserId, ProblemId = s.ProblemId, CreatedAt = s.CreatedAt,
+                Verdict = s.Verdict, Score = s.Score, HiddenByStudent = s.HiddenByStudent,
+            })
             .ToListAsync();
 
         var latestByKey = subs
