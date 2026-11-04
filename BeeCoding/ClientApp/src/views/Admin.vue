@@ -1957,8 +1957,8 @@ onMounted(async () => {
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached)</span></span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspShared" class="w-4 h-4" /></span>
               </label>

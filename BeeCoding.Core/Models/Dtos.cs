@@ -306,7 +306,7 @@ public record AdminSystemStatusDto(
     // Host-local only — see SysstatService's doc comment on the multi-instance caveat.
     bool SysstatInstalled, string Hostname,
     int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7,
-    bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40);
+    bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40, int LspSharedProcesses = 0, int LspSharedMaxProcesses = 1);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
