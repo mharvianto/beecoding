@@ -76,3 +76,29 @@ public class AiUrlTests
     [Fact] public void Platform_admin_may_use_a_local_model_server() =>
         Assert.Null(AiUrl.Validate("http://localhost:11434/v1", strict: false));
 }
+
+public class LoginThrottleTests
+{
+    [Fact] public void Guessing_from_one_ip_blocks_that_ip_only_for_the_account()
+    {
+        var t = new LoginThrottle();
+        for (int i = 0; i < 10; i++) t.RecordFailure("1.1.1.1", "teacher@x");
+        Assert.True(t.IsBlocked("1.1.1.1", "teacher@x"));
+        Assert.False(t.IsBlocked("2.2.2.2", "teacher@x"));   // the real teacher elsewhere is not locked out
+    }
+
+    [Fact] public void Guessing_spread_over_many_ips_still_blocks_the_account()
+    {
+        var t = new LoginThrottle();
+        for (int i = 0; i < 100; i++) t.RecordFailure($"9.9.9.{i}", "teacher@x");
+        Assert.True(t.IsBlocked("2.2.2.2", "teacher@x"));
+    }
+
+    [Fact] public void Success_clears_the_counters()
+    {
+        var t = new LoginThrottle();
+        for (int i = 0; i < 10; i++) t.RecordFailure("1.1.1.1", "a@x");
+        t.RecordSuccess("1.1.1.1", "a@x");
+        Assert.False(t.IsBlocked("1.1.1.1", "a@x"));
+    }
+}

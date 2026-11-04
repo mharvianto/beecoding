@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 namespace BeeCoding.Services;
 
 /// <summary>
-/// Fixed-window failed-login throttle, counted independently by client IP and by account.
-/// Once either counter passes its cap inside the window, further attempts are refused until
+/// Fixed-window failed-login throttle, counted by client IP, by (account, IP) and by account overall.
+/// Once any counter passes its cap inside the window, further attempts are refused until
 /// the window rolls over. A successful login clears both counters.
 /// </summary>
 public sealed class LoginThrottle
@@ -21,17 +21,25 @@ public sealed class LoginThrottle
     // attempts for a scripted brute force to get well into a small wordlist. One account is
     // never shared the way an IP is, so this can be strict without punishing real students.
     private const int AccountCap = 10;
+    // The 10-cap counts per (account, IP): otherwise anyone could type a teacher's email and wrong
+    // passwords 10 times to lock them out of their own account. A spread-out guess (many IPs, one
+    // account) is caught by this much higher total instead.
+    private const int AccountTotalCap = 100;
 
     private readonly ConcurrentDictionary<string, Bucket> _byIp = new();
     private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();
+    private readonly ConcurrentDictionary<string, Bucket> _byPair = new();
 
     public bool IsBlocked(string ip, string account) =>
-        Over(_byIp, ip, IpCap) || Over(_byAccount, account, AccountCap);
+        Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, AccountTotalCap);
+
+    private static string Pair(string ip, string account) => string.IsNullOrEmpty(account) ? "" : account + "|" + ip;
 
     public void RecordFailure(string ip, string account)
     {
         Bump(_byIp, ip);
         Bump(_byAccount, account);
+        Bump(_byPair, Pair(ip, account));
         Prune();
     }
 
@@ -39,6 +47,7 @@ public sealed class LoginThrottle
     {
         _byIp.TryRemove(ip, out _);
         _byAccount.TryRemove(account, out _);
+        _byPair.TryRemove(Pair(ip, account), out _);
     }
 
     private static bool Over(ConcurrentDictionary<string, Bucket> map, string key, int cap)
@@ -66,12 +75,12 @@ public sealed class LoginThrottle
     private void Prune()
     {
         // opportunistic: at most one pruning pass at a time, and only occasionally.
-        if ((_byIp.Count + _byAccount.Count) < 5_000) return;
+        if ((_byIp.Count + _byAccount.Count + _byPair.Count) < 5_000) return;
         if (Interlocked.Exchange(ref _pruneGuard, 1) == 1) return;
         try
         {
             var now = DateTime.UtcNow.Ticks;
-            foreach (var map in new[] { _byIp, _byAccount })
+            foreach (var map in new[] { _byIp, _byAccount, _byPair })
                 foreach (var kv in map)
                     if (now - kv.Value.WindowTicks > Window)
                         map.TryRemove(kv.Key, out _);
