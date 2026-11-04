@@ -15,6 +15,7 @@ const sections = [
   ['lanjutan', { en: 'Advanced settings', id: 'Pengaturan lanjutan' }],
   ['validasi', { en: 'What is checked on save', id: 'Yang diperiksa saat menyimpan' }],
   ['keliru', { en: 'Common mistakes', id: 'Kesalahan yang sering terjadi' }],
+  ['originality', { en: 'Originality and copyright', id: 'Keaslian dan hak cipta' }],
   ['contoh', { en: 'Complete example', id: 'Contoh lengkap' }],
 ];
 </script>
@@ -198,7 +199,20 @@ const sections = [
       </section>
 
       <section>
-        <h2 id="contoh">8. Contoh lengkap: "Jumlah Dua Bilangan"</h2>
+        <h2 id="originality">8. Keaslian dan hak cipta</h2>
+        <p>Soal dari situs lain (LeetCode, Codeforces, UVa, buku, dan sejenisnya) dilindungi hak cipta. Yang dilindungi adalah <strong>teksnya</strong>: statement, cerita, contoh, gambar. Ide dan algoritmanya tidak dilindungi.</p>
+        <ul>
+          <li><strong>Jangan menyalin atau menerjemahkan statement</strong> dari situs lain, dan jangan sekadar mengganti nama tokoh. Itu tetap salinan.</li>
+          <li><strong>Tulis ulang dengan kata-katamu sendiri</strong>: cerita, contoh, dan test case buatan sendiri. Mengambil idenya (mis. "cari indeks yang jumlah kiri dan kanannya sama") boleh.</li>
+          <li><strong>Lebih baik lagi, ubah tantangannya</strong>: aturan atau batasan yang berbeda, agar bukan soal yang jawabannya sudah beredar luas.</li>
+          <li><strong>Cek dulu apakah soalmu sudah ada</strong> di bank atau di board. Soal yang sama dengan nama berbeda akan ditolak saat ditinjau.</li>
+          <li>Bila terinspirasi dari sebuah soal, sebutkan sumbernya di akhir statement, misalnya <em>"Terinspirasi dari ..."</em>.</li>
+        </ul>
+        <p>Admin dapat menolak atau menghapus soal yang disalin dari sumber lain.</p>
+      </section>
+
+      <section>
+        <h2 id="contoh">9. Contoh lengkap: "Jumlah Dua Bilangan"</h2>
         <table>
           <tbody>
             <tr><td><strong>Title</strong></td><td>Jumlah Dua Bilangan</td></tr>
@@ -380,7 +394,20 @@ const sections = [
       </section>
 
       <section>
-        <h2 id="contoh">8. A complete example: "Sum of Two Numbers"</h2>
+        <h2 id="originality">8. Originality and copyright</h2>
+        <p>Problems from other sites (LeetCode, Codeforces, UVa, books and the like) are protected by copyright. What is protected is the <strong>text</strong>: the statement, the story, the examples, the images. The ideas and algorithms are not.</p>
+        <ul>
+          <li><strong>Do not copy or translate a statement</strong> from another site, and do not just change the character names. That is still a copy.</li>
+          <li><strong>Rewrite it in your own words</strong>: your own story, examples and test cases. Taking the idea (e.g. "find the index whose left and right sums are equal") is fine.</li>
+          <li><strong>Better still, change the challenge</strong>: different rules or constraints, so it is not a problem whose answer is already everywhere.</li>
+          <li><strong>Check that your problem does not already exist</strong> in the bank or on a board. The same problem under a new name will be rejected in review.</li>
+          <li>If a problem inspired yours, name the source at the end of the statement, e.g. <em>"Inspired by ..."</em>.</li>
+        </ul>
+        <p>Admins may reject or remove problems copied from another source.</p>
+      </section>
+
+      <section>
+        <h2 id="contoh">9. A complete example: "Sum of Two Numbers"</h2>
         <table>
           <tbody>
             <tr><td><strong>Title</strong></td><td>Sum of Two Numbers</td></tr>
