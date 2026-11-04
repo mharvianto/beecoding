@@ -978,7 +978,7 @@ paling bawah** sekarang — bisa di-override tanpa restart lewat tab **AI** di `
 ### Endpoint admin — mengisi bank soal via skrip
 
 Aktif hanya kalau `Admin:Token` di-set. Kirim token sebagai header `X-Admin-Token`
-(atau query `?token=`). Semua di bawah `/api/admin` — **bukan** cookie login.
+(query `?token=` tidak lagi diterima — URL tercatat di log). Semua di bawah `/api/admin` — **bukan** cookie login.
 
 | Method & path | Fungsi |
 |---|---|

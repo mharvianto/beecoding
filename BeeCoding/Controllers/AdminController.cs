@@ -14,7 +14,7 @@ namespace BeeCoding.Controllers;
 /// <summary>
 /// Token-authed bulk maintenance of the public problem bank — meant for scripting, not the UI.
 /// Every response is <c>404</c> unless <c>Admin:Token</c> is configured AND the request carries
-/// the right token (header <c>X-Admin-Token</c>, or <c>?token=</c>) — a wrong token is
+/// the right token (header <c>X-Admin-Token</c>; never the URL, which ends up in logs and history) — a wrong token is
 /// indistinguishable from the feature being off. Brute force is throttled per client IP.
 /// Problems are upserted by (owner, title) so a script can be re-run idempotently.
 /// </summary>
@@ -47,7 +47,6 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
         if (string.IsNullOrWhiteSpace(expected)) return NotFound();   // feature off
 
         var got = Request.Headers["X-Admin-Token"].ToString();
-        if (string.IsNullOrEmpty(got)) got = Request.Query["token"].ToString();
 
         var ok = CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(got), Encoding.UTF8.GetBytes(expected));
