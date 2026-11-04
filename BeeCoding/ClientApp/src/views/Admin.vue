@@ -11,6 +11,7 @@ import SortTh from '../components/SortTh.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
+import LevelBadge from '../components/LevelBadge.vue';
 import ImageUsagePanel from '../components/ImageUsagePanel.vue';
 import AiCheckPanel from '../components/AiCheckPanel.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
@@ -1710,26 +1711,21 @@ onMounted(async () => {
         <button @click="loadAiReview" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
         <span class="text-xs text-slate-400 dark:text-slate-500">{{ aiReview?.length ?? 0 }} waiting</span>
       </div>
-      <div v-for="row in aiReview" :key="row.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3">
-        <div class="flex items-start justify-between gap-2 flex-wrap">
-          <div class="min-w-0 break-words">
-            <div class="font-semibold text-sm">{{ row.title }}</div>
-            <div class="text-[11px] text-slate-400 dark:text-slate-500">
-              by {{ row.ownerName }} ({{ row.ownerEmail }}) · {{ row.level }} · {{ row.tags || 'no tags' }} ·
-              {{ row.allowedLanguages ? row.allowedLanguages : 'any language' }} ·
-              {{ row.tests.length }} tests ({{ row.tests.filter(t => t.isSample).length }} visible to students, {{ row.tests.filter(t => !t.isSample).length }} hidden)
-              <span v-if="!row.tests.some(t => !t.isSample)" class="text-amber-600 dark:text-amber-400 font-medium">· no hidden test — a solution could just print the samples</span> ·
-              created {{ when(row.createdAt) }}
+      <article v-for="row in aiReview" :key="row.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3">
+        <header class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="font-semibold text-sm break-words">{{ row.title }}</h3>
+              <LevelBadge :level="row.level" />
             </div>
-            <div v-if="row.inputFileName || row.bannedHeaders || row.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads input from file <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
-              <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
-              <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
-            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
+              by <span class="font-medium text-slate-700 dark:text-slate-200">{{ row.ownerName }}</span>
+              <span class="text-slate-400 dark:text-slate-500"> ({{ row.ownerEmail }})</span>
+              · created {{ when(row.createdAt) }}
+            </p>
           </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <button @click="expandedReview = expandedReview === row.slug ? null : row.slug"
-                    class="row-action-btn">
+          <div class="flex items-center gap-2 flex-wrap lg:justify-end lg:shrink-0">
+            <button @click="expandedReview = expandedReview === row.slug ? null : row.slug" class="row-action-btn">
               {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
             </button>
             <button @click="copyReviewJson(row)" class="row-action-btn" title="Copy this problem as JSON (same format as Problems export/import)">
@@ -1740,8 +1736,28 @@ onMounted(async () => {
               ✓ Approve &amp; share
             </button>
           </div>
+        </header>
+
+        <div class="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
+          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            {{ row.allowedLanguages ? row.allowedLanguages.split(',').map((l) => (l === 'cpp' ? 'C++' : l.toUpperCase())).join(' · ') : 'Any language' }}
+          </span>
+          <span v-for="tag in (row.tags || '').split(',').filter(Boolean)" :key="tag"
+                class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">#{{ tag.trim() }}</span>
+          <span v-if="!row.tags" class="text-slate-400 dark:text-slate-500">no tags</span>
+          <span class="text-slate-300 dark:text-slate-600">|</span>
+          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ row.tests.length }} tests</span>
+          <span class="rounded px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">👁 {{ row.tests.filter((t) => t.isSample).length }} visible</span>
+          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">🔒 {{ row.tests.filter((t) => !t.isSample).length }} hidden</span>
+          <span v-if="!row.tests.some((t) => !t.isSample)" class="rounded px-2 py-0.5 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium">
+            ⚠ no hidden test — a solution could just print the samples
+          </span>
+          <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
+          <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
+          <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
         </div>
-        <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" class="mt-2" />
+
+        <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800" />
 
         <div v-if="expandedReview === row.slug" class="mt-3 space-y-3">
           <div class="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 max-h-64 overflow-auto">
@@ -1765,7 +1781,7 @@ onMounted(async () => {
             </button>
           </div>
         </div>
-      </div>
+      </article>
       <p v-if="aiReview && !aiReview.length" class="text-slate-400 dark:text-slate-500 text-sm">Nothing waiting for review.</p>
     </section>
 
