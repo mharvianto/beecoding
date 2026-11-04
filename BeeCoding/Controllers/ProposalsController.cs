@@ -67,15 +67,19 @@ public class ProposalsController(AppDbContext db, IBoardNotifier notifier, Notif
         var bank = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == proposal.BankProblemId);
         if (bank is null) return StatusCode(StatusCodes.Status410Gone, "The proposer deleted this problem.");
 
+        // Claim the proposal atomically so two concurrent approvals (double click, two co-owners)
+        // cannot both copy the problem; the claim and the copy commit together or not at all.
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        if (!await ClaimAsync(proposal, ProposalStatus.Approved, null)) return Conflict("This proposal was already answered.");
+
         int nextPos = await _db.Problems.Where(p => p.BoardId == board!.Id)
             .Select(p => (int?)p.Position).MaxAsync() is int max ? max + 1 : 0;
         var problem = BoardBulkService.ProblemFromBank(bank, board!.Id, nextPos);
         problem.Hidden = true;
         _db.Problems.Add(problem);
 
-        proposal.Status = ProposalStatus.Approved;
-        proposal.ReviewedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        await tx.CommitAsync();
         await _notifier.ProblemChangedAsync(board.Id);
 
         await _notifications.ProposalReviewedAsync(proposal, UserId, await ReviewerNameAsync(), bank.Title, "/bank");
@@ -94,14 +98,22 @@ public class ProposalsController(AppDbContext db, IBoardNotifier notifier, Notif
         if (proposal.Status != ProposalStatus.Pending) return Conflict("This proposal was already answered.");
 
         var reason = string.IsNullOrWhiteSpace(dto.Reason) ? null : dto.Reason.Trim();
-        proposal.Status = ProposalStatus.Rejected;
-        proposal.ReviewNote = reason is { Length: > 300 } ? reason[..300] : reason;
-        proposal.ReviewedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        if (!await ClaimAsync(proposal, ProposalStatus.Rejected, reason is { Length: > 300 } ? reason[..300] : reason))
+            return Conflict("This proposal was already answered.");
 
         await _notifications.ProposalReviewedAsync(proposal, UserId, await ReviewerNameAsync(),
             proposal.BankProblem?.Title ?? "problem", "/bank");
         return NoContent();
+    }
+
+    /// <summary>Pending -> decided in one UPDATE; false when someone else got there first.</summary>
+    private async Task<bool> ClaimAsync(ProblemProposal p, ProposalStatus status, string? note)
+    {
+        var won = await _db.ProblemProposals.Where(x => x.Id == p.Id && x.Status == ProposalStatus.Pending)
+            .ExecuteUpdateAsync(u => u.SetProperty(x => x.Status, status).SetProperty(x => x.ReviewNote, note)
+                .SetProperty(x => x.ReviewedAt, DateTime.UtcNow)) == 1;
+        if (won) await _db.Entry(p).ReloadAsync();   // the notification reads Status/ReviewNote off the entity
+        return won;
     }
 
     private Task<string> ReviewerNameAsync() =>
