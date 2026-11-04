@@ -28,7 +28,7 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
               ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
               : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'">{{ auth.user.role }}</span>
       <span v-if="auth.isTeacher && reports.open > 0" class="w-2 h-2 rounded-full bg-rose-500 -ml-1" :title="`${reports.open} open problem report(s)`"></span>
-      <span class="text-[10px] leading-none">▾</span>
+      <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"/></svg>
     </button>
 
     <template v-if="open">
