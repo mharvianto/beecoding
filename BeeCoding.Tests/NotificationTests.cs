@@ -81,3 +81,35 @@ public class NotificationTests
         Assert.DoesNotContain(left, n => n.Id == recentRead.Id || n.Id == oldUnread.Id);   // the two oldest of the rest were trimmed
     }
 }
+
+[Collection("app")]
+public class ReviewNotificationTests
+{
+    [Fact]
+    public async Task Resubmitting_a_problem_keeps_one_row_for_the_admin_and_withdrawing_removes_it()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var admin = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+            var student = new User { Email = "s2@test.dev", DisplayName = "S2", Role = UserRole.Student, PasswordHash = "x" };
+            db.Users.Add(student);
+            await db.SaveChangesAsync();
+            var svc = scope.ServiceProvider.GetRequiredService<NotificationService>();
+            Task<int> rows() => db.Notifications.CountAsync(n => n.UserId == admin.Id && n.Kind == "review-submitted");
+
+            await svc.ReviewSubmittedAsync(student.Id, "S2", "Pivot");
+            await svc.ReviewSubmittedAsync(student.Id, "S2", "Pivot");   // withdrawn, edited, sent again
+            Assert.Equal(1, await rows());
+            await svc.ReviewSubmittedAsync(student.Id, "S2", "Another problem");
+            Assert.Equal(2, await rows());                               // a different problem is its own row
+
+            await svc.ReviewWithdrawnAsync(student.Id, "Pivot");
+            Assert.Equal(1, await rows());
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+}

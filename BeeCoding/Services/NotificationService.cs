@@ -85,6 +85,19 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         else await RemoveAsync(n);
     }
 
+    /// <summary>The student took the problem back: the admins' unread "submitted for review" rows no longer point at anything.</summary>
+    public async Task ReviewWithdrawnAsync(int submitterId, string problemTitle)
+    {
+        try
+        {
+            var title = Trim(problemTitle, 200);
+            var rows = await _db.Notifications.Where(x => x.Kind == "review-submitted" && x.ActorUserId == submitterId
+                && x.TargetTitle == title && x.ReadAt == null).ToListAsync();
+            foreach (var n in rows) await RemoveAsync(n);
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Couldn't clear the review notifications of a withdrawn problem"); }
+    }
+
     public async Task<int> UnreadCountAsync(int userId) => await UnreadQuery(userId).CountAsync();
 
     /// <summary>Rows that still make sense to show: report/proposal notifications always, wall ones while their board and
@@ -162,12 +175,20 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         {
             foreach (var adminId in (await AdminUserIdsAsync()).Where(a => a != submitterId))
             {
-                var n = new Notification
+                // A student who withdraws and sends the same problem again must not leave two rows behind: bump the unread one.
+                var title = Trim(problemTitle, 200);
+                var n = await _db.Notifications.FirstOrDefaultAsync(x => x.UserId == adminId && x.Kind == "review-submitted"
+                    && x.ActorUserId == submitterId && x.TargetTitle == title && x.ReadAt == null);
+                if (n is null)
                 {
-                    UserId = adminId, Kind = "review-submitted", ProposalId = 0, ActorUserId = submitterId, ActorName = Trim(submitterName, 120),
-                    Emoji = "📝", TargetTitle = Trim(problemTitle, 200), Link = "/admin/review",
-                };
-                _db.Notifications.Add(n);
+                    n = new Notification
+                    {
+                        UserId = adminId, Kind = "review-submitted", ProposalId = 0, ActorUserId = submitterId, ActorName = Trim(submitterName, 120),
+                        Emoji = "📝", TargetTitle = title, Link = "/admin/review",
+                    };
+                    _db.Notifications.Add(n);
+                }
+                else n.CreatedAt = DateTime.UtcNow;
                 await _db.SaveChangesAsync();
                 await PushAsync(n);
             }

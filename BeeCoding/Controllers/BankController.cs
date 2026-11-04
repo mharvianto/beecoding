@@ -253,6 +253,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         b.PendingReview = false;
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        await _notifications.ReviewWithdrawnAsync(UserId, b.Title);
         return NoContent();
     }
 
