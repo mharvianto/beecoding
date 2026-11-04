@@ -165,7 +165,7 @@ Admin → System; the test-count and pending caps are constants in `BankControll
   (approve copies the problem onto the board **hidden**, like `copy-to`). `Board.AllowProposals` lets an owner turn
   proposals off. Both flows notify through the bell/Web Push (`Notification.ProposalId`, kinds `proposal`,
   `proposal-update`, `practice-review`; board-less like reports).
-- A student earns no XP/streak for solving a problem they authored (`GradeResultConsumer.ApplyPracticeAsync`).
+- Authors can open and submit to their own problem before it is public (`PracticeController.Playable()`: public or owned; the list and guide stay public-only, and `StatementController` allows the owner too). Nobody earns XP/streak for solving a problem they authored (`GradeResultConsumer.ApplyPracticeAsync`).
 
 ### AI review aids (admin only)
 

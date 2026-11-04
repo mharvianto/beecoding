@@ -41,7 +41,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     public async Task<ActionResult<object>> PracticeProblem(int id, [FromQuery] string? theme)
     {
         var problem = await _db.BankProblems.Include(p => p.TestCases)
-            .FirstOrDefaultAsync(p => p.Id == id && p.IsPublic);
+            .FirstOrDefaultAsync(p => p.Id == id && (p.IsPublic || p.OwnerId == UserId));
         if (problem is null) return NotFound();
 
         var samples = problem.TestCases.Where(t => t.IsSample)

@@ -37,6 +37,10 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
 
     private IQueryable<BankProblem> Pool() => _db.BankProblems.Where(b => b.IsPublic);
 
+    // What this user can open and submit to: everything public, plus their own problems still being drafted
+    // (so an author can try a problem before it goes live). The list/guide above stay public-only.
+    private IQueryable<BankProblem> Playable() => _db.BankProblems.Where(b => b.IsPublic || b.OwnerId == UserId);
+
     [HttpGet]
     public async Task<ActionResult<PracticePageDto>> List(
         [FromQuery] string? q, [FromQuery] string? tag, [FromQuery] string? level, [FromQuery] string? status,
@@ -310,7 +314,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     [HttpGet("{slug}")]
     public async Task<ActionResult<PracticeProblemDto>> Get(string slug)
     {
-        var b = await Pool().Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
+        var b = await Playable().Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
         if (b is null) return NotFound();
         bool solved = await _db.BankSubmissions.AnyAsync(
             s => s.UserId == UserId && s.BankProblemId == b.Id && s.Verdict == Verdict.Accepted && s.Score >= 1.0);
@@ -320,7 +324,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     [HttpPost("{slug}/submit")]
     public async Task<ActionResult<object>> Submit(string slug, SubmitDto dto)
     {
-        var problem = await Pool().Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Slug == slug);
+        var problem = await Playable().Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Slug == slug);
         if (problem is null) return NotFound();
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
@@ -357,7 +361,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     [HttpGet("{slug}/submissions")]
     public async Task<ActionResult<IEnumerable<BankSubmissionDto>>> Mine(string slug)
     {
-        var id = await Pool().Where(b => b.Slug == slug).Select(b => (int?)b.Id).FirstOrDefaultAsync();
+        var id = await Playable().Where(b => b.Slug == slug).Select(b => (int?)b.Id).FirstOrDefaultAsync();
         if (id is null) return NotFound();
         var rows = await _db.BankSubmissions
             .Where(s => s.BankProblemId == id && s.UserId == UserId)

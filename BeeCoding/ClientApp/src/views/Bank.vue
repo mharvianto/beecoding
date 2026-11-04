@@ -309,6 +309,9 @@ onBeforeUnmount(() => { pollStopped = true; });
         </div>
         <p v-if="b.mine && b.reviewNote" class="text-[11px] text-rose-600 dark:text-rose-400 mt-2">Declined: {{ b.reviewNote }}</p>
         <div v-if="b.mine" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
+          <RouterLink :to="`/practice/${b.slug}`" class="row-action-btn" title="Solve and submit your own problem to check it works; earns no XP">
+            <span>▶</span><span>Try it</span>
+          </RouterLink>
           <RouterLink :to="`/bank/${b.slug}/edit`" class="row-action-btn">
             <span>{{ student && (b.pendingReview || b.isPublic) ? '👁️' : '✏️' }}</span>
             <span>{{ student && (b.pendingReview || b.isPublic) ? 'View' : 'Edit' }}</span>
