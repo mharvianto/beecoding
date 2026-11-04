@@ -1679,7 +1679,8 @@ onMounted(async () => {
             <div class="text-[11px] text-slate-400 dark:text-slate-500">
               by {{ row.ownerName }} ({{ row.ownerEmail }}) · {{ row.level }} · {{ row.tags || 'no tags' }} ·
               {{ row.allowedLanguages ? row.allowedLanguages : 'any language' }} ·
-              {{ row.tests.length }} tests ({{ row.tests.filter(t => t.isSample).length }} sample) ·
+              {{ row.tests.length }} tests ({{ row.tests.filter(t => t.isSample).length }} visible to students, {{ row.tests.filter(t => !t.isSample).length }} hidden)
+              <span v-if="!row.tests.some(t => !t.isSample)" class="text-amber-600 dark:text-amber-400 font-medium">· no hidden test — a solution could just print the samples</span> ·
               created {{ when(row.createdAt) }}
             </div>
             <div v-if="row.inputFileName || row.bannedHeaders || row.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
@@ -1706,7 +1707,10 @@ onMounted(async () => {
           </div>
           <div class="grid sm:grid-cols-2 gap-2">
             <div v-for="(t, i) in row.tests" :key="i" class="text-xs border border-slate-100 dark:border-slate-800 rounded-lg p-2">
-              <div class="text-slate-400 mb-1">{{ t.isSample ? 'sample' : 'hidden' }} #{{ i + 1 }}</div>
+              <div class="text-slate-400 mb-1 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">👁 visible to students (sample)</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🔒 hidden from students (graded)</span>
+              </div>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto">stdin: {{ t.stdin }}</pre>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto mt-1">expected: {{ t.expectedStdout }}</pre>
             </div>

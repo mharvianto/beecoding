@@ -294,7 +294,7 @@ async function reorderGroupTo(id, target, pos) {
             <div class="min-w-0">
               <button @click="openProposal = openProposal === p.id ? null : p.id" class="font-medium text-sm text-left hover:underline">{{ p.title }}</button>
               <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
-                <LevelBadge :level="p.level" /> by {{ p.proposerName }} · {{ p.testCases.length }} tests
+                <LevelBadge :level="p.level" /> by {{ p.proposerName }} · {{ p.testCases.length }} tests ({{ p.testCases.filter(t => t.isSample).length }} visible, {{ p.testCases.filter(t => !t.isSample).length }} hidden)
                 <span v-if="p.status !== 'Pending'" class="px-1.5 py-0.5 rounded-full"
                       :class="p.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">
                   {{ p.status === 'Approved' ? 'approved' : 'declined' }}
@@ -323,10 +323,16 @@ async function reorderGroupTo(id, target, pos) {
             <MarkdownBlock :text="p.statementMarkdown" />
             <details class="text-xs">
               <summary class="cursor-pointer text-slate-500 dark:text-slate-400">Tests ({{ p.testCases.length }})</summary>
-              <div v-for="(t, i) in p.testCases" :key="t.id ?? i" class="mt-1 grid grid-cols-2 gap-2">
+              <template v-for="(t, i) in p.testCases" :key="t.id ?? i">
+              <div class="mt-2 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">👁 visible to students (sample)</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🔒 hidden from students (graded)</span>
+              </div>
+              <div class="mt-1 grid grid-cols-2 gap-2">
                 <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.stdin }}</pre>
                 <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.expectedStdout }}</pre>
               </div>
+              </template>
             </details>
           </div>
         </li>
