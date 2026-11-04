@@ -32,6 +32,28 @@ function cell(u, p) { return cellMap.value[`${u}:${p}`]; }
 function solvedCount(userId) {
   return props.problems.filter((p) => cell(userId, p.id)?.latest).length;
 }
+
+// View-only row order, remembered per board. Clicking a header picks its first order, clicking again flips it.
+const SORTS = ['name', 'name-desc', 'solved-desc', 'solved-asc'];
+const sortKey = () => `beecoding.board.${props.boardSlug}.gridSort`;
+const sort = ref('name');
+try { const v = localStorage.getItem(sortKey()); if (SORTS.includes(v)) sort.value = v; } catch { /* ignore */ }
+
+function setSort(by) {
+  const [first, second] = by === 'name' ? ['name', 'name-desc'] : ['solved-desc', 'solved-asc'];
+  sort.value = sort.value === first ? second : first;
+  try { localStorage.setItem(sortKey(), sort.value); } catch { /* ignore */ }
+}
+const arrow = (by) => (sort.value.startsWith(by) ? (sort.value.endsWith('desc') ? '▼' : '▲') : '');
+const ariaSort = (by) => (sort.value.startsWith(by) ? (sort.value.endsWith('desc') ? 'descending' : 'ascending') : 'none');
+
+const byName = (a, b) => a.displayName.localeCompare(b.displayName);
+const sortedStudents = computed(() => {
+  const dir = sort.value.endsWith('desc') ? -1 : 1;
+  const bySolved = sort.value.startsWith('solved');
+  return [...props.students].sort((a, b) =>
+    (bySolved ? dir * (solvedCount(a.userId) - solvedCount(b.userId)) : dir * byName(a, b)) || byName(a, b));
+});
 </script>
 
 <template>
@@ -39,7 +61,9 @@ function solvedCount(userId) {
     <table class="w-full text-sm border-collapse">
       <thead>
         <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-          <th class="text-left font-medium px-3 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10">Student</th>
+          <th class="text-left font-medium px-3 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10" :aria-sort="ariaSort('name')">
+            <button @click="setSort('name')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" title="Sort by name">Student <span aria-hidden="true" class="text-[10px]">{{ arrow('name') }}</span></button>
+          </th>
           <th v-for="(p, i) in problems" :key="p.id" class="px-2 py-2 font-medium whitespace-nowrap" :class="{ 'text-center': lettered }">
             <RouterLink v-if="boardSlug && p.slug" :to="problemPath(p)"
                         class="hover:text-amber-600 dark:hover:text-amber-400 hover:underline"
@@ -47,11 +71,13 @@ function solvedCount(userId) {
                         :aria-label="lettered ? `${letter(i)}: ${p.title}` : undefined">{{ lettered ? letter(i) : p.title }}</RouterLink>
             <span v-else :title="lettered ? `${letter(i)} · ${p.title}` : undefined">{{ lettered ? letter(i) : p.title }}</span>
           </th>
-          <th class="px-3 py-2 font-medium">Solved</th>
+          <th class="px-3 py-2 font-medium" :aria-sort="ariaSort('solved')">
+            <button @click="setSort('solved')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" title="Sort by number solved">Solved <span aria-hidden="true" class="text-[10px]">{{ arrow('solved') }}</span></button>
+          </th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="s in students" :key="s.userId" class="border-t border-slate-100 dark:border-slate-800">
+        <tr v-for="s in sortedStudents" :key="s.userId" class="border-t border-slate-100 dark:border-slate-800">
           <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-nowrap">
             <span :class="{ 'font-semibold': s.userId === currentUserId }">{{ s.displayName }}</span>
             <span v-if="s.userId === currentUserId" class="text-xs text-slate-400 dark:text-slate-500"> (you)</span>
