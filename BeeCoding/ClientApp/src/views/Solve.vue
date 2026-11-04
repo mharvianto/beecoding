@@ -478,7 +478,7 @@ function ago(ts) {
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+            <label class="text-xs text-slate-400 dark:text-slate-500">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
