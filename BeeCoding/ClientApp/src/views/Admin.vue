@@ -759,6 +759,39 @@ const importing = ref(false);
 const importResult = ref(null);
 const replaceExisting = ref(true);
 
+// A problem waiting for review, in the same bundle format as Problems > Export, so it can be copied elsewhere or
+// loaded again through Problems > Import. isPublic stays false: importing must not publish something not yet approved.
+// Pictures in the statement are referenced by id (/api/images/...), so they only resolve on this server.
+const reviewJson = (row) => JSON.stringify({
+  version: 1,
+  exportedAt: new Date().toISOString(),
+  problems: [{
+    ownerEmail: row.ownerEmail, title: row.title, statementMarkdown: row.statementMarkdown,
+    allowedLanguages: row.allowedLanguages, level: row.level, tags: row.tags,
+    timeLimitMs: row.timeLimitMs, memoryLimitKb: row.memoryLimitKb, isPublic: false, generatedByAi: row.generatedByAi,
+    bannedHeaders: row.bannedHeaders ?? null, bannedSymbols: row.bannedSymbols ?? null, inputFileName: row.inputFileName ?? null,
+    tests: row.tests.map((t, i) => ({ stdin: t.stdin, expectedStdout: t.expectedStdout, isSample: t.isSample, points: t.points ?? 1, position: t.position ?? i })),
+  }],
+}, null, 2);
+const reviewJsonCopied = ref(null);   // slug of the row whose JSON was just copied
+async function copyReviewJson(row) {
+  try {
+    await navigator.clipboard.writeText(reviewJson(row));
+    reviewJsonCopied.value = row.slug;
+    setTimeout(() => { if (reviewJsonCopied.value === row.slug) reviewJsonCopied.value = null; }, 1500);
+  } catch { err.value = 'Could not copy — use Download JSON instead.'; }
+}
+function downloadReviewJson(row) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([reviewJson(row)], { type: 'application/json' }));
+  const d = new Date(), pad = (n) => String(n).padStart(2, '0');   // local time, like the rest of the page
+  const stamp = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const name = (row.title || 'problem').replace(/[^\w-]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'problem';
+  a.download = `${name}-${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 async function downloadFile(url, fallbackName) {
   err.value = '';
   try {
@@ -1694,6 +1727,10 @@ onMounted(async () => {
                     class="row-action-btn">
               {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
             </button>
+            <button @click="copyReviewJson(row)" class="row-action-btn" title="Copy this problem as JSON (same format as Problems export/import)">
+              {{ reviewJsonCopied === row.slug ? '✓ copied' : '⧉ copy JSON' }}
+            </button>
+            <button @click="downloadReviewJson(row)" class="row-action-btn" title="Download this problem as a .json file">⬇ JSON</button>
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✓ Approve &amp; share
             </button>

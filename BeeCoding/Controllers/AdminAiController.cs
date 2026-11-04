@@ -203,8 +203,8 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
             b.Slug, b.Title, b.Owner?.Email ?? "?", b.Owner?.DisplayName ?? "?", b.Level.ToString(), b.Tags,
             b.AllowedLanguages, b.StatementMarkdown, b.TimeLimitMs, b.MemoryLimitKb,
             b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
-                .Select(t => new AdminAiReviewTest(t.Stdin, t.ExpectedStdout, t.IsSample)).ToList(),
-            b.CreatedAt, b.Id, b.InputFileName, b.BannedHeaders, b.BannedSymbols)).ToList();
+                .Select(t => new AdminAiReviewTest(t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position)).ToList(),
+            b.CreatedAt, b.Id, b.InputFileName, b.BannedHeaders, b.BannedSymbols, b.GeneratedByAi)).ToList();
     }
 
     /// <summary>Approve: publish it to the shared bank, as originally intended.</summary>

@@ -328,12 +328,12 @@ public record AdminMfaPolicyDto(bool RequireAdmin, bool RequireOrgAdmin, bool Re
     int AdminsWithout = 0, int OrgAdminsWithout = 0, int TeachersWithout = 0);
 
 // ---- Admin: AI-generated problem review queue ----
-public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSample);
+public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSample, int Points = 1, int Position = 0);
 public record AdminAiReviewRow(
     string Slug, string Title, string OwnerEmail, string OwnerName, string Level, string Tags,
     string AllowedLanguages, string StatementMarkdown, int TimeLimitMs, int MemoryLimitKb,
     List<AdminAiReviewTest> Tests, DateTime CreatedAt, int Id = 0,
-    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null);
+    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null, bool GeneratedByAi = false);
 public record AdminAiReviewActionDto(string? Reason);
 
 // ---- Admin: AI kill-switch, quotas, per-user overrides ----
