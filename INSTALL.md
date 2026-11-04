@@ -144,6 +144,7 @@ Jalankan:
 cd out
 ASPNETCORE_URLS="http://0.0.0.0:8080" \
 ASPNETCORE_ENVIRONMENT=Production \
+Judge__RequireSandbox=true \
 ./BeeCoding
 ```
 
@@ -203,6 +204,9 @@ Environment=DOTNET_CLI_TELEMETRY_OPTOUT=1
 # nilai mengandung spasi -> WAJIB dikutip penuh, kalau tidak systemd memecahnya
 Environment="ConnectionStrings__Default=Data Source=/srv/beecoding/data/beecoding.db"
 Environment=Judge__WorkRoot=/srv/beecoding/.judge
+# Tanpa ini, kalau bwrap berhenti jalan (update OS, namespace diblokir) judge diam-diam jadi tanpa isolasi.
+# Dengan ini app gagal start dan kamu langsung tahu.
+Environment=Judge__RequireSandbox=true
 
 Restart=on-failure
 RestartSec=5
@@ -699,6 +703,7 @@ variable (nesting pakai `__`).
 | `Admin:Emails` | `""` (kosong) | Daftar email (pisah koma) yang mendapat **halaman Admin** (`/admin`): lihat penggunaan AI semua user, daftar user, export/import soal. Cookie-authed via role `Admin`; endpoint `/api/admin-ui/*`. Login ulang setelah mengubahnya. |
 | `Security:ContentSecurityPolicy` | *(bawaan)* | Override CSP dengan string sendiri, atau `"off"` untuk tidak mengirim header CSP (mis. jika Monaco bermasalah). |
 | `Images:OrphanRetentionDays` | `3` | Gambar statement yang tidak dipakai statement mana pun dihapus otomatis sekian hari setelah pertama kali terdeteksi tidak terpakai (`0` = jangan hapus). Statement soal yang di-*soft-delete* tetap dihitung memakai gambarnya. |
+| `Audit:RetentionDays` | `365` | Baris audit log yang lebih tua dari ini dihapus otomatis tiap 24 jam (`0` = simpan selamanya). |
 | `Lsp:Enabled` | `false` | Aktifkan IntelliSense C/C++ (butuh `clangd` di PATH). |
 | `Lsp:ClangdPath` | `clangd` | Path biner clangd. |
 | `Lsp:MaxConcurrent` | `4` | Maksimum sesi clangd bersamaan (1 per editor yang terbuka). |
