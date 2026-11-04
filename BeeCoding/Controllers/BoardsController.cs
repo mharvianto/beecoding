@@ -219,7 +219,8 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var g = TimeBucketing.NormalizeGranularity(granularity);
         periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
 
-        var activity = await _db.Submissions.Where(s => s.Problem!.BoardId == board.Id)
+        var from = TimeBucketing.Window(g, periods)[0];
+        var activity = await _db.Submissions.Where(s => s.Problem!.BoardId == board.Id && s.CreatedAt >= from)
             .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
 
         var byBucket = activity.ToLookup(x => TimeBucketing.BucketStart(x.CreatedAt, g));

@@ -118,8 +118,9 @@ public class AdminUiController(
         var g = TimeBucketing.NormalizeGranularity(granularity);
         periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
 
-        var boardActivity = await _db.Submissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
-        var bankActivity = await _db.BankSubmissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var from = TimeBucketing.Window(g, periods)[0];   // only the charted window, not the whole history
+        var boardActivity = await _db.Submissions.Where(s => s.CreatedAt >= from).Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var bankActivity = await _db.BankSubmissions.Where(s => s.CreatedAt >= from).Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
         var all = boardActivity.Select(x => (x.UserId, x.CreatedAt)).Concat(bankActivity.Select(x => (x.UserId, x.CreatedAt)));
 
         var byBucket = all.ToLookup(x => TimeBucketing.BucketStart(x.CreatedAt, g));

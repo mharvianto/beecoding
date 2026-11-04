@@ -92,9 +92,12 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         bool staff = viewer is not null ? _vis.IsStaff(viewer.Role) : isAdmin;
         bool exam = await GroupAccess.ExamModeAsync(_db, board, problemId);
 
-        var subs = await _db.Submissions
+        // shortcut: newest 1000 only — each row carries the code (up to 200 KB), and a busy board would load all of it per page
+        // view; raise or page it if staff ever need the full history of one problem here.
+        var subs = await _db.Submissions.AsNoTracking()
             .Where(s => s.ProblemId == problemId)
             .OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id)
+            .Take(1000)
             .ToListAsync();
 
         var membersById = board.Members.ToDictionary(m => m.UserId);

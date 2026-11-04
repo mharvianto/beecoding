@@ -136,33 +136,44 @@ public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig run
     {
         var boardProblems = await _db.Problems.Select(p => new { p.Id, p.Tags }).ToListAsync();
         var bankProblems = await _db.BankProblems.Select(p => new { p.Id, p.Tags }).ToListAsync();
-        var boardSubs = await _db.Submissions.Select(s => new { s.ProblemId, s.UserId, s.Verdict, s.Score }).ToListAsync();
-        var bankSubs = await _db.BankSubmissions.Select(s => new { s.BankProblemId, s.UserId, s.Verdict, s.Score }).ToListAsync();
+        // Counted by the database per problem (and who solved it), so memory holds one row per problem,
+        // not one per submission, and each problem is a dictionary lookup instead of a rescan.
+        var boardCounts = (await _db.Submissions.GroupBy(s => s.ProblemId).Select(g => new
+            { Id = g.Key, Attempts = g.Count(), Accepted = g.Count(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0) }).ToListAsync())
+            .ToDictionary(x => x.Id);
+        var bankCounts = (await _db.BankSubmissions.GroupBy(s => s.BankProblemId).Select(g => new
+            { Id = g.Key, Attempts = g.Count(), Accepted = g.Count(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0) }).ToListAsync())
+            .ToDictionary(x => x.Id);
+        var boardSolvers = (await _db.Submissions.Where(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0)
+            .Select(s => new { s.ProblemId, s.UserId }).Distinct().ToListAsync()).ToLookup(x => x.ProblemId, x => x.UserId);
+        var bankSolvers = (await _db.BankSubmissions.Where(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0)
+            .Select(s => new { s.BankProblemId, s.UserId }).Distinct().ToListAsync()).ToLookup(x => x.BankProblemId, x => x.UserId);
 
         var byTag = new Dictionary<string, TopicAgg>();
         TopicAgg Agg(string tag) { if (!byTag.TryGetValue(tag, out var a)) byTag[tag] = a = new TopicAgg { Tag = tag }; return a; }
-        bool Solved(Verdict v, double score) => v == Verdict.Accepted && score >= 1.0;
 
         foreach (var p in boardProblems)
         {
-            var subs = boardSubs.Where(s => s.ProblemId == p.Id).ToList();
+            boardCounts.TryGetValue(p.Id, out var c);
             foreach (var tag in TagsOf(p.Tags))
             {
                 var a = Agg(tag);
                 a.ProblemIds.Add(("board", p.Id));
-                a.Attempts += subs.Count;
-                foreach (var s in subs.Where(s => Solved(s.Verdict, s.Score))) { a.Accepted++; a.Solvers.Add(s.UserId); }
+                a.Attempts += c?.Attempts ?? 0;
+                a.Accepted += c?.Accepted ?? 0;
+                a.Solvers.UnionWith(boardSolvers[p.Id]);
             }
         }
         foreach (var p in bankProblems)
         {
-            var subs = bankSubs.Where(s => s.BankProblemId == p.Id).ToList();
+            bankCounts.TryGetValue(p.Id, out var c);
             foreach (var tag in TagsOf(p.Tags))
             {
                 var a = Agg(tag);
                 a.ProblemIds.Add(("bank", p.Id));
-                a.Attempts += subs.Count;
-                foreach (var s in subs.Where(s => Solved(s.Verdict, s.Score))) { a.Accepted++; a.Solvers.Add(s.UserId); }
+                a.Attempts += c?.Attempts ?? 0;
+                a.Accepted += c?.Accepted ?? 0;
+                a.Solvers.UnionWith(bankSolvers[p.Id]);
             }
         }
 
@@ -206,8 +217,9 @@ public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig run
     private async Task<List<(DateOnly WeekStart, int ActiveUsers, int Submissions)>> EngagementAggAsync(int weeks)
     {
         weeks = Math.Clamp(weeks, 1, 52);
-        var boardActivity = await _db.Submissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
-        var bankActivity = await _db.BankSubmissions.Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var from = TimeBucketing.Window("week", weeks)[0];
+        var boardActivity = await _db.Submissions.Where(s => s.CreatedAt >= from).Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
+        var bankActivity = await _db.BankSubmissions.Where(s => s.CreatedAt >= from).Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
         var all = boardActivity.Select(x => (x.UserId, x.CreatedAt)).Concat(bankActivity.Select(x => (x.UserId, x.CreatedAt)));
 
         DateOnly WeekStart(DateTime dt)

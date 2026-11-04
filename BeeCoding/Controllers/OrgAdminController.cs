@@ -91,7 +91,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         var g = TimeBucketing.NormalizeGranularity(granularity);
         periods = Math.Clamp(periods, 1, g == "hour" ? 168 : g == "day" ? 90 : 52);
 
-        var activity = await _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId)
+        var from = TimeBucketing.Window(g, periods)[0];
+        var activity = await _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId && s.CreatedAt >= from)
             .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
 
         var byBucket = activity.ToLookup(x => TimeBucketing.BucketStart(x.CreatedAt, g));
