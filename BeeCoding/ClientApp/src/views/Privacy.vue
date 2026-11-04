@@ -1,9 +1,11 @@
 <script setup>
 import LegalPage from './LegalPage.vue';
+import { docLang } from '../lib/docLang';
 </script>
 
 <template>
-  <LegalPage title="Privacy Policy" updated="7 September 2026">
+  <LegalPage :title="docLang === 'id' ? 'Kebijakan Privasi' : 'Privacy Policy'" updated="7 September 2026">
+    <template v-if="docLang === 'en'">
     <p>
       BeeCoding is a self-hosted classroom platform. This instance is operated by your
       school, teacher, or institution (the <strong>“Operator”</strong>), who is responsible
@@ -86,5 +88,89 @@ import LegalPage from './LegalPage.vue';
       Direct privacy questions, access requests or deletion requests to the Operator of this
       instance (usually your teacher or school IT).
     </p>
+    </template>
+    <template v-else>
+    <p>
+      BeeCoding adalah platform kelas yang dihosting sendiri. Instans ini dijalankan oleh sekolah,
+      guru, atau institusi Anda (<strong>“Operator”</strong>), yang bertanggung jawab atas cara data
+      Anda ditangani dan menjadi tempat Anda mengajukan permintaan terkait privasi. Halaman ini
+      menjelaskan apa yang dikumpulkan dan dilakukan perangkat lunak ini sesuai rancangannya.
+    </p>
+
+    <h2>1. Informasi yang kami kumpulkan</h2>
+    <ul>
+      <li><strong>Data akun</strong> — alamat email, nama tampilan, peran yang dipilih (siswa atau
+        guru), dan kata sandi yang di-hash satu arah. Kata sandi asli tidak pernah disimpan.</li>
+      <li><strong>Aktivitas belajar</strong> — kode yang Anda jalankan dan kirim, hasil juri
+        (verdict, waktu, memori), poin pengalaman, keanggotaan board dan kelas, serta kiriman di
+        dinding, catatan, komentar, dan reaksi yang Anda buat.</li>
+      <li><strong>Data teknis</strong> — satu cookie autentikasi agar Anda tetap masuk, dan log
+        server standar (waktu, alamat IP, jejak galat) yang disimpan untuk keamanan dan debugging.</li>
+      <li><strong>Prompt tutor AI</strong> — hanya jika Operator mengaktifkan tutor AI opsional.
+        Lihat bagian 4.</li>
+    </ul>
+
+    <h2>2. Bagaimana kami memakainya</h2>
+    <ul>
+      <li>Untuk menjalankan layanan: mengautentikasi Anda, mengompilasi dan menilai kode Anda,
+        menampilkan kemajuan kelas, memberi XP, dan membuat papan peringkat.</li>
+      <li>Agar guru dapat melihat dan menilai pekerjaan siswa di kelas mereka.</li>
+      <li>Untuk menjaga keamanan layanan (pembatasan laju, pencegahan penyalahgunaan, debugging).</li>
+    </ul>
+    <p>Kami tidak menjual data Anda dan tidak memakainya untuk iklan.</p>
+
+    <h2>3. Cookie</h2>
+    <p>
+      Satu cookie pihak pertama (<code>beecoding.auth</code>) dipakai agar Anda tetap masuk. Cookie itu
+      <code>HttpOnly</code> dan, lewat HTTPS, <code>Secure</code>. Beberapa preferensi (tema, bahasa
+      yang dipilih, ukuran panel) disimpan di penyimpanan lokal browser Anda dan tidak pernah
+      meninggalkan perangkat Anda. Tidak ada cookie pihak ketiga atau pelacak yang dipakai.
+    </p>
+
+    <h2>4. Pihak ketiga</h2>
+    <p>
+      Platform inti tidak mengirim data Anda ke pihak ketiga mana pun. Jika Operator mengaktifkan
+      <strong>tutor AI</strong> opsional, maka saat Anda meminta petunjuk, soal, contoh test, kode Anda
+      saat ini, dan keluaran galat apa pun dikirim ke penyedia AI yang dikonfigurasi Operator (misalnya
+      NVIDIA NIM atau endpoint yang kompatibel dengan OpenAI) untuk membuat petunjuk itu. Tanyakan ke
+      Operator penyedia mana yang dipakai dan baca ketentuan privasi penyedia tersebut.
+    </p>
+
+    <h2>5. Penyimpanan dan penghapusan data</h2>
+    <ul>
+      <li>Data Anda disimpan selama akun Anda ada di instans ini.</li>
+      <li>Anda dapat menghapus akun dari <strong>pengaturan Akun</strong>. Ini menghapus permanen
+        profil, kiriman, dan kemajuan latihan Anda; jika Anda guru, board milik Anda beserta
+        pekerjaan yang dikumpulkan ke dalamnya juga ikut terhapus.</li>
+      <li>Operator juga dapat menghapus data sebagai bagian dari kebijakan akhir semester atau
+        pencadangan.</li>
+    </ul>
+
+    <h2>6. Keamanan</h2>
+    <p>
+      Kata sandi di-hash dengan PBKDF2. Kode yang dikirim berjalan di sandbox dengan sumber daya
+      terbatas. Lalu lintas sebaiknya dilayani lewat HTTPS. Tidak ada sistem yang sepenuhnya aman;
+      juri kode hanya berisolasi tingkat ruang kelas, bukan jaminan terhadap penyerang yang bertekad.
+    </p>
+
+    <h2>7. Anak-anak dan penggunaan pendidikan</h2>
+    <p>
+      BeeCoding dimaksudkan untuk dipakai di dalam kelas di bawah pengawasan pendidik. Jika siswa
+      masih di bawah umur, sekolah atau Operator bertindak sebagai pengendali data dan bertanggung
+      jawab memperoleh persetujuan yang diwajibkan hukum setempat.
+    </p>
+
+    <h2>8. Perubahan</h2>
+    <p>
+      Kebijakan ini dapat berubah seiring berkembangnya perangkat lunak. Tanggal “terakhir
+      diperbarui” di atas menunjukkan versi terkini yang dikirim bersama instans ini.
+    </p>
+
+    <h2>9. Kontak</h2>
+    <p>
+      Arahkan pertanyaan privasi, permintaan akses, atau permintaan penghapusan kepada Operator
+      instans ini (biasanya guru atau TI sekolah Anda).
+    </p>
+    </template>
   </LegalPage>
 </template>

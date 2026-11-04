@@ -1,32 +1,39 @@
 <script setup>
 import { computed } from 'vue';
 import { useAuth } from '../stores/auth';
+import DocLangToggle from '../components/DocLangToggle.vue';
+import { docLang as lang } from '../lib/docLang';
 
 const auth = useAuth();
 const student = computed(() => !auth.isTeacher);
 
 const sections = [
-  ['alur', 'Alur singkat'],
-  ['statement', 'Menulis statement'],
-  ['gambar', 'Gambar dan rumus'],
-  ['test', 'Test case'],
-  ['lanjutan', 'Pengaturan lanjutan'],
-  ['validasi', 'Yang diperiksa saat menyimpan'],
-  ['keliru', 'Kesalahan yang sering terjadi'],
-  ['contoh', 'Contoh lengkap'],
+  ['alur', { en: 'Overview', id: 'Alur singkat' }],
+  ['statement', { en: 'Writing the statement', id: 'Menulis statement' }],
+  ['gambar', { en: 'Images and formulas', id: 'Gambar dan rumus' }],
+  ['test', { en: 'Test cases', id: 'Test case' }],
+  ['lanjutan', { en: 'Advanced settings', id: 'Pengaturan lanjutan' }],
+  ['validasi', { en: 'What is checked on save', id: 'Yang diperiksa saat menyimpan' }],
+  ['keliru', { en: 'Common mistakes', id: 'Kesalahan yang sering terjadi' }],
+  ['contoh', { en: 'Complete example', id: 'Contoh lengkap' }],
 ];
 </script>
 
 <template>
   <div class="max-w-3xl mx-auto px-4 py-6 text-slate-700 dark:text-slate-200">
-    <h1 class="text-2xl font-bold">📖 Panduan membuat soal</h1>
+    <div class="flex items-start justify-between gap-3">
+      <h1 class="text-2xl font-bold">📖 {{ lang === 'id' ? 'Panduan membuat soal' : 'Guide to writing problems' }}</h1>
+      <DocLangToggle class="shrink-0 mt-1" />
+    </div>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-      Dari ide sampai soal yang bisa dikerjakan: apa yang ditulis, bagaimana test case bekerja, dan apa yang diperiksa sistem.
+      {{ lang === 'id'
+        ? 'Dari ide sampai soal yang bisa dikerjakan: apa yang ditulis, bagaimana test case bekerja, dan apa yang diperiksa sistem.'
+        : 'From idea to a problem people can solve: what to write, how test cases work, and what the system checks.' }}
     </p>
 
     <nav class="mt-4 flex flex-wrap gap-2 text-xs">
       <a v-for="[id, label] in sections" :key="id" :href="`#${id}`"
-         class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400">{{ label }}</a>
+         class="px-2.5 py-1 rounded-full border border-slate-300 dark:border-slate-700 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400">{{ label[lang] }}</a>
     </nav>
 
     <article class="mt-6 space-y-4 text-sm leading-relaxed
@@ -39,6 +46,7 @@ const sections = [
                     [&_pre_code]:!bg-transparent [&_pre_code]:!p-0
                     [&_table]:w-full [&_th]:text-left [&_th]:font-semibold [&_td]:align-top [&_td]:py-1 [&_td]:pr-3 [&_th]:pr-3">
 
+      <template v-if="lang === 'id'">
       <section>
         <h2 id="alur">1. Alur singkat</h2>
         <template v-if="student">
@@ -137,6 +145,7 @@ const sections = [
         <ul>
           <li><strong>Akan diterima (Accepted) hanya jika semua test lulus.</strong> Kalau ada yang gagal, skor = poin test yang lulus dibagi total poin, sehingga <em>Points</em> menentukan bobot tiap test.</li>
           <li><strong>Perbandingan output:</strong> spasi di akhir setiap baris dan baris kosong di akhir output diabaikan. Selebihnya harus persis sama, termasuk huruf besar atau kecil, spasi di awal, dan baris kosong di tengah.</li>
+          <li><strong>Urutan:</strong> test dijalankan sesuai urutan di editor, dan judge melaporkan yang pertama gagal. Seret ⠿ atau pakai ▲ ▼ untuk mengubah urutan.</li>
           <li><strong>Wajib ada minimal satu test hidden</strong> sebelum soal dikirim ke Practice atau diusulkan ke board. Kalau semuanya sample, peserta bisa "menyelesaikan" soal hanya dengan mencetak contoh.</li>
         </ul>
         <h3>Test yang sebaiknya ada</h3>
@@ -218,9 +227,192 @@ const sections = [
         <p>Tiga test hidden membedakan solusi yang benar dari yang hampir benar, sedangkan sample hanya menjelaskan formatnya.</p>
       </section>
 
+      </template>
+      <template v-else>
+      <section>
+        <h2 id="alur">1. Overview</h2>
+        <template v-if="student">
+          <ol>
+            <li>Open <RouterLink to="/bank">My problems</RouterLink> and click <strong>+ New problem</strong>. The problem is <strong>private</strong>: only you can see it.</li>
+            <li>Fill in the title, the statement and at least one test case (see below), then <strong>Save</strong>. You can save, edit and run it as often as you like.</li>
+            <li>When it is ready, pick one:
+              <ul>
+                <li><strong>Submit to Practice</strong> — an admin reviews it. If approved, your problem appears in Practice for everyone.</li>
+                <li><strong>Propose to a board</strong> — the board's owner reviews it. If approved, it is copied to that board, hidden until the owner shows it.</li>
+              </ul>
+            </li>
+            <li>You get a notification (🔔) when the answer arrives. If it is declined, the reason is in the notification and you can fix the problem and send it again.</li>
+          </ol>
+          <ul>
+            <li>While it waits for an answer, or once it is published, a problem <strong>cannot be edited</strong>.</li>
+            <li>Solving a problem you wrote yourself <strong>earns no XP</strong> and does not add to your streak.</li>
+            <li>The number of problems you may keep is limited by the admin (50 to begin with), with at most 30 tests per problem and 10 problems waiting for review at once.</li>
+          </ul>
+        </template>
+        <template v-else>
+          <ul>
+            <li><strong>Personal problem bank</strong> (<RouterLink to="/bank">My problems</RouterLink>): write once, then pull it into any board with <em>copy to</em>. A problem marked <em>public</em> appears in Practice.</li>
+            <li><strong>Straight on a board</strong>: Boards → pick a board → Problems → New. The new problem is on that board right away.</li>
+            <li>The <strong>AI Generator</strong> can draft a problem and its tests. Always read the result: check the statement and the tests before using it. AI problems that are shared go through admin review.</li>
+            <li>Students can propose problems to your board. Proposals show up on the board's Problems page (and in 🔔). When approved, the problem is copied as <strong>hidden</strong>.</li>
+          </ul>
+        </template>
+      </section>
+
+      <section>
+        <h2 id="statement">2. Writing the statement</h2>
+        <p>The statement is written in Markdown. A new problem starts with this skeleton; replace its contents:</p>
+        <pre v-pre><code>Tell the story or describe the task here, briefly and clearly.
+
+**Input Format:** explain, line by line, what the program reads.
+
+**Output Format:** explain what must be printed, including the number or text format.
+
+**Constraints:** 1 &lt;= N &lt;= 1000.</code></pre>
+        <h3>What a good statement contains</h3>
+        <ul>
+          <li><strong>A short story and a clear task.</strong> One closing sentence saying what to compute or print is often worth more than a paragraph of story.</li>
+          <li><strong>Input Format</strong>: the data, line by line (<em>"the first line holds N, the next N lines hold two numbers each"</em>). Give the types and the separators.</li>
+          <li><strong>Output Format</strong>: what is printed, how many decimals, upper or lower case, one line or many. This is where problems most often go wrong.</li>
+          <li><strong>Constraints</strong>: the range of every value (it decides between <code>int</code> and <code>long long</code>), and a time limit that makes sense.</li>
+          <li><strong>You do not need to write the Input/Output examples again.</strong> Test cases marked <em>sample</em> are shown automatically under the statement.</li>
+        </ul>
+        <h3>Markdown you will use often</h3>
+        <table>
+          <thead><tr><th>Write</th><th>Result</th></tr></thead>
+          <tbody>
+            <tr><td><code v-pre>**bold**</code>, <code v-pre>*italic*</code></td><td><strong>bold</strong>, <em>italic</em></td></tr>
+            <tr><td><code v-pre>`N`</code></td><td>a variable name or value in code font</td></tr>
+            <tr><td><code v-pre>- item</code> / <code v-pre>1. item</code></td><td>bulleted / numbered list</td></tr>
+            <tr><td><code v-pre>```</code> on its own line, before and after</td><td>a code block or sample data</td></tr>
+            <tr><td><code v-pre>| a | b |</code> with a row <code v-pre>|---|---|</code></td><td>a table</td></tr>
+            <tr><td><code v-pre>## Small heading</code></td><td>a sub-heading</td></tr>
+          </tbody>
+        </table>
+        <p>Students read the statement as a protected image (with a watermark), so it cannot be copied. The preview in the editor looks slightly different, but the content is the same.</p>
+      </section>
+
+      <section>
+        <h2 id="gambar">3. Images and formulas</h2>
+        <h3>Images</h3>
+        <ol>
+          <li>In the editor, click <strong>🖼 Add image</strong> above the statement box and choose a file.</li>
+          <li>Code like <code v-pre>![](/api/images/abc123…)</code> is inserted at the cursor. You can write a caption inside the square brackets: <code v-pre>![Example graph](/api/images/…)</code>.</li>
+          <li>Leave a blank line above and below it so the image is shown as a block of its own. A problem can have several images.</li>
+        </ol>
+        <ul>
+          <li>Formats: PNG, JPEG, GIF or WebP. <strong>SVG is not accepted</strong> because it can carry code.</li>
+          <li>The file size is limited by the admin (1 MB to begin with). An accepted file is shrunk automatically (at most 1200 px wide).</li>
+          <li>Only images uploaded with that button are shown. Images from other sites are blocked.</li>
+          <li>An image you uploaded stays even if you delete its code from the statement, and the number of images per person is limited.</li>
+        </ul>
+        <h3>Formulas</h3>
+        <p>There is no formula engine (LaTeX). Write formulas as text, the way you would in C code:</p>
+        <ul>
+          <li><code v-pre>x^2</code>, <code v-pre>sqrt(x)</code>, <code v-pre>a / b</code>, <code v-pre>a &lt;= b</code>, <code v-pre>a != b</code>, <code v-pre>|x|</code>, <code v-pre>10^9</code>.</li>
+          <li>Simple LaTeX (<code v-pre>\frac{a}{b}</code>, <code v-pre>\sqrt{x}</code>, <code v-pre>\leq</code>) is converted to text like the above. Complicated formulas (sums, integrals, matrices) are better drawn and uploaded as an image.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 id="test">4. Test cases</h2>
+        <p>A test case is a pair of <strong>input</strong> and <strong>expected output</strong>. The participant's program is run on each input and its output is compared with the expected output.</p>
+        <table>
+          <thead><tr><th>Kind</th><th>Seen by participants?</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sample</strong></td><td>Yes, shown as an Example under the statement</td><td>Clarifies the format. 1–2 are enough.</td></tr>
+            <tr><td><strong>Hidden</strong></td><td>No</td><td>What actually judges: ordinary cases, edge cases and large cases.</td></tr>
+          </tbody>
+        </table>
+        <ul>
+          <li><strong>A solution is Accepted only if every test passes.</strong> If some fail, the score is the points of the passed tests divided by the total points, so <em>Points</em> sets the weight of each test.</li>
+          <li><strong>Output comparison:</strong> spaces at the end of each line and blank lines at the end of the output are ignored. Everything else must match exactly, including upper/lower case, leading spaces and blank lines in the middle.</li>
+          <li><strong>At least one hidden test is required</strong> before a problem can be sent to Practice or proposed to a board. If everything is a sample, a participant can "solve" the problem just by printing the examples.</li>
+          <li><strong>Order:</strong> tests run in the order shown in the editor, and the judge reports the first one that fails. Drag a test by its ⠿ handle, or use ▲ ▼, to reorder.</li>
+        </ul>
+        <h3>Tests worth having</h3>
+        <ul>
+          <li>The smallest case (N = 1, an empty list if allowed, the value 0).</li>
+          <li>Cases that tell a correct answer from an almost-correct one: negative values, duplicates, reversed order.</li>
+          <li>Large cases that test the data type and the speed (e.g. values near 10^9 to catch <code>int</code> vs <code>long long</code>).</li>
+          <li><strong>The expected output must really be computed from a solution you have tested</strong>, not guessed. Run your own solution (the <em>Run</em> button on the problem) on every input to be sure.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 id="lanjutan">5. Advanced settings</h2>
+        <table>
+          <tbody>
+            <tr><td><strong>Allowed languages</strong></td><td>C, C++, or both. Empty means every language is allowed.</td></tr>
+            <tr><td><strong>Level</strong> and <strong>Tags</strong></td><td>Easy / Medium / Hard. Tags are comma-separated (<code>array,sorting</code>) and used for search and recommendations in Practice.</td></tr>
+            <tr><td><strong>Time (ms)</strong></td><td>Time limit per test, 100–10000, 1000 to begin with. Raise it only if a correct solution really needs longer.</td></tr>
+            <tr><td><strong>Memory (KB)</strong></td><td>Memory limit, 4096–512000, 32768 to begin with.</td></tr>
+            <tr><td><strong>Banned headers</strong></td><td>Headers that may not be <code>#include</code>d, e.g. <code>algorithm</code>. Setting even one also blocks <code>&lt;bits/stdc++.h&gt;</code>.</td></tr>
+            <tr><td><strong>Banned functions</strong></td><td>Names that may not be used, e.g. <code>qsort</code>. Writing <code>sort</code> also catches <code>std::sort</code>; write <code>std::sort</code> if only the qualified form should be banned. A violation is reported as a Compile Error.</td></tr>
+            <tr><td><strong>Input file</strong></td><td>Enter a file name (e.g. <code>input.txt</code>) for problems that read with <code>fopen()</code>. Each test's input is written to that file instead of being sent through stdin. Students see a note about the file at the top of the problem. Leave it empty for ordinary problems (<code>scanf</code>/<code>cin</code>).</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2 id="validasi">6. What is checked when you save</h2>
+        <p>Saving is refused, with a message under the Save button, if:</p>
+        <ul>
+          <li>the title is empty or longer than 200 characters;</li>
+          <li>the statement is empty or longer than 50,000 characters;</li>
+          <li>there are no test cases at all;</li>
+          <li>a test row is completely empty (input and output both blank), usually an "add test" row that was never filled in. An empty output with a filled-in input is still allowed, for problems that really print nothing.</li>
+        </ul>
+        <p>Sending to Practice or a board also needs <strong>at least one hidden test</strong> (see section 4).</p>
+      </section>
+
+      <section>
+        <h2 id="keliru">7. Common mistakes</h2>
+        <ul>
+          <li><strong>A wrong expected output.</strong> The most common reason participants report a problem. Compute it from a solution you have run, not from your head.</li>
+          <li><strong>An input that breaks your own constraints.</strong> For example the constraint says <code>N &lt;= 100</code> but a test has N = 1000. Check every test against the statement.</li>
+          <li><strong>An unclear output format.</strong> "Print the average" without saying how many decimals can make a correct answer get rejected. Be exact, e.g. "exactly 2 digits after the decimal point".</li>
+          <li><strong>One answer, many forms.</strong> If a problem has more than one valid answer (e.g. any order), a text comparison cannot judge it. Change the problem so the answer is unique, e.g. "print the alphabetically smallest one".</li>
+          <li><strong>Only sample tests.</strong> Add hidden tests, including edge cases.</li>
+          <li><strong>The statement says to read a file but the Input file setting is empty</strong> (or the other way round). Make sure both agree.</li>
+          <li><strong>Changing the tests of a problem others have already solved.</strong> Old submissions were judged with the old tests, so they are no longer comparable. If the change is big, create a new problem.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2 id="contoh">8. A complete example: "Sum of Two Numbers"</h2>
+        <table>
+          <tbody>
+            <tr><td><strong>Title</strong></td><td>Sum of Two Numbers</td></tr>
+            <tr><td><strong>Level / Tags</strong></td><td>Easy / <code>math</code></td></tr>
+            <tr><td><strong>Time / Memory</strong></td><td>1000 ms / 32768 KB (defaults)</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Statement:</strong></p>
+        <pre v-pre><code>You are given two integers `a` and `b`. Print their sum.
+
+**Input Format:** one line with two integers `a` and `b` separated by a space.
+
+**Output Format:** one integer, `a + b`.
+
+**Constraints:** -10^9 &lt;= a, b &lt;= 10^9.</code></pre>
+        <p><strong>Test cases:</strong></p>
+        <table>
+          <thead><tr><th>#</th><th>Kind</th><th>Input</th><th>Output</th><th>Why it is there</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>sample</td><td><code>2 3</code></td><td><code>5</code></td><td>Shows the format.</td></tr>
+            <tr><td>2</td><td>hidden</td><td><code>100 -40</code></td><td><code>60</code></td><td>Has a negative number.</td></tr>
+            <tr><td>3</td><td>hidden</td><td><code>0 0</code></td><td><code>0</code></td><td>Edge case: zero.</td></tr>
+            <tr><td>4</td><td>hidden</td><td><code>1000000000 1000000000</code></td><td><code>2000000000</code></td><td>Traps participants who use <code>int</code> (the result overflows).</td></tr>
+          </tbody>
+        </table>
+        <p>The three hidden tests tell a correct solution from an almost-correct one, while the sample only explains the format.</p>
+      </section>
+      </template>
+
       <p class="pt-4 text-xs text-slate-400 dark:text-slate-500">
-        Ada yang kurang jelas? Tanyakan ke pengajar atau admin instansimu.
-        <RouterLink :to="student ? '/bank' : '/bank/new'" class="ml-1">Mulai membuat soal →</RouterLink>
+        {{ lang === 'id' ? 'Ada yang kurang jelas? Tanyakan ke pengajar atau admin instansimu.' : 'Something unclear? Ask your teacher or your institution\'s admin.' }}
+        <RouterLink :to="student ? '/bank' : '/bank/new'" class="ml-1">{{ lang === 'id' ? 'Mulai membuat soal →' : 'Start writing a problem →' }}</RouterLink>
       </p>
     </article>
   </div>

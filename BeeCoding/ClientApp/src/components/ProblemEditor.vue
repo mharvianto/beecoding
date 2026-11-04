@@ -4,6 +4,7 @@ import MarkdownBlock from './MarkdownBlock.vue';
 import { SUPPORTED_LANGS } from '../lib/templates';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
+import { docLang } from '../lib/docLang';
 
 // statement: editor + preview side by side, either pane hideable (never both)
 const showWrite = ref(true);
@@ -29,17 +30,29 @@ const emit = defineEmits(['save', 'delete', 'cancel', 'regenerate-tests', 'add-e
 
 // What a new problem starts with: the house layout. The sample tests are listed under the statement automatically,
 // so there is no "Contoh" section to write. A picture is added with the "Add image" button above the box.
-const STATEMENT_TEMPLATE = `Tulis ceritanya atau masalahnya di sini, singkat dan jelas.
+const STATEMENT_TEMPLATES = {
+  id: `Tulis ceritanya atau masalahnya di sini, singkat dan jelas.
 
 **Format Input:** jelaskan baris demi baris apa yang dibaca program.
 
 **Format Output:** jelaskan apa yang harus dicetak, termasuk format angka atau teksnya.
 
 **Batasan:** 1 <= N <= 1000.
-`;
+`,
+  en: `Tell the story or describe the task here, briefly and clearly.
+
+**Input Format:** explain, line by line, what the program reads.
+
+**Output Format:** explain what must be printed, including the number or text format.
+
+**Constraints:** 1 <= N <= 1000.
+`,
+};
+// follows the language chosen on the guide / terms pages (English unless switched), so the guide shows what the editor gives
+const statementTemplate = () => STATEMENT_TEMPLATES[docLang.value] ?? STATEMENT_TEMPLATES.en;
 
 const blank = () => ({
-  title: '', statementMarkdown: STATEMENT_TEMPLATE, allowedLanguages: '',
+  title: '', statementMarkdown: statementTemplate(), allowedLanguages: '',
   timeLimitMs: 1000, memoryLimitKb: 32768, position: 0,
   level: 'Medium', tags: '', isPublic: false, bannedHeaders: '', bannedSymbols: '', inputFileName: '', testCases: [],
 });
