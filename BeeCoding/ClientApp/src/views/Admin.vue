@@ -1874,55 +1874,91 @@ onMounted(async () => {
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Judge, LSP &amp; student limits <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
+            Live settings <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
           </h3>
-          <div class="flex flex-wrap items-end gap-4">
-            <label class="flex items-center gap-2 text-sm">
-              <input type="checkbox" v-model="runtimeConfigForm.lspEnabled" />
-              C/C++ IntelliSense (LSP) enabled
-            </label>
-            <label class="flex items-center gap-2 text-sm"
-                   title="One clangd process serves many students (each in their own file) instead of one process per student. Fits a whole class in a few hundred MB, but a heavy request can slow everyone and a crash restarts it for all. Open sessions keep their kind; new ones follow this switch.">
-              <input type="checkbox" v-model="runtimeConfigForm.lspShared" />
-              Share one clangd between students
-              <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">
-                ({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached)
-              </span>
-            </label>
-            <label class="flex items-center gap-2 text-sm">
-              <span class="text-slate-500 dark:text-slate-400">Submit/run cooldown</span>
-              <input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
-                     class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
-              <span class="text-slate-400 dark:text-slate-500">ms</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm" title="How many problems one student may keep in their own bank. 0 stops students from creating problems.">
-              <span class="text-slate-500 dark:text-slate-400">Max problems per student</span>
-              <input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
-                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
-            </label>
-            <label class="flex items-center gap-2 text-sm" title="Largest picture file an author may upload for a statement. Bigger files are refused; accepted ones are compressed (max 1200 px wide, JPEG for photos).">
-              <span class="text-slate-500 dark:text-slate-400">Max image upload</span>
-              <input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
-                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
-              <span class="text-slate-400 dark:text-slate-500">KB</span>
-            </label>
-            <label class="flex items-center gap-2 text-sm" title="How many statement pictures one user may keep. 0 turns picture uploads off.">
-              <span class="text-slate-500 dark:text-slate-400">Max images per user</span>
-              <input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
-                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
-            </label>
-            <label class="flex items-center gap-2 text-sm" title="A notification is deleted this many days after the person read it. 0 keeps read ones until the 30-day sweep. Unread ones are kept 30 days, and only the newest 200 per person.">
-              <span class="text-slate-500 dark:text-slate-400">Delete read notifications after</span>
-              <input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
-                     class="w-16 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
-              <span class="text-slate-400 dark:text-slate-500">days</span>
-            </label>
+          <div class="grid gap-4 md:grid-cols-2">
+            <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">IntelliSense (clangd)</h4>
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">C/C++ IntelliSense enabled</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Autocomplete, hover and diagnostics in the editor. Off = word-based completion only.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspEnabled" class="w-4 h-4" /></span>
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached)</span></span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspShared" class="w-4 h-4" /></span>
+              </label>
+              </div>
+            </section>
+            <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Judge &amp; problems</h4>
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Submit / run cooldown</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Minimum gap between one user's runs or submissions.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
+                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">ms</span></span>
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max problems per student</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">In a student's own bank. 0 stops students creating problems.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
+              </label>
+              </div>
+            </section>
+            <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Statement images</h4>
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max image upload</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Larger files are refused; accepted ones are compressed (≤1200 px wide).</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">KB</span></span>
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max images per user</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">0 turns picture uploads off.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
+              </label>
+              </div>
+            </section>
+            <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Notifications</h4>
+              <div class="divide-y divide-slate-100 dark:divide-slate-800">
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Delete read notifications after</span>
+                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">days</span></span>
+              </label>
+              </div>
+            </section>
+          </div>
+          <div class="mt-3 flex items-center gap-3">
             <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"
                     class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
               {{ runtimeConfigSaving ? 'Saving…' : 'Save' }}
             </button>
+            <span v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400">{{ runtimeConfigMsg }}</span>
           </div>
-          <p v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ runtimeConfigMsg }}</p>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
             Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
           </p>
