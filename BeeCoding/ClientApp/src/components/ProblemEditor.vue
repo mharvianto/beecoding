@@ -26,7 +26,7 @@ const props = defineProps({
   regenBusy: Boolean,
   addExtremeBusy: Boolean,         // "add extreme tests" shares the same canRegenTests gate
 });
-const emit = defineEmits(['save', 'delete', 'cancel', 'regenerate-tests', 'add-extreme-tests']);
+const emit = defineEmits(['save', 'delete', 'cancel', 'regenerate-tests', 'add-extreme-tests', 'dirty']);
 
 // What a new problem starts with: the house layout. The sample tests are listed under the statement automatically,
 // so there is no "Contoh" section to write. A picture is added with the "Add image" button above the box.
@@ -58,11 +58,16 @@ const blank = () => ({
 });
 const form = ref(blank());
 const tab = ref('problem');   // 'problem' | 'tests'
+let saved = '';               // form as loaded/saved, to tell whether it changed
 
 watch(() => props.problem, (p) => {
   form.value = p ? { ...blank(), ...JSON.parse(JSON.stringify(p)) } : blank();
   tab.value = 'problem';
+  saved = JSON.stringify(form.value);
 }, { immediate: true });
+
+// Tell the page whether there is anything unsaved, so it can ask before the tab or route is left.
+watch(form, (f) => emit('dirty', JSON.stringify(f) !== saved), { deep: true });
 
 // allowed languages as a checkbox array <-> csv on the form (empty csv = all allowed)
 const allowedLangsArr = computed({

@@ -1,12 +1,14 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
+import { useConfirmDialog } from '../stores/confirmDialog';
 import ProblemEditor from '../components/ProblemEditor.vue';
 
 const undoToast = useUndoToast();
+const confirmDialog = useConfirmDialog();
 const auth = useAuth();
 
 // One page for all four routes:
@@ -28,6 +30,14 @@ const aiEnabled = ref(false);
 const regenBusy = ref(false);
 const addExtremeBusy = ref(false);
 
+// Unsaved edits: ask before the tab is closed/reloaded (browser's own prompt) or the route is left (back button, links, Cancel).
+const dirty = ref(false);
+const warnUnload = (e) => { if (dirty.value) { e.preventDefault(); e.returnValue = ''; } };
+window.addEventListener('beforeunload', warnUnload);
+onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnload));
+onBeforeRouteLeave(() => !dirty.value
+  || confirmDialog.ask('You have unsaved changes to this problem. Leave without saving?', { confirmLabel: 'Leave' }));
+
 async function load() {
   error.value = '';
   try {
@@ -42,6 +52,7 @@ async function save(form) {
     const body = { ...(form.value ?? form) };
     if (editSlug.value) await api.put(`${apiBase.value}/${editSlug.value}`, body);
     else await api.post(apiBase.value, body);
+    dirty.value = false;
     router.push(listPath.value);
   } catch (e) { error.value = e.message; }
   finally { busy.value = false; }
@@ -55,6 +66,7 @@ async function remove() {
   error.value = '';
   try {
     await api.del(`${base}/${slug}`);
+    dirty.value = false;
     router.push(listPath.value);
     undoToast.show(`"${title}" deleted.`, async () => {
       await api.post(`${base}/${slug}/restore`);
@@ -133,7 +145,7 @@ onMounted(async () => {
       :can-regen-tests="!isBoard && auth.isTeacher && aiEnabled && !!editSlug"
       :regen-busy="regenBusy"
       :add-extreme-busy="addExtremeBusy"
-      @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"
+      @dirty="dirty = $event" @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"
       @add-extreme-tests="addExtremeTests" />
   </div>
 </template>
