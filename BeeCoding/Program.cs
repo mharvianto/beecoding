@@ -271,6 +271,7 @@ if (!judgeOpt.Queue.UseRedis)
 builder.Services.AddHostedService<JudgeJanitor>();
 builder.Services.AddHostedService<NotificationJanitor>();
 builder.Services.AddHostedService<StatementImageJanitor>();
+builder.Services.AddHostedService<AuditLogJanitor>();
 
 builder.Services.AddScoped<VisibilityService>();
 builder.Services.AddScoped<BoardService>();
