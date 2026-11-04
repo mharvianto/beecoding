@@ -72,8 +72,8 @@ const usersTotal = ref(0);
 const fmt = (n) => (n ?? 0).toLocaleString();
 const when = (d) => new Date(d.endsWith('Z') ? d : d + 'Z').toLocaleString();
 const actionBadgeClass = (action) => ({
-  'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300': ['delete', 'admin-revoke', 'ai-ban', 'ai-pause', 'ai-review-reject'].includes(action),
-  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300': ['restore', 'create', 'ai-resume', 'ai-review-approve'].includes(action),
+  'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300': ['delete', 'admin-revoke', 'ai-ban', 'ai-pause', 'problem-review-reject'].includes(action),
+  'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300': ['restore', 'create', 'ai-resume', 'problem-review-approve'].includes(action),
   'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300': ['purge', 'ai-override-clear'].includes(action),
   'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300': ['admin-grant', 'role-change', 'ai-quota-set'].includes(action),
 });

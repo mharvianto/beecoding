@@ -220,7 +220,7 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         b.ReviewNote = null;
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        await _audit.RecordAsync(UserId, ActorEmail, "ai-review-approve", "BankProblem", b.Id, b.Title);
+        await _audit.RecordAsync(UserId, ActorEmail, "problem-review-approve", "BankProblem", b.Id, b.Title);
         await NotifyOwnerAsync(b, approved: true, note: null);
         return NoContent();
     }
@@ -240,7 +240,7 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         var label = string.IsNullOrWhiteSpace(dto.Reason) ? b.Title : $"{b.Title}: {dto.Reason}";
-        await _audit.RecordAsync(UserId, ActorEmail, "ai-review-reject", "BankProblem", b.Id, label);
+        await _audit.RecordAsync(UserId, ActorEmail, "problem-review-reject", "BankProblem", b.Id, label);
         await NotifyOwnerAsync(b, approved: false, note: b.ReviewNote);
         return NoContent();
     }
