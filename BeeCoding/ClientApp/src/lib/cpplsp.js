@@ -16,7 +16,12 @@ export class CppLsp {
     this.uri = null;
     this.ws = null;
     this.ready = false;
+    this._closeCb = null;
+    this._closing = false;
   }
+
+  /** Called when the server (or the network) ends the session — not when we close it ourselves. */
+  onClose(cb) { this._closeCb = cb; }
 
   connect(timeoutMs = 4000) {
     return new Promise((resolve, reject) => {
@@ -63,7 +68,14 @@ export class CppLsp {
         }
       };
       this.ws.onerror = () => { if (!settled) { settled = true; clearTimeout(timer); reject(new Error('lsp error')); } };
-      this.ws.onclose = () => { this.ready = false; for (const { resolve: r } of this._pending.values()) r(null); this._pending.clear(); };
+      this.ws.onclose = () => {
+        this.ready = false;
+        for (const { resolve: r } of this._pending.values()) r(null);
+        this._pending.clear();
+        // "server busy" arrives as an immediate close before the ready message: no need to wait out the timeout.
+        if (!settled) { settled = true; clearTimeout(timer); reject(new Error('lsp closed')); }
+        else if (!this._closing) this._closeCb?.();
+      };
     });
   }
 
@@ -132,6 +144,7 @@ export class CppLsp {
   onDiagnostics(cb) { this._diagCb = cb; }
 
   close() {
+    this._closing = true;
     try { this.ws?.close(); } catch { /* ignore */ }
     this.ws = null;
     this.ready = false;

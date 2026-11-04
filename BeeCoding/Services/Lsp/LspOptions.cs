@@ -11,7 +11,7 @@ public class LspOptions
     public int MaxConcurrent { get; set; } = 4;
 
     /// <summary>Kill a session after this long with no traffic.</summary>
-    public int IdleTimeoutSeconds { get; set; } = 300;
+    public int IdleTimeoutSeconds { get; set; } = 90;
 
     /// <summary>
     /// Optional RLIMIT_DATA ceiling per clangd (MB, via <c>prlimit</c>). Acts only as a

@@ -89,11 +89,50 @@ function applyFont(px) {
 function toggleLsp() {
   lspEnabled.value = !lspEnabled.value;
   try { localStorage.setItem(LSP_KEY, lspEnabled.value ? '1' : '0'); } catch { /* ignore */ }
-  if (lspEnabled.value) initLsp(); else disposeLsp();
+  if (lspEnabled.value) { lspState.value = 'on'; initLsp(); } else disposeLsp();
 }
 
 // ---- clangd LSP wiring --------------------------------------------------------
+// clangd processes are scarce on the server (Lsp:MaxConcurrent), so a session is only held while it is useful:
+//   on    – connected
+//   busy  – the server had no free slot; try again later
+//   idle  – the server closed it after a quiet spell, or the tab was hidden for a while; reconnects when you type
+// Being turned away is never an error — the editor just keeps the basic word/snippet completion.
+const lspState = ref('on');   // meaningful once serverLsp is true and lspEnabled is on
+const RETRY_MS = 60_000;      // while busy, try again this often if the tab is visible
+const WAKE_COOLDOWN_MS = 30_000;   // ...and typing alone retries at most this often
+const HIDDEN_RELEASE_MS = 60_000;  // give the slot back after the tab has been hidden this long
 let lspClient = null;
+let lspRetryTimer = null;
+let hiddenTimer = null;
+let lastAttempt = 0;
+let connecting = false;
+
+function scheduleRetry() {
+  clearTimeout(lspRetryTimer);
+  lspRetryTimer = setTimeout(() => wakeLsp(true), RETRY_MS);
+}
+/** Typing / focusing / the retry timer: reconnect if we gave up the session or were turned away. */
+function wakeLsp(force = false) {
+  if (!lspEnabled.value || !serverLsp.value || connecting || document.hidden || props.readOnly) return;
+  if (lspState.value !== 'busy' && lspState.value !== 'idle') return;
+  if (!force && Date.now() - lastAttempt < WAKE_COOLDOWN_MS && lspState.value === 'busy') return;
+  disposeLsp(false);
+  initLsp();
+}
+function onVisibility() {
+  if (document.hidden) {
+    clearTimeout(hiddenTimer);
+    hiddenTimer = setTimeout(() => {
+      if (document.hidden && lspClient) { disposeLsp(false); lspState.value = 'idle'; }
+    }, HIDDEN_RELEASE_MS);
+  } else {
+    clearTimeout(hiddenTimer);
+    wakeLsp(true);
+  }
+}
+if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibility);
+
 let lspDisposables = [];
 let changeTimer = null;
 let changePending = false;
@@ -149,14 +188,24 @@ async function initLsp() {
   const lang = props.lsp === true ? props.language : props.lsp;
   if (lang !== 'c' && lang !== 'cpp') return;
 
+  connecting = true; lastAttempt = Date.now();
   try {
     lspClient = new CppLsp(lang, cppFormatStyle.value);
     await lspClient.connect();
     await lspClient.open(editor.getValue());
   } catch {
-    lspClient = null;               // bridge disabled / clangd missing -> word-based only
+    lspClient?.close();
+    lspClient = null;               // no free slot / bridge down -> word-based only, try again later
+    connecting = false;
+    if (lspEnabled.value) { lspState.value = 'busy'; scheduleRetry(); }
     return;
   }
+  connecting = false;
+  lspState.value = 'on';
+  clearTimeout(lspRetryTimer);
+  const mineClient = lspClient;
+  // The server ends a quiet session (Lsp:IdleTimeoutSeconds): tidy up and reconnect on the next keystroke.
+  lspClient.onClose(() => { if (lspClient === mineClient) { disposeLsp(false); lspState.value = 'idle'; } });
 
   lspDisposables.push(editor.onDidChangeModelContent(() => {
     changePending = true;
@@ -235,8 +284,9 @@ async function initLsp() {
   });
 }
 
-function disposeLsp() {
+function disposeLsp(final = true) {
   clearTimeout(changeTimer);
+  if (final) { clearTimeout(lspRetryTimer); clearTimeout(hiddenTimer); }
   changePending = false;
   lspDisposables.forEach((d) => { try { d.dispose(); } catch { /* ignore */ } });
   lspDisposables = [];
@@ -330,6 +380,8 @@ onMounted(() => {
     });
   }
   if (lspCapable() && !props.readOnly) {
+    editor.onDidChangeModelContent(() => wakeLsp());
+    editor.onDidFocusEditorText(() => wakeLsp());
     probeServerLsp().then((ok) => {
       serverLsp.value = ok;
       if (!ok) return;
@@ -375,6 +427,7 @@ watch(editorFontFamily, (f) => editor?.updateOptions({ fontFamily: f || undefine
 watch(fontSize, (px) => editor?.updateOptions({ fontSize: px }));
 
 onBeforeUnmount(() => {
+  if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibility);
   clearTimeout(pasteFlashTimer);
   pasteDisposable?.dispose();
   disposeLsp();
@@ -416,9 +469,12 @@ function download() {
       <span class="text-slate-400 dark:text-slate-500 tabular-nums w-4 text-center">{{ fontSize }}</span>
       <button type="button" :class="btnCls" title="Increase font size (Ctrl +)" @click="applyFont(fontSize + 1)">A+</button>
       <button v-if="showLspBtn && serverLsp" type="button" :class="btnCls"
-              :title="lspEnabled ? 'C/C++ IntelliSense on — click to disable' : 'C/C++ IntelliSense off — click to enable'"
+              :title="!lspEnabled ? 'C/C++ IntelliSense off — click to enable'
+                : lspState === 'busy' ? 'IntelliSense is full right now — using basic completion, retrying automatically. Click to disable.'
+                : lspState === 'idle' ? 'IntelliSense paused while you were away — it reconnects when you type. Click to disable.'
+                : 'C/C++ IntelliSense on — click to disable'"
               @click="toggleLsp()">
-        LSP&nbsp;{{ lspEnabled ? 'on' : 'off' }}
+        LSP&nbsp;{{ !lspEnabled ? 'off' : lspState === 'on' || lspState === 'connecting' ? 'on' : lspState }}
       </button>
       <button type="button" :class="btnCls" title="Download as a file" @click="download()">&#8681;</button>
     </div>
