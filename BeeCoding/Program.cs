@@ -170,7 +170,9 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
 builder.Services.AddSingleton<LspEndpoint>();
 // The default HttpClient.Timeout is 100s — too short for generate-problem. Let each call's
 // own CancellationTokenSource (Ai:TimeoutSeconds / Ai:GenerateTimeoutSeconds) be the limit.
-builder.Services.AddHttpClient<AiTutorService>(c => c.Timeout = Timeout.InfiniteTimeSpan);
+// No redirects: an org admin's endpoint could otherwise 307 the request to an internal address after passing AiUrl's check.
+builder.Services.AddHttpClient<AiTutorService>(c => c.Timeout = Timeout.InfiniteTimeSpan)
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddScoped<AiUsageService>();
 builder.Services.AddScoped<AiHintProgressService>();
 
