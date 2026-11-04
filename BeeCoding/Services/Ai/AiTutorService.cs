@@ -45,7 +45,9 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
         var org = _organizationId is int id ? _providerRuntime.Org(id) : null;
         var plat = _providerRuntime.Platform;
         var apiKey = org?.ApiKey ?? plat?.ApiKey ?? _opt.ApiKey;
-        var baseUrl = org?.BaseUrl ?? plat?.BaseUrl ?? _opt.BaseUrl;
+        // An org-set URL only counts together with the org's own key; otherwise an org admin could
+        // point the platform's key at a server they control.
+        var baseUrl = (string.IsNullOrWhiteSpace(org?.ApiKey) ? null : org.BaseUrl) ?? plat?.BaseUrl ?? _opt.BaseUrl;
         var model = org?.Model ?? plat?.Model ?? _opt.Model;
         var generateModel = org?.GenerateModel ?? plat?.GenerateModel ?? (string.IsNullOrWhiteSpace(_opt.GenerateModel) ? null : _opt.GenerateModel);
         return (apiKey, baseUrl, model, generateModel);
