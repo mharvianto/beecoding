@@ -1,19 +1,13 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
 namespace BeeCoding.Tests;
 
-public class CsrfTests : IClassFixture<CsrfTests.App>
+[Collection("app")]
+public class CsrfTests : IClassFixture<TestApp>
 {
-    public sealed class App : WebApplicationFactory<Program>
-    {
-        public App() => Environment.SetEnvironmentVariable("ConnectionStrings__Default",
-            $"Data Source={Path.Combine(Path.GetTempPath(), $"beecoding-test-{Guid.NewGuid():N}.db")}");
-    }
-
-    private readonly App _app;
-    public CsrfTests(App app) => _app = app;
+    private readonly TestApp _app;
+    public CsrfTests(TestApp app) => _app = app;
 
     private async Task<HttpStatusCode> Post(string path, string? site)
     {
