@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotifications, notificationText, notificationTarget } from '../stores/notifications';
+import { vClickOutside } from '../lib/clickOutside';
 
 const notif = useNotifications();
 const router = useRouter();
@@ -33,7 +34,7 @@ async function go(n) {
 </script>
 
 <template>
-  <div class="relative">
+  <div class="relative" v-click-outside="() => (open = false)">
     <!-- Emoji, like the rest of the app's icons (and the 🔔 chips on wall cards / problem tabs). -->
     <button @click="toggle" class="relative px-1 text-base leading-none transition"
             :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
@@ -45,7 +46,6 @@ async function go(n) {
     </button>
 
     <template v-if="open">
-      <div class="fixed inset-0 z-40" @click="open = false"></div>
       <div class="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg overflow-hidden">
         <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800">
           <span class="text-sm font-semibold">Notifications</span>

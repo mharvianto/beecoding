@@ -1,4 +1,5 @@
 <script setup>
+import { vClickOutside } from '../lib/clickOutside';
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -235,12 +236,11 @@ onBeforeUnmount(async () => {
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
         🧾 Submissions
       </RouterLink>
-      <div class="relative">
+      <div class="relative" v-click-outside="() => (exportOpen = false)">
         <button @click="exportOpen = !exportOpen" :disabled="exporting" :aria-expanded="exportOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 disabled:opacity-60">
           {{ exporting ? '⏳ Preparing…' : '⬇ Download' }}
         </button>
-        <div v-if="exportOpen" class="fixed inset-0 z-40" @click="exportOpen = false"></div>
         <div v-if="exportOpen"
              class="absolute left-0 z-50 mt-1 w-80 max-w-[90vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
           <button @click="exportFile('results.xlsx', 'results.xlsx')"
@@ -262,12 +262,11 @@ onBeforeUnmount(async () => {
 
       <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
             title="Exam mode is on for ungrouped problems">🔒 Exam mode{{ hasGroups ? ' (ungrouped)' : '' }}</span>
-      <div class="relative" :class="progress.examMode ? '' : 'sm:ml-auto'">
+      <div class="relative" :class="progress.examMode ? '' : 'sm:ml-auto'" v-click-outside="() => (settingsOpen = false)">
         <button @click="settingsOpen = !settingsOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           ⚙️ Settings
         </button>
-        <div v-if="settingsOpen" class="fixed inset-0 z-40" @click="settingsOpen = false"></div>
         <div v-if="settingsOpen"
              class="absolute right-0 z-50 mt-1 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
           <button @click="toggleExam(); settingsOpen = false"
