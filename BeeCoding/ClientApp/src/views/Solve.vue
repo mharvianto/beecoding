@@ -239,6 +239,20 @@ watch(code, () => {
 watch(solveLang, () => { saveDraftNow(); pushLectureSoon(); });
 watch(() => board.value?.lecturingMode, (on) => { if (on) pushLectureNow(); });
 
+// The verdict normally arrives over SignalR, but a blocked or dropped connection (a campus proxy, a phone that
+// went to sleep) would leave "still checking…" up for good even though grading finished in a fraction of a
+// second. While a submission is pending, also ask the server now and then; loadSubs() closes it once it is Done.
+let pendingPoll = null;
+watch(submittingId, (id) => {
+  clearInterval(pendingPoll);
+  if (!id) return;
+  let tries = 0;
+  pendingPoll = setInterval(() => {
+    if (++tries > 120) { clearInterval(pendingPoll); return; }   // ~4 minutes, then leave it to a refresh
+    loadSubs().catch(() => { /* try again on the next tick */ });
+  }, 2000);
+});
+
 onMounted(async () => {
   try { await load(); } catch (e) { error.value = e.message; return; }
   window.addEventListener('beforeunload', saveDraftNow);
@@ -286,6 +300,7 @@ onMounted(async () => {
   } catch {}
 });
 onBeforeUnmount(async () => {
+  clearInterval(pendingPoll);
   clearTimeout(draftTimer);
   clearTimeout(saveTimer);
   clearTimeout(lectureTimer);
