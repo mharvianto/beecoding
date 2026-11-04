@@ -149,7 +149,7 @@ a single unread row (`Count`). The bell pages 30 at a time (`GET /api/notificati
 A statement can carry pictures: the editor's "Add image" uploads to `ImagesController` (`POST /api/images`, signed-in users, upload checked against the admin-set limit (`PlatformRuntimeConfig.ImageMaxKb`, default 1 MB, refused if over), then
 compressed (≤1200 px wide, lossless PNG, JPEG when that is smaller for a photo), kept in `StatementImage`; `ImageMaxPerUser` caps the count; SVG is refused on purpose, it is code) and inserts `![](/api/images/{id})`. Two renderers must both understand
 that reference: `MarkdownBlock.vue` (prefixes `withBase` for a sub-path deployment) and `StatementImageService` (the protected PNG every
-student sees; `StatementController` loads the ids found by `ImagesController.RefsIn`). Nothing deletes unused images yet. There is no
+student sees; `StatementController` loads the ids found by `ImagesController.RefsIn`). `StatementImageJanitor` deletes pictures no statement names (live or soft-deleted, board or bank) `Images:OrphanRetentionDays` (3; 0 = never) after the sweep that first found them unused (`StatementImage.UnusedSince`), so un-using a picture always leaves time to undo. There is no
 math engine anywhere — LaTeX is downgraded to ASCII in both renderers.
 
 ### Student-authored problems

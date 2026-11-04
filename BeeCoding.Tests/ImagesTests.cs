@@ -2,6 +2,8 @@ using System.Net;
 using System.Net.Http.Json;
 using BeeCoding.Controllers;
 using SkiaSharp;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace BeeCoding.Tests;
@@ -99,5 +101,52 @@ public class ImageCompressionTests
         Assert.True(stored.Length < fits.Length);                                  // compressed, not just copied
         Assert.Equal("image/jpeg", got.Content.Headers.ContentType?.MediaType);    // PNG would have been bigger than the upload
         Assert.NotNull(SKBitmap.Decode(stored));
+    }
+}
+
+[Collection("app")]
+public class ImageJanitorTests
+{
+    [Fact]
+    public async Task A_picture_goes_a_few_days_after_it_became_unused_and_comes_back_if_a_statement_names_it_again()
+    {
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BeeCoding.Data.AppDbContext>();
+        var owner = await db.Users.FirstAsync();
+        var board = await db.Boards.FirstAsync();
+        var now = DateTime.UtcNow;
+        string Id(char c) => new string(c, 22);
+        BeeCoding.Models.StatementImage Img(char c, double uploadedDaysAgo, double? unusedDaysAgo = null) => new()
+        {
+            Id = Id(c), OwnerId = owner.Id, Data = [1], CreatedAt = now.AddDays(-uploadedDaysAgo),
+            UnusedSince = unusedDaysAgo is null ? null : now.AddDays(-unusedDaysAgo.Value),
+        };
+
+        db.StatementImages.AddRange(
+            Img('A', 30, 5),     // unused for 5 days: deleted
+            Img('B', 30),        // uploaded long ago and in use until just now: only now noticed, so it stays for the grace period
+            Img('C', 30, 1),     // unused for a day: stays
+            Img('D', 30, 5),     // was unused, but a statement names it again: kept, clock reset
+            Img('E', 30, 5),     // same, named only by a soft-deleted board problem (restorable)
+            Img('F', 0.04));     // uploaded minutes ago, never used: gets its clock started, not deleted
+        db.BankProblems.Add(new BeeCoding.Models.BankProblem { OwnerId = owner.Id, Title = "b", StatementMarkdown = $"text ![x](/api/images/{Id('D')}) more" });
+        db.Problems.Add(new BeeCoding.Models.Problem { BoardId = board.Id, Title = "gone", StatementMarkdown = $"![](/api/images/{Id('E')})", DeletedAt = now });
+        await db.SaveChangesAsync();
+
+        var janitor = new BeeCoding.Services.StatementImageJanitor(scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>(),
+            app.Services.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<BeeCoding.Services.StatementImageJanitor>.Instance);
+        Assert.Equal(1, await janitor.SweepAsync(CancellationToken.None));
+
+        var left = await db.StatementImages.AsNoTracking().ToDictionaryAsync(i => i.Id, i => i.UnusedSince);
+        Assert.False(left.ContainsKey(Id('A')));
+        Assert.Equal(new[] { 'B', 'C', 'D', 'E', 'F' }.Select(Id).OrderBy(x => x), left.Keys.OrderBy(x => x));
+        Assert.NotNull(left[Id('B')]);   // clock started by this sweep
+        Assert.True(left[Id('B')] > now.AddMinutes(-1));
+        Assert.NotNull(left[Id('F')]);
+        Assert.Null(left[Id('D')]);      // back in use
+        Assert.Null(left[Id('E')]);
+        Assert.True(left[Id('C')] < now.AddHours(-23));   // untouched: still counting from a day ago
     }
 }

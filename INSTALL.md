@@ -698,6 +698,7 @@ variable (nesting pakai `__`).
 | `Admin:Token` | `""` (kosong) | Token endpoint **skrip** `/api/admin/*` (ingest bank soal). Kosong ⇒ semua respons `404`. Token salah juga `404` (tak bisa dibedakan dari "mati"); brute force di-throttle per-IP (8 gagal / 10 menit). Pakai `openssl rand -hex 32`, set via env, jangan commit. |
 | `Admin:Emails` | `""` (kosong) | Daftar email (pisah koma) yang mendapat **halaman Admin** (`/admin`): lihat penggunaan AI semua user, daftar user, export/import soal. Cookie-authed via role `Admin`; endpoint `/api/admin-ui/*`. Login ulang setelah mengubahnya. |
 | `Security:ContentSecurityPolicy` | *(bawaan)* | Override CSP dengan string sendiri, atau `"off"` untuk tidak mengirim header CSP (mis. jika Monaco bermasalah). |
+| `Images:OrphanRetentionDays` | `3` | Gambar statement yang tidak dipakai statement mana pun dihapus otomatis sekian hari setelah pertama kali terdeteksi tidak terpakai (`0` = jangan hapus). Statement soal yang di-*soft-delete* tetap dihitung memakai gambarnya. |
 | `Lsp:Enabled` | `false` | Aktifkan IntelliSense C/C++ (butuh `clangd` di PATH). |
 | `Lsp:ClangdPath` | `clangd` | Path biner clangd. |
 | `Lsp:MaxConcurrent` | `4` | Maksimum sesi clangd bersamaan (1 per editor yang terbuka). |

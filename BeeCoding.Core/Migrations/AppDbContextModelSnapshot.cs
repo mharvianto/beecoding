@@ -1411,6 +1411,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("OwnerId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("UnusedSince")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");

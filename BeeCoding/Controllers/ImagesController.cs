@@ -40,7 +40,7 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         var limit = _cfg.ImageMaxKb * 1024L;
         if (file.Length > limit)   // the upload itself is checked first; only an accepted file is compressed
             return BadRequest($"The image is {(file.Length + 1023) / 1024} KB, over the {_cfg.ImageMaxKb} KB limit. Choose a smaller file.");
-        // shortcut: nothing deletes unused images yet, so this cap is also the storage ceiling per user.
+        // Unused pictures are swept by StatementImageJanitor after Images:OrphanRetentionDays, so this cap only bites on pictures in use.
         var perUser = _cfg.ImageMaxPerUser;
         if (await _db.StatementImages.CountAsync(x => x.OwnerId == UserId) >= perUser)
             return Conflict(perUser == 0 ? "Picture uploads are turned off." : $"You have reached the limit of {perUser} images.");

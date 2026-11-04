@@ -682,6 +682,10 @@ public class StatementImage
     public int OwnerId { get; set; }
     public byte[] Data { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>When StatementImageJanitor first saw that no statement names this picture; cleared when one does again.
+    /// The picture is deleted a while after this, so removing it from a statement always leaves time to change your mind.</summary>
+    public DateTime? UnusedSince { get; set; }
 }
 
 /// <summary>A user's "like" on a problem. Exactly one of <see cref="BankProblemId"/> (a practice / bank

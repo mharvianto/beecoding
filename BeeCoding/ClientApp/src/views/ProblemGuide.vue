@@ -122,7 +122,7 @@ const sections = [
           <li>Format: PNG, JPEG, GIF, atau WebP. <strong>SVG tidak diterima</strong> karena bisa memuat kode.</li>
           <li>Ukuran file dibatasi admin (awalnya 1 MB). File yang lolos dikecilkan otomatis (lebar maksimal 1200 px).</li>
           <li>Hanya gambar yang diunggah lewat tombol itu yang tampil. Gambar dari situs lain diblokir.</li>
-          <li>Gambar yang kamu unggah tetap ada walau kodenya dihapus dari statement, dan jumlahnya dibatasi per orang.</li>
+          <li>Gambar yang tidak lagi dipakai statement mana pun dihapus otomatis beberapa hari setelah berhenti dipakai (awalnya 3), jadi gambar yang tak sengaja terhapus dari statement masih sempat dikembalikan. Jumlah gambar per orang juga dibatasi.</li>
         </ul>
         <h3>Rumus</h3>
         <p>Belum ada mesin rumus (LaTeX). Tulis rumus sebagai teks seperti di kode C:</p>
@@ -304,7 +304,7 @@ const sections = [
           <li>Formats: PNG, JPEG, GIF or WebP. <strong>SVG is not accepted</strong> because it can carry code.</li>
           <li>The file size is limited by the admin (1 MB to begin with). An accepted file is shrunk automatically (at most 1200 px wide).</li>
           <li>Only images uploaded with that button are shown. Images from other sites are blocked.</li>
-          <li>An image you uploaded stays even if you delete its code from the statement, and the number of images per person is limited.</li>
+          <li>An image that no statement uses any more is deleted automatically a few days after it stops being used (3 to begin with), so one removed by accident can still be put back. The number of images per person is also limited.</li>
         </ul>
         <h3>Formulas</h3>
         <p>There is no formula engine (LaTeX). Write formulas as text, the way you would in C code:</p>
