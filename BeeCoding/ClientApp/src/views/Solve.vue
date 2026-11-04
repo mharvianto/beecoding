@@ -90,6 +90,7 @@ function startRunCooldown(seconds) {
 }
 const submittingId = ref(null);
 const testProgress = ref(null);   // { current, total } | null
+const queuedAhead = ref(null);    // judge jobs waiting ahead of the one just submitted (null = unknown)
 const submissions = ref([]);
 const error = ref('');
 const myPost = ref({ postId: null, hiddenByStudent: false });
@@ -205,6 +206,7 @@ async function submit() {
   try {
     const res = await api.post(`/api/problems/${pid.value}/submit`, { code: code.value, language: solveLang.value, localDay: localDayKey() });
     submittingId.value = res.submissionId;
+    queuedAhead.value = res.queuedAhead ?? null;
     startSubmitCooldown(5);
     await loadSubs();
   } catch (e) { error.value = e.message; }
@@ -456,7 +458,8 @@ function ago(ts) {
           <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
         <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
-          Still checking your last submission…
+          <template v-if="queuedAhead > 0">⏳ The judge is busy — {{ queuedAhead }} submission{{ queuedAhead === 1 ? '' : 's' }} ahead of yours. It will start on its own.</template>
+          <template v-else>Still checking your last submission…</template>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
