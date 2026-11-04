@@ -353,7 +353,7 @@
   {
    "ownerEmail": "teacher@demo.test",
    "title": "Hitung Jumlah Pulau",
-   "statementMarkdown": "Diberikan grid berukuran `rows x cols` berisi `1` (daratan) dan `0` (air). Sebuah\n\"pulau\" adalah kumpulan sel `1` yang terhubung secara **4-arah**. Hitung jumlah\npulau pada grid.\n\n**Input:**\n```\nrows cols\ngrid\n```\n**Contoh:**\n```\n4 4\n1100\n1100\n0010\n0011\n```\n**Output:**\n```\n2\n```\n",
+   "statementMarkdown": "Diberikan grid berukuran `rows x cols` berisi `1` (daratan) dan `0` (air). Sebuah\n\"pulau\" adalah kumpulan sel `1` yang terhubung secara **4-arah** (atas, bawah, kiri, kanan —\nbukan diagonal). Hitung jumlah pulau pada grid.\n\n**Bahasa:** soal ini hanya menerima program **C** (bukan C++).\n\n**Input:**\n```\nrows cols\ngrid\n```\nBaris pertama berisi dua bilangan bulat `rows` dan `cols` (1 <= rows, cols <= 100).\nLalu ada `rows` baris; tiap baris adalah string tepat `cols` karakter `0` atau `1`, tanpa spasi.\n\n**Output:** satu bilangan bulat, yaitu jumlah pulau.\n\n**Contoh:**\n```\n4 4\n1100\n1100\n0010\n0011\n```\n**Output:**\n```\n2\n```\n",
    "allowedLanguages": "c",
    "level": "Medium",
    "tags": "floodfill,grid,bfs",
