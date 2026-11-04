@@ -536,3 +536,6 @@ app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// Lets BeeCoding.Tests host the app with WebApplicationFactory.
+public partial class Program;

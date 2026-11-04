@@ -68,13 +68,13 @@ dotnet ef database update --project ../BeeCoding.Core --startup-project .   # op
 
 Reset local dev data: stop the app, delete `BeeCoding/beecoding.db*`, restart (reseeds).
 
-### No test suite, no linter
+### Small test suite, no linter
 
-There is no `.Tests` project (`BeeCoding.slnx` only has the three app projects) and no
-frontend test runner or ESLint/Prettier config. Verify changes by building
-(`dotnet build`, `npm run build`) and exercising the feature — via the running dev server
-(curl / a Playwright script) rather than assuming a `dotnet test` or `npm test` command
-exists.
+`BeeCoding.Tests` (xunit, `dotnet test BeeCoding.Tests`) covers only the risky rules: `VisibilityService`,
+`GroupAccess`, `AiUrl` and the CSRF middleware (via `WebApplicationFactory<Program>` on a temp SQLite file).
+Add a test there when you touch one of those. There is no frontend test runner or ESLint/Prettier config, so
+verify everything else by building (`dotnet build`, `npm run build`) and exercising the feature — via the
+running dev server (curl / a Playwright script).
 
 ### Judge prerequisites
 
