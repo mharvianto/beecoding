@@ -8,7 +8,7 @@ namespace BeeCoding.Services.Lsp;
 /// (Content-Length framed); this class exposes it as discrete JSON messages so the
 /// WebSocket bridge can forward one message per frame.
 /// </summary>
-public sealed class ClangdSession : IAsyncDisposable
+public sealed class ClangdSession : ILspSession
 {
     private readonly Process _proc;
     private Stream _stdin = Stream.Null;
@@ -35,7 +35,11 @@ public sealed class ClangdSession : IAsyncDisposable
     /// user-supplied YAML here).</summary>
     public static readonly string[] FormatStyles = { "LLVM", "Google", "Chromium", "Mozilla", "WebKit", "Microsoft", "GNU" };
 
-    public static async Task<ClangdSession> StartAsync(LspOptions opt, string language, ILogger log, string? formatStyle = null)
+    /// <param name="jobs">clangd -j: worker threads (1 for a session of its own; more when many students share it).</param>
+    /// <param name="pchStorage">"memory" or "disk": where clangd keeps each file's parsed header preamble.</param>
+    /// <param name="memoryLimitMb">RLIMIT_DATA guard; null = <see cref="LspOptions.MemoryLimitMb"/>.</param>
+    public static async Task<ClangdSession> StartAsync(LspOptions opt, string language, ILogger log, string? formatStyle = null,
+        int jobs = 1, string pchStorage = "memory", int? memoryLimitMb = null)
     {
         var dir = Path.Combine(Path.GetTempPath(), "beecoding-lsp", "s_" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -54,7 +58,7 @@ public sealed class ClangdSession : IAsyncDisposable
 
         var args = new List<string>
         {
-            "--background-index=false", "--pch-storage=memory", "-j=1",
+            "--background-index=false", $"--pch-storage={pchStorage}", $"-j={jobs}",
             "--limit-results=40", "--completion-style=bundled", "--header-insertion=never",
             $"--compile-commands-dir={dir}",
         };
@@ -63,10 +67,11 @@ public sealed class ClangdSession : IAsyncDisposable
         // far more virtual address space than it ever faults in, so an --as cap makes it
         // abort while indexing standard headers).
         string file = opt.ClangdPath;
-        if (opt.MemoryLimitMb > 0 && File.Exists("/usr/bin/prlimit"))
+        var limitMb = memoryLimitMb ?? opt.MemoryLimitMb;
+        if (limitMb > 0 && File.Exists("/usr/bin/prlimit"))
         {
             args.Insert(0, opt.ClangdPath);
-            args.Insert(0, $"--data={(long)opt.MemoryLimitMb * 1024 * 1024}");
+            args.Insert(0, $"--data={(long)limitMb * 1024 * 1024}");
             file = "/usr/bin/prlimit";
         }
 

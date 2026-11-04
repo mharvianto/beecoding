@@ -11,6 +11,10 @@ namespace BeeCoding.Services;
 public class PlatformRuntimeConfig
 {
     public bool LspEnabled { get; private set; }
+
+    /// <summary>Students share one clangd per language instead of one process each (see SharedClangd).</summary>
+    public bool LspShared { get; private set; }
+    public void SetLspShared(bool shared) => LspShared = shared;
     public int JudgeRateLimitMs { get; private set; } = 1500;
 
     public bool MfaRequireAdmin { get; private set; }

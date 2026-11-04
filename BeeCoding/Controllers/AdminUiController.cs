@@ -30,9 +30,10 @@ public class AdminUiController(
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
     PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets, MfaService mfa,
-    NotificationService notifications)
+    NotificationService notifications, SharedClangd sharedLsp)
     : ApiControllerBase
 {
+    private readonly SharedClangd _sharedLsp = sharedLsp;
     private readonly BoardBulkService _bulk = bulk;
     private readonly NotificationService _notifications = notifications;
     private readonly PasswordResetService _resets = resets;
@@ -586,7 +587,8 @@ public class AdminUiController(
             _judgeOpt.MaxConcurrent, _judgeOpt.CompileTimeoutMs, _judgeOpt.QueueCapacity,
             _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb,
             sysstatInstalled, Environment.MachineName,
-            _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays);
+            _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
+            _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, _lspOpt.SharedMaxSessions);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -729,6 +731,7 @@ public class AdminUiController(
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.LspEnabled = dto.LspEnabled;
+        row.LspShared = dto.LspShared;
         row.JudgeRateLimitMs = rateLimitMs;
         row.StudentMaxProblems = studentMax;
         row.ImageMaxKb = imageKb;
@@ -738,12 +741,13 @@ public class AdminUiController(
         await _db.SaveChangesAsync();
 
         _runtimeConfig.Set(row.LspEnabled, row.JudgeRateLimitMs);
+        _runtimeConfig.SetLspShared(row.LspShared);
         _runtimeConfig.SetStudentMaxProblems(row.StudentMaxProblems);
         _runtimeConfig.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
         _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, lspShared={row.LspShared}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared);
     }
 
     // ---- audit log ------------------------------------------------------------

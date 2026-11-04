@@ -1011,6 +1011,9 @@ public class PlatformRuntimeSettings
     /// on every /api/lsp/enabled call and every /lsp/cpp connection attempt.</summary>
     public bool LspEnabled { get; set; }
 
+    /// <summary>Share one clangd between students (SharedClangd) instead of a process each. Off by default.</summary>
+    public bool LspShared { get; set; }
+
     /// <summary>Minimum spacing (ms) between a user's run/submit requests — see RateLimiter.</summary>
     public int JudgeRateLimitMs { get; set; } = 1500;
 

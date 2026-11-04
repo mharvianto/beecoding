@@ -979,6 +979,9 @@ namespace BeeCoding.Migrations
                     b.Property<bool>("LspEnabled")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("LspShared")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("MfaRequireAdmin")
                         .HasColumnType("INTEGER");
 

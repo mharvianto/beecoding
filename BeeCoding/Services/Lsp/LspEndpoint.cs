@@ -16,9 +16,11 @@ public class LspEndpoint
     private readonly PlatformRuntimeConfig _runtime;
     private readonly ILogger<LspEndpoint> _log;
     private readonly SemaphoreSlim _slots;
+    private readonly SharedClangd _shared;
 
-    public LspEndpoint(IOptions<LspOptions> opt, PlatformRuntimeConfig runtime, ILogger<LspEndpoint> log)
+    public LspEndpoint(IOptions<LspOptions> opt, PlatformRuntimeConfig runtime, SharedClangd shared, ILogger<LspEndpoint> log)
     {
+        _shared = shared;
         _opt = opt.Value;
         _runtime = runtime;
         _log = log;
@@ -35,7 +37,10 @@ public class LspEndpoint
         if (lang is not ("c" or "cpp")) lang = "cpp";
         var style = ctx.Request.Query["style"].ToString();
 
-        if (!await _slots.WaitAsync(TimeSpan.FromSeconds(2), ctx.RequestAborted))
+        // Shared mode (Admin > System): students share one clangd and the cap is Lsp:SharedMaxSessions;
+        // otherwise each gets a clangd of their own, Lsp:MaxConcurrent at a time. Sessions already open keep their kind.
+        bool shared = _runtime.LspShared;
+        if (!shared && !await _slots.WaitAsync(TimeSpan.FromSeconds(2), ctx.RequestAborted))
         {
             using var busy = await ctx.WebSockets.AcceptWebSocketAsync();
             await busy.CloseAsync(WebSocketCloseStatus.PolicyViolation, "server busy", CancellationToken.None);
@@ -43,10 +48,15 @@ public class LspEndpoint
         }
 
         using var ws = await ctx.WebSockets.AcceptWebSocketAsync();
-        ClangdSession? session = null;
+        ILspSession? session = null;
         try
         {
-            session = await ClangdSession.StartAsync(_opt, lang, _log, style);
+            session = shared ? await _shared.OpenAsync(lang, style) : await ClangdSession.StartAsync(_opt, lang, _log, style);
+            if (session is null)
+            {
+                await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "server busy", CancellationToken.None);
+                return;
+            }
 
             var sendLock = new SemaphoreSlim(1, 1);
             async Task ToClientAsync(string json)
@@ -99,7 +109,7 @@ public class LspEndpoint
         finally
         {
             if (session is not null) await session.DisposeAsync();
-            _slots.Release();
+            if (!shared) _slots.Release();
             if (ws.State == WebSocketState.Open)
                 try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch { }
         }

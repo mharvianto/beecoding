@@ -19,4 +19,20 @@ public class LspOptions
     /// headers). 0 disables it. A too-low value makes clangd abort on std header indexing.
     /// </summary>
     public int MemoryLimitMb { get; set; } = 0;
+
+    // ---- shared mode (Admin > System: "Share one clangd between students") ----
+    /// <summary>In shared mode, how many students one clangd process serves at once (per language).</summary>
+    public int SharedMaxSessions { get; set; } = 40;
+
+    /// <summary>clangd -j for the shared process: how many files it can parse at the same time.</summary>
+    public int SharedJobs { get; set; } = 4;
+
+    /// <summary>RLIMIT_DATA for the shared process (MB, 0 = none). It holds many files, so size it for the whole class.</summary>
+    public int SharedMemoryLimitMb { get; set; } = 0;
+
+    /// <summary>"memory" or "disk": where the shared clangd keeps each open file's preamble (disk trades speed for RAM).</summary>
+    public string SharedPchStorage { get; set; } = "memory";
+
+    /// <summary>The shared process exits this long after its last student left, so it does not sit on memory between classes.</summary>
+    public int SharedIdleStopSeconds { get; set; } = 120;
 }

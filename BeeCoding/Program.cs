@@ -167,6 +167,7 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.Configure<JudgeOptions>(builder.Configuration.GetSection("Judge"));
 builder.Services.Configure<LspOptions>(builder.Configuration.GetSection("Lsp"));
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
+builder.Services.AddSingleton<SharedClangd>();
 builder.Services.AddSingleton<LspEndpoint>();
 // The default HttpClient.Timeout is 100s — too short for generate-problem. Let each call's
 // own CancellationTokenSource (Ai:TimeoutSeconds / Ai:GenerateTimeoutSeconds) be the limit.
@@ -383,6 +384,7 @@ using (var scope = app.Services.CreateScope())
         await db.SaveChangesAsync();
     }
     runtimeConfig.Set(platformRuntime.LspEnabled, platformRuntime.JudgeRateLimitMs);
+    runtimeConfig.SetLspShared(platformRuntime.LspShared);
     runtimeConfig.SetStudentMaxProblems(platformRuntime.StudentMaxProblems);
     runtimeConfig.SetImageLimits(platformRuntime.ImageMaxKb, platformRuntime.ImageMaxPerUser);
     runtimeConfig.SetNotificationReadRetentionDays(platformRuntime.NotificationReadRetentionDays);

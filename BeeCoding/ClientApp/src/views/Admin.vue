@@ -818,17 +818,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7 });
+const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7 });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; }
     runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -1880,6 +1880,14 @@ onMounted(async () => {
             <label class="flex items-center gap-2 text-sm">
               <input type="checkbox" v-model="runtimeConfigForm.lspEnabled" />
               C/C++ IntelliSense (LSP) enabled
+            </label>
+            <label class="flex items-center gap-2 text-sm"
+                   title="One clangd process serves many students (each in their own file) instead of one process per student. Fits a whole class in a few hundred MB, but a heavy request can slow everyone and a crash restarts it for all. Open sessions keep their kind; new ones follow this switch.">
+              <input type="checkbox" v-model="runtimeConfigForm.lspShared" />
+              Share one clangd between students
+              <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">
+                ({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached)
+              </span>
             </label>
             <label class="flex items-center gap-2 text-sm">
               <span class="text-slate-500 dark:text-slate-400">Submit/run cooldown</span>

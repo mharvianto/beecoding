@@ -228,7 +228,7 @@ The AI daily quota and `AiUsage.Day` use the user's local calendar day too, but 
 ### Config surface (`appsettings.json`, all overridable via `Section__Key` env vars)
 
 `Judge` (queue backend, concurrency, limits, sandbox), `Lsp` (clangd bridge, off by
-default), `Ai` (AI tutor, off by default — needs `Ai:Enabled=true` + `Ai:ApiKey`),
+default; `MaxConcurrent` clangd processes of one student each, or — Admin → System "Share one clangd between students", off by default — `SharedClangd`: one process per language serving up to `SharedMaxSessions` students, each in a file of their own, ids renumbered and only editing methods let through), `Ai` (AI tutor, off by default — needs `Ai:Enabled=true` + `Ai:ApiKey`),
 `Admin:Emails`/`Admin:Token` (platform admin access + scripted bank-ingest auth),
 `Email` (SMTP for password-reset and email-verification links; unset = both are hidden/off, admins can still issue a reset link or mark an email verified from Admin → Users) + `App:PublicUrl` (base URL used in those links), `Auth:RequireVerifiedEmail` (hard gate: unverified accounts can only reach `/api/auth/*`; ignored while `Email` is unset; platform admins exempt — see `EmailVerificationGate`),
 `Auth:Google:ClientId`/`ClientSecret` (Sign in with Google via OIDC code+PKCE; needs `App:PublicUrl`; unset = button hidden; never auto-links on email — see `GoogleController`),

@@ -701,7 +701,12 @@ variable (nesting pakai `__`).
 | `Lsp:Enabled` | `false` | Aktifkan IntelliSense C/C++ (butuh `clangd` di PATH). |
 | `Lsp:ClangdPath` | `clangd` | Path biner clangd. |
 | `Lsp:MaxConcurrent` | `4` | Maksimum sesi clangd bersamaan (1 per editor yang terbuka). |
-| `Lsp:IdleTimeoutSeconds` | `300` | Sesi clangd dimatikan setelah sekian detik tanpa lalu-lintas. |
+| `Lsp:IdleTimeoutSeconds` | `90` | Sesi clangd dimatikan setelah sekian detik tanpa lalu-lintas (editor menyambung lagi saat pengguna mengetik). |
+| `Lsp:SharedMaxSessions` | `40` | Mode berbagi: siswa yang dilayani satu proses clangd (per bahasa). |
+| `Lsp:SharedJobs` | `4` | Mode berbagi: `clangd -j`, berapa file yang boleh di-parse bersamaan. |
+| `Lsp:SharedMemoryLimitMb` | `0` | Mode berbagi: *runaway guard* untuk proses bersama. Isi besar (satu proses memegang banyak file). |
+| `Lsp:SharedPchStorage` | `memory` | Mode berbagi: `memory` atau `disk` (tempat clangd menyimpan hasil parse header; `disk` menghemat sekitar 25% RAM, tetapi butuh ruang di folder temp). |
+| `Lsp:SharedIdleStopSeconds` | `120` | Mode berbagi: proses bersama berhenti sekian detik setelah siswa terakhir pergi. |
 | `Lsp:MemoryLimitMb` | `0` | *Runaway guard* opsional (RLIMIT_DATA via `prlimit`). `0` = nonaktif. Isi longgar (≥2048); nilai terlalu kecil membuat clangd *abort* saat meng-index header standar. |
 | `Admin:Token` | `""` (kosong) | Token untuk endpoint `/api/admin/*` (mengisi bank soal via skrip). Kosong ⇒ endpoint mati (404). |
 | `Ai:Enabled` | `false` | Aktifkan tutor AI (butuh `Ai:ApiKey` juga). |
@@ -1032,6 +1037,14 @@ editor yang terbuka memakai satu proses clangd berumur pendek dengan *workspace*
 sementara; proses dimatikan saat editor ditutup atau `Lsp:IdleTimeoutSeconds` terlewati.
 Di belakang nginx, blok `location ~ ^/(hubs|lsp)/` di §4B sudah menangani *upgrade* WebSocket-nya.
 Tanpa clangd atau dengan `Lsp:Enabled=false`, editor tetap jalan memakai completion berbasis kata.
+
+**Mode berbagi (satu clangd untuk satu kelas).** Secara bawaan setiap editor memakai proses clangd sendiri, dibatasi `Lsp:MaxConcurrent`
+(sekitar 200–300 MB per proses), jadi di server 4 GB hanya 3–4 siswa yang kebagian. Di **Admin → System** centang
+**Share one clangd between students**: satu proses clangd melayani banyak siswa, masing-masing dengan file dan folder sendiri
+(gaya *clang-format* pun sendiri-sendiri). Hasil ukur (clangd 18, 8 core): 40 siswa dengan `<vector>` = 1 proses, ±750 MB; dengan
+`<bits/stdc++.h>` = ±3,5 GB dan parse awal 7–12 detik kalau 40 file dibuka serentak. Saklar berlaku langsung; sesi yang sudah
+terbuka tetap jenisnya, sesi baru mengikuti saklar. Bila clangd bersama berhenti mendadak, semua sesi ditutup dan editor menyambung
+lagi (proses baru dimulai otomatis). Siswa hanya boleh menyentuh dokumennya sendiri dan metode penyuntingan; yang lain ditolak.
 
 ---
 
