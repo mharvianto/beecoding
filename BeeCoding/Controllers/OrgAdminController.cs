@@ -21,7 +21,7 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
 {
     private readonly BoardBulkService _bulk = bulk;
     private readonly AppDbContext _db = db;
@@ -233,6 +233,15 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         var memberCount = await _db.OrganizationMemberships.CountAsync(m => m.OrganizationId == orgId);
         var boardCount = await _db.Boards.CountAsync(b => b.OrganizationId == orgId);
         return new OrgSummaryDto(memberCount, boardCount);
+    }
+
+    /// <summary>Statement pictures uploaded by this organization's members: their total storage and the heaviest uploaders.</summary>
+    [HttpGet("{orgId:int}/image-usage")]
+    public async Task<ActionResult<ImageUsageDto>> ImageUsageOfOrg(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var images = _db.StatementImages.Where(i => _db.OrganizationMemberships.Any(m => m.OrganizationId == orgId && m.UserId == i.OwnerId));
+        return await ImageUsage.BuildAsync(_db, images, runtimeConfig);
     }
 
     [HttpGet("{orgId:int}/members")]

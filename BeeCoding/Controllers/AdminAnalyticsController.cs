@@ -21,8 +21,15 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize(Policy = "Admin")]
 [Route("api/admin-ui")]
-public class AdminAnalyticsController(AppDbContext db) : ApiControllerBase
+public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
 {
+    private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
+
+    /// <summary>Statement pictures: total storage and the heaviest uploaders, platform-wide.</summary>
+    [HttpGet("image-usage")]
+    public async Task<ActionResult<ImageUsageDto>> ImageUsageAll() =>
+        await ImageUsage.BuildAsync(_db, _db.StatementImages, _runtimeConfig);
+
     private readonly AppDbContext _db = db;
 
     /// <summary>Top tags by attempts, for the dashboard's ranking chart — same

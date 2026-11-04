@@ -1,4 +1,5 @@
 <script setup>
+import ImageUsagePanel from '../components/ImageUsagePanel.vue';
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -85,7 +86,7 @@ async function loadOrgs() {
 function selectOrg(id) {
   orgId.value = id;
   summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null;
-  members.value = null; boards.value = null; aiSettings.value = null; aiProvider.value = null;
+  members.value = null; boards.value = null; aiSettings.value = null; aiProvider.value = null; imageUsage.value = null;
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
   const org = orgs.value?.find((o) => o.id === id);
   if (org && (route.params.slug !== org.slug || route.params.tab !== tab.value))
@@ -117,7 +118,7 @@ function loadTab(id, force = false) {
   if (force) submissionRows.value = null;
   loadSummary();
   if (id === 'dashboard' && !dashboard.value) loadDashboard();
-  else if (id === 'members' && !members.value) loadMembers();
+  else if (id === 'members') { if (!members.value) loadMembers(); loadImageUsage(); }
   else if (id === 'boards' && !boards.value) loadBoards();
   else if (id === 'submissions') {
     if (!submissionRows.value) loadSubmissions();
@@ -193,6 +194,10 @@ const submissionPoints = () => (engagementStats.value || []).map((w) => ({ label
 const aiCallPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.calls }));
 const aiTokenPoints = () => (aiEngagementStats.value || []).map((w) => ({ label: shortDate(w.periodStart), value: w.totalTokens }));
 const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag, value: t.attempts, rate: t.acceptRate }));
+const imageUsage = ref(null);
+async function loadImageUsage() {
+  try { imageUsage.value = await api.get(`/api/org-admin/${orgId.value}/image-usage`); } catch { /* the panel just stays hidden */ }
+}
 async function loadMembers() {
   err.value = '';
   try { members.value = await api.get(`/api/org-admin/${orgId.value}/members`); } catch (e) { err.value = e.message; }
@@ -633,6 +638,11 @@ onMounted(() => { url.read(); loadOrgs(); });
             </tbody>
           </table>
         </div>
+      </section>
+
+      <!-- (still the Members tab: what the members' statement pictures take up) -->
+      <section v-show="tab === 'members'">
+        <ImageUsagePanel :usage="imageUsage" title="Members' statement pictures" />
       </section>
 
       <!-- Boards -->

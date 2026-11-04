@@ -11,6 +11,7 @@ import SortTh from '../components/SortTh.vue';
 import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
+import ImageUsagePanel from '../components/ImageUsagePanel.vue';
 import AiCheckPanel from '../components/AiCheckPanel.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
 import SubmissionView from '../components/SubmissionView.vue';
@@ -96,7 +97,7 @@ function loadTabData(id, force = false) {
     if (plagiarismBoardId.value) loadPlagiarism();   // ?board= from a shared link
   }
   else if (id === 'review') loadAiReview();   // queue changes often — always refresh
-  else if (id === 'reports' && !systemStatus.value) loadSystemStatus();
+  else if (id === 'reports') { if (!systemStatus.value) loadSystemStatus(); loadImageUsage(); }
   else if (id === 'trash') loadTrash();     // state changes often — always refresh
   else if (id === 'audit' && !auditRows.value) loadAudit();
   else if (id === 'organizations' && !organizations.value) loadOrganizations();
@@ -809,6 +810,10 @@ const exportProblems = () => downloadFile('/api/admin-ui/problems/export', 'beec
 
 // ---- reports: analytics export + system status ----
 const systemStatus = ref(null);
+const imageUsage = ref(null);
+async function loadImageUsage() {
+  try { imageUsage.value = await api.get('/api/admin-ui/image-usage'); } catch { /* the panel just stays hidden */ }
+}
 async function loadSystemStatus() {
   err.value = '';
   try {
@@ -2000,6 +2005,8 @@ onMounted(async () => {
             Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
           </p>
         </div>
+
+        <ImageUsagePanel :usage="imageUsage" />
 
         <div v-if="latency" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 flex-wrap mb-2">

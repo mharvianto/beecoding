@@ -150,3 +150,36 @@ public class ImageJanitorTests
         Assert.True(left[Id('C')] < now.AddHours(-23));   // untouched: still counting from a day ago
     }
 }
+
+[Collection("app")]
+public class ImageUsageTests
+{
+    [Fact]
+    public async Task Usage_is_totalled_per_uploader_heaviest_first_and_can_be_limited_to_some_pictures()
+    {
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BeeCoding.Data.AppDbContext>();
+        var cfg = app.Services.GetRequiredService<BeeCoding.Services.PlatformRuntimeConfig>();
+        var teacher = await db.Users.FirstAsync();
+        var student = new BeeCoding.Models.User { Email = "u@test.dev", DisplayName = "U", Role = BeeCoding.Models.UserRole.Student, PasswordHash = "x" };
+        db.Users.Add(student);
+        await db.SaveChangesAsync();
+        string Id(char c) => new string(c, 22);
+        BeeCoding.Models.StatementImage Img(char c, int owner, int bytes, bool unused = false) =>
+            new() { Id = Id(c), OwnerId = owner, Data = new byte[bytes], UnusedSince = unused ? DateTime.UtcNow : null };
+        db.StatementImages.AddRange(Img('A', teacher.Id, 1000), Img('B', teacher.Id, 2000, unused: true), Img('C', student.Id, 5000));
+        await db.SaveChangesAsync();
+
+        var all = await BeeCoding.Services.ImageUsage.BuildAsync(db, db.StatementImages, cfg);
+        Assert.Equal((3, 8000L, 1, 2000L, 2), (all.Images, all.Bytes, all.Unused, all.UnusedBytes, all.Users));
+        Assert.Equal(new[] { "u@test.dev", "teacher@demo.test" }, all.Top.Select(u => u.Email));   // heaviest first
+        var t = all.Top[1];
+        Assert.Equal((2, 3000L, 1, 2000L), (t.Images, t.Bytes, t.Unused, t.UnusedBytes));
+        Assert.Equal(cfg.ImageMaxPerUser, all.LimitPerUser);
+
+        // an organization sees only its members' pictures
+        var onlyStudent = await BeeCoding.Services.ImageUsage.BuildAsync(db, db.StatementImages.Where(i => i.OwnerId == student.Id), cfg);
+        Assert.Equal((1, 5000L, 1), (onlyStudent.Images, onlyStudent.Bytes, onlyStudent.Users));
+    }
+}
