@@ -195,6 +195,9 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         b.ReviewNote = null;
         b.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+
+        var name = await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstAsync();
+        await _notifications.ReviewSubmittedAsync(UserId, name, b.Title);
         return NoContent();
     }
 

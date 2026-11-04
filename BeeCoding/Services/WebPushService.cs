@@ -41,6 +41,7 @@ public class WebPushService(IConfiguration cfg, IServiceScopeFactory scopes, IHt
         var body = n.Kind switch
         {
             "report" => $"{n.ActorName} reported a problem — {n.Snippet}",
+            "review-submitted" => $"{n.ActorName} submitted “{n.ProblemTitle}” for review",
             "proposal" => $"{n.ActorName} proposed a problem — {n.ProblemTitle}",
             "proposal-update" or "practice-review" => $"Your {(n.Kind == "proposal-update" ? "proposal" : "practice submission")} “{n.ProblemTitle}” was {(n.Emoji == "✅" ? "approved" : "declined")} by {n.ActorName}{(string.IsNullOrEmpty(n.Snippet) ? "" : $": “{n.Snippet}”")}",
             "report-update" => $"Your report was {(n.Emoji == "✅" ? "resolved" : "dismissed")} by {n.ActorName}{(string.IsNullOrEmpty(n.Snippet) ? "" : $": “{n.Snippet}”")}",

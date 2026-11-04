@@ -12,8 +12,9 @@ namespace BeeCoding.Services;
 /// live over SignalR. Reactions on the same post coalesce into one unread row; an author never
 /// gets notified about their own activity.
 /// </summary>
-public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPushService webPush)
+public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPushService webPush, AdminAccess admin, ILogger<NotificationService> log)
 {
+    private readonly AdminAccess _admin = admin;
     private readonly WebPushService _webPush = webPush;
     private readonly AppDbContext _db = db;
     private readonly IBoardNotifier _notifier = notifier;
@@ -129,6 +130,36 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         _db.Notifications.Add(n);
         await _db.SaveChangesAsync();
         await PushAsync(n);
+    }
+
+    // ---- admins ---------------------------------------------------------------
+
+    /// <summary>Ids of every platform admin (config <c>Admin:Emails</c> plus the ones granted in the panel).</summary>
+    public async Task<List<int>> AdminUserIdsAsync()
+    {
+        var emails = _admin.AllAdminEmails();
+        return await _db.Users.Where(u => emails.Contains(u.Email)).Select(u => u.Id).ToListAsync();
+    }
+
+    /// <summary>A problem just entered the admin review queue (student or teacher submitted it for Practice): tell the admins.
+    /// Never fails the submit — a notification problem is only logged.</summary>
+    public async Task ReviewSubmittedAsync(int submitterId, string submitterName, string problemTitle)
+    {
+        try
+        {
+            foreach (var adminId in (await AdminUserIdsAsync()).Where(a => a != submitterId))
+            {
+                var n = new Notification
+                {
+                    UserId = adminId, Kind = "review-submitted", ProposalId = 0, ActorUserId = submitterId, ActorName = Trim(submitterName, 120),
+                    Emoji = "📝", TargetTitle = Trim(problemTitle, 200), Link = "/admin/review",
+                };
+                _db.Notifications.Add(n);
+                await _db.SaveChangesAsync();
+                await PushAsync(n);
+            }
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Couldn't notify admins of a problem waiting for review"); }
     }
 
     // ---- problem proposals / practice review -------------------------------

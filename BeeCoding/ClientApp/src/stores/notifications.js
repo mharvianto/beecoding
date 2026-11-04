@@ -93,6 +93,7 @@ export function notificationText(n) {
     const verdict = n.emoji === '✅' ? 'resolved' : 'dismissed';
     return `Your report was ${verdict} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
   }
+  if (n.kind === 'review-submitted') return `${n.actorName} submitted “${n.problemTitle}” for review`;
   if (n.kind === 'proposal') return `${n.actorName} proposed a problem — ${n.problemTitle}${n.snippet ? `: “${n.snippet}”` : ''}`;
   if (n.kind === 'proposal-update' || n.kind === 'practice-review') {
     const what = n.kind === 'proposal-update' ? 'proposal' : 'practice submission';

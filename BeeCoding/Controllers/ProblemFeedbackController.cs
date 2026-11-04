@@ -70,15 +70,16 @@ public class ProblemFeedbackController(AppDbContext db, BoardService boards, Vis
                 .Select(x => new { x.Title, x.Slug, x.OwnerId, OwnerRole = x.Owner!.Role }).FirstAsync();
             // Practice problems are public, so the platform admins (who can review every report) are told too.
             // A student author is left out: they can't open the reports page (Reviewable() gives students nothing).
-            var emails = _admin.AllAdminEmails();
-            var recipients = await _db.Users.Where(u => emails.Contains(u.Email)).Select(u => u.Id).ToListAsync();
+            var recipients = await _notifications.AdminUserIdsAsync();
             if (b.OwnerRole != UserRole.Student) recipients.Add(b.OwnerId);
             return (b.Title, $"/practice/{b.Slug}", recipients.Distinct().ToList());
         }
         var p = await _db.Problems.IgnoreQueryFilters().Where(x => x.Id == t.ProblemId).Select(x => new { x.Title, x.Slug, x.BoardId, BoardSlug = x.Board!.Slug }).FirstAsync();
         var staff = await _db.BoardMemberships.Where(m => m.BoardId == p.BoardId && (m.Role == MembershipRole.Owner || m.Role == MembershipRole.Teacher))
             .Select(m => m.UserId).ToListAsync();
-        return (p.Title, $"/boards/{p.BoardSlug}/problems/{p.Slug}", staff);
+        // Admins can review every report (Reviewable()), so they get the bell for board problems too.
+        staff.AddRange(await _notifications.AdminUserIdsAsync());
+        return (p.Title, $"/boards/{p.BoardSlug}/problems/{p.Slug}", staff.Distinct().ToList());
     }
 
     private IQueryable<ProblemLike> LikesOf(Target t) =>
