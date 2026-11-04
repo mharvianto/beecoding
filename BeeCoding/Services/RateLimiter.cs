@@ -14,9 +14,12 @@ public class RateLimiter(PlatformRuntimeConfig cfg)
     {
         var minTicks = TimeSpan.FromMilliseconds(_cfg.JudgeRateLimitMs).Ticks;
         var now = DateTime.UtcNow.Ticks;
-        var prev = _last.GetOrAdd(userId, 0);
-        if (now - prev < minTicks) return false;
-        _last[userId] = now;
-        return true;
+        // Check and write as one step: parallel requests must not all read "not seen yet" and all pass.
+        lock (_last)
+        {
+            if (_last.TryGetValue(userId, out var prev) && now - prev < minTicks) return false;
+            _last[userId] = now;
+            return true;
+        }
     }
 }

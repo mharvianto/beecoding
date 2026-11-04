@@ -27,8 +27,12 @@ public class SubmitCooldown
     /// <summary>Returns true if allowed; records the timestamp when allowed.</summary>
     public bool TryAcquire(int userId)
     {
-        if (SecondsRemaining(userId) > 0) return false;
-        _last[userId] = DateTime.UtcNow;
-        return true;
+        // Check and write as one step, or parallel submits all pass the check before any of them records itself.
+        lock (_last)
+        {
+            if (SecondsRemaining(userId) > 0) return false;
+            _last[userId] = DateTime.UtcNow;
+            return true;
+        }
     }
 }
