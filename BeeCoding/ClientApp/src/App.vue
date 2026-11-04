@@ -11,6 +11,7 @@ import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import MfaOfferBanner from './components/MfaOfferBanner.vue';
+import NotificationOfferBanner from './components/NotificationOfferBanner.vue';
 import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
 import { onSignedIn, onSignedOut } from './lib/prefs';
 import NotificationToast from './components/NotificationToast.vue';
@@ -153,7 +154,9 @@ onBeforeUnmount(() => {
     </header>
     <MfaRequiredBanner v-if="auth.mustSetupMfa" />
     <VerifyEmailBanner v-else-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
-    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !route.path.startsWith('/account/security')" />
+    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !auth.user.mfaOfferSnoozed && !route.path.startsWith('/account/security')" />
+    <!-- one nudge at a time: this one waits until the two-step offer is answered or not applicable -->
+    <NotificationOfferBanner v-else-if="auth.user && !route.path.startsWith('/account')" />
     <main class="flex-1 min-h-0 flex flex-col">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div class="flex-1" :class="{ 'min-h-0': !showFooter }">
