@@ -1,15 +1,24 @@
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 const KEY = 'beecoding.tableView';
 
-// No saved preference yet: default to whichever the breakpoint would have picked, so a
-// first-time visitor sees the same thing the old automatic sm:hidden/hidden sm:block
-// split gave them.
+// The saved preference is synced across devices, so a 'table' chosen on a desktop would otherwise
+// reach the phone and overflow it. On a narrow screen (< 640px) cards always win; the saved
+// choice only applies from sm up.
+const mq = window.matchMedia('(max-width: 639px)');
+const narrow = ref(mq.matches);
+mq.addEventListener('change', (e) => (narrow.value = e.matches));
+
 function initial() {
   const saved = localStorage.getItem(KEY);
-  return saved === 'card' || saved === 'table' ? saved : (window.innerWidth < 640 ? 'card' : 'table');
+  return saved === 'card' || saved === 'table' ? saved : 'table';
 }
 
+const pref = ref(initial());
+watch(pref, (v) => localStorage.setItem(KEY, v));
+
 /** 'card' | 'table' — one shared preference for every admin data table in the app. */
-export const tableView = ref(initial());
-watch(tableView, (v) => localStorage.setItem(KEY, v));
+export const tableView = computed({
+  get: () => (narrow.value ? 'card' : pref.value),
+  set: (v) => (pref.value = v),
+});
