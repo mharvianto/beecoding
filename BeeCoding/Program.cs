@@ -31,8 +31,19 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = (long)maxBod
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
 {
     o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
-    o.KnownIPNetworks.Clear();
-    o.KnownProxies.Clear();
+    // Trust loopback (the default) plus private ranges: nginx on the same host, a Docker/k8s network,
+    // an Azure front end. A client on a public IP can no longer forge X-Forwarded-For/Proto, which
+    // feeds rate limits and lockouts. Proxy on a public IP: Security:TrustAllProxies=true.
+    if (builder.Configuration.GetValue("Security:TrustAllProxies", false))
+    {
+        o.KnownIPNetworks.Clear();
+        o.KnownProxies.Clear();
+    }
+    else
+    {
+        foreach (var n in new[] { "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16", "169.254.0.0/16", "fc00::/7" })
+            o.KnownIPNetworks.Add(System.Net.IPNetwork.Parse(n));
+    }
 });
 
 builder.Services.AddControllers();

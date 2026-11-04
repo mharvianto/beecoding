@@ -37,6 +37,9 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
         var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
         var now = DateTime.UtcNow.Ticks;
 
+        if (_fails.Count > 1000)   // one entry per probing IP would otherwise live forever
+            foreach (var kv in _fails) if (now - kv.Value.WindowTicks > WindowTicks) _fails.TryRemove(kv.Key, out _);
+
         var st = _fails.GetValueOrDefault(ip);
         if (now - st.WindowTicks > WindowTicks) st = (0, now);   // window expired -> reset
         if (st.Count >= MaxFails) return NotFound();             // locked out (still looks "off")
