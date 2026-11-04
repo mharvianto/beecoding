@@ -300,6 +300,11 @@ async function reorderGroupTo(id, target, pos) {
                   {{ p.status === 'Approved' ? 'approved' : 'declined' }}
                 </span>
               </div>
+              <div v-if="p.inputFileName || p.bannedHeaders || p.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+              <span v-if="p.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads input from file <span class="font-mono">{{ p.inputFileName }}</span>, not stdin</span>
+              <span v-if="p.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ p.bannedHeaders }}</span></span>
+              <span v-if="p.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ p.bannedSymbols }}</span></span>
+            </div>
               <p v-if="p.note" class="text-xs text-slate-500 dark:text-slate-400 mt-1">“{{ p.note }}”</p>
               <p v-if="p.reviewNote" class="text-xs text-rose-600 dark:text-rose-400 mt-1">Declined: {{ p.reviewNote }}</p>
             </div>

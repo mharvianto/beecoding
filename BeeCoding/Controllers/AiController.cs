@@ -458,7 +458,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             try
             {
                 sampleResults = await Task.WhenAll(samples.Select(s =>
-                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, s.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, s.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, problem.InputFileName, ct)));
             }
             catch { await Fail("Timed out validating the new tests."); return; }
             for (int i = 0; i < samples.Count; i++)
@@ -484,7 +484,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             try
             {
                 newResults = await Task.WhenAll(newInputs.Select(inp =>
-                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, problem.InputFileName, ct)));
             }
             catch { await Fail("Timed out validating the new tests."); return; }
             var fresh = new List<(string Stdin, string Expected)>();
@@ -585,7 +585,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             try
             {
                 existingResults = await Task.WhenAll(existing.Select(e =>
-                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, e.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, e.Stdin, problem.TimeLimitMs, problem.MemoryLimitKb, problem.InputFileName, ct)));
             }
             catch { await Fail("Timed out validating the new tests."); return; }
             for (int i = 0; i < existing.Count; i++)
@@ -611,7 +611,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             try
             {
                 newResults = await Task.WhenAll(newInputs.Select(inp =>
-                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, ct: ct)));
+                    queue.EnqueueRunAsync(refLang, gen.ReferenceSolution, inp, problem.TimeLimitMs, problem.MemoryLimitKb, problem.InputFileName, ct)));
             }
             catch { await Fail("Timed out validating the new tests."); return; }
             var fresh = new List<(string Stdin, string Expected)>();

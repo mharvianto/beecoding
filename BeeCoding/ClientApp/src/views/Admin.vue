@@ -1682,6 +1682,11 @@ onMounted(async () => {
               {{ row.tests.length }} tests ({{ row.tests.filter(t => t.isSample).length }} sample) ·
               created {{ when(row.createdAt) }}
             </div>
+            <div v-if="row.inputFileName || row.bannedHeaders || row.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
+              <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads input from file <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
+              <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
+              <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
+            </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <button @click="expandedReview = expandedReview === row.slug ? null : row.slug"

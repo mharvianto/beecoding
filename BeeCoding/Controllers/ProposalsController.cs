@@ -40,7 +40,8 @@ public class ProposalsController(AppDbContext db, IBoardNotifier notifier, Notif
             x.Id, x.BankProblem!.Slug, x.BankProblem.Title, x.BankProblem.Level.ToString(), x.BankProblem.Tags,
             x.BankProblem.StatementMarkdown, x.BankProblem.AllowedLanguages, x.Status.ToString(),
             x.Proposer?.DisplayName ?? "?", x.Note, x.ReviewNote, x.CreatedAt,
-            x.BankProblem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => Mapping.ToDto(t)).ToList())).ToList();
+            x.BankProblem.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => Mapping.ToDto(t)).ToList(),
+            x.BankProblem.InputFileName, x.BankProblem.BannedHeaders, x.BankProblem.BannedSymbols)).ToList();
     }
 
     /// <summary>How many proposals are waiting — for the badge on the board page.</summary>

@@ -155,7 +155,8 @@ public record ProposalReviewDto(string? Reason);
 public record BoardProposalDto(
     int Id, string BankSlug, string Title, string Level, string Tags, string StatementMarkdown,
     string AllowedLanguages, string Status, string ProposerName, string? Note, string? ReviewNote,
-    DateTime CreatedAt, List<TestCaseDto> TestCases);
+    DateTime CreatedAt, List<TestCaseDto> TestCases,
+    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null);
 /// <summary>A proposal as its proposer sees it.</summary>
 public record MyProposalDto(
     int Id, string BoardSlug, string BoardTitle, string Status, string? Note, string? ReviewNote, DateTime CreatedAt,
@@ -330,7 +331,8 @@ public record AdminAiReviewTest(string Stdin, string ExpectedStdout, bool IsSamp
 public record AdminAiReviewRow(
     string Slug, string Title, string OwnerEmail, string OwnerName, string Level, string Tags,
     string AllowedLanguages, string StatementMarkdown, int TimeLimitMs, int MemoryLimitKb,
-    List<AdminAiReviewTest> Tests, DateTime CreatedAt, int Id = 0);
+    List<AdminAiReviewTest> Tests, DateTime CreatedAt, int Id = 0,
+    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null);
 public record AdminAiReviewActionDto(string? Reason);
 
 // ---- Admin: AI kill-switch, quotas, per-user overrides ----
