@@ -1091,6 +1091,13 @@ selalu `Secure`, terlepas dari apa yang terdeteksi aplikasi — **hanya aman dip
 kalau aplikasi memang cuma bisa diakses lewat HTTPS dari luar** (kalau masih ada
 akses HTTP polos, browser akan menolak cookie yang di-mark Secure lewat koneksi HTTP).
 
+**Reverse proxy di IP publik (bukan satu host / jaringan privat)?** Header `X-Forwarded-For/Proto`
+hanya dipercaya dari loopback dan jaringan privat (10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7)
+supaya klien dari internet tidak bisa memalsukannya. Kalau proxy-mu (tunnel, load balancer, nginx di
+host lain) terlihat dari IP publik, aplikasi mengira semua request HTTP biasa dan IP klien jadi IP proxy
+— akibatnya sama dengan gejala 401 di atas. Set `Security__TrustAllProxies=true` **hanya** kalau port
+aplikasi tidak bisa dijangkau selain lewat proxy itu.
+
 **Masih 401 walau cookie sudah `SameSite=None; Secure` dengan benar (cek DevTools →
 Application → Cookies)?** Browser modern (Chrome dkk.) sekarang **memblokir cookie
 pihak-ketiga secara default** sekalipun atribut `SameSite`/`Secure`-nya sudah benar —
