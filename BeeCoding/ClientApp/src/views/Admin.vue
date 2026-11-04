@@ -818,17 +818,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50 });
+const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100 });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; }
     runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -1890,6 +1890,17 @@ onMounted(async () => {
             <label class="flex items-center gap-2 text-sm" title="How many problems one student may keep in their own bank. 0 stops students from creating problems.">
               <span class="text-slate-500 dark:text-slate-400">Max problems per student</span>
               <input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
+                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+            </label>
+            <label class="flex items-center gap-2 text-sm" title="Largest picture file an author may upload for a statement. Bigger files are refused; accepted ones are compressed (max 1200 px wide, JPEG for photos).">
+              <span class="text-slate-500 dark:text-slate-400">Max image upload</span>
+              <input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
+                     class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+              <span class="text-slate-400 dark:text-slate-500">KB</span>
+            </label>
+            <label class="flex items-center gap-2 text-sm" title="How many statement pictures one user may keep. 0 turns picture uploads off.">
+              <span class="text-slate-500 dark:text-slate-400">Max images per user</span>
+              <input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
                      class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
             </label>
             <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"

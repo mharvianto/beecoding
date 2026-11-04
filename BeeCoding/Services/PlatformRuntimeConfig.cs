@@ -21,6 +21,10 @@ public class PlatformRuntimeConfig
 
     public void SetStudentMaxProblems(int max) => StudentMaxProblems = Math.Max(0, max);
 
+    public int ImageMaxKb { get; private set; } = 1024;
+    public int ImageMaxPerUser { get; private set; } = 100;
+    public void SetImageLimits(int maxKb, int maxPerUser) { ImageMaxKb = Math.Max(1, maxKb); ImageMaxPerUser = Math.Max(0, maxPerUser); }
+
     public void SetMfaPolicy(bool admin, bool orgAdmin, bool teacher)
     {
         MfaRequireAdmin = admin; MfaRequireOrgAdmin = orgAdmin; MfaRequireTeacher = teacher;

@@ -140,8 +140,8 @@ reporter when it is resolved or dismissed (`report-update`); those rows have no 
 
 ### Statement images (no equations)
 
-A statement can carry pictures: the editor's "Add image" uploads to `ImagesController` (`POST /api/images`, signed-in users, 3 MB,
-re-encoded to a PNG ≤1200 px wide, kept in `StatementImage`) and inserts `![](/api/images/{id})`. Two renderers must both understand
+A statement can carry pictures: the editor's "Add image" uploads to `ImagesController` (`POST /api/images`, signed-in users, upload checked against the admin-set limit (`PlatformRuntimeConfig.ImageMaxKb`, default 1 MB, refused if over), then
+compressed (≤1200 px wide, lossless PNG, JPEG when that is smaller for a photo), kept in `StatementImage`; `ImageMaxPerUser` caps the count; SVG is refused on purpose, it is code) and inserts `![](/api/images/{id})`. Two renderers must both understand
 that reference: `MarkdownBlock.vue` (prefixes `withBase` for a sub-path deployment) and `StatementImageService` (the protected PNG every
 student sees; `StatementController` loads the ids found by `ImagesController.RefsIn`). Nothing deletes unused images yet. There is no
 math engine anywhere — LaTeX is downgraded to ASCII in both renderers.

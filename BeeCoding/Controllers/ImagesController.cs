@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using BeeCoding.Data;
 using BeeCoding.Models;
+using BeeCoding.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +18,12 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/images")]
-public partial class ImagesController(AppDbContext db) : ApiControllerBase
+public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg) : ApiControllerBase
 {
-    private const long MaxUploadBytes = 3 * 1024 * 1024;
+    private const long HardUploadBytes = 3 * 1024 * 1024;   // backstop for the request itself; the real limit is the admin's ImageMaxKb (at most 3000)
     private const int MaxWidth = 1200;
-    private const int MaxPerUser = 100;   // shortcut: nothing deletes unused images yet, so this is also the storage ceiling per user
-
     private readonly AppDbContext _db = db;
+    private readonly PlatformRuntimeConfig _cfg = cfg;
 
     [GeneratedRegex(@"/api/images/([A-Za-z0-9_-]{22})")]
     private static partial Regex RefPattern();
@@ -33,34 +33,71 @@ public partial class ImagesController(AppDbContext db) : ApiControllerBase
         RefPattern().Matches(markdown ?? "").Select(m => m.Groups[1].Value).Distinct();
 
     [HttpPost]
-    [RequestSizeLimit(MaxUploadBytes + 64 * 1024)]
+    [RequestSizeLimit(HardUploadBytes + 64 * 1024)]
     public async Task<ActionResult<object>> Upload(IFormFile? file)
     {
         if (file is null || file.Length == 0) return BadRequest("Choose an image file.");
-        if (file.Length > MaxUploadBytes) return BadRequest("The image is too large (3 MB at most).");
-        if (await _db.StatementImages.CountAsync(x => x.OwnerId == UserId) >= MaxPerUser)
-            return Conflict($"You have reached the limit of {MaxPerUser} images.");
+        var limit = _cfg.ImageMaxKb * 1024L;
+        if (file.Length > limit)   // the upload itself is checked first; only an accepted file is compressed
+            return BadRequest($"The image is {(file.Length + 1023) / 1024} KB, over the {_cfg.ImageMaxKb} KB limit. Choose a smaller file.");
+        // shortcut: nothing deletes unused images yet, so this cap is also the storage ceiling per user.
+        var perUser = _cfg.ImageMaxPerUser;
+        if (await _db.StatementImages.CountAsync(x => x.OwnerId == UserId) >= perUser)
+            return Conflict(perUser == 0 ? "Picture uploads are turned off." : $"You have reached the limit of {perUser} images.");
 
         using var bmp = SKBitmap.Decode(file.OpenReadStream());
         if (bmp is null || bmp.Width == 0 || bmp.Height == 0) return BadRequest("That file is not a PNG, JPEG, GIF or WebP image.");
 
-        SKBitmap? scaled = null;
-        try
+        var stored = Shrink(bmp, file.Length);
+        if (stored.Length > limit) stored = Compress(bmp, limit) ?? stored;   // rare: only when the re-encode came out bigger than the limit
+        if (stored.Length > limit) return BadRequest("This image cannot be compressed enough. Use a smaller or simpler picture.");
+
+        var id = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        _db.StatementImages.Add(new StatementImage { Id = id, OwnerId = UserId, Data = stored });
+        await _db.SaveChangesAsync();
+        return new { id, url = $"/api/images/{id}", kb = (stored.Length + 1023) / 1024 };
+    }
+
+    /// <summary>The normal compression of an accepted upload: at most <see cref="MaxWidth"/> px wide and re-encoded. Lossless PNG
+    /// keeps diagrams crisp; only when that came out bigger than the file the author sent (a photo) is JPEG used instead, if smaller.</summary>
+    private static byte[] Shrink(SKBitmap bmp, long uploadedBytes)
+    {
+        using var resized = bmp.Width <= MaxWidth ? null
+            : bmp.Resize(new SKImageInfo(MaxWidth, Math.Max(1, bmp.Height * MaxWidth / bmp.Width)), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+        var src = resized ?? bmp;
+        using var img = SKImage.FromBitmap(src);
+        var best = img.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+        if (best.Length <= uploadedBytes) return best;
+
+        using var flat = new SKBitmap(src.Width, src.Height);   // JPEG has no transparency: flatten on white
+        using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); canvas.DrawBitmap(src, 0, 0); }
+        using var flatImg = SKImage.FromBitmap(flat);
+        var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, 85).ToArray();
+        return jpg.Length < best.Length ? jpg : best;
+    }
+
+    /// <summary>Last resort when <see cref="Shrink"/> is still over the limit. Lossless PNG first (diagrams stay crisp); if that is too big, JPEG at falling quality (flattened on white,
+    /// since JPEG has no transparency); if still too big, shrink by a quarter and try again.</summary>
+    private static byte[]? Compress(SKBitmap bmp, long maxBytes)
+    {
+        var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
+        int w = Math.Min(bmp.Width, MaxWidth);
+        for (int round = 0; round < 6 && w >= 100; round++, w = w * 3 / 4)
         {
-            var src = bmp;
-            if (bmp.Width > MaxWidth)
-            {
-                scaled = bmp.Resize(new SKImageInfo(MaxWidth, Math.Max(1, bmp.Height * MaxWidth / bmp.Width)), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
-                if (scaled is not null) src = scaled;
-            }
-            using var image = SKImage.FromBitmap(src);
-            using var png = image.Encode(SKEncodedImageFormat.Png, 100);
-            var id = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-            _db.StatementImages.Add(new StatementImage { Id = id, OwnerId = UserId, Data = png.ToArray() });
-            await _db.SaveChangesAsync();
-            return new { id, url = $"/api/images/{id}" };
+            using var resized = w == bmp.Width ? null : bmp.Resize(new SKImageInfo(w, Math.Max(1, (int)((long)bmp.Height * w / bmp.Width))), sampling);
+            var src = resized ?? bmp;
+            using (var img = SKImage.FromBitmap(src))
+            using (var png = img.Encode(SKEncodedImageFormat.Png, 100))
+                if (png.Size <= maxBytes) return png.ToArray();
+
+            using var flat = new SKBitmap(src.Width, src.Height);
+            using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); canvas.DrawBitmap(src, 0, 0); }
+            using var flatImg = SKImage.FromBitmap(flat);
+            foreach (var quality in new[] { 85, 65 })
+                using (var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, quality))
+                    if (jpg.Size <= maxBytes) return jpg.ToArray();
         }
-        finally { scaled?.Dispose(); }
+        return null;
     }
 
     [HttpGet("{id}")]
@@ -69,6 +106,6 @@ public partial class ImagesController(AppDbContext db) : ApiControllerBase
         var data = await _db.StatementImages.Where(x => x.Id == id).Select(x => x.Data).FirstOrDefaultAsync();
         if (data is null) return NotFound();
         Response.Headers.CacheControl = "private, max-age=86400";   // ids are never reused, so a cached copy is never stale
-        return File(data, "image/png");
+        return File(data, data[0] == 0xFF ? "image/jpeg" : "image/png");   // stored as PNG, or JPEG when that was the only way to fit the size limit
     }
 }

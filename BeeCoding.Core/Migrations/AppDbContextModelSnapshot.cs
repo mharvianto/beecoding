@@ -967,6 +967,12 @@ namespace BeeCoding.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ImageMaxKb")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ImageMaxPerUser")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("JudgeRateLimitMs")
                         .HasColumnType("INTEGER");
 

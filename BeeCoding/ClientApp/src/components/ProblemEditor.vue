@@ -26,8 +26,19 @@ const props = defineProps({
 });
 const emit = defineEmits(['save', 'delete', 'cancel', 'regenerate-tests', 'add-extreme-tests']);
 
+// What a new problem starts with: the house layout. The sample tests are listed under the statement automatically,
+// so there is no "Contoh" section to write. A picture is added with the "Add image" button above the box.
+const STATEMENT_TEMPLATE = `Tulis ceritanya atau masalahnya di sini, singkat dan jelas.
+
+**Format Input:** jelaskan baris demi baris apa yang dibaca program.
+
+**Format Output:** jelaskan apa yang harus dicetak, termasuk format angka atau teksnya.
+
+**Batasan:** 1 <= N <= 1000.
+`;
+
 const blank = () => ({
-  title: '', statementMarkdown: '', allowedLanguages: '',
+  title: '', statementMarkdown: STATEMENT_TEMPLATE, allowedLanguages: '',
   timeLimitMs: 1000, memoryLimitKb: 32768, position: 0,
   level: 'Medium', tags: '', isPublic: false, bannedHeaders: '', bannedSymbols: '', inputFileName: '', testCases: [],
 });
@@ -101,7 +112,7 @@ async function addImage(e) {
           <div class="flex items-center gap-2 text-xs mb-1">
             <span class="text-slate-400 dark:text-slate-500">Statement (Markdown)</span>
             <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
-                   :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (3 MB at most) and insert it at the cursor">
+                   :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor">
               {{ imgBusy ? 'Uploading…' : '🖼 Add image' }}
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" @change="addImage" />
             </label>

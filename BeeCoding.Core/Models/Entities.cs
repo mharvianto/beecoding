@@ -1023,6 +1023,10 @@ public class PlatformRuntimeSettings
     /// <summary>How many problems a student may keep in their own bank (see BankController). 0 = students can't create any.</summary>
     public int StudentMaxProblems { get; set; } = 50;
 
+    /// <summary>Largest stored statement picture (KB, after compressing) and how many pictures one user may keep — see ImagesController.</summary>
+    public int ImageMaxKb { get; set; } = 1024;
+    public int ImageMaxPerUser { get; set; } = 100;
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
