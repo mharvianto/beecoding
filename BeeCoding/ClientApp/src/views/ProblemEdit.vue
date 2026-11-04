@@ -83,9 +83,14 @@ function cancel() {
   else router.push(listPath.value);
 }
 
+// Both AI test actions work on the saved problem and then replace the form with the result.
+const discardEditsOk = () => !dirty.value
+  || confirmDialog.ask('This replaces the form with the saved problem plus the new tests, so your unsaved changes will be lost. Continue?', { confirmLabel: 'Continue' });
+
 // regenerate hidden tests — bank problems only (background job, poll)
 async function regenerateTests() {
   if (isBoard.value || !problem.value?.id) return;
+  if (!(await discardEditsOk())) return;
   error.value = ''; regenBusy.value = true;
   try {
     const { jobId } = await api.post(`/api/ai/regenerate-tests/${problem.value.id}`);
@@ -107,6 +112,7 @@ async function regenerateTests() {
 // append a few AI-written extreme/boundary tests — bank problems only (background job, poll)
 async function addExtremeTests() {
   if (isBoard.value || !problem.value?.id) return;
+  if (!(await discardEditsOk())) return;
   error.value = ''; addExtremeBusy.value = true;
   try {
     const { jobId } = await api.post(`/api/ai/add-extreme-tests/${problem.value.id}`);
