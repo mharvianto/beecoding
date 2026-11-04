@@ -36,11 +36,11 @@ async function go(n) {
 <template>
   <div class="relative" v-click-outside="() => (open = false)">
     <!-- Emoji, like the rest of the app's icons (and the 🔔 chips on wall cards / problem tabs). -->
-    <button @click="toggle" class="relative px-1 text-base leading-none transition"
+    <button @click="toggle" class="relative px-2 text-xl leading-none transition"
             :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
             title="Notifications" aria-label="Notifications">
       🔔
-      <span v-if="notif.unread" class="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold leading-4 text-center">
+      <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-white text-[10px] font-bold leading-4 text-center">
         {{ notif.unread > 9 ? '9+' : notif.unread }}
       </span>
     </button>
