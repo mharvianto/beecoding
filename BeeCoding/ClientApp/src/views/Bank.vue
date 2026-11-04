@@ -96,6 +96,12 @@ function finishJob() {
   try { localStorage.removeItem(JOB_KEY); } catch { /* ignore */ }
 }
 
+async function adminDelete(b) {
+  if (!(await confirmDialog.ask(`Delete “${b.title}” by ${b.ownerName}? It moves to Trash (Admin → Trash), where you can restore or purge it.`, { confirmLabel: 'Delete' }))) return;
+  error.value = '';
+  try { await api.del(`/api/bank/${b.slug}`); await load(); } catch (e) { error.value = e.message; }
+}
+
 async function load() {
   error.value = '';
   url.write();
@@ -311,6 +317,9 @@ onBeforeUnmount(() => { pollStopped = true; });
             <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span>📤</span><span>Submit to Practice</span></button>
             <button @click="openPropose(b)" class="row-action-btn"><span>💡</span><span>Propose to a board</span></button>
           </template>
+        </div>
+        <div v-if="!b.mine && auth.user.isAdmin" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
+          <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" title="Admin: move this problem to Trash"><span>🗑</span><span>Delete</span></button>
         </div>
         <div v-if="b.mine && b.pendingReview && (student || !b.generatedByAi)" class="mt-1 -ml-2">
           <button @click="withdrawPractice(b)" class="row-action-btn"><span>↩️</span><span>Withdraw from review</span></button>

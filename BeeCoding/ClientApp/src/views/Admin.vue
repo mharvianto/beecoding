@@ -276,6 +276,14 @@ async function approveAiReview(row) {
     aiReview.value = aiReview.value.filter((r) => r.slug !== row.slug);
   } catch (e) { err.value = e.message; }
 }
+async function deleteAiReview(row) {
+  if (!(await confirmDialog.ask(`Delete “${row.title}”? It moves to Trash, where you can restore or purge it.`, { confirmLabel: 'Delete' }))) return;
+  err.value = '';
+  try {
+    await api.del(`/api/bank/${row.slug}`);
+    aiReview.value = aiReview.value.filter((r) => r.slug !== row.slug);
+  } catch (e) { err.value = e.message; }
+}
 async function rejectAiReview(row) {
   err.value = '';
   try {
@@ -1732,6 +1740,7 @@ onMounted(async () => {
               {{ reviewJsonCopied === row.slug ? '✓ copied' : '⧉ copy JSON' }}
             </button>
             <button @click="downloadReviewJson(row)" class="row-action-btn" title="Download this problem as a .json file">⬇ JSON</button>
+            <button @click="deleteAiReview(row)" class="row-action-btn row-action-btn--danger" title="Move this problem to Trash"><span>🗑</span><span>Delete</span></button>
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✓ Approve &amp; share
             </button>
