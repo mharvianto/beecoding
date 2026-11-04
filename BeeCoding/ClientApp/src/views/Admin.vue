@@ -1912,6 +1912,11 @@ onMounted(async () => {
             · {{ latency.slots }} judge slot{{ latency.slots === 1 ? '' : 's' }}
             <template v-if="latency.pendingNow != null"> · {{ latency.pendingNow }} waiting now</template>
           </p>
+          <p v-if="latency.unfinished > 0" class="text-xs text-rose-600 dark:text-rose-400 mb-2">
+            ⚠️ {{ latency.unfinished }} submission{{ latency.unfinished === 1 ? ' has' : 's have' }} been waiting for more than 2 minutes
+            (oldest {{ Math.round(latency.oldestUnfinishedSeconds / 60) }} min). Judging normally takes under a second, so these jobs were
+            most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.
+          </p>
           <p v-if="!latency.buckets.length" class="text-xs text-slate-400 dark:text-slate-500">No judged submissions in this window.</p>
           <div v-else class="overflow-x-auto">
             <table class="w-full text-xs">

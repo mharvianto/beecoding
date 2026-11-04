@@ -640,7 +640,15 @@ public class AdminUiController(
             _ => null,
         };
         var all = rows.Select(r => r.Sec).OrderBy(x => x).ToList();
-        return new AdminJudgeLatencyDto(hours, _judgeOpt.MaxConcurrent, pending, all.Count, Math.Round(P95(all), 2), buckets);
+
+        // The above only sees submissions that got a verdict; one whose job was lost never shows up in it.
+        var cutoff = DateTime.UtcNow.AddMinutes(-2);
+        var stuck = (await _db.BankSubmissions.Where(s => s.CreatedAt >= since && s.CreatedAt < cutoff && s.Status != SubmissionStatus.Done)
+                .Select(s => s.CreatedAt).ToListAsync())
+            .Concat(await _db.Submissions.Where(s => s.CreatedAt >= since && s.CreatedAt < cutoff && s.Status != SubmissionStatus.Done)
+                .Select(s => s.CreatedAt).ToListAsync()).ToList();
+        var oldest = stuck.Count == 0 ? 0 : Math.Round((DateTime.UtcNow - stuck.Min()).TotalSeconds);
+        return new AdminJudgeLatencyDto(hours, _judgeOpt.MaxConcurrent, pending, all.Count, Math.Round(P95(all), 2), buckets, stuck.Count, oldest);
     }
 
     [HttpGet("system/sysstat")]

@@ -312,7 +312,10 @@ public record SysstatResultDto(string Hostname, string Metric, List<SysstatPoint
 
 /// <summary>Time from submit to verdict (queue wait + compile + run), bucketed by hour (UTC).</summary>
 public record AdminJudgeLatencyBucket(DateTime HourUtc, int Count, double AvgSeconds, double P95Seconds, double MaxSeconds);
-public record AdminJudgeLatencyDto(int Hours, int Slots, long? PendingNow, int Total, double P95Seconds, List<AdminJudgeLatencyBucket> Buckets);
+/// <summary>Unfinished = still Queued/Running after more than 2 minutes: judging takes a fraction of a second, so those
+/// jobs were lost (typically when the app restarted with submissions waiting) and their students see "still checking".</summary>
+public record AdminJudgeLatencyDto(int Hours, int Slots, long? PendingNow, int Total, double P95Seconds, List<AdminJudgeLatencyBucket> Buckets,
+    int Unfinished = 0, double OldestUnfinishedSeconds = 0);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50);
