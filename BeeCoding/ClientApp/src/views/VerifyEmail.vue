@@ -5,32 +5,37 @@ import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
-// Two jobs: (1) the target of the emailed link (?token=…), which works signed-in or not;
+// Two jobs: (1) the target of the emailed link (?token=…), which works signed-in or not — the link only
+// redeems when the person presses the button, because mail scanners (Outlook Safe Links, ...) open links
+// and run their scripts, and would use up the one-time token before the person ever clicks;
 // (2) the holding screen for an unverified user when the server requires verified emails.
 const route = useRoute();
 const router = useRouter();
 const auth = useAuth();
 const token = String(route.query.token || '');
 
-const state = ref(token ? 'checking' : 'waiting');   // checking | done | failed | waiting
+const state = ref(token ? 'ready' : 'waiting');   // ready | checking | done | failed | waiting
 const error = ref('');
 const busy = ref(false);
 const sent = ref(false);
 
-onMounted(async () => {
-  if (!token) {
-    if (auth.user?.emailVerified) router.replace('/boards');
-    return;
-  }
+onMounted(() => {
+  if (!token && auth.user?.emailVerified) router.replace('/boards');
+});
+
+async function confirm() {
+  state.value = 'checking';
   try {
     await api.post('/api/auth/verify-email', { token });
     state.value = 'done';
     if (auth.user) await auth.fetchMe();   // refresh the verified flag in the open session
   } catch (e) {
+    await auth.fetchMe().catch(() => {});
+    if (auth.user?.emailVerified) { state.value = 'done'; return; }   // an earlier click already confirmed it
     state.value = 'failed';
     error.value = e.message;
   }
-});
+}
 
 async function resend() {
   busy.value = true; error.value = '';
@@ -53,7 +58,12 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
       <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Confirm your email</p>
 
-      <p v-if="state === 'checking'" class="text-sm text-slate-400 dark:text-slate-500">Checking your link…</p>
+      <div v-if="state === 'ready'" class="space-y-3">
+        <p class="text-sm text-slate-600 dark:text-slate-300">Press the button to confirm your email address.</p>
+        <button @click="confirm" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium">Confirm my email</button>
+      </div>
+
+      <p v-else-if="state === 'checking'" class="text-sm text-slate-400 dark:text-slate-500">Checking your link…</p>
 
       <div v-else-if="state === 'done'" class="space-y-3">
         <p class="text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-3">
