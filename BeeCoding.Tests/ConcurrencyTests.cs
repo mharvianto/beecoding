@@ -45,6 +45,37 @@ public class ConcurrencyTests
     }
 
     [Fact]
+    public async Task A_submission_still_Running_at_start_is_failed_not_run_a_third_time()
+    {
+        var db = Path.Combine(Path.GetTempPath(), $"beecoding-test-{Guid.NewGuid():N}.db");
+        int id;
+        try
+        {
+            using (var first = new TestApp(db))
+            using (var scope = first.Services.CreateScope())
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var s = new Submission { ProblemId = (await ctx.Problems.FirstAsync()).Id, UserId = (await ctx.Users.FirstAsync()).Id, Language = "c", Code = "int main(){return 0;}", Status = SubmissionStatus.Running };
+                ctx.Submissions.Add(s);
+                await ctx.SaveChangesAsync();
+                id = s.Id;
+            }
+            using var second = new TestApp(db);
+            using var check = second.Services.CreateScope();
+            var row = await check.ServiceProvider.GetRequiredService<AppDbContext>().Submissions.AsNoTracking().FirstAsync(x => x.Id == id);
+            for (int i = 0; i < 20 && row.Status != SubmissionStatus.Done; i++)
+            {
+                await Task.Delay(250);
+                row = await check.ServiceProvider.GetRequiredService<AppDbContext>().Submissions.AsNoTracking().FirstAsync(x => x.Id == id);
+            }
+            Assert.Equal(SubmissionStatus.Done, row.Status);
+            Assert.Equal(Verdict.RuntimeError, row.Verdict);   // failed by recovery, never graded
+            Assert.Contains("interrupted twice", row.CompilerOutput);
+        }
+        finally { Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools(); foreach (var f in new[] { db, db + "-wal", db + "-shm" }) try { File.Delete(f); } catch { } }
+    }
+
+    [Fact]
     public async Task A_submission_left_queued_by_a_restart_is_graded_on_the_next_start()
     {
         var db = Path.Combine(Path.GetTempPath(), $"beecoding-test-{Guid.NewGuid():N}.db");
