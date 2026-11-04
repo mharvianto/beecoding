@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import MarkdownBlock from './MarkdownBlock.vue';
 import { SUPPORTED_LANGS } from '../lib/templates';
 import { api } from '../lib/api';
+import { withBase } from '../lib/base';
 
 // statement: editor + preview side by side, either pane hideable (never both)
 const showWrite = ref(true);
@@ -89,6 +90,8 @@ async function addImage(e) {
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex items-center gap-3 flex-wrap mb-4">
         <h2 class="font-bold text-lg">{{ props.problem?.id ? 'Edit' : 'New' }} problem</h2>
+        <a :href="withBase('/guide/problems')" target="_blank" rel="noopener"
+           class="text-xs text-amber-600 dark:text-amber-400 hover:underline">📖 Panduan membuat soal</a>
         <span v-if="props.problem?.generatedByAi"
               class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-generated</span>
         <span v-if="props.problem?.pendingReview"
