@@ -130,7 +130,7 @@ async function addImage(e) {
       <div class="flex items-center gap-3 flex-wrap mb-4">
         <h2 class="font-bold text-lg">{{ props.problem?.id ? 'Edit' : 'New' }} problem</h2>
         <a :href="withBase('/guide/problems')" target="_blank" rel="noopener"
-           class="text-xs text-amber-600 dark:text-amber-400 hover:underline">📖 Panduan membuat soal</a>
+           class="text-xs text-amber-600 dark:text-amber-400 hover:underline">📖 Guide to writing problems</a>
         <span v-if="props.problem?.generatedByAi"
               class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-generated</span>
         <span v-if="props.problem?.pendingReview"

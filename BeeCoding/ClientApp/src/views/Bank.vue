@@ -197,7 +197,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       </div>
     </div>
     <p class="text-sm mb-2">
-      <RouterLink to="/guide/problems" class="text-amber-600 dark:text-amber-400 hover:underline">📖 Panduan membuat soal</RouterLink>
+      <RouterLink to="/guide/problems" class="text-amber-600 dark:text-amber-400 hover:underline">📖 Guide to writing problems</RouterLink>
     </p>
     <p v-if="student" class="text-sm text-slate-400 dark:text-slate-500 mb-4">
       Write your own problems here — they stay private to you. When one is ready, send it to an admin to
