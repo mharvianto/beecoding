@@ -196,7 +196,7 @@ onBeforeUnmount(() => { pollStopped = true; });
     <p v-if="student" class="text-sm text-slate-400 dark:text-slate-500 mb-4">
       Write your own problems here — they stay private to you. When one is ready, send it to an admin to
       publish it in <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>,
-      or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published.
+      or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published. Solving a problem you wrote yourself earns no XP and does not count toward your streak.
     </p>
     <p v-else class="text-sm text-slate-400 dark:text-slate-500 mb-4">
       Your reusable problem library — write a problem once here, then pull it into any
