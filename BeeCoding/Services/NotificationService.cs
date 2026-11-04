@@ -57,13 +57,21 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     {
         if (comment.UserId == post.UserId) return;
 
-        var n = new Notification
+        // Like reactions: comments on one card pile into a single unread row ("3 new comments") instead of one each.
+        var n = await UnreadAsync(post, "comment");
+        if (n is null)
         {
-            UserId = post.UserId, Kind = "comment", BoardId = post.BoardId, ProblemId = post.ProblemId, PostId = post.Id,
-            CommentId = comment.Id, ActorUserId = comment.UserId, ActorName = Trim(actorName, 120), ActorIsStaff = actorIsStaff,
-            Snippet = Trim(comment.Body, 200),
-        };
-        _db.Notifications.Add(n);
+            n = new Notification { UserId = post.UserId, Kind = "comment", BoardId = post.BoardId, ProblemId = post.ProblemId, PostId = post.Id };
+            _db.Notifications.Add(n);
+        }
+        else
+        {
+            n.Count++;
+            n.CreatedAt = DateTime.UtcNow;
+        }
+        n.CommentId = comment.Id;   // the latest one: deleting it takes it back out
+        n.ActorUserId = comment.UserId; n.ActorName = Trim(actorName, 120); n.ActorIsStaff = actorIsStaff;
+        n.Snippet = Trim(comment.Body, 200);
         await _db.SaveChangesAsync();
         await PushAsync(n);
     }
@@ -71,7 +79,10 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task CommentRemovedAsync(int commentId)
     {
         var n = await _db.Notifications.FirstOrDefaultAsync(x => x.CommentId == commentId);
-        if (n is not null) await RemoveAsync(n);
+        if (n is null) return;
+        // shortcut: only the latest comment of a group is tracked by id; an earlier one deleted leaves the count one high.
+        if (n.Count > 1 && n.ReadAt == null) { n.Count--; await _db.SaveChangesAsync(); await PushAsync(n); }
+        else await RemoveAsync(n);
     }
 
     public async Task<int> UnreadCountAsync(int userId) => await UnreadQuery(userId).CountAsync();
@@ -204,9 +215,11 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         await PushAsync(n);
     }
 
-    private Task<Notification?> UnreadReactionAsync(Post post) =>
+    private Task<Notification?> UnreadReactionAsync(Post post) => UnreadAsync(post, "reaction");
+
+    private Task<Notification?> UnreadAsync(Post post, string kind) =>
         _db.Notifications.FirstOrDefaultAsync(x =>
-            x.UserId == post.UserId && x.PostId == post.Id && x.Kind == "reaction" && x.ReadAt == null);
+            x.UserId == post.UserId && x.PostId == post.Id && x.Kind == kind && x.ReadAt == null);
 
     private async Task RemoveAsync(Notification n)
     {

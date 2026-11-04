@@ -100,7 +100,10 @@ export function notificationText(n) {
     return `Your ${what} “${n.problemTitle}” was ${n.emoji === '✅' ? 'approved' : 'declined'} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
   }
   const who = n.actorIsStaff ? `${n.actorName} 👨‍🏫` : n.actorName;
-  if (n.kind === 'comment') return `${who} commented: “${n.snippet}”`;
+  if (n.kind === 'comment')
+    return n.count > 1
+      ? `${n.count} new comments on your card (latest from ${who}: “${n.snippet}”)`
+      : `${who} commented: “${n.snippet}”`;
   return n.count > 1
     ? `${n.count} new reactions on your card (latest ${n.emoji} from ${who})`
     : `${who} reacted ${n.emoji} to your card`;
