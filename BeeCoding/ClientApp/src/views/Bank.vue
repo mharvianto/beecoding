@@ -3,12 +3,14 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
+import { useConfirmDialog } from '../stores/confirmDialog';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
 import { useUrlQuery } from '../lib/urlQuery';
 
 const router = useRouter();
 const auth = useAuth();
+const confirmDialog = useConfirmDialog();
 // A student's bank is a private drafting space: nothing goes live without a reviewer.
 const student = computed(() => !auth.isTeacher);
 
@@ -141,7 +143,8 @@ async function withdrawProposal(r) {
 
 async function submitPractice(b) {
   error.value = ''; notice.value = '';
-  if (!confirm(`Send “${b.title}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.`)) return;
+  if (!(await confirmDialog.ask(`Send “${b.title}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.`,
+    { confirmLabel: 'Send for review', danger: false }))) return;
   try {
     await api.post(`/api/bank/${b.slug}/submit-practice`);
     notice.value = 'Sent for review — you will get a notification when it is answered.';
