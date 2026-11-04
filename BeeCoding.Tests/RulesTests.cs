@@ -131,3 +131,40 @@ public class AiEffectiveUrlTests
     [Fact] public void A_public_org_url_with_its_own_key_is_used() => Assert.Equal("https://api.acme.com/v1", Url(new("k", "https://api.acme.com/v1", null, null)));
     [Fact] public void An_org_url_without_its_own_key_is_ignored() => Assert.Equal("https://platform.example/v1", Url(new(null, "https://api.acme.com/v1", null, null)));
 }
+
+public class ProblemRulesTests
+{
+    private static UpsertTestCaseDto T(string i, string o, bool sample = false) => new(null, i, o, sample, 1, 0);
+    private static string? V(string? title, string? statement, IEnumerable<UpsertTestCaseDto>? tests, bool required = true) =>
+        ProblemRules.Validate(title, statement, tests, required);
+
+    [Fact] public void A_complete_problem_passes() => Assert.Null(V("A+B", "Add two numbers.", [T("1 2", "3")]));
+
+    [Theory]
+    [InlineData("", "text")]
+    [InlineData("   ", "text")]
+    [InlineData("title", "")]
+    [InlineData("title", "  \n ")]
+    public void Title_and_statement_are_required(string title, string statement) =>
+        Assert.NotNull(V(title, statement, [T("1", "1")]));
+
+    [Fact] public void Zero_tests_are_refused_on_create_but_unsent_tests_are_fine_on_update()
+    {
+        Assert.NotNull(V("t", "s", [], required: true));
+        Assert.NotNull(V("t", "s", null, required: true));
+        Assert.Null(V("t", "s", null, required: false));    // update that does not touch the tests
+        Assert.NotNull(V("t", "s", [], required: false));   // ...but an update that deletes them all is refused
+    }
+
+    [Fact] public void An_untouched_blank_test_row_is_refused_but_an_empty_expected_output_alone_is_not()
+    {
+        Assert.NotNull(V("t", "s", [T("1", "1"), T("", "")]));
+        Assert.Null(V("t", "s", [T("1", "")]));   // "must print nothing" is a legitimate test
+    }
+
+    [Fact] public void Overlong_title_and_statement_are_refused()
+    {
+        Assert.NotNull(V(new string('x', 201), "s", [T("1", "1")]));
+        Assert.NotNull(V("t", new string('x', 50_001), [T("1", "1")]));
+    }
+}

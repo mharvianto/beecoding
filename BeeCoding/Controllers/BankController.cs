@@ -96,6 +96,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
                 return Conflict(max == 0 ? "Students can't create problems right now." : $"You can keep up to {max} problems in your bank — delete one first.");
             if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
         }
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: true) is { } invalid) return BadRequest(invalid);
         var b = new BankProblem { OwnerId = UserId };
         Apply(b, dto);
         if (IsStudent) b.IsPublic = false;   // a student never publishes directly
@@ -124,6 +125,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
                 return Conflict("This problem has a pending board proposal, so it can't be edited.");
             if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
         }
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: false) is { } invalid) return BadRequest(invalid);
         bool wasPublic = b.IsPublic;
 
         // Captured before Apply() adds any brand-new TestCase rows to b.TestCases — those
@@ -188,6 +190,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         if (string.IsNullOrWhiteSpace(b.Title) || string.IsNullOrWhiteSpace(b.StatementMarkdown))
             return BadRequest("Add a title and a statement first.");
         if (b.TestCases.Count == 0) return BadRequest("Add at least one test case first.");
+        if (b.TestCases.All(t => t.IsSample)) return BadRequest(ProblemRules.NeedsHiddenTest);
         if (await _db.BankProblems.CountAsync(x => x.OwnerId == UserId && x.PendingReview) >= MaxPendingPerUser)
             return Conflict($"You already have {MaxPendingPerUser} problems waiting for review.");
 
@@ -216,6 +219,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         if (board.OwnerId == UserId) return BadRequest("You own this board — add the problem to it directly.");
         if (!board.AllowProposals) return Conflict("The owner of this board isn't accepting proposals.");
         if (b.TestCases.Count == 0) return BadRequest("Add at least one test case first.");
+        if (b.TestCases.All(t => t.IsSample)) return BadRequest(ProblemRules.NeedsHiddenTest);
         if (await _db.ProblemProposals.AnyAsync(x => x.BankProblemId == b.Id && x.BoardId == board.Id && x.Status == ProposalStatus.Pending))
             return Conflict("This problem is already proposed to that board.");
         if (await _db.ProblemProposals.CountAsync(x => x.ProposerId == UserId && x.Status == ProposalStatus.Pending) >= MaxPendingPerUser)

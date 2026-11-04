@@ -159,6 +159,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var (boardId, err) = await RequireOwnerAsync(slug);
         if (err is not null) return err;
 
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: true) is { } invalid) return BadRequest(invalid);
         var p = new Problem { BoardId = boardId!.Value };
         Apply(p, dto);
         _db.Problems.Add(p);
@@ -178,6 +179,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
             .Include(x => x.TestCases)
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p is null) return NotFound();
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: false) is { } invalid) return BadRequest(invalid);
 
         // Captured before Apply() adds any brand-new TestCase rows to p.TestCases — those
         // start with Id 0 (not yet persisted) and must never reach the removal filter below,
