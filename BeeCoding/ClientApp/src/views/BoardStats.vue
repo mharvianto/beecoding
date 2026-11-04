@@ -1,4 +1,5 @@
 <script setup>
+import { hasData } from '../lib/hasData';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -20,7 +21,7 @@ const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');  
 const aiEngagementStats = ref(null);
 
 function periodsFor(granularity) {
-  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
+  return granularity === 'hour' ? 24 : granularity === 'day' ? 30 : 12;
 }
 async function loadEngagement() {
   try {
@@ -106,7 +107,7 @@ onMounted(async () => {
             </button>
           </span>
         </div>
-        <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <MiniLineChart :title="`Active students / ${engagementGranularity}`" :points="activeUserPoints()" />
           <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
         </div>
@@ -124,7 +125,7 @@ onMounted(async () => {
             </button>
           </span>
         </div>
-        <div v-if="aiEngagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div v-if="hasData(aiEngagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
           <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
         </div>

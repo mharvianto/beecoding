@@ -1,4 +1,5 @@
 <script setup>
+import { hasData } from '../lib/hasData';
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { api } from '../lib/api';
@@ -49,7 +50,7 @@ async function loadDashboard() {
 }
 
 function periodsFor(granularity) {
-  return granularity === 'hour' ? 48 : granularity === 'day' ? 14 : 12;
+  return granularity === 'hour' ? 24 : granularity === 'day' ? 30 : 12;
 }
 async function loadEngagement() {
   dashErr.value = '';
@@ -270,7 +271,7 @@ async function deleteAccount(force = false) {
                 </button>
               </span>
             </div>
-            <div v-if="engagementStats?.length" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
               <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
             </div>

@@ -73,10 +73,7 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         var solvedByBucket = solveDates
             .GroupBy(dt => TimeBucketing.BucketStart(dt, g)).ToDictionary(x => x.Key, x => x.Count());
 
-        var keys = attemptsByBucket.Keys.Union(solvedByBucket.Keys)
-            .OrderByDescending(k => k).Take(periods).OrderBy(k => k);
-
-        return keys.Select(k => new MyEngagementPointDto(TimeBucketing.FormatPeriodStart(k, g),
+        return TimeBucketing.Window(g, periods).Select(k => new MyEngagementPointDto(TimeBucketing.FormatPeriodStart(k, g),
             attemptsByBucket.GetValueOrDefault(k), solvedByBucket.GetValueOrDefault(k))).ToList();
     }
 

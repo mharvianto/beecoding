@@ -222,11 +222,9 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var activity = await _db.Submissions.Where(s => s.Problem!.BoardId == board.Id)
             .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
 
-        return activity.GroupBy(x => TimeBucketing.BucketStart(x.CreatedAt, g))
-            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
-            .Select(x => new AdminEngagementPointDto(
-                TimeBucketing.FormatPeriodStart(x.Key, g), x.Select(y => y.UserId).Distinct().Count(), x.Count()))
-            .ToList();
+        var byBucket = activity.ToLookup(x => TimeBucketing.BucketStart(x.CreatedAt, g));
+        return TimeBucketing.Window(g, periods).Select(k => new AdminEngagementPointDto(
+            TimeBucketing.FormatPeriodStart(k, g), byBucket[k].Select(y => y.UserId).Distinct().Count(), byBucket[k].Count())).ToList();
     }
 
     /// <summary>Staff-only AI usage trend for this one board. AiUsage isn't tracked per-board
@@ -252,11 +250,9 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
 
         DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
 
-        return rows.GroupBy(x => BucketDay(x.Day))
-            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
-            .Select(x => new AdminAiEngagementPointDto(
-                x.Key.ToString("yyyy-MM-dd"), x.Sum(y => y.Calls), x.Sum(y => y.PromptTokens) + x.Sum(y => y.CompletionTokens)))
-            .ToList();
+        var byBucket = rows.ToLookup(x => BucketDay(x.Day));
+        return TimeBucketing.DayWindow(g, periods).Select(d => new AdminAiEngagementPointDto(
+            d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 
     /// <summary>Staff-only, searchable submission history for this one board — every

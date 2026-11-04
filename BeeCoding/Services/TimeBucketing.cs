@@ -23,6 +23,19 @@ public static class TimeBucketing
         return monday.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
     }
 
+    /// <summary>The last <paramref name="periods"/> buckets ending at the current one, oldest first — empty
+    /// buckets included, so a chart's axis is continuous and "last 48 hours" really means that.</summary>
+    public static List<DateTime> Window(string granularity, int periods, DateTime? nowUtc = null)
+    {
+        var end = BucketStart(nowUtc ?? DateTime.UtcNow, granularity);
+        var step = granularity == "hour" ? TimeSpan.FromHours(1) : TimeSpan.FromDays(granularity == "day" ? 1 : 7);
+        return Enumerable.Range(0, periods).Select(i => end - step * (periods - 1 - i)).ToList();
+    }
+
+    /// <summary>Same as <see cref="Window"/> for day-only sources (AiUsage): "day" or "week" buckets as dates.</summary>
+    public static List<DateOnly> DayWindow(string granularity, int periods, DateTime? nowUtc = null) =>
+        Window(granularity, periods, nowUtc).Select(DateOnly.FromDateTime).ToList();
+
     public static string FormatPeriodStart(DateTime dt, string granularity) =>
         granularity == "hour" ? dt.ToString("o") : dt.ToString("yyyy-MM-dd");
 }

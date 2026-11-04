@@ -94,11 +94,9 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         var activity = await _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId)
             .Select(s => new { s.UserId, s.CreatedAt }).ToListAsync();
 
-        return activity.GroupBy(x => TimeBucketing.BucketStart(x.CreatedAt, g))
-            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
-            .Select(x => new AdminEngagementPointDto(
-                TimeBucketing.FormatPeriodStart(x.Key, g), x.Select(y => y.UserId).Distinct().Count(), x.Count()))
-            .ToList();
+        var byBucket = activity.ToLookup(x => TimeBucketing.BucketStart(x.CreatedAt, g));
+        return TimeBucketing.Window(g, periods).Select(k => new AdminEngagementPointDto(
+            TimeBucketing.FormatPeriodStart(k, g), byBucket[k].Select(y => y.UserId).Distinct().Count(), byBucket[k].Count())).ToList();
     }
 
     /// <summary>AI calls + total tokens over time, summed across this org's members (AiUsage
@@ -121,11 +119,9 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
 
         DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
 
-        return rows.GroupBy(x => BucketDay(x.Day))
-            .OrderByDescending(x => x.Key).Take(periods).OrderBy(x => x.Key)
-            .Select(x => new AdminAiEngagementPointDto(
-                x.Key.ToString("yyyy-MM-dd"), x.Sum(y => y.Calls), x.Sum(y => y.PromptTokens) + x.Sum(y => y.CompletionTokens)))
-            .ToList();
+        var byBucket = rows.ToLookup(x => BucketDay(x.Day));
+        return TimeBucketing.DayWindow(g, periods).Select(d => new AdminAiEngagementPointDto(
+            d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 
     /// <summary>Top tags by attempts, scoped to this org's board problems only.</summary>
