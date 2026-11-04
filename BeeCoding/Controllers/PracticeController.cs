@@ -343,7 +343,8 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             UserId = UserId,
             Code = dto.Code,
             Language = lang,
-            LocalDay = localDay,
+            // An author trying their own problem leaves no calendar day: it must not count towards "solved today" or streaks.
+            LocalDay = problem.OwnerId == UserId ? null : localDay,
         };
         _db.BankSubmissions.Add(sub);
         await _db.SaveChangesAsync();

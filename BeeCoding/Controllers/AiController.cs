@@ -774,7 +774,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         if (dto.BankProblemId is int bid)
         {
             var b = await _db.BankProblems.Include(x => x.TestCases)
-                .FirstOrDefaultAsync(x => x.Id == bid && x.IsPublic);
+                .FirstOrDefaultAsync(x => x.Id == bid && (x.IsPublic || x.OwnerId == UserId));
             if (b is null) return (null, new ObjectResult("Problem not found.") { StatusCode = 404 });
             statement = b.StatementMarkdown; language = Languages.Default(b.AllowedLanguages);
             samples = b.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id)

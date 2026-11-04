@@ -228,7 +228,7 @@ onBeforeUnmount(async () => {
         <span v-if="problem.solved" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">✓ solved</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-        <span class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
+        <span v-if="problem.isPublic" class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
       </div>
       <div class="text-xs text-slate-400 dark:text-slate-500 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
