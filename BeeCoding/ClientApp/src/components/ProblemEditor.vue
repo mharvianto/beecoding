@@ -62,7 +62,33 @@ const allowedLangsArr = computed({
 function addTest() {
   form.value.testCases.push({ id: null, stdin: '', expectedStdout: '', isSample: false, points: 1, position: form.value.testCases.length });
 }
-function removeTest(i) { form.value.testCases.splice(i, 1); }
+function removeTest(i) { form.value.testCases.splice(i, 1); renumber(); }
+
+// Order matters: the judge runs tests by Position (and reports the first failing one), and samples are listed in that order.
+function renumber() { form.value.testCases.forEach((t, i) => { t.position = i; }); }
+function moveTest(from, to) {
+  const list = form.value.testCases;
+  if (from === to || to < 0 || to >= list.length) return;
+  list.splice(to, 0, list.splice(from, 1)[0]);
+  renumber();
+}
+// A stable key per row, so a reordered row keeps its own textareas (index keys would swap the DOM under the dragged row).
+const rowKeys = new WeakMap();
+let rowSeq = 0;
+const rowKey = (t) => rowKeys.get(t) ?? (rowKeys.set(t, ++rowSeq), rowSeq);
+// Drag with the ⠿ handle (the textareas stay selectable); ▲ ▼ do the same by click or touch.
+const dragFrom = ref(null);
+const dragOver = ref(null);
+function onDragStart(e, i) {
+  dragFrom.value = i;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', String(i));
+  const card = e.currentTarget.closest('[data-test-row]');
+  if (card) e.dataTransfer.setDragImage(card, 12, 12);
+}
+function onDrop(i) { if (dragFrom.value !== null) moveTest(dragFrom.value, i); dragFrom.value = dragOver.value = null; }
+function onDragEnd() { dragFrom.value = dragOver.value = null; }
+function save() { renumber(); emit('save', form); }
 
 // Pictures: upload, then drop the Markdown for it at the cursor.
 const stmtEl = ref(null);
@@ -220,7 +246,20 @@ async function addImage(e) {
           fresh, diverse set. Add extreme tests keeps every existing test and appends a few
           new boundary cases (min/max size, min/max value) at the end.
         </p>
-        <div v-for="(t, i) in form.testCases" :key="i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-2 mb-2">
+        <div v-for="(t, i) in form.testCases" :key="rowKey(t)" data-test-row
+             @dragover.prevent="dragOver = i" @drop.prevent="onDrop(i)"
+             class="border rounded-lg p-2 mb-2"
+             :class="[dragOver === i && dragFrom !== null && dragFrom !== i ? 'border-amber-400 bg-amber-50/40 dark:bg-amber-500/5' : 'border-slate-200 dark:border-slate-800',
+                      dragFrom === i ? 'opacity-50' : '']">
+          <div class="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-1">
+            <span draggable="true" @dragstart="onDragStart($event, i)" @dragend="onDragEnd"
+                  class="cursor-grab active:cursor-grabbing select-none px-1 text-base leading-none" title="Drag to reorder">⠿</span>
+            <span>#{{ i + 1 }}</span>
+            <button type="button" @click="moveTest(i, i - 1)" :disabled="i === 0" title="Move up" aria-label="Move test up"
+                    class="px-1.5 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30">▲</button>
+            <button type="button" @click="moveTest(i, i + 1)" :disabled="i === form.testCases.length - 1" title="Move down" aria-label="Move test down"
+                    class="px-1.5 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30">▼</button>
+          </div>
           <div class="grid grid-cols-2 gap-2">
             <textarea v-model="t.stdin" placeholder="stdin" rows="2"
                       class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
@@ -239,7 +278,7 @@ async function addImage(e) {
       <pre v-if="error" class="mt-4 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-52 overflow-auto border border-red-200 dark:border-red-500/30 rounded-lg p-3">{{ error }}</pre>
 
       <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
-        <button @click="emit('save', form)" :disabled="busy"
+        <button @click="save" :disabled="busy"
                 class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50">
           {{ busy ? 'Saving…' : 'Save' }}
         </button>
