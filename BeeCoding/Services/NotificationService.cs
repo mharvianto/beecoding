@@ -96,9 +96,11 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public IQueryable<Notification> UnreadQuery(int userId) => VisibleQuery(userId).Where(n => n.ReadAt == null);
 
     /// <summary>The newest notifications for the bell, wall and report kinds together.</summary>
-    public async Task<List<NotificationDto>> ListAsync(int userId, int take)
+    public async Task<int> TotalAsync(int userId) => await VisibleQuery(userId).CountAsync();
+
+    public async Task<List<NotificationDto>> ListAsync(int userId, int take, int skip = 0)
     {
-        var rows = await VisibleQuery(userId).OrderByDescending(n => n.CreatedAt).Take(take).ToListAsync();
+        var rows = await VisibleQuery(userId).OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id).Skip(skip).Take(take).ToListAsync();
         var boardIds = rows.Where(n => n.ReportId == null && n.ProposalId == null).Select(n => n.BoardId).Distinct().ToList();
         var problemIds = rows.Where(n => n.ReportId == null && n.ProposalId == null).Select(n => n.ProblemId).Distinct().ToList();
         var boards = await _db.Boards.Where(b => boardIds.Contains(b.Id)).Select(b => new { b.Id, b.Slug, b.Title }).ToDictionaryAsync(b => b.Id);

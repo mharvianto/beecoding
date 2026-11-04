@@ -459,7 +459,8 @@ public record NotificationDto(
     int Id, string Kind, string BoardSlug, string BoardTitle, int ProblemId, string ProblemTitle, int PostId,
     string ActorName, bool ActorIsStaff, string? Emoji, string? Snippet, int Count, DateTime CreatedAt, bool Read,
     string? Link = null);   // report kinds: the page to open
-public record NotificationListDto(int Unread, List<NotificationDto> Items);
+/// <param name="Total">How many notifications the caller has in all (the list is paged), so the bell can offer "load more".</param>
+public record NotificationListDto(int Unread, List<NotificationDto> Items, int Total = 0);
 public record ReactDto(string Emoji);
 public record CommentBodyDto(string Body);
 

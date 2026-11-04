@@ -13,6 +13,8 @@ public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfigurat
 {
     /// <summary>Config <c>Notifications:RetentionDays</c> (default 30).</summary>
     private readonly TimeSpan _maxAge = TimeSpan.FromDays(Math.Max(0, cfg.GetValue("Notifications:RetentionDays", 30)));
+    /// <summary>Per user, only the newest this many are kept — a busy board can otherwise pile up hundreds.</summary>
+    public const int MaxPerUser = 200;
     private readonly PlatformRuntimeConfig _runtime = runtime;
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
@@ -51,6 +53,13 @@ public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfigurat
                 if (readGone > 0) _log.LogInformation("Notification janitor removed {Count} read notification(s) older than {Days} days", readGone, _runtime.NotificationReadRetentionDays);
             }
 
+            foreach (var userId in await db.Notifications.GroupBy(n => n.UserId).Where(g => g.Count() > MaxPerUser).Select(g => g.Key).ToListAsync(ct))
+            {
+                var newest = await db.Notifications.Where(n => n.UserId == userId).OrderByDescending(n => n.CreatedAt).ThenByDescending(n => n.Id)
+                    .Take(MaxPerUser).Select(n => n.Id).ToListAsync(ct);
+                var trimmed = await db.Notifications.Where(n => n.UserId == userId && !newest.Contains(n.Id)).ExecuteDeleteAsync(ct);
+                _log.LogInformation("Notification janitor trimmed {Count} old notification(s) for user {User}", trimmed, userId);
+            }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

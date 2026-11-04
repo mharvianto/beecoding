@@ -138,6 +138,12 @@ breaks its constraints, wrong expected output, unclear text) — `ProblemFeedbac
 reporter when it is resolved or dismissed (`report-update`); those rows have no board/post (`ReportId` set,
 `Link` says where they lead).
 
+### Notification lifetime
+
+`NotificationJanitor` (every 6 h): unread ones live `Notifications:RetentionDays` (30), read ones `PlatformRuntimeConfig.NotificationReadRetentionDays`
+after being read (default 7, Admin → System, 0 = off), and each user keeps only the newest 200. Reactions and comments on one card pile into
+a single unread row (`Count`). The bell pages 30 at a time (`GET /api/notifications?skip=`); a user may delete only notifications they already read.
+
 ### Statement images (no equations)
 
 A statement can carry pictures: the editor's "Add image" uploads to `ImagesController` (`POST /api/images`, signed-in users, upload checked against the admin-set limit (`PlatformRuntimeConfig.ImageMaxKb`, default 1 MB, refused if over), then

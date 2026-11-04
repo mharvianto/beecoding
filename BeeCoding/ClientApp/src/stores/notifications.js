@@ -14,6 +14,7 @@ export const useNotifications = defineStore('notifications', {
   state: () => ({
     items: [],
     unread: 0,
+    total: 0,              // everything the server holds for me — the list is paged
     toasts: [],
     conn: null,
     suppressToast: null,   // (item) => boolean
@@ -26,7 +27,36 @@ export const useNotifications = defineStore('notifications', {
         const r = await api.get('/api/notifications');
         this.items = r.items;
         this.unread = r.unread;
+        this.total = r.total;
       } catch { /* the bell is best-effort */ }
+    },
+
+    /** The next page of older notifications, appended to the list. */
+    async loadMore() {
+      try {
+        const r = await api.get(`/api/notifications?skip=${this.items.length}`);
+        const have = new Set(this.items.map((n) => n.id));
+        this.items = [...this.items, ...r.items.filter((n) => !have.has(n.id))];
+        this.unread = r.unread;
+        this.total = r.total;
+      } catch { /* the bell is best-effort */ }
+    },
+
+    /** Delete one notification I have already read. */
+    async deleteRead(n) {
+      if (!n.read) return;
+      this.items = this.items.filter((x) => x.id !== n.id);
+      this.total = Math.max(0, this.total - 1);
+      try { await api.del(`/api/notifications/${n.id}`); } catch { await this.load(); }
+    },
+
+    /** "Clear read": drop every read notification. */
+    async clearRead() {
+      const gone = this.items.filter((n) => n.read).length;
+      this.items = this.items.filter((n) => !n.read);
+      this.total = Math.max(0, this.total - gone);
+      try { await api.del('/api/notifications/read'); } catch { /* ignore */ }
+      await this.load();   // the server may have had read ones beyond the loaded page
     },
 
     async start() {
@@ -44,13 +74,15 @@ export const useNotifications = defineStore('notifications', {
     async stop() {
       const conn = this.conn;
       this.conn = null;
-      this.items = []; this.unread = 0; this.toasts = [];
+      this.items = []; this.unread = 0; this.total = 0; this.toasts = [];
       try { await conn?.stop(); } catch { /* ignore */ }
     },
 
     ingest({ item, unread }) {
       if (item.kind === 'report') useProblemReports().refresh();   // keep the open-reports count in the user menu current
-      this.items = [item, ...this.items.filter((n) => n.id !== item.id)].slice(0, 30);
+      const known = this.items.some((n) => n.id === item.id);
+      this.items = [item, ...this.items.filter((n) => n.id !== item.id)];
+      if (!known) this.total += 1;
       this.unread = unread;
       showBrowserNotification({ id: item.id, title: item.problemTitle || 'BeeCoding', body: notificationText(item) }, () => this.onBrowserClick?.(item));
       if (this.suppressToast?.(item)) return;
@@ -59,6 +91,7 @@ export const useNotifications = defineStore('notifications', {
     },
 
     remove({ id, unread }) {
+      if (this.items.some((n) => n.id === id)) this.total = Math.max(0, this.total - 1);
       this.items = this.items.filter((n) => n.id !== id);
       this.toasts = this.toasts.filter((t) => t.id !== id);
       this.unread = unread;
