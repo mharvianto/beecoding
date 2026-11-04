@@ -818,17 +818,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100 });
+const runtimeConfigForm = ref({ lspEnabled: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7 });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; }
     runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -1902,6 +1902,12 @@ onMounted(async () => {
               <span class="text-slate-500 dark:text-slate-400">Max images per user</span>
               <input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
                      class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+            </label>
+            <label class="flex items-center gap-2 text-sm" title="A notification is deleted this many days after the person read it. 0 keeps read ones until the 30-day sweep. Unread ones are kept 30 days, and only the newest 200 per person.">
+              <span class="text-slate-500 dark:text-slate-400">Delete read notifications after</span>
+              <input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
+                     class="w-16 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+              <span class="text-slate-400 dark:text-slate-500">days</span>
             </label>
             <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"
                     class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">

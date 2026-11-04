@@ -988,6 +988,9 @@ namespace BeeCoding.Migrations
                     b.Property<bool>("MfaRequireTeacher")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("NotificationReadRetentionDays")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("StudentMaxProblems")
                         .HasColumnType("INTEGER");
 

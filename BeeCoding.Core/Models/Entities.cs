@@ -1027,6 +1027,9 @@ public class PlatformRuntimeSettings
     public int ImageMaxKb { get; set; } = 1024;
     public int ImageMaxPerUser { get; set; } = 100;
 
+    /// <summary>Days a notification stays in the bell after it was read, then it is deleted (0 = never; read ones then go with the 30-day sweep).</summary>
+    public int NotificationReadRetentionDays { get; set; } = 7;
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 

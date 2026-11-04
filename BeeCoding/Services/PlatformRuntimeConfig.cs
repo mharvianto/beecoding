@@ -23,6 +23,9 @@ public class PlatformRuntimeConfig
 
     public int ImageMaxKb { get; private set; } = 1024;
     public int ImageMaxPerUser { get; private set; } = 100;
+    public int NotificationReadRetentionDays { get; private set; } = 7;
+    public void SetNotificationReadRetentionDays(int days) => NotificationReadRetentionDays = Math.Max(0, days);
+
     public void SetImageLimits(int maxKb, int maxPerUser) { ImageMaxKb = Math.Max(1, maxKb); ImageMaxPerUser = Math.Max(0, maxPerUser); }
 
     public void SetMfaPolicy(bool admin, bool orgAdmin, bool teacher)

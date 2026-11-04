@@ -305,7 +305,7 @@ public record AdminSystemStatusDto(
     int LspMaxConcurrent, int LspIdleTimeoutSeconds, int LspMemoryLimitMb,
     // Host-local only — see SysstatService's doc comment on the multi-instance caveat.
     bool SysstatInstalled, string Hostname,
-    int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100);
+    int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
@@ -319,7 +319,7 @@ public record AdminJudgeLatencyDto(int Hours, int Slots, long? PendingNow, int T
     int Unfinished = 0, double OldestUnfinishedSeconds = 0);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
-public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100);
+public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>

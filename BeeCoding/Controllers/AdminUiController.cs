@@ -586,7 +586,7 @@ public class AdminUiController(
             _judgeOpt.MaxConcurrent, _judgeOpt.CompileTimeoutMs, _judgeOpt.QueueCapacity,
             _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb,
             sysstatInstalled, Environment.MachineName,
-            _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser);
+            _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -724,6 +724,7 @@ public class AdminUiController(
         var studentMax = Math.Clamp(dto.StudentMaxProblems, 0, 1000);
         var imageKb = Math.Clamp(dto.ImageMaxKb, 50, 3000);   // the upload itself is capped at 3 MB
         var imagesPerUser = Math.Clamp(dto.ImageMaxPerUser, 0, 5000);
+        var readDays = Math.Clamp(dto.NotificationReadRetentionDays, 0, 365);
 
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
@@ -732,15 +733,17 @@ public class AdminUiController(
         row.StudentMaxProblems = studentMax;
         row.ImageMaxKb = imageKb;
         row.ImageMaxPerUser = imagesPerUser;
+        row.NotificationReadRetentionDays = readDays;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
         _runtimeConfig.Set(row.LspEnabled, row.JudgeRateLimitMs);
         _runtimeConfig.SetStudentMaxProblems(row.StudentMaxProblems);
         _runtimeConfig.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
+        _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays);
     }
 
     // ---- audit log ------------------------------------------------------------

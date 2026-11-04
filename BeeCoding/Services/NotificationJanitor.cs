@@ -9,10 +9,11 @@ namespace BeeCoding.Services;
 /// the table (and an unread badge nobody can clear) grow forever. Safe to run on every
 /// instance: the delete is idempotent.
 /// </summary>
-public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfiguration cfg, ILogger<NotificationJanitor> log) : BackgroundService
+public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfiguration cfg, PlatformRuntimeConfig runtime, ILogger<NotificationJanitor> log) : BackgroundService
 {
     /// <summary>Config <c>Notifications:RetentionDays</c> (default 30).</summary>
     private readonly TimeSpan _maxAge = TimeSpan.FromDays(Math.Max(0, cfg.GetValue("Notifications:RetentionDays", 30)));
+    private readonly PlatformRuntimeConfig _runtime = runtime;
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
 
@@ -32,7 +33,7 @@ public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfigurat
         }
     }
 
-    private async Task SweepAsync(CancellationToken ct)
+    public async Task SweepAsync(CancellationToken ct)
     {
         try
         {
@@ -41,6 +42,15 @@ public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfigurat
             var cutoff = DateTime.UtcNow - _maxAge;
             var removed = await db.Notifications.Where(n => n.CreatedAt < cutoff).ExecuteDeleteAsync(ct);
             if (removed > 0) _log.LogInformation("Notification janitor removed {Count} notification(s) older than {Days} days", removed, _maxAge.TotalDays);
+
+            // Read ones go sooner than unread ones (Admin > System: days after reading, 0 = off).
+            if (_runtime.NotificationReadRetentionDays > 0)
+            {
+                var readCutoff = DateTime.UtcNow.AddDays(-_runtime.NotificationReadRetentionDays);
+                var readGone = await db.Notifications.Where(n => n.ReadAt != null && n.ReadAt < readCutoff).ExecuteDeleteAsync(ct);
+                if (readGone > 0) _log.LogInformation("Notification janitor removed {Count} read notification(s) older than {Days} days", readGone, _runtime.NotificationReadRetentionDays);
+            }
+
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
