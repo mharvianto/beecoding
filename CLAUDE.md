@@ -138,6 +138,14 @@ breaks its constraints, wrong expected output, unclear text) — `ProblemFeedbac
 reporter when it is resolved or dismissed (`report-update`); those rows have no board/post (`ReportId` set,
 `Link` says where they lead).
 
+### Statement images (no equations)
+
+A statement can carry pictures: the editor's "Add image" uploads to `ImagesController` (`POST /api/images`, signed-in users, 3 MB,
+re-encoded to a PNG ≤1200 px wide, kept in `StatementImage`) and inserts `![](/api/images/{id})`. Two renderers must both understand
+that reference: `MarkdownBlock.vue` (prefixes `withBase` for a sub-path deployment) and `StatementImageService` (the protected PNG every
+student sees; `StatementController` loads the ids found by `ImagesController.RefsIn`). Nothing deletes unused images yet. There is no
+math engine anywhere — LaTeX is downgraded to ASCII in both renderers.
+
 ### Student-authored problems
 
 A student's problem bank (`/bank`, "My problems") is a private drafting space: `BankController` scopes a student to

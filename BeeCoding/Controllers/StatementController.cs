@@ -33,7 +33,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return EncryptedImage($"b{problemId}", problem.StatementMarkdown, samples, theme);
+        return await EncryptedImageAsync($"b{problemId}", problem.StatementMarkdown, samples, theme);
     }
 
     /// <summary>Practice (public bank) problem statement — always protected.</summary>
@@ -48,12 +48,15 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return EncryptedImage($"k{id}", problem.StatementMarkdown, samples, theme);
+        return await EncryptedImageAsync($"k{id}", problem.StatementMarkdown, samples, theme);
     }
 
-    private object EncryptedImage(string idKey, string markdown,
+    private async Task<object> EncryptedImageAsync(string idKey, string markdown,
         List<(string Stdin, string ExpectedStdout)> samples, string? theme)
     {
+        var ids = ImagesController.RefsIn(markdown).ToList();
+        var pictures = ids.Count == 0 ? new Dictionary<string, byte[]>()
+            : await _db.StatementImages.Where(i => ids.Contains(i.Id)).ToDictionaryAsync(i => i.Id, i => i.Data);
         bool dark = string.Equals(theme, "dark", StringComparison.OrdinalIgnoreCase);
         var email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.Identity?.Name ?? UserId.ToString();
         var watermark = $"{email} · {DateTime.UtcNow:yyyy-MM-dd HH:mm} UTC";
@@ -62,7 +65,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             markdown + "\0" + string.Join("", samples.Select(s => s.Stdin + "\0" + s.ExpectedStdout)))))[..16];
         var cacheKey = $"{idKey}:{fingerprint}:{(dark ? "d" : "l")}";
 
-        var png = _images.RenderPng(cacheKey, markdown, samples, watermark, dark);
+        var png = _images.RenderPng(cacheKey, markdown, samples, watermark, dark, pictures);
 
         // AES-256-GCM; fresh key + nonce per request, delivered in the same authenticated response.
         var key = RandomNumberGenerator.GetBytes(32);

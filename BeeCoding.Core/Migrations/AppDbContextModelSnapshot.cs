@@ -1383,6 +1383,29 @@ namespace BeeCoding.Migrations
                     b.ToTable("SolveRecords");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.StatementImage", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("StatementImages");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.Submission", b =>
                 {
                     b.Property<int>("Id")

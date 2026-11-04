@@ -37,10 +37,12 @@ public class StatementImageService
         ? new(new(0x0F, 0x17, 0x2A), new(0xE2, 0xE8, 0xF0), new(0x94, 0xA3, 0xB8), new(0x1E, 0x29, 0x3B), new(0x33, 0x41, 0x55))
         : new(new(0xFF, 0xFF, 0xFF), new(0x0F, 0x17, 0x2A), new(0x64, 0x74, 0x8B), new(0xF1, 0xF5, 0xF9), new(0xE2, 0xE8, 0xF0));
 
+    /// <param name="images">Bytes of the statement's pictures by id (see ImagesController); a missing id is drawn as its alt text.</param>
     public byte[] RenderPng(string cacheKey, string markdown,
-        IReadOnlyList<(string Input, string Output)> samples, string watermark, bool dark)
+        IReadOnlyList<(string Input, string Output)> samples, string watermark, bool dark,
+        IReadOnlyDictionary<string, byte[]>? images = null)
     {
-        var basePng = _baseCache.GetOrAdd(cacheKey, _ => RenderBase(markdown, samples, dark));
+        var basePng = _baseCache.GetOrAdd(cacheKey, _ => RenderBase(markdown, samples, dark, images ?? new Dictionary<string, byte[]>()));
 
         using var bmp = SKBitmap.Decode(basePng);
         using var canvas = new SKCanvas(bmp);
@@ -51,7 +53,7 @@ public class StatementImageService
     }
 
     // Immediate-mode: draw onto an oversized surface, then crop to the used height.
-    private byte[] RenderBase(string markdown, IReadOnlyList<(string Input, string Output)> samples, bool dark)
+    private byte[] RenderBase(string markdown, IReadOnlyList<(string Input, string Output)> samples, bool dark, IReadOnlyDictionary<string, byte[]> images)
     {
         var t = Palette(dark);
         using var surface = SKSurface.Create(new SKImageInfo(Width, MaxHeight));
@@ -69,7 +71,7 @@ public class StatementImageService
 
         var g = new Gfx(canvas, t, reg, bold, mono, monoSmall, text, muted, codeBg, rule) { Y = Margin };
 
-        foreach (var block in Markdown.Parse(PlainMath(markdown) ?? "")) RenderBlock(g, block, Margin);
+        foreach (var block in Markdown.Parse(PlainMath(markdown) ?? "")) RenderBlock(g, block, Margin, images);
 
         if (samples.Count > 0)
         {
@@ -94,7 +96,7 @@ public class StatementImageService
         return data.ToArray();
     }
 
-    private void RenderBlock(Gfx g, Block block, float x)
+    private void RenderBlock(Gfx g, Block block, float x, IReadOnlyDictionary<string, byte[]> images)
     {
         switch (block)
         {
@@ -103,7 +105,7 @@ public class StatementImageService
                 g.Heading(InlineText(h.Inline), h.Level);
                 break;
             case ParagraphBlock p:
-                g.Paragraph(Runs(p.Inline), x);
+                ParagraphWithImages(g, p, x, images);
                 g.Y += 8;
                 break;
             case ListBlock list:
@@ -117,7 +119,7 @@ public class StatementImageService
                 break;
             case QuoteBlock q:
                 float top = g.Y;
-                foreach (var child in q) RenderBlock(g, child, x + 14);
+                foreach (var child in q) RenderBlock(g, child, x + 14, images);
                 g.Canvas.DrawRect(x, top, 3, g.Y - top, g.MutedPaint);
                 break;
             case FencedCodeBlock fc:
@@ -130,6 +132,46 @@ public class StatementImageService
                 g.Y += 8; g.HLine(); g.Y += 8;
                 break;
         }
+    }
+
+    /// <summary>A paragraph is drawn as text, except that each <c>![](/api/images/id)</c> in it is drawn as a picture of its own.</summary>
+    private static void ParagraphWithImages(Gfx g, ParagraphBlock p, float x, IReadOnlyDictionary<string, byte[]> images)
+    {
+        var pending = new List<Inline>();
+        void Flush()
+        {
+            var runs = RunsOf(pending);
+            pending.Clear();
+            if (runs.Any(r => r.Text.Trim().Length > 0)) g.Paragraph(runs, x);
+        }
+        foreach (var node in p.Inline ?? Enumerable.Empty<Inline>())
+        {
+            if (node is LinkInline { IsImage: true } link && ImageBytes(link, images) is { } bytes)
+            {
+                Flush();
+                DrawPicture(g, bytes, x);
+            }
+            else pending.Add(node);   // text, or an image we cannot show: its alt text is drawn instead
+        }
+        Flush();
+    }
+
+    private static byte[]? ImageBytes(LinkInline link, IReadOnlyDictionary<string, byte[]> images)
+    {
+        const string prefix = "/api/images/";
+        var url = link.Url ?? "";
+        return url.StartsWith(prefix, StringComparison.Ordinal) && images.TryGetValue(url[prefix.Length..], out var b) ? b : null;
+    }
+
+    private static void DrawPicture(Gfx g, byte[] data, float x)
+    {
+        using var bmp = SKBitmap.Decode(data);
+        if (bmp is null) return;
+        float scale = Math.Min(1f, Math.Min((Width - Margin - x) / bmp.Width, 700f / bmp.Height));
+        var dest = new SKRect(x, g.Y, x + bmp.Width * scale, g.Y + bmp.Height * scale);
+        using var img = SKImage.FromBitmap(bmp);
+        g.Canvas.DrawImage(img, dest, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
+        g.Y += dest.Height + 10;
     }
 
     // There is no math typesetting in the PNG renderer (or the plain Markdown view).
@@ -272,10 +314,11 @@ public class StatementImageService
     private enum RunKind { Normal, Bold, Code }
     private sealed record Run(string Text, RunKind Kind);
 
-    private static List<Run> Runs(ContainerInline? inline)
+    private static List<Run> Runs(ContainerInline? inline) => RunsOf(inline ?? Enumerable.Empty<Inline>());
+
+    private static List<Run> RunsOf(IEnumerable<Inline> nodes)
     {
         var runs = new List<Run>();
-        if (inline is null) return runs;
         void Walk(Inline node, RunKind kind)
         {
             switch (node)
@@ -295,7 +338,7 @@ public class StatementImageService
                     break;
             }
         }
-        foreach (var n in inline) Walk(n, RunKind.Normal);
+        foreach (var n in nodes) Walk(n, RunKind.Normal);
         return runs;
     }
 

@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import MarkdownBlock from './MarkdownBlock.vue';
 import { SUPPORTED_LANGS } from '../lib/templates';
+import { api } from '../lib/api';
 
 // statement: editor + preview side by side, either pane hideable (never both)
 const showWrite = ref(true);
@@ -50,6 +51,26 @@ function addTest() {
   form.value.testCases.push({ id: null, stdin: '', expectedStdout: '', isSample: false, points: 1, position: form.value.testCases.length });
 }
 function removeTest(i) { form.value.testCases.splice(i, 1); }
+
+// Pictures: upload, then drop the Markdown for it at the cursor.
+const stmtEl = ref(null);
+const imgBusy = ref(false);
+const imgError = ref('');
+async function addImage(e) {
+  const file = e.target.files?.[0];
+  e.target.value = '';   // allow picking the same file again
+  if (!file) return;
+  imgBusy.value = true; imgError.value = '';
+  try {
+    const { url } = await api.upload('/api/images', file);
+    const md = `![](${url})`;
+    const text = form.value.statementMarkdown;
+    const at = stmtEl.value?.selectionStart ?? text.length;
+    form.value.statementMarkdown = text.slice(0, at) + md + text.slice(at);
+    showWrite.value = true;
+  } catch (err) { imgError.value = err.message; }
+  finally { imgBusy.value = false; }
+}
 </script>
 
 <template>
@@ -79,6 +100,11 @@ function removeTest(i) { form.value.testCases.splice(i, 1); }
         <div>
           <div class="flex items-center gap-2 text-xs mb-1">
             <span class="text-slate-400 dark:text-slate-500">Statement (Markdown)</span>
+            <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
+                   :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (3 MB at most) and insert it at the cursor">
+              {{ imgBusy ? 'Uploading…' : '🖼 Add image' }}
+              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" @change="addImage" />
+            </label>
             <button type="button" @click="toggleWrite"
                     class="ml-auto px-2 py-0.5 rounded border"
                     :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'">✎ Write</button>
@@ -86,8 +112,9 @@ function removeTest(i) { form.value.testCases.splice(i, 1); }
                     class="px-2 py-0.5 rounded border"
                     :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'">👁 Preview</button>
           </div>
+          <p v-if="imgError" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
           <div class="flex flex-col md:flex-row gap-2">
-            <textarea v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" rows="12"
+            <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" rows="12"
                       class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
             <div v-show="showPreview"
                  class="flex-1 min-w-0 h-[19rem] overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/40">

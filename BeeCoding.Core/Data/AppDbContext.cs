@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
     public DbSet<ProblemLike> ProblemLikes => Set<ProblemLike>();
+    public DbSet<StatementImage> StatementImages => Set<StatementImage>();
     public DbSet<ProblemReport> ProblemReports => Set<ProblemReport>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
     public DbSet<PostReaction> PostReactions => Set<PostReaction>();
@@ -112,6 +113,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<MfaRecoveryCode>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<StatementImage>().HasKey(x => x.Id);
+        b.Entity<StatementImage>().HasIndex(x => x.OwnerId);
         b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique().HasFilter("BankProblemId IS NOT NULL");
         b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.ProblemId }).IsUnique().HasFilter("ProblemId IS NOT NULL");
         b.Entity<ProblemLike>().HasIndex(x => x.BankProblemId);

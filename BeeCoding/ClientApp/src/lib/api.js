@@ -39,7 +39,19 @@ function friendlyMessage(status, data) {
   return typeof data === 'string' ? data : data?.message || data?.title || data?.detail;
 }
 
+/** multipart upload of one file as field "file" (the browser sets the boundary, so no Content-Type here). */
+async function upload(url, file) {
+  const body = new FormData();
+  body.append('file', file);
+  const res = await fetch(withBase(url), { method: 'POST', credentials: 'include', body });
+  const text = await res.text();
+  const data = text ? tryParse(text) : null;
+  if (!res.ok) throw new Error(friendlyMessage(res.status, data) || `HTTP ${res.status}`);
+  return data;
+}
+
 export const api = {
+  upload,
   get: (u) => request('GET', u),
   post: (u, b) => request('POST', u, b ?? {}),
   put: (u, b) => request('PUT', u, b ?? {}),

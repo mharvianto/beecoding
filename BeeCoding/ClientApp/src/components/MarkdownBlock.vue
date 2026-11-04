@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { withBase } from '../lib/base';
 
 const props = defineProps({ text: String });
 
@@ -28,7 +29,7 @@ function deLatex(s) {
 // Problem statements are authored by teachers (and the admin ingest endpoint), i.e.
 // not fully trusted. marked emits raw HTML as-is, so sanitise before v-html.
 const html = computed(() =>
-  DOMPurify.sanitize(marked.parse(deLatex(props.text || ''), { breaks: true }), {
+  DOMPurify.sanitize(marked.parse(deLatex(props.text || '').replaceAll('](/api/images/', `](${withBase('/api/images/')}`), { breaks: true }), {
     ALLOWED_TAGS: [
       'p', 'br', 'hr', 'span', 'div',
       'strong', 'b', 'em', 'i', 'del', 's', 'mark', 'sub', 'sup',
@@ -56,6 +57,7 @@ const html = computed(() =>
               [&_table]:block [&_table]:overflow-x-auto [&_td]:border [&_th]:border [&_td]:border-slate-200 [&_th]:border-slate-200 dark:[&_td]:border-slate-700 dark:[&_th]:border-slate-700 [&_td]:px-2 [&_th]:px-2
               [&_:not(pre)>code]:bg-slate-100 dark:[&_:not(pre)>code]:bg-slate-800 [&_:not(pre)>code]:text-[0.85em] [&_:not(pre)>code]:px-1 [&_:not(pre)>code]:py-0.5 [&_:not(pre)>code]:rounded [&_:not(pre)>code]:font-mono
               [&_pre]:bg-slate-900 [&_pre]:text-slate-100 [&_pre]:p-3 [&_pre]:my-2 [&_pre]:rounded-lg [&_pre]:overflow-x-auto [&_pre]:text-[13px] [&_pre]:leading-snug [&_pre]:whitespace-pre-wrap [&_pre]:break-words
+              [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded [&_img]:my-2
               [&_pre_code]:!bg-transparent [&_pre_code]:!p-0 [&_pre_code]:!rounded-none [&_pre_code]:!text-inherit [&_pre_code]:!text-[13px] [&_pre_code]:font-mono"
        v-html="html"></div>
 </template>

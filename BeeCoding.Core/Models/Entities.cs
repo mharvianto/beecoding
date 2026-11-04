@@ -672,6 +672,18 @@ public class EmailVerificationToken
 public enum ReportCategory { WrongInput, ConstraintViolation, WrongOutput, StatementUnclear, Other }
 public enum ReportStatus { Open, Resolved, Dismissed }
 
+/// <summary>A picture used in a problem statement (<c>![](/api/images/{Id})</c>). Always stored as a re-encoded PNG,
+/// so whatever was uploaded (metadata, odd formats, polyglot files) never reaches a reader as-is.</summary>
+public class StatementImage
+{
+    /// <summary>Unguessable public id (22 URL-safe characters) — the only thing a statement carries.</summary>
+    [MaxLength(32)]
+    public string Id { get; set; } = "";
+    public int OwnerId { get; set; }
+    public byte[] Data { get; set; } = [];
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>A user's "like" on a problem. Exactly one of <see cref="BankProblemId"/> (a practice / bank
 /// problem) or <see cref="ProblemId"/> (a problem on a board) is set; one like per user per problem.</summary>
 public class ProblemLike
