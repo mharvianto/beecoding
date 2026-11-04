@@ -250,7 +250,10 @@ builder.Services.AddSingleton<IBoardNotifier, BoardNotifier>();
 // in the in-process setup; with the Redis broker, BeeCoding.Judge does the compiling/running.
 builder.Services.AddHostedService<GradeResultConsumer>();
 if (!judgeOpt.Queue.UseRedis)
+{
     builder.Services.AddHostedService<JudgeWorker>();
+    builder.Services.AddHostedService<JudgeRecovery>();   // the in-memory queue forgets jobs on restart
+}
 builder.Services.AddHostedService<JudgeJanitor>();
 builder.Services.AddHostedService<NotificationJanitor>();
 
