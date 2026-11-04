@@ -68,13 +68,13 @@ export class CppLsp {
         }
       };
       this.ws.onerror = () => { if (!settled) { settled = true; clearTimeout(timer); reject(new Error('lsp error')); } };
-      this.ws.onclose = () => {
+      this.ws.onclose = (ev) => {
         this.ready = false;
         for (const { resolve: r } of this._pending.values()) r(null);
         this._pending.clear();
         // "server busy" arrives as an immediate close before the ready message: no need to wait out the timeout.
         if (!settled) { settled = true; clearTimeout(timer); reject(new Error('lsp closed')); }
-        else if (!this._closing) this._closeCb?.();
+        else if (!this._closing) this._closeCb?.(ev.reason);
       };
     });
   }

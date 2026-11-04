@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using BeeCoding.Services;
@@ -17,6 +19,9 @@ public class LspEndpoint
     private readonly ILogger<LspEndpoint> _log;
     private readonly SemaphoreSlim _slots;
     private readonly SharedClangd _shared;
+    // One bridge per user and language: a second tab/editor takes over and the older one is closed with reason "replaced".
+    private sealed record Mine(CancellationTokenSource Replaced, TaskCompletionSource Done);
+    private readonly ConcurrentDictionary<(string, string), Mine> _byUser = new();
 
     public LspEndpoint(IOptions<LspOptions> opt, PlatformRuntimeConfig runtime, SharedClangd shared, ILogger<LspEndpoint> log)
     {
@@ -37,6 +42,28 @@ public class LspEndpoint
         if (lang is not ("c" or "cpp")) lang = "cpp";
         var style = ctx.Request.Query["style"].ToString();
 
+        var key = (ctx.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "", lang);
+        var me = new Mine(new CancellationTokenSource(), new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously));
+        Mine? prev = null;
+        _byUser.AddOrUpdate(key, me, (_, p) => { prev = p; return me; });
+        try
+        {
+            if (prev is not null)
+            {
+                prev.Replaced.Cancel();
+                await Task.WhenAny(prev.Done.Task, Task.Delay(TimeSpan.FromSeconds(2)));   // let its slot go before we ask for one
+            }
+            await BridgeAsync(ctx, lang, style, me.Replaced.Token);
+        }
+        finally
+        {
+            me.Done.TrySetResult();
+            _byUser.TryRemove(new KeyValuePair<(string, string), Mine>(key, me));
+        }
+    }
+
+    private async Task BridgeAsync(HttpContext ctx, string lang, string style, CancellationToken replaced)
+    {
         // Shared mode (Admin > System): students share one clangd and the cap is Lsp:SharedMaxSessions;
         // otherwise each gets a clangd of their own, Lsp:MaxConcurrent at a time. Sessions already open keep their kind.
         bool shared = _runtime.LspShared;
@@ -87,7 +114,7 @@ public class LspEndpoint
 
             while (ws.State == WebSocketState.Open && !closed.IsCancellationRequested)
             {
-                using var recvCts = CancellationTokenSource.CreateLinkedTokenSource(closed.Token, ctx.RequestAborted);
+                using var recvCts = CancellationTokenSource.CreateLinkedTokenSource(closed.Token, ctx.RequestAborted, replaced);
                 recvCts.CancelAfter(idle);
                 WebSocketReceiveResult res;
                 try { res = await ws.ReceiveAsync(buf, recvCts.Token); }
@@ -111,7 +138,12 @@ public class LspEndpoint
             if (session is not null) await session.DisposeAsync();
             if (!shared) _slots.Release();
             if (ws.State == WebSocketState.Open)
-                try { await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None); } catch { }
+                try
+                {
+                    if (replaced.IsCancellationRequested) await ws.CloseAsync(WebSocketCloseStatus.PolicyViolation, "replaced", CancellationToken.None);
+                    else await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
+                }
+                catch { }
         }
     }
 }

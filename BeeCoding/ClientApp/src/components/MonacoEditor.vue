@@ -96,6 +96,7 @@ function toggleLsp() {
 // clangd processes are scarce on the server (Lsp:MaxConcurrent), so a session is only held while it is useful:
 //   on    – connected
 //   busy  – the server had no free slot; try again later
+//   elsewhere – the same account opened another editor, which took the session; no auto-reconnect
 //   idle  – the server closed it after a quiet spell, or the tab was hidden for a while; reconnects when you type
 // Being turned away is never an error — the editor just keeps the basic word/snippet completion.
 const lspState = ref('on');   // meaningful once serverLsp is true and lspEnabled is on
@@ -205,7 +206,8 @@ async function initLsp() {
   clearTimeout(lspRetryTimer);
   const mineClient = lspClient;
   // The server ends a quiet session (Lsp:IdleTimeoutSeconds): tidy up and reconnect on the next keystroke.
-  lspClient.onClose(() => { if (lspClient === mineClient) { disposeLsp(false); lspState.value = 'idle'; } });
+  // "replaced" = the same account opened another editor: stay on basic completion (no auto-reconnect, or two tabs would keep evicting each other).
+  lspClient.onClose((reason) => { if (lspClient === mineClient) { disposeLsp(false); lspState.value = reason === 'replaced' ? 'elsewhere' : 'idle'; } });
 
   lspDisposables.push(editor.onDidChangeModelContent(() => {
     changePending = true;
@@ -471,6 +473,7 @@ function download() {
       <button v-if="showLspBtn && serverLsp" type="button" :class="btnCls"
               :title="!lspEnabled ? 'C/C++ IntelliSense off — click to enable'
                 : lspState === 'busy' ? 'IntelliSense is full right now — using basic completion, retrying automatically. Click to disable.'
+                : lspState === 'elsewhere' ? 'IntelliSense moved to another editor of yours — using basic completion here. Click to disable.'
                 : lspState === 'idle' ? 'IntelliSense paused while you were away — it reconnects when you type. Click to disable.'
                 : 'C/C++ IntelliSense on — click to disable'"
               @click="toggleLsp()">
