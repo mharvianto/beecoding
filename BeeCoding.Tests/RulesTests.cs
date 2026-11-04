@@ -103,6 +103,17 @@ public class LoginThrottleTests
     }
 }
 
+public class LoginThrottleStrictTests
+{
+    [Fact] public void Strict_mode_blocks_code_guessing_after_10_tries_even_from_rotating_ips()
+    {
+        var t = new LoginThrottle();
+        for (int i = 0; i < 10; i++) t.RecordFailure($"9.9.9.{i}", "mfa:7");
+        Assert.True(t.IsBlocked("2.2.2.2", "mfa:7", strict: true));
+        Assert.False(t.IsBlocked("2.2.2.2", "mfa:7"));   // passwords keep the looser total
+    }
+}
+
 public class AiEffectiveUrlTests
 {
     private static string Url(AiProviderRuntime.Config org)

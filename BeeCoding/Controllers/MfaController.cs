@@ -35,7 +35,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     {
         var uid = _mfa.ReadTicket(ticket);
         if (uid is null) return (null, Unauthorized("This sign-in expired. Enter your password again."));
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(uid.Value)))
+        if (_throttle.IsBlocked(ClientIp, ThrottleKey(uid.Value), strict: true))
             return (null, StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes."));
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid.Value);
         if (user is null || user.DeletedAt is not null) return (null, Unauthorized("This sign-in expired. Enter your password again."));
@@ -135,7 +135,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         if (user is null) return Unauthorized();
         if (user.TotpEnabledAt != null) return Conflict("An authenticator app is already set up.");
         if (string.IsNullOrEmpty(user.TotpSecret)) return BadRequest("Start the setup again.");
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id)))
+        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id), strict: true))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (!await _mfa.VerifyTotpAsync(user, dto.Code))
         {
@@ -194,7 +194,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (user.EmailMfaEnabledAt != null) return Conflict("Email codes are already turned on.");
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id)))
+        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id), strict: true))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (!await _mfa.VerifyEmailCodeAsync(user, dto.Code))
         {

@@ -30,8 +30,10 @@ public sealed class LoginThrottle
     private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();
     private readonly ConcurrentDictionary<string, Bucket> _byPair = new();
 
-    public bool IsBlocked(string ip, string account) =>
-        Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, AccountTotalCap);
+    /// <param name="strict">For guessing a short code (2-step): the account-wide cap stays at <see cref="AccountCap"/>
+    /// whatever IPs the guesses come from, since 100 tries at a 6-digit code is too generous.</param>
+    public bool IsBlocked(string ip, string account, bool strict = false) =>
+        Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, strict ? AccountCap : AccountTotalCap);
 
     private static string Pair(string ip, string account) => string.IsNullOrEmpty(account) ? "" : account + "|" + ip;
 
