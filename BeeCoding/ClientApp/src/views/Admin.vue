@@ -781,8 +781,27 @@ async function loadSystemStatus() {
   try {
     systemStatus.value = await api.get('/api/admin-ui/system-status');
     if (systemStatus.value.sysstatInstalled) loadSysstat();
+    loadLatency();
   } catch (e) { err.value = e.message; }
 }
+
+// ---- judge latency: time from submit to verdict, per hour (queue wait + compile + run) ----
+const LATENCY_KEY = 'beecoding.admin.judgeLatencyHours';
+const latencyHours = ref(48);
+try { const v = Number(localStorage.getItem(LATENCY_KEY)); if ([24, 48, 168].includes(v)) latencyHours.value = v; } catch { /* ignore */ }
+const latency = ref(null);   // { hours, slots, pendingNow, total, p95Seconds, buckets: [{ hourUtc, count, avgSeconds, p95Seconds, maxSeconds }] }
+async function loadLatency() {
+  try { latency.value = await api.get(`/api/admin-ui/judge-latency?hours=${latencyHours.value}`); }
+  catch (e) { err.value = e.message; }
+}
+function setLatencyHours(h) {
+  latencyHours.value = h;
+  try { localStorage.setItem(LATENCY_KEY, String(h)); } catch { /* ignore */ }
+  loadLatency();
+}
+const hourLabel = (d) => new Date(d.endsWith('Z') ? d : d + 'Z')
+  .toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+const latencyTone = (s) => (s >= 30 ? 'text-rose-600 dark:text-rose-400 font-medium' : s >= 10 ? 'text-amber-600 dark:text-amber-400' : '');
 
 // ---- sysstat (sar) CPU/memory history — this one instance's own host only ----
 const sysstatMetric = ref('cpu');   // 'cpu' | 'mem'
@@ -1872,6 +1891,48 @@ onMounted(async () => {
           <p v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ runtimeConfigMsg }}</p>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
             Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
+          </p>
+        </div>
+
+        <div v-if="latency" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2 flex-wrap mb-2">
+            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
+              Judging time <span class="font-normal text-slate-400 dark:text-slate-500">— submit → verdict, queue wait included</span>
+            </h3>
+            <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs ml-auto">
+              <button v-for="h in [24, 48, 168]" :key="h" @click="setLatencyHours(h)" class="px-2.5 py-1"
+                      :class="latencyHours === h ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+                {{ h === 168 ? '7d' : h + 'h' }}
+              </button>
+            </div>
+            <button @click="loadLatency" class="text-xs text-slate-500 dark:text-slate-400">↻</button>
+          </div>
+          <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
+            {{ latency.total }} submissions · p95 <span :class="latencyTone(latency.p95Seconds)">{{ latency.p95Seconds }}s</span>
+            · {{ latency.slots }} judge slot{{ latency.slots === 1 ? '' : 's' }}
+            <template v-if="latency.pendingNow != null"> · {{ latency.pendingNow }} waiting now</template>
+          </p>
+          <p v-if="!latency.buckets.length" class="text-xs text-slate-400 dark:text-slate-500">No judged submissions in this window.</p>
+          <div v-else class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead class="text-left text-slate-400 dark:text-slate-500">
+                <tr><th class="py-1 pr-3 font-normal">Hour</th><th class="pr-3 font-normal text-right">Submissions</th>
+                    <th class="pr-3 font-normal text-right">Avg</th><th class="pr-3 font-normal text-right">p95</th><th class="font-normal text-right">Max</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="b in latency.buckets.slice().reverse()" :key="b.hourUtc" class="border-t border-slate-100 dark:border-slate-800 tabular-nums">
+                  <td class="py-1 pr-3 whitespace-nowrap">{{ hourLabel(b.hourUtc) }}</td>
+                  <td class="pr-3 text-right">{{ b.count }}</td>
+                  <td class="pr-3 text-right" :class="latencyTone(b.avgSeconds)">{{ b.avgSeconds }}s</td>
+                  <td class="pr-3 text-right" :class="latencyTone(b.p95Seconds)">{{ b.p95Seconds }}s</td>
+                  <td class="text-right" :class="latencyTone(b.maxSeconds)">{{ b.maxSeconds }}s</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+            A high p95 in a busy hour means submissions queued behind each other: raise <code>Judge:MaxConcurrent</code> (default is half the CPUs) or add CPU.
+            Amber ≥ 10s, red ≥ 30s.
           </p>
         </div>
       </div>

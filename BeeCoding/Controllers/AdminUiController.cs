@@ -605,6 +605,44 @@ public class AdminUiController(
     /// from sysstat — see SysstatService's doc comment: this is ONE instance's own data
     /// only, never an aggregate across a multi-VM deployment. The Hostname field is there so
     /// the UI can make that visible rather than implying a fleet-wide view.</summary>
+    /// <summary>How long judging takes from the student's side: submit → verdict, per hour, over the last N hours
+    /// (practice + board submissions). Queue wait dominates when many students submit at once, so a high p95 in a busy
+    /// hour means the judge needs more slots or CPU.</summary>
+    [HttpGet("judge-latency")]
+    public async Task<ActionResult<AdminJudgeLatencyDto>> JudgeLatency([FromQuery] int hours = 48)
+    {
+        hours = Math.Clamp(hours, 1, 168);
+        var since = DateTime.UtcNow.AddHours(-hours);
+
+        var practice = await _db.BankSubmissions
+            .Where(s => s.CreatedAt >= since && s.JudgedAt != null && s.Status == SubmissionStatus.Done)
+            .Select(s => new { s.CreatedAt, s.JudgedAt }).ToListAsync();
+        var board = await _db.Submissions
+            .Where(s => s.CreatedAt >= since && s.JudgedAt != null && s.Status == SubmissionStatus.Done)
+            .Select(s => new { s.CreatedAt, s.JudgedAt }).ToListAsync();
+
+        var rows = practice.Concat(board)
+            .Select(s => (Hour: new DateTime(s.CreatedAt.Year, s.CreatedAt.Month, s.CreatedAt.Day, s.CreatedAt.Hour, 0, 0, DateTimeKind.Utc),
+                          Sec: Math.Max(0, (s.JudgedAt!.Value - s.CreatedAt).TotalSeconds)))
+            .ToList();
+
+        static double P95(List<double> sorted) => sorted.Count == 0 ? 0 : sorted[Math.Min(sorted.Count - 1, (int)Math.Ceiling(sorted.Count * 0.95) - 1)];
+        var buckets = rows.GroupBy(r => r.Hour).OrderBy(g => g.Key).Select(g =>
+        {
+            var secs = g.Select(r => r.Sec).OrderBy(x => x).ToList();
+            return new AdminJudgeLatencyBucket(g.Key, secs.Count, Math.Round(secs.Average(), 2), Math.Round(P95(secs), 2), Math.Round(secs[^1], 2));
+        }).ToList();
+
+        long? pending = _judgeQueue switch
+        {
+            InProcessJudgeQueue ip => ip.PendingJobCount,
+            RedisJudgeQueue rq => await rq.PendingJobCountAsync(),
+            _ => null,
+        };
+        var all = rows.Select(r => r.Sec).OrderBy(x => x).ToList();
+        return new AdminJudgeLatencyDto(hours, _judgeOpt.MaxConcurrent, pending, all.Count, Math.Round(P95(all), 2), buckets);
+    }
+
     [HttpGet("system/sysstat")]
     public async Task<ActionResult<SysstatResultDto>> Sysstat([FromQuery] string metric = "cpu")
     {
