@@ -102,3 +102,21 @@ public class LoginThrottleTests
         Assert.False(t.IsBlocked("1.1.1.1", "a@x"));
     }
 }
+
+public class AiEffectiveUrlTests
+{
+    private static string Url(AiProviderRuntime.Config org)
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetOrg(1, org.ApiKey, org.BaseUrl, org.Model, org.GenerateModel);
+        var svc = new AiTutorService(new HttpClient(), Microsoft.Extensions.Options.Options.Create(new AiOptions { BaseUrl = "https://platform.example/v1" }),
+            new AiRuntimeSettings(), rt, Microsoft.Extensions.Logging.Abstractions.NullLogger<AiTutorService>.Instance);
+        svc.UseOrganization(1);
+        var tuple = typeof(AiTutorService).GetMethod("Effective", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(svc, null)!;
+        return (string)tuple.GetType().GetField("Item2")!.GetValue(tuple)!;   // (ApiKey, BaseUrl, Model, GenerateModel)
+    }
+
+    [Fact] public void A_saved_internal_org_url_is_ignored() => Assert.Equal("https://platform.example/v1", Url(new("k", "https://10.0.0.5/v1", null, null)));
+    [Fact] public void A_public_org_url_with_its_own_key_is_used() => Assert.Equal("https://api.acme.com/v1", Url(new("k", "https://api.acme.com/v1", null, null)));
+    [Fact] public void An_org_url_without_its_own_key_is_ignored() => Assert.Equal("https://platform.example/v1", Url(new(null, "https://api.acme.com/v1", null, null)));
+}
