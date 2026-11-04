@@ -585,7 +585,7 @@ public class AdminUiController(
             _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb,
             sysstatInstalled, Environment.MachineName,
             _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
-            _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, _lspOpt.SharedMaxSessions);
+            _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, Math.Min(_sharedLsp.TotalCap, _lspOpt.SharedMaxSessions * Math.Max(1, _lspOpt.SharedMaxProcesses) * 2));
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history

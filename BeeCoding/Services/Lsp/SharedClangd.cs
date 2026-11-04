@@ -34,6 +34,17 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
         "$/cancelRequest",
     };
 
+    // attached students plus the ones being let in (see OpenAsync), over every process
+    private int _slots;
+
+    /// <summary>The most students attached at once: Lsp:SharedMaxTotalSessions, or what <see cref="LspOptions.SharedMemoryPercent"/>
+    /// of this host's (or container's) memory pays for at <see cref="LspOptions.SharedSessionMemoryMb"/> each.</summary>
+    public int TotalCap => _opt.SharedMaxTotalSessions > 0 ? _opt.SharedMaxTotalSessions
+        : (int)Math.Clamp(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024) * _opt.SharedMemoryPercent / 100 / Math.Max(1, _opt.SharedSessionMemoryMb), 4, 100_000);
+
+    /// <summary>clangd processes running, over both languages.</summary>
+    public int Processes => _hosts.Values.Count(l => l.IsValueCreated && l.Value.IsCompletedSuccessfully);
+
     /// <summary>Students currently attached, over both languages.</summary>
     public int ActiveSessions => _hosts.Values.Where(l => l.IsValueCreated && l.Value.IsCompletedSuccessfully).Sum(l => l.Value.Result.SessionCount);
 
@@ -41,16 +52,32 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
     public async Task<ILspSession?> OpenAsync(string language, string? formatStyle)
     {
         var lang = string.Equals(language, "c", StringComparison.OrdinalIgnoreCase) ? "c" : "cpp";
-        var lazy = _hosts.GetOrAdd(lang, l => new Lazy<Task<Host>>(() => Host.StartAsync(this, l)));
-        Host host;
-        try { host = await lazy.Value; }
-        catch (Exception ex)
+
+        // Reserve a place before anything is parsed: a whole class opens at the same moment, long before memory shows it.
+        if (Interlocked.Increment(ref _slots) > TotalCap) { Interlocked.Decrement(ref _slots); return null; }
+        var session = await OpenOnAProcessAsync(lang, formatStyle);
+        if (session is null) Interlocked.Decrement(ref _slots);   // an attached session gives its place back when it closes
+        return session;
+    }
+
+    // Fill the processes in order: the next one starts only when every earlier one is full.
+    private async Task<ILspSession?> OpenOnAProcessAsync(string lang, string? formatStyle)
+    {
+        for (int i = 0; i < Math.Max(1, _opt.SharedMaxProcesses); i++)
         {
-            _hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(lang, lazy));
-            _log.LogWarning(ex, "shared clangd ({Lang}) could not start", lang);
-            return null;
+            var key = $"{lang}#{i}";
+            var lazy = _hosts.GetOrAdd(key, k => new Lazy<Task<Host>>(() => Host.StartAsync(this, lang, k)));
+            Host host;
+            try { host = await lazy.Value; }
+            catch (Exception ex)
+            {
+                _hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(key, lazy));
+                _log.LogWarning(ex, "shared clangd ({Key}) could not start", key);
+                return null;
+            }
+            if (await host.OpenSessionAsync(formatStyle) is { } session) return session;
         }
-        return await host.OpenSessionAsync(formatStyle);
+        return null;
     }
 
     public async ValueTask DisposeAsync()
@@ -65,6 +92,7 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
     {
         private readonly SharedClangd _owner;
         private readonly string _lang;
+        private readonly string _key;   // "cpp#0", "cpp#1", ... the slot this process holds in SharedClangd._hosts
         private readonly ClangdSession _proc;
         private readonly ConcurrentDictionary<string, Session> _byUri = new();
         private readonly ConcurrentDictionary<long, (Session S, JsonNode? OrigId)> _pending = new();
@@ -73,19 +101,19 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
         private int _seq, _dead;
         private CancellationTokenSource? _stopTimer;
 
-        private Host(SharedClangd owner, string lang, ClangdSession proc) { _owner = owner; _lang = lang; _proc = proc; }
+        private Host(SharedClangd owner, string lang, string key, ClangdSession proc) { _owner = owner; _lang = lang; _key = key; _proc = proc; }
 
         public int SessionCount => _byUri.Count;
         public JsonNode? InitResultNode() => _initResult.Task.IsCompletedSuccessfully ? _initResult.Task.Result?.DeepClone() : null;
-        private Lazy<Task<Host>>? Entry => _owner._hosts.TryGetValue(_lang, out var l) && l.IsValueCreated && l.Value.IsCompletedSuccessfully && l.Value.Result == this ? l : null;
+        private Lazy<Task<Host>>? Entry => _owner._hosts.TryGetValue(_key, out var l) && l.IsValueCreated && l.Value.IsCompletedSuccessfully && l.Value.Result == this ? l : null;
 
-        public static async Task<Host> StartAsync(SharedClangd owner, string lang)
+        public static async Task<Host> StartAsync(SharedClangd owner, string lang, string key)
         {
             var o = owner._opt;
             var proc = await ClangdSession.StartAsync(o, lang, owner._log, "LLVM",
                 jobs: Math.Max(1, o.SharedJobs), pchStorage: string.Equals(o.SharedPchStorage, "disk", StringComparison.OrdinalIgnoreCase) ? "disk" : "memory",
                 memoryLimitMb: o.SharedMemoryLimitMb);
-            var host = new Host(owner, lang, proc);
+            var host = new Host(owner, lang, key, proc);
             proc.MessageReceived += host.OnClangdMessageAsync;
             proc.Exited += host.OnExited;
             try
@@ -111,7 +139,7 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
                 await proc.SendAsync("""{"jsonrpc":"2.0","method":"initialized","params":{}}""");
             }
             catch { await proc.DisposeAsync(); throw; }
-            owner._log.LogInformation("Shared clangd ({Lang}) started, up to {Max} students", lang, o.SharedMaxSessions);
+            owner._log.LogInformation("Shared clangd ({Key}) started, up to {Max} students", key, o.SharedMaxSessions);
             return host;
         }
 
@@ -132,7 +160,8 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
             _byUri[session.MainFileUri] = session;
             if (_byUri.Count > _owner._opt.SharedMaxSessions)   // two opens raced past the check above
             {
-                await session.DisposeAsync();
+                _byUri.TryRemove(session.MainFileUri, out _);   // not Dispose: the caller gives the reserved place back
+                try { Directory.Delete(dir, recursive: true); } catch { }
                 return null;
             }
             return session;
@@ -182,8 +211,8 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
         private void OnExited()
         {
             if (Interlocked.Exchange(ref _dead, 1) == 1) return;
-            if (Entry is { } e) _owner._hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(_lang, e));
-            _owner._log.LogWarning("Shared clangd ({Lang}) exited; closing {Count} session(s)", _lang, _byUri.Count);
+            if (Entry is { } e) _owner._hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(_key, e));
+            _owner._log.LogWarning("Shared clangd ({Key}) exited; closing {Count} session(s)", _key, _byUri.Count);
             foreach (var s in _byUri.Values) s.RaiseExited();
         }
 
@@ -202,7 +231,7 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
 
         public void Remove(Session s)
         {
-            _byUri.TryRemove(s.MainFileUri, out _);
+            if (_byUri.TryRemove(s.MainFileUri, out _)) Interlocked.Decrement(ref _owner._slots);
             foreach (var kv in _pending.Where(kv => kv.Value.S == s)) _pending.TryRemove(kv.Key, out _);
             if (_byUri.IsEmpty) ScheduleStop();
         }
@@ -224,7 +253,7 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
         public async Task StopAsync()
         {
             if (Interlocked.Exchange(ref _dead, 1) == 1) return;
-            if (Entry is { } e) _owner._hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(_lang, e));
+            if (Entry is { } e) _owner._hosts.TryRemove(new KeyValuePair<string, Lazy<Task<Host>>>(_key, e));
             await _proc.DisposeAsync();
         }
     }

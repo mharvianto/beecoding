@@ -709,9 +709,13 @@ variable (nesting pakai `__`).
 | `Lsp:MaxConcurrent` | `4` | Maksimum sesi clangd bersamaan (1 per editor yang terbuka). |
 | `Lsp:IdleTimeoutSeconds` | `90` | Sesi clangd dimatikan setelah sekian detik tanpa lalu-lintas (editor menyambung lagi saat pengguna mengetik). |
 | `Lsp:SharedMaxSessions` | `40` | Mode berbagi: siswa yang dilayani satu proses clangd (per bahasa). |
+| `Lsp:SharedMaxProcesses` | `1` | Mode berbagi: jumlah proses clangd per bahasa. Proses berikutnya baru jalan kalau yang sebelumnya penuh (`SharedMaxSessions`). Gunanya membagi parse ke lebih banyak core dan memisahkan kegagalan; **tidak menghemat RAM** (hasil ukur: 2 proses lebih boros ±600 MB dan parse pertama hanya ±15% lebih cepat). |
+| `Lsp:SharedMaxTotalSessions` | `0` (otomatis) | Mode berbagi: batas siswa tersambung sekaligus di semua proses dan kedua bahasa. `0` = `SharedMemoryPercent`% dari RAM server dibagi `SharedSessionMemoryMb`. Siswa di atas batas mendapat "busy" dan memakai completion dasar (tidak ada OOM). |
+| `Lsp:SharedSessionMemoryMb` | `120` | Biaya RAM satu siswa untuk hitungan otomatis di atas. Terukur ±85 MB per siswa dengan template C++ bawaan (`<bits/stdc++.h>`) ditambah ±440 MB per proses; ±65 MB bila `SharedPchStorage=disk` (pakai `90`). |
+| `Lsp:SharedMemoryPercent` | `40` | Porsi RAM server yang boleh dipakai clangd bersama untuk hitungan otomatis. |
 | `Lsp:SharedJobs` | `4` | Mode berbagi: `clangd -j`, berapa file yang boleh di-parse bersamaan. |
 | `Lsp:SharedMemoryLimitMb` | `0` | Mode berbagi: *runaway guard* untuk proses bersama. Isi besar (satu proses memegang banyak file). |
-| `Lsp:SharedPchStorage` | `memory` | Mode berbagi: `memory` atau `disk` (tempat clangd menyimpan hasil parse header; `disk` menghemat sekitar 25% RAM, tetapi butuh ruang di folder temp). |
+| `Lsp:SharedPchStorage` | `memory` | Mode berbagi: `memory` atau `disk` (tempat clangd menyimpan hasil parse header; `disk` menghemat sekitar 30% RAM (terukur 2,6 GB vs 3,8 GB untuk 40 siswa), tetapi butuh ruang di folder temp; kalau `/tmp` adalah tmpfs (RAM), tidak ada penghematan). |
 | `Lsp:SharedIdleStopSeconds` | `120` | Mode berbagi: proses bersama berhenti sekian detik setelah siswa terakhir pergi. |
 | `Lsp:MemoryLimitMb` | `0` | *Runaway guard* opsional (RLIMIT_DATA via `prlimit`). `0` = nonaktif. Isi longgar (≥2048); nilai terlalu kecil membuat clangd *abort* saat meng-index header standar. |
 | `Admin:Token` | `""` (kosong) | Token untuk endpoint `/api/admin/*` (mengisi bank soal via skrip). Kosong ⇒ endpoint mati (404). |
