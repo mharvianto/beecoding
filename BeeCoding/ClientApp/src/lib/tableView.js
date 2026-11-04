@@ -9,13 +9,16 @@ const mq = window.matchMedia('(max-width: 639px)');
 const narrow = ref(mq.matches);
 mq.addEventListener('change', (e) => (narrow.value = e.matches));
 
+// Storage can throw (private mode, blocked site data): fall back to the default and keep the choice in memory.
 function initial() {
-  const saved = localStorage.getItem(KEY);
-  return saved === 'card' || saved === 'table' ? saved : 'table';
+  try {
+    const saved = localStorage.getItem(KEY);
+    return saved === 'card' || saved === 'table' ? saved : 'table';
+  } catch { return 'table'; }
 }
 
 const pref = ref(initial());
-watch(pref, (v) => localStorage.setItem(KEY, v));
+watch(pref, (v) => { try { localStorage.setItem(KEY, v); } catch { /* not saved, still applies this session */ } });
 
 /** 'card' | 'table' — one shared preference for every admin data table in the app. */
 export const tableView = computed({
