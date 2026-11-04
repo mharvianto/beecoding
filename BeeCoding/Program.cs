@@ -474,6 +474,25 @@ app.UseStaticFiles(new StaticFileOptions
     },
 });
 
+// CSRF: the session cookie is SameSite=None (LTI iframes), so the browser would attach it to a
+// forged cross-site POST. Browsers label every request with Sec-Fetch-Site; refuse unsafe methods
+// from any other origin. Non-browser clients (admin-token scripts) send no header and pass.
+// The two LTI entry points are cross-site POSTs from the LMS by design and carry their own state/nonce.
+app.Use(async (ctx, next) =>
+{
+    var r = ctx.Request;
+    if (!HttpMethods.IsGet(r.Method) && !HttpMethods.IsHead(r.Method) && !HttpMethods.IsOptions(r.Method)
+        && r.Headers.TryGetValue("Sec-Fetch-Site", out var site)
+        && site != "same-origin" && site != "none"
+        && !r.Path.Equals("/lti/login", StringComparison.OrdinalIgnoreCase)
+        && !r.Path.Equals("/lti/launch", StringComparison.OrdinalIgnoreCase))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return;
+    }
+    await next();
+});
+
 app.UseWebSockets();
 app.UseRouting();
 app.UseAuthentication();
