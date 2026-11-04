@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using BeeCoding.Data;
 using BeeCoding.Models;
 using BeeCoding.Services;
@@ -17,8 +18,9 @@ namespace BeeCoding.Controllers;
 [Route("api/practice")]
 public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter rate, SubmitCooldown submitCooldown,
     Services.Ai.AiTutorService ai, Services.Ai.AiUsageService aiUsage, OrgResolver orgs, AdminAccess admin,
-    OrgAccess orgAccess) : ApiControllerBase
+    OrgAccess orgAccess, Microsoft.Extensions.Caching.Memory.IMemoryCache cache) : ApiControllerBase
 {
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache = cache;
     private readonly AppDbContext _db = db;
     private readonly IJudgeQueue _queue = queue;
     private readonly RateLimiter _rate = rate;
@@ -81,17 +83,23 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
 
         // Global stats (every user, not just the caller) — how many have attempted each
         // problem and what fraction of those attempts were a full Accepted.
-        var stats = await _db.BankSubmissions
-            .Where(s => ids.Contains(s.BankProblemId) && s.Status == SubmissionStatus.Done)
-            .GroupBy(s => s.BankProblemId)
-            .Select(g => new
-            {
-                BankProblemId = g.Key,
-                Total = g.Count(),
-                Accepted = g.Count(x => x.Verdict == Verdict.Accepted && x.Score >= 1.0),
-            })
-            .ToListAsync();
-        var statsById = stats.ToDictionary(s => s.BankProblemId);
+        // Same numbers for everyone, so one scan of all submissions serves every request for a minute.
+        // shortcut: up to 60 s stale; fine for a popularity figure, add invalidation if it ever matters.
+        var statsById = await _cache.GetOrCreateAsync("practice-stats", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60);
+            var rows = await _db.BankSubmissions
+                .Where(s => s.Status == SubmissionStatus.Done)
+                .GroupBy(s => s.BankProblemId)
+                .Select(g => new
+                {
+                    BankProblemId = g.Key,
+                    Total = g.Count(),
+                    Accepted = g.Count(x => x.Verdict == Verdict.Accepted && x.Score >= 1.0),
+                })
+                .ToListAsync();
+            return rows.ToDictionary(s => s.BankProblemId, s => (s.Total, s.Accepted));
+        }) ?? new();
 
         // likes: how many in total, and which the caller has liked
         var likeCounts = await _db.ProblemLikes
@@ -105,14 +113,14 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         var list = problems.Select(p =>
         {
             byId.TryGetValue(p.Id, out var m);
-            statsById.TryGetValue(p.Id, out var st);
+            statsById.TryGetValue(p.Id, out var st);   // default (0,0) when nobody has tried it
             return new PracticeSummaryDto(
                 p.Id, p.Slug, p.Title, p.AllowedLanguages, p.Level.ToString(), p.Tags,
                 m?.Latest.ToString() ?? "None",
                 m?.Best ?? 0,
                 m?.Solved ?? false,
-                st?.Total ?? 0,
-                st is { Total: > 0 } ? (double)st.Accepted / st.Total : 0,
+                st.Total,
+                st.Total > 0 ? (double)st.Accepted / st.Total : 0,
                 likeCounts.GetValueOrDefault(p.Id), likedByMe.Contains(p.Id));
         });
 
