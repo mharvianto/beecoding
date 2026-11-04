@@ -529,6 +529,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     public async Task<ActionResult<AiProviderConfigDto>> SetAiProvider(int orgId, AiSetProviderConfigDto dto)
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        if (AiUrl.Validate(dto.BaseUrl, strict: true) is { } urlErr) return BadRequest(urlErr);
         var row = await _db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == orgId);
         if (row is null) { row = new AiProviderConfig { OrganizationId = orgId }; _db.AiProviderConfigs.Add(row); }
         if (!string.IsNullOrWhiteSpace(dto.ApiKey)) row.ApiKey = dto.ApiKey.Trim();

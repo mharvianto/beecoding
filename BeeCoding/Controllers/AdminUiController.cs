@@ -1336,6 +1336,7 @@ public class AdminUiController(
     [HttpPut("ai-provider")]
     public async Task<ActionResult<AiProviderConfigDto>> SetAiProvider(AiSetProviderConfigDto dto)
     {
+        if (AiUrl.Validate(dto.BaseUrl, strict: false) is { } urlErr) return BadRequest(urlErr);
         var row = await _db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == null);
         if (row is null) { row = new AiProviderConfig(); _db.AiProviderConfigs.Add(row); }
         if (!string.IsNullOrWhiteSpace(dto.ApiKey)) row.ApiKey = dto.ApiKey.Trim();
