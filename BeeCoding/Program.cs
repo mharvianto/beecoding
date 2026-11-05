@@ -540,6 +540,20 @@ var spaFiles = new StaticFileOptions
 };
 app.UseDefaultFiles();
 app.UseStaticFiles(spaFiles);
+// A file under /assets that the static files above did not serve (the old build's chunk, after a deploy) is a 404 — not index.html with a
+// 200, which the browser then refuses as a script ("MIME type text/html") with no hint of what happened. no-store: Cloudflare and the
+// browser would otherwise keep that 404 for hours, and a chunk that is missing for a moment during a deploy would stay missing.
+// (A MapGet("/assets/{**path}") endpoint did this first, and in Production it shadowed the real files: the site went blank.)
+app.Use(async (ctx, next) =>
+{
+    if (ctx.Request.Path.StartsWithSegments("/assets"))
+    {
+        ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+        ctx.Response.Headers.CacheControl = "no-store";
+        return;
+    }
+    await next();
+});
 
 // CSRF: the session cookie is SameSite=None (LTI iframes), so the browser would attach it to a
 // forged cross-site POST. Browsers label every request with Sec-Fetch-Site; refuse unsafe methods
@@ -592,9 +606,6 @@ app.MapGet("/lsp/cpp", (HttpContext c, LspEndpoint ep) => ep.HandleAsync(c)).Req
 app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
     Results.Ok(new { enabled = cfg.LspEnabled }));
 
-// A file under /assets that is not there (the old build's chunk, after a deploy) is a 404 — not index.html with a 200, which the browser
-// then refuses as a script ("MIME type text/html") with no hint of what happened.
-app.MapGet("/assets/{**path}", () => Results.NotFound());
 // The fallback page (every deep link) revalidates like index.html itself; with the default options it carried no Cache-Control, so a
 // browser could keep an index.html naming chunks that a deploy has since removed.
 app.MapFallbackToFile("index.html", spaFiles);
