@@ -172,7 +172,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
 
-        page = Math.Max(1, page);
+        page = Math.Clamp(page, 1, 10_000);   // page * pageSize below must not overflow
         pageSize = Math.Clamp(pageSize, 1, 500);
         var n = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
         Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;

@@ -33,7 +33,13 @@ public class OrgInvitesController(AppDbContext db, AuditLog audit) : ApiControll
         if (!await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == invite.OrganizationId && m.UserId == UserId))
             _db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = invite.OrganizationId, UserId = UserId, Role = invite.Role });
         _db.OrganizationInvites.Remove(invite);
-        await _db.SaveChangesAsync();
+        try { await _db.SaveChangesAsync(); }
+        catch (DbUpdateException)
+        {
+            // Two clicks at once (or the org added them by domain at the same moment): the other request won, so they are in.
+            if (await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == invite.OrganizationId && m.UserId == UserId)) return NoContent();
+            throw;
+        }
         await _audit.RecordAsync(UserId, ActorEmail, "org-invite-accept", "Organization", invite.OrganizationId, $"as {invite.Role}");
         return NoContent();
     }
