@@ -88,6 +88,7 @@ const sections = [
 **Format Output:** jelaskan apa yang harus dicetak, termasuk format angka atau teksnya.
 
 **Batasan:** 1 &lt;= N &lt;= 1000.</code></pre>
+        <p>Di atas kotak statement ada <strong>bilah alat</strong>: tebal, miring, kode, daftar, tabel, dan rumus. Pratinjau tampil di sebelah kotak (di bawahnya pada layar kecil) dan langsung berubah saat kamu mengetik. Pintasan: Ctrl+B (tebal), Ctrl+I (miring), Ctrl+M (rumus).</p>
         <h3>Isi yang baik</h3>
         <ul>
           <li><strong>Ceritanya pendek, tugasnya jelas.</strong> Satu kalimat di akhir yang menyebut apa yang dihitung atau dicetak sering lebih berguna daripada paragraf cerita.</li>
@@ -106,9 +107,10 @@ const sections = [
             <tr><td><code v-pre>```</code> di awal dan akhir baris</td><td>blok kode atau contoh data</td></tr>
             <tr><td><code v-pre>| a | b |</code> dengan baris <code v-pre>|---|---|</code></td><td>tabel</td></tr>
             <tr><td><code v-pre>## Judul kecil</code></td><td>sub-judul</td></tr>
+            <tr><td><code v-pre>$n \le 10^5$</code></td><td>rumus matematika (lihat bagian 3)</td></tr>
           </tbody>
         </table>
-        <p>Siswa membaca statement sebagai gambar yang dilindungi (ada watermark), jadi tidak bisa disalin. Tampilan di pratinjau editor sedikit berbeda, tetapi isinya sama.</p>
+        <p>Siswa membaca statement sebagai gambar yang dilindungi (ada watermark), jadi tidak bisa disalin. Rumus ikut tergambar di dalamnya. Tampilan di pratinjau editor sedikit berbeda (huruf dan jarak), tetapi isinya sama.</p>
       </section>
 
       <section>
@@ -130,7 +132,7 @@ const sections = [
         <ul>
           <li><code v-pre>$1 \le n \le 2 \times 10^5$</code> untuk rumus di tengah kalimat, dan <code v-pre>$$\sum_{i=1}^{n} a_i$$</code> untuk rumus yang berdiri sendiri. <code v-pre>\(...\)</code> dan <code v-pre>\[...\]</code> juga bisa.</li>
           <li>Yang didukung antara lain pecahan (<code v-pre>\frac</code>), akar, pangkat dan indeks, sigma, limit, matriks, <code v-pre>cases</code>, huruf Yunani, <code v-pre>\binom</code>, <code v-pre>\bmod</code> dan <code v-pre>\pmod{p}</code>.</li>
-          <li>Bilah alat di atas kotak soal menyisipkannya untuk Anda: tombol <b>$ x $</b>, <b>$$ ∑ $$</b>, dan menu <b>Formula</b> berisi rumus yang umum (batasan, pecahan, modulo, sigma, <code v-pre>cases</code>, matriks). Tombol <b>? Formula help</b> menampilkan contoh-contoh itu lengkap dengan kodenya. Pratinjau di sebelahnya langsung menampilkan hasilnya.</li>
+          <li>Bilah alat di atas kotak soal menyisipkannya untukmu: tombol <b>$ x $</b>, <b>$$ ∑ $$</b>, dan menu <b>Formula</b> berisi rumus yang umum (batasan, pecahan, modulo, sigma, <code v-pre>cases</code>, matriks). Tombol <b>? Formula help</b> menampilkan contoh-contoh itu lengkap dengan kodenya. Pratinjau di sebelahnya langsung menampilkan hasilnya.</li>
           <li>Tanda dolar yang bukan rumus (misalnya <code v-pre>$5 dan $10</code>) dibiarkan, begitu juga isi <code v-pre>`kode`</code> dan blok kode.</li>
           <li>Rumus yang salah ditulis tampil apa adanya (merah di tampilan guru), dan teks lain tetap terbaca. Satu soal memuat paling banyak 200 rumus, masing-masing paling panjang 500 karakter.</li>
         </ul>
@@ -149,6 +151,7 @@ const sections = [
         <ul>
           <li><strong>Akan diterima (Accepted) hanya jika semua test lulus.</strong> Kalau ada yang gagal, skor = poin test yang lulus dibagi total poin, sehingga <em>Points</em> menentukan bobot tiap test.</li>
           <li><strong>Perbandingan output:</strong> spasi di akhir setiap baris dan baris kosong di akhir output diabaikan. Selebihnya harus persis sama, termasuk huruf besar atau kecil, spasi di awal, dan baris kosong di tengah.</li>
+          <li><strong>Ukuran:</strong> satu test (input ditambah output) paling besar 5 juta karakter dan seluruh test satu soal paling besar 30 juta untuk guru. Untuk siswa batasnya jauh lebih kecil: 100 ribu karakter per test dan 1 juta per soal. Itu lebih dari cukup untuk soal kelas.</li>
           <li><strong>Urutan:</strong> test dijalankan sesuai urutan di editor, dan judge melaporkan yang pertama gagal. Seret ⠿ atau pakai ▲ ▼ untuk mengubah urutan.</li>
           <li><strong>Wajib ada minimal satu test hidden</strong> sebelum soal dikirim ke Practice atau diusulkan ke board. Kalau semuanya sample, peserta bisa "menyelesaikan" soal hanya dengan mencetak contoh.</li>
         </ul>
@@ -166,7 +169,7 @@ const sections = [
         <table>
           <tbody>
             <tr><td><strong>Allowed languages</strong></td><td>C, C++, atau keduanya. Kosong berarti semua bahasa boleh.</td></tr>
-            <tr><td><strong>Level</strong> dan <strong>Tags</strong></td><td>Easy / Medium / Hard. Tag dipisah koma (<code>array,sorting</code>) dan dipakai untuk pencarian serta rekomendasi di Practice.</td></tr>
+            <tr><td><strong>Level</strong> dan <strong>Tags</strong></td><td>Easy / Medium / Hard. Tag dipisah koma (<code>array,sorting</code>) dan dipakai untuk pencarian serta rekomendasi di Practice. Tombol <strong>🏷️ Suggest tags</strong> mengusulkan tag dari soal yang mirip; klik untuk menambah, tidak ada yang dipasang otomatis.</td></tr>
             <tr><td><strong>Time (ms)</strong></td><td>Batas waktu per test, 100–10000, awalnya 1000. Naikkan hanya kalau solusi yang benar memang butuh lebih lama.</td></tr>
             <tr><td><strong>Memory (KB)</strong></td><td>Batas memori, 4096–512000, awalnya 32768.</td></tr>
             <tr><td><strong>Banned headers</strong></td><td>Header yang tidak boleh di-<code>#include</code>, mis. <code>algorithm</code>. Mengisi satu saja juga memblokir <code>&lt;bits/stdc++.h&gt;</code>.</td></tr>
@@ -183,7 +186,8 @@ const sections = [
           <li>judul kosong atau lebih dari 200 karakter;</li>
           <li>statement kosong atau lebih dari 50.000 karakter;</li>
           <li>tidak ada test case sama sekali;</li>
-          <li>ada baris test yang kosong total (input dan output sama-sama kosong), biasanya baris "add test" yang lupa diisi. Output kosong dengan input terisi tetap boleh, untuk soal yang memang tidak mencetak apa pun.</li>
+          <li>ada baris test yang kosong total (input dan output sama-sama kosong), biasanya baris "add test" yang lupa diisi. Output kosong dengan input terisi tetap boleh, untuk soal yang memang tidak mencetak apa pun;</li>
+          <li>satu test, atau seluruh test, melebihi batas ukuran di bagian 4.</li>
         </ul>
         <p>Pengiriman ke Practice atau board juga butuh <strong>minimal satu test hidden</strong> (lihat bagian 4).</p>
       </section>
@@ -208,7 +212,7 @@ const sections = [
           <li><strong>Jangan menyalin atau menerjemahkan statement</strong> dari situs lain, dan jangan sekadar mengganti nama tokoh. Itu tetap salinan.</li>
           <li><strong>Tulis ulang dengan kata-katamu sendiri</strong>: cerita, contoh, dan test case buatan sendiri. Mengambil idenya (mis. "cari indeks yang jumlah kiri dan kanannya sama") boleh.</li>
           <li><strong>Lebih baik lagi, ubah tantangannya</strong>: aturan atau batasan yang berbeda, agar bukan soal yang jawabannya sudah beredar luas.</li>
-          <li><strong>Cek dulu apakah soalmu sudah ada</strong> di bank atau di board. Soal yang sama dengan nama berbeda akan ditolak saat ditinjau.</li>
+          <li><strong>Cek dulu apakah soalmu sudah ada</strong> di bank atau di board. Di My problems, tombol <strong>🔎 Similar problems</strong> pada sebuah soal menampilkan soal publik yang paling mirip (judul dan tingkat kemiripannya saja). Soal yang sama dengan nama berbeda akan ditolak saat ditinjau.</li>
           <li>Bila terinspirasi dari sebuah soal, sebutkan sumbernya di akhir statement, misalnya <em>"Terinspirasi dari ..."</em>.</li>
         </ul>
         <p>Admin dapat menolak atau menghapus soal yang disalin dari sumber lain.</p>
@@ -230,7 +234,7 @@ const sections = [
 
 **Format Output:** satu bilangan bulat, yaitu `a + b`.
 
-**Batasan:** -10^9 &lt;= a, b &lt;= 10^9.</code></pre>
+**Batasan:** $-10^9 \le a, b \le 10^9$.</code></pre>
         <p><strong>Test case:</strong></p>
         <table>
           <thead><tr><th>#</th><th>Jenis</th><th>Input</th><th>Output</th><th>Mengapa ada</th></tr></thead>
@@ -286,6 +290,7 @@ const sections = [
 **Output Format:** explain what must be printed, including the number or text format.
 
 **Constraints:** 1 &lt;= N &lt;= 1000.</code></pre>
+        <p>Above the statement box is a <strong>toolbar</strong>: bold, italic, code, lists, a table and formulas. The preview shows beside the box (below it on a small screen) and changes as you type. Shortcuts: Ctrl+B (bold), Ctrl+I (italic), Ctrl+M (formula).</p>
         <h3>What a good statement contains</h3>
         <ul>
           <li><strong>A short story and a clear task.</strong> One closing sentence saying what to compute or print is often worth more than a paragraph of story.</li>
@@ -304,9 +309,10 @@ const sections = [
             <tr><td><code v-pre>```</code> on its own line, before and after</td><td>a code block or sample data</td></tr>
             <tr><td><code v-pre>| a | b |</code> with a row <code v-pre>|---|---|</code></td><td>a table</td></tr>
             <tr><td><code v-pre>## Small heading</code></td><td>a sub-heading</td></tr>
+            <tr><td><code v-pre>$n \le 10^5$</code></td><td>a maths formula (see section 3)</td></tr>
           </tbody>
         </table>
-        <p>Students read the statement as a protected image (with a watermark), so it cannot be copied. The preview in the editor looks slightly different, but the content is the same.</p>
+        <p>Students read the statement as a protected image (with a watermark), so it cannot be copied. Formulas are drawn into it too. The preview in the editor looks slightly different (fonts and spacing), but the content is the same.</p>
       </section>
 
       <section>
@@ -348,6 +354,7 @@ const sections = [
           <li><strong>A solution is Accepted only if every test passes.</strong> If some fail, the score is the points of the passed tests divided by the total points, so <em>Points</em> sets the weight of each test.</li>
           <li><strong>Output comparison:</strong> spaces at the end of each line and blank lines at the end of the output are ignored. Everything else must match exactly, including upper/lower case, leading spaces and blank lines in the middle.</li>
           <li><strong>At least one hidden test is required</strong> before a problem can be sent to Practice or proposed to a board. If everything is a sample, a participant can "solve" the problem just by printing the examples.</li>
+          <li><strong>Size:</strong> one test (input plus output) may hold at most 5 million characters, and all the tests of a problem at most 30 million, for teachers. Students are held to far less: 100 thousand characters per test and 1 million per problem. That is more than enough for classroom problems.</li>
           <li><strong>Order:</strong> tests run in the order shown in the editor, and the judge reports the first one that fails. Drag a test by its ⠿ handle, or use ▲ ▼, to reorder.</li>
         </ul>
         <h3>Tests worth having</h3>
@@ -364,7 +371,7 @@ const sections = [
         <table>
           <tbody>
             <tr><td><strong>Allowed languages</strong></td><td>C, C++, or both. Empty means every language is allowed.</td></tr>
-            <tr><td><strong>Level</strong> and <strong>Tags</strong></td><td>Easy / Medium / Hard. Tags are comma-separated (<code>array,sorting</code>) and used for search and recommendations in Practice.</td></tr>
+            <tr><td><strong>Level</strong> and <strong>Tags</strong></td><td>Easy / Medium / Hard. Tags are comma-separated (<code>array,sorting</code>) and used for search and recommendations in Practice. The <strong>🏷️ Suggest tags</strong> button proposes tags from similar problems; click one to add it, nothing is applied on its own.</td></tr>
             <tr><td><strong>Time (ms)</strong></td><td>Time limit per test, 100–10000, 1000 to begin with. Raise it only if a correct solution really needs longer.</td></tr>
             <tr><td><strong>Memory (KB)</strong></td><td>Memory limit, 4096–512000, 32768 to begin with.</td></tr>
             <tr><td><strong>Banned headers</strong></td><td>Headers that may not be <code>#include</code>d, e.g. <code>algorithm</code>. Setting even one also blocks <code>&lt;bits/stdc++.h&gt;</code>.</td></tr>
@@ -381,7 +388,8 @@ const sections = [
           <li>the title is empty or longer than 200 characters;</li>
           <li>the statement is empty or longer than 50,000 characters;</li>
           <li>there are no test cases at all;</li>
-          <li>a test row is completely empty (input and output both blank), usually an "add test" row that was never filled in. An empty output with a filled-in input is still allowed, for problems that really print nothing.</li>
+          <li>a test row is completely empty (input and output both blank), usually an "add test" row that was never filled in. An empty output with a filled-in input is still allowed, for problems that really print nothing;</li>
+          <li>one test, or all of them together, go over the size limits in section 4.</li>
         </ul>
         <p>Sending to Practice or a board also needs <strong>at least one hidden test</strong> (see section 4).</p>
       </section>
@@ -406,7 +414,7 @@ const sections = [
           <li><strong>Do not copy or translate a statement</strong> from another site, and do not just change the character names. That is still a copy.</li>
           <li><strong>Rewrite it in your own words</strong>: your own story, examples and test cases. Taking the idea (e.g. "find the index whose left and right sums are equal") is fine.</li>
           <li><strong>Better still, change the challenge</strong>: different rules or constraints, so it is not a problem whose answer is already everywhere.</li>
-          <li><strong>Check that your problem does not already exist</strong> in the bank or on a board. The same problem under a new name will be rejected in review.</li>
+          <li><strong>Check that your problem does not already exist</strong> in the bank or on a board. In My problems, the <strong>🔎 Similar problems</strong> button on a problem lists the closest public ones (titles and how close they are, nothing more). The same problem under a new name will be rejected in review.</li>
           <li>If a problem inspired yours, name the source at the end of the statement, e.g. <em>"Inspired by ..."</em>.</li>
         </ul>
         <p>Admins may reject or remove problems copied from another source.</p>
@@ -428,7 +436,7 @@ const sections = [
 
 **Output Format:** one integer, `a + b`.
 
-**Constraints:** -10^9 &lt;= a, b &lt;= 10^9.</code></pre>
+**Constraints:** $-10^9 \le a, b \le 10^9$.</code></pre>
         <p><strong>Test cases:</strong></p>
         <table>
           <thead><tr><th>#</th><th>Kind</th><th>Input</th><th>Output</th><th>Why it is there</th></tr></thead>
