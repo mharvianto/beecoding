@@ -704,6 +704,7 @@ variable (nesting pakai `__`).
 | `Security:ContentSecurityPolicy` | *(bawaan)* | Override CSP dengan string sendiri, atau `"off"` untuk tidak mengirim header CSP (mis. jika Monaco bermasalah). |
 | `Images:OrphanRetentionDays` | `3` | Gambar statement yang tidak dipakai statement mana pun dihapus otomatis sekian hari setelah pertama kali terdeteksi tidak terpakai (`0` = jangan hapus). Statement soal yang di-*soft-delete* tetap dihitung memakai gambarnya. |
 | `Audit:RetentionDays` | `365` | Baris audit log yang lebih tua dari ini dihapus otomatis tiap 24 jam (`0` = simpan selamanya). |
+| `Security:SessionRecheckSeconds` | `10` | Seberapa lama hasil pengecekan "akun masih ada dan perannya sama" disimpan di memori. Pengecekan ini berjalan di setiap permintaan yang sudah login, jadi tanpa cache satu kelas menghasilkan puluhan kueri sama per detik. Akibatnya: admin yang menghapus akun atau mengubah peran berlaku paling lambat dalam waktu ini. `0` = periksa setiap permintaan. |
 | `Lsp:Enabled` | `false` | Aktifkan IntelliSense C/C++ (butuh `clangd` di PATH). |
 | `Lsp:ClangdPath` | `clangd` | Path biner clangd. |
 | `Lsp:MaxConcurrent` | `4` | Maksimum sesi clangd bersamaan (1 per editor yang terbuka). |

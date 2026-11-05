@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Caching.Memory;
 using BeeCoding.Data;
 using BeeCoding.Hubs;
 using BeeCoding.Services;
@@ -122,18 +123,22 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         // API/hub calls should get 401/403, never an HTML redirect.
         o.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
         o.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
-        // A user soft-deleted (or removed) by an admin loses access on their very next
-        // request instead of riding out the rest of their 7-day cookie. An admin changing
-        // someone's Teacher/Student role also takes effect immediately — the claim in their
-        // existing cookie is refreshed in place, no re-login needed.
+        // A user soft-deleted (or removed) by an admin loses access, and an admin changing someone's Teacher/Student role takes effect,
+        // within Security:SessionRecheckSeconds (default 10) instead of riding out the rest of their 7-day cookie — the claim in their
+        // existing cookie is refreshed in place, no re-login needed. The look-up is cached for that long: this runs on EVERY authenticated
+        // request (each poll of the leaderboard, every API call), and a class of 40 would otherwise cost 40 identical queries a second.
+        var recheck = TimeSpan.FromSeconds(Math.Max(0, builder.Configuration.GetValue("Security:SessionRecheckSeconds", 10)));
         o.Events.OnValidatePrincipal = async ctx =>
         {
             var idClaim = ctx.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (idClaim is null || !int.TryParse(idClaim, out var uid)) return;
 
             var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
-            var row = await db.Users.Where(u => u.Id == uid)
-                .Select(u => new { u.DeletedAt, u.Role, u.DisplayName, u.Email }).FirstOrDefaultAsync();
+            var cache = ctx.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+            Task<AuthSnapshot?> Load() => db.Users.Where(u => u.Id == uid)
+                .Select(u => new AuthSnapshot(u.DeletedAt, u.Role, u.DisplayName, u.Email)).FirstOrDefaultAsync();
+            var row = recheck == TimeSpan.Zero ? await Load()
+                : await cache.GetOrCreateAsync($"auth:user:{uid}", e => { e.AbsoluteExpirationRelativeToNow = recheck; return Load(); });
             if (row is null || row.DeletedAt is not null)
             {
                 ctx.RejectPrincipal();
@@ -560,4 +565,7 @@ app.MapFallbackToFile("index.html");
 app.Run();
 
 // Lets BeeCoding.Tests host the app with WebApplicationFactory.
+/// <summary>What the session check needs to know about a user, cached briefly (see OnValidatePrincipal).</summary>
+internal sealed record AuthSnapshot(DateTime? DeletedAt, BeeCoding.Models.UserRole Role, string DisplayName, string Email);
+
 public partial class Program;
