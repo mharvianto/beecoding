@@ -14,30 +14,35 @@ public class LtiLaunchValidator(LtiJwksCache jwks)
     public async Task<(JwtSecurityToken? Token, string? Error)> ValidateAsync(
         string idToken, LtiPlatform platform, string expectedNonce, CancellationToken ct = default)
     {
-        JsonWebKeySet keys;
-        try { keys = await _jwks.GetAsync(platform.JwksUrl, ct); }
-        catch (Exception ex) { return (null, $"couldn't fetch the platform's JWKS: {ex.Message}"); }
-
         var handler = new JwtSecurityTokenHandler();
-        var validationParams = new TokenValidationParameters
+        async Task<(JwtSecurityToken? Jwt, string? Error, bool KeyProblem)> TryAsync(bool refresh)
         {
-            ValidIssuer = platform.Issuer,
-            ValidAudience = platform.ClientId,
-            IssuerSigningKeys = keys.GetSigningKeys(),
-            ValidateIssuerSigningKey = true,
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ClockSkew = TimeSpan.FromMinutes(2),
-        };
+            JsonWebKeySet keys;
+            try { keys = await _jwks.GetAsync(platform.JwksUrl, refresh, ct); }
+            catch (Exception ex) { return (null, $"couldn't fetch the platform's JWKS: {ex.Message}", false); }
 
-        JwtSecurityToken jwt;
-        try
-        {
-            handler.ValidateToken(idToken, validationParams, out var validated);
-            jwt = (JwtSecurityToken)validated;
+            var validationParams = new TokenValidationParameters
+            {
+                ValidIssuer = platform.Issuer,
+                ValidAudience = platform.ClientId,
+                IssuerSigningKeys = keys.GetSigningKeys(),
+                ValidateIssuerSigningKey = true,
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(2),
+            };
+            try
+            {
+                handler.ValidateToken(idToken, validationParams, out var validated);
+                return ((JwtSecurityToken)validated, null, false);
+            }
+            catch (Exception ex) { return (null, $"invalid id_token: {ex.Message}", ex is SecurityTokenSignatureKeyNotFoundException or SecurityTokenInvalidSignatureException); }
         }
-        catch (Exception ex) { return (null, $"invalid id_token: {ex.Message}"); }
+
+        var (jwt, error, keyProblem) = await TryAsync(false);
+        if (jwt is null && keyProblem) (jwt, error, _) = await TryAsync(true);   // key rotated since we cached the set
+        if (jwt is null) return (null, error);
 
         var nonce = jwt.Claims.FirstOrDefault(c => c.Type == "nonce")?.Value;
         if (string.IsNullOrEmpty(nonce) || nonce != expectedNonce)

@@ -57,6 +57,19 @@ public sealed class GradeResultConsumer(
         }
     }
 
+    /// <summary>The LMS call can take 30 s when the LMS is slow or down. This loop applies every verdict of every board, so it must
+    /// not wait for it: run it on its own, in a scope of its own (the caller's scope ends first). It never throws.
+    /// shortcut: unbounded, one task per judged LTI submission; add a bounded queue if a class of hundreds ever hits a dead LMS.</summary>
+    private void SyncToLms(Func<LtiGradeSyncService, Task> call) => _ = Task.Run(async () =>
+    {
+        try
+        {
+            using var scope = scopes.CreateScope();
+            await call(scope.ServiceProvider.GetRequiredService<LtiGradeSyncService>());
+        }
+        catch (Exception ex) { log.LogWarning(ex, "LTI grade sync failed"); }
+    });
+
     private static Verdict Parse(string s) =>
         Enum.TryParse<Verdict>(s, out var v) ? v : Verdict.RuntimeError;
 
@@ -107,7 +120,7 @@ public sealed class GradeResultConsumer(
         // anything is fully solved. Safe to call unconditionally: the sync itself
         // recomputes solved-count fresh from the DB, so a failing/partial submission on
         // this or any other problem never regresses an already-reported score.
-        await sp.GetRequiredService<LtiGradeSyncService>().SyncBoardAsync(problem.BoardId, sub.UserId, ct);
+        SyncToLms(sync => sync.SyncBoardAsync(problem.BoardId, sub.UserId, ct));
     }
 
     private async Task ApplyPracticeAsync(GradeResult r, CancellationToken ct)
@@ -159,6 +172,6 @@ public sealed class GradeResultConsumer(
         // up in the LMS gradebook as the student improves — safe unconditionally, since
         // the sync takes the MAX score across all of this student's submissions, so a
         // worse later attempt never regresses an already-reported score.
-        await sp.GetRequiredService<LtiGradeSyncService>().SyncPracticeAsync(problem.Id, sub.UserId, ct);
+        SyncToLms(sync => sync.SyncPracticeAsync(problem.Id, sub.UserId, ct));
     }
 }

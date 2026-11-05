@@ -33,10 +33,15 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
                 .FirstOrDefaultAsync(u => u.LtiPlatformId == link.LtiPlatformId && u.UserId == userId, ct);
             if (userLink is null) return;   // this account didn't arrive via this platform
 
-            var totalProblems = await _db.Problems.CountAsync(p => p.BoardId == boardId, ct);
+            // Only what a student can open counts: a hidden problem, or one in a hidden / not yet open group, would
+            // otherwise keep the grade below 100% for good.
+            var now = DateTime.UtcNow;
+            var visible = (await _db.Problems.Include(p => p.Group).Where(p => p.BoardId == boardId).ToListAsync(ct))
+                .Where(p => GroupAccess.StudentVisible(p, now)).Select(p => p.Id).ToList();
+            var totalProblems = visible.Count;
             if (totalProblems == 0) return;
             var solved = await _db.Submissions
-                .Where(s => s.Problem!.BoardId == boardId && s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0)
+                .Where(s => visible.Contains(s.ProblemId) && s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0)
                 .Select(s => s.ProblemId).Distinct().CountAsync(ct);
 
             var accessToken = await _tokens.GetAccessTokenAsync(link.LtiPlatform, ct);

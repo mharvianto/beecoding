@@ -28,9 +28,12 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
 
         // Email is optional in LTI (a platform can withhold PII) — synthesize a stable,
         // non-routable one keyed by platform+subject so User.Email's unique index still holds.
-        var email = string.IsNullOrWhiteSpace(claims.Email)
-            ? $"lti-{platform.Id}-{claims.Subject}@lti.invalid"
-            : claims.Email!.Trim().ToLowerInvariant();
+        // Never adopt an EXISTING account by the email the LMS claims: LMS users can often edit their own
+        // email, so that would let one sign in as anyone (an admin included, with no password or MFA).
+        // A taken email falls back to the synthesized one, i.e. a separate account.
+        var synthetic = $"lti-{platform.Id}-{claims.Subject}@lti.invalid";
+        var email = string.IsNullOrWhiteSpace(claims.Email) ? synthetic : claims.Email!.Trim().ToLowerInvariant();
+        if (email != synthetic && await _db.Users.AnyAsync(u => u.Email == email)) email = synthetic;
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)

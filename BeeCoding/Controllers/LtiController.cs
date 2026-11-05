@@ -60,6 +60,7 @@ public class LtiController(
 
         var nonce = Guid.NewGuid().ToString("N");
         var state = _stateStore.StartLogin(platform.Id, nonce, targetLinkUri);
+        if (state is null) return StatusCode(StatusCodes.Status503ServiceUnavailable, "Too many sign-ins in progress. Try again in a minute.");
 
         var qs = new Dictionary<string, string?>
         {
