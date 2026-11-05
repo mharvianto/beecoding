@@ -11,11 +11,12 @@ namespace BeeCoding.Controllers;
 
 [ApiController]
 [Authorize]
-public class StatementController(AppDbContext db, BoardService boards, StatementImageService images) : ApiControllerBase
+public class StatementController(AppDbContext db, BoardService boards, StatementImageService images, VisibilityService vis) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
     private readonly StatementImageService _images = images;
+    private readonly VisibilityService _vis = vis;
 
     /// <summary>
     /// Board problem statement + samples rendered to a PNG (no text reaches the client),
@@ -24,10 +25,14 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     [HttpGet("api/problems/{problemId:int}/statement")]
     public async Task<ActionResult<object>> BoardProblem(int problemId, [FromQuery] string? theme)
     {
-        var problem = await _db.Problems.Include(p => p.TestCases)
+        var problem = await _db.Problems.Include(p => p.TestCases).Include(p => p.Group)
             .FirstOrDefaultAsync(p => p.Id == problemId);
         if (problem is null) return NotFound();
-        if (await _boards.GetMembershipAsync(problem.BoardId, UserId) is null) return Forbid();
+        var me = await _boards.GetMembershipAsync(problem.BoardId, UserId);
+        if (me is null) return Forbid();
+        // Same rule as the problem itself (ProblemsController.Get): a hidden problem, or one in a hidden / not-yet-open group, is
+        // not there for students — ids are sequential, so without this the statement and its samples could be read ahead of time.
+        if (!_vis.IsStaff(me.Role) && !GroupAccess.StudentVisible(problem, DateTime.UtcNow)) return NotFound();
 
         var samples = problem.TestCases.Where(t => t.IsSample)
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
