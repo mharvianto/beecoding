@@ -22,6 +22,9 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
 {
     private const long HardUploadBytes = 3 * 1024 * 1024;   // backstop for the request itself; the real limit is the admin's ImageMaxKb (at most 3000)
     private const int MaxWidth = 1200;
+    // A tiny file can describe an enormous picture (a 240 KB PNG of 16000 x 16000 pixels is ~1 GB decoded). 24 M pixels is ~96 MB decoded:
+    // room for a 12-24 MP photo (which the size limit would reject anyway), nowhere near enough to hurt the server.
+    private const long MaxPixels = 24_000_000;
     private readonly AppDbContext _db = db;
     private readonly PlatformRuntimeConfig _cfg = cfg;
 
@@ -45,7 +48,12 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         if (await _db.StatementImages.CountAsync(x => x.OwnerId == UserId) >= perUser)
             return Conflict(perUser == 0 ? "Picture uploads are turned off." : $"You have reached the limit of {perUser} images.");
 
-        using var bmp = SKBitmap.Decode(file.OpenReadStream());
+        // Read the size from the header first: decoding comes only after we know how much memory it will take.
+        using var codec = SKCodec.Create(file.OpenReadStream());
+        if (codec is null || codec.Info.Width <= 0 || codec.Info.Height <= 0) return BadRequest("That file is not a PNG, JPEG, GIF or WebP image.");
+        if ((long)codec.Info.Width * codec.Info.Height > MaxPixels)
+            return BadRequest($"The picture is {codec.Info.Width} x {codec.Info.Height} pixels, too large. Shrink it to under {MaxPixels / 1_000_000} megapixels first.");
+        using var bmp = SKBitmap.Decode(codec);
         if (bmp is null || bmp.Width == 0 || bmp.Height == 0) return BadRequest("That file is not a PNG, JPEG, GIF or WebP image.");
 
         var stored = Shrink(bmp, file.Length);

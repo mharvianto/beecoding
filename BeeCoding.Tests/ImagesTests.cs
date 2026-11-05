@@ -36,6 +36,40 @@ public class ImageUploadTests
         return form;
     }
 
+    /// <summary>A valid all-transparent RGBA PNG of the given size, built row by row so the test never holds the raw pixels: a few
+    /// hundred KB on the wire, w x h x 4 bytes once decoded — the shape of an image bomb.</summary>
+    private static byte[] BlankPng(int w, int h)
+    {
+        static byte[] Chunk(string type, byte[] data)
+        {
+            var body = System.Text.Encoding.ASCII.GetBytes(type).Concat(data).ToArray();
+            static byte[] Be(int v) => [(byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v];
+            return Be(data.Length).Concat(body).Concat(Be((int)System.IO.Hashing.Crc32.HashToUInt32(body))).ToArray();
+        }
+        var ihdr = new byte[13];
+        void Put(int off, int v) { ihdr[off] = (byte)(v >> 24); ihdr[off + 1] = (byte)(v >> 16); ihdr[off + 2] = (byte)(v >> 8); ihdr[off + 3] = (byte)v; }
+        Put(0, w); Put(4, h); ihdr[8] = 8; ihdr[9] = 6;   // 8-bit RGBA
+        var idat = new MemoryStream();
+        using (var z = new System.IO.Compression.ZLibStream(idat, System.IO.Compression.CompressionLevel.SmallestSize, leaveOpen: true))
+        {
+            var row = new byte[1 + w * 4];   // filter byte 0 + transparent black
+            for (int y = 0; y < h; y++) z.Write(row);
+        }
+        return new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }.Concat(Chunk("IHDR", ihdr)).Concat(Chunk("IDAT", idat.ToArray())).Concat(Chunk("IEND", [])).ToArray();
+    }
+
+    [Fact]
+    public async Task A_picture_that_is_small_as_a_file_but_huge_as_pixels_is_refused_before_it_is_decoded()
+    {
+        using var app = new TestApp();
+        var student = app.CreateClient();
+        (await student.PostAsJsonAsync("/api/auth/register", new { email = "img@test.dev", password = "Passw0rd!x1", displayName = "Img", role = "Student" })).EnsureSuccessStatusCode();
+        var bomb = await student.PostAsync("/api/images", File(BlankPng(5000, 5000), "bomb.png"));   // 25 MP: ~100 MB decoded here, and the same file at 30000 x 30000 would be 3.6 GB
+        Assert.Equal(HttpStatusCode.BadRequest, bomb.StatusCode);
+        Assert.Contains("too large", await bomb.Content.ReadAsStringAsync());
+        Assert.Equal(HttpStatusCode.OK, (await student.PostAsync("/api/images", File(Png(4000, 3000), "photo.png"))).StatusCode);   // 12 MP is fine
+    }
+
     [Fact]
     public async Task Only_real_images_are_accepted_big_ones_are_shrunk_and_anonymous_users_are_refused()
     {
