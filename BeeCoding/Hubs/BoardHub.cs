@@ -19,6 +19,9 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
     private int UserId => int.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+    private const string DraftAtKey = "draftAt";
+    private const int MinDraftGapMs = 250;
+
     public static string BoardGroup(int boardId) => $"board-{boardId}";
     public static string StaffGroup(int boardId) => $"board-{boardId}-staff";
 
@@ -53,6 +56,12 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     /// </summary>
     public async Task PushDraft(int boardId, int problemId, string code)
     {
+        // The editors send at most every ~600 ms. A faster sender is a broken or hostile client, and each push costs queries and a
+        // broadcast of up to 200 KB to the whole class: drop it (the next push carries the newer buffer anyway).
+        var now = Environment.TickCount64;
+        if (Context.Items.TryGetValue(DraftAtKey, out var last) && last is long at && now - at < MinDraftGapMs) return;
+        Context.Items[DraftAtKey] = now;
+
         var membership = await _db.BoardMemberships
             .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == UserId);
         if (membership is null) return;
@@ -103,8 +112,14 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     /// teacher's next push then takes the slot without an explicit take-over.</summary>
     public const int PresenterIdleSeconds = 90;
 
-    public async Task<Lecture?> GetLecture(int boardId, int problemId) =>
-        await _lectures.GetAsync(boardId, problemId);
+    /// <summary>The teacher's live buffer. Members of the board (and platform admins) only: board ids are small consecutive numbers,
+    /// so without this any signed-in account could read the code of every board that is lecturing.</summary>
+    public async Task<Lecture?> GetLecture(int boardId, int problemId)
+    {
+        bool member = await _db.BoardMemberships.AnyAsync(m => m.BoardId == boardId && m.UserId == UserId);
+        if (!member && !_admin.IsAdminEmail(Context.User!.FindFirstValue(ClaimTypes.Email))) return null;
+        return await _lectures.GetAsync(boardId, problemId);
+    }
 
     private async Task<bool> DraftVisibleToPeersAsync(int boardId, int problemId, BoardMembership me)
     {
