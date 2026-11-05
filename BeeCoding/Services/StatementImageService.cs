@@ -3,6 +3,7 @@ using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using SkiaSharp;
+using MathPainter = CSharpMath.SkiaSharp.MathPainter;
 
 namespace BeeCoding.Services;
 
@@ -39,6 +40,11 @@ public class StatementImageService : IDisposable
 
     private static SKTypeface LoadFace(string path) =>
         File.Exists(path) ? SKTypeface.FromFile(path) ?? SKTypeface.Default : SKTypeface.Default;
+
+    // CSharpMath keeps static, non-thread-safe glyph caches (two renders at once corrupted them: "operations that change non-concurrent
+    // collections must have exclusive access", and later renders failed too). Every call into it goes through this lock; it is only
+    // taken on a cache miss of the statement picture, and a formula takes microseconds to a few milliseconds.
+    private static readonly object MathLock = new();
 
     private sealed record Theme(SKColor Bg, SKColor Text, SKColor Muted, SKColor CodeBg, SKColor Rule);
 
@@ -84,9 +90,11 @@ public class StatementImageService : IDisposable
         using var codeBg = new SKPaint { Color = t.CodeBg };
         using var rule = new SKPaint { Color = t.Rule, StrokeWidth = 1 };
 
-        var g = new Gfx(canvas, t, reg, bold, mono, monoSmall, text, muted, codeBg, rule) { Y = Margin };
+        // Formulas are typeset (CSharpMath, drawn on the same canvas); what is left of the text only gets the old ASCII clean-up of bare commands.
+        var (withoutMath, formulas) = StatementMath.Extract(markdown);
+        var g = new Gfx(canvas, t, reg, bold, mono, monoSmall, text, muted, codeBg, rule) { Y = Margin, Formulas = formulas };
 
-        foreach (var block in Markdown.Parse(PlainMath(markdown) ?? "")) RenderBlock(g, block, Margin, images);
+        foreach (var block in Markdown.Parse(PlainMath(withoutMath, stripDelimiters: false) ?? "")) RenderBlock(g, block, Margin, images);
 
         if (samples.Count > 0)
         {
@@ -117,7 +125,7 @@ public class StatementImageService : IDisposable
         {
             case HeadingBlock h:
                 g.Y += 10;
-                g.Heading(InlineText(h.Inline), h.Level);
+                g.Heading(InlineText(h.Inline, g.Formulas), h.Level);
                 break;
             case ParagraphBlock p:
                 ParagraphWithImages(g, p, x, images);
@@ -127,7 +135,7 @@ public class StatementImageService : IDisposable
                 foreach (var item in list)
                     if (item is ListItemBlock li)
                         foreach (var child in li)
-                            g.Paragraph(child is ParagraphBlock cp ? Runs(cp.Inline)
+                            g.Paragraph(child is ParagraphBlock cp ? Runs(cp.Inline, g.Formulas)
                                 : new List<Run> { new(child.ToString() ?? "", RunKind.Normal) },
                                 x + 18, bullet: "•");
                 g.Y += 8;
@@ -155,9 +163,9 @@ public class StatementImageService : IDisposable
         var pending = new List<Inline>();
         void Flush()
         {
-            var runs = RunsOf(pending);
+            var runs = RunsOf(pending, g.Formulas);
             pending.Clear();
-            if (runs.Any(r => r.Text.Trim().Length > 0)) g.Paragraph(runs, x);
+            if (runs.Any(r => r.Math >= 0 || r.Text.Trim().Length > 0)) g.Paragraph(runs, x);   // a paragraph that is only a formula counts
         }
         foreach (var node in p.Inline ?? Enumerable.Empty<Inline>())
         {
@@ -191,11 +199,15 @@ public class StatementImageService : IDisposable
 
     // There is no math typesetting in the PNG renderer (or the plain Markdown view).
     // Downgrade the common LaTeX bits to ASCII so a formula stays legible.
-    internal static string? PlainMath(string? s)
+    // stripDelimiters: false for text whose formulas were already taken out (a lone $ there is money, not math).
+    internal static string? PlainMath(string? s, bool stripDelimiters = true)
     {
         if (string.IsNullOrEmpty(s) || (!s.Contains('\\') && !s.Contains('$'))) return s;
-        s = System.Text.RegularExpressions.Regex.Replace(s, @"\\\[|\\\]|\\\(|\\\)", "");
-        s = System.Text.RegularExpressions.Regex.Replace(s, @"\$\$?([^$]+?)\$\$?", "$1");
+        if (stripDelimiters)
+        {
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\\\[|\\\]|\\\(|\\\)", "");
+            s = System.Text.RegularExpressions.Regex.Replace(s, @"\$\$?([^$]+?)\$\$?", "$1");
+        }
         s = System.Text.RegularExpressions.Regex.Replace(s, @"\\d?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", "($1)/($2)");
         s = System.Text.RegularExpressions.Regex.Replace(s, @"\\sqrt\s*\{([^{}]+)\}", "sqrt($1)");
         s = System.Text.RegularExpressions.Regex.Replace(s, @"\\left|\\right|\\displaystyle|\\,|\\;|\\!|\\quad|\\qquad", "");
@@ -292,55 +304,155 @@ public class StatementImageService : IDisposable
             Y = top + boxH + 4;
         }
 
+        /// <summary>The formulas of the statement being drawn (see <see cref="StatementMath"/>).</summary>
+        public StatementMath.Set Formulas { get; init; } = StatementMath.Set.Empty;
+
+        private const float MathSize = 16.5f;
+
+        // One piece of a line: a word / space (Font set) or a typeset formula (Painter set).
+        private sealed record Item(string Text, SKFont? Font, RunKind Kind, float Width, MathPainter? Painter = null, float Ascent = 0, float Descent = 0, bool Display = false);
+
+        /// <summary>A painter for formula <paramref name="index"/>, or null when it cannot be typeset (then the ASCII form is drawn as text).</summary>
+        private MathPainter? Typeset(StatementMath.Formula f)
+        {
+            try
+            {
+                lock (MathLock)
+                {
+                    var painter = new MathPainter { LaTeX = StatementMath.Shim(f.Tex), FontSize = f.Display ? MathSize + 3 : MathSize, TextColor = _text.Color };
+                    return string.IsNullOrEmpty(painter.ErrorMessage?.ToString()) ? painter : null;
+                }
+            }
+            catch (Exception) { return null; }   // a formula the typesetter chokes on must not take the statement down
+        }
+
         public void Paragraph(List<Run> runs, float x, string? bullet = null)
         {
             const float bodySize = 15f, lineH = 22f;
             float maxRight = Width - Margin;
-            float cursorX = x;
-            Y += lineH;
 
-            if (bullet is not null)
-                Canvas.DrawText(bullet, x - 14, Y, SKTextAlign.Left, _reg, _text);
+            // Pass 1: break into lines (a formula can be taller than text, so a line's height is only known once it is full).
+            var lines = new List<List<Item>> { new() };
+            float cursorX = x;
+            bool breakBefore = false;   // set after a display formula: whatever comes next starts a new line
+            void NewLine() { lines.Add(new()); cursorX = x; breakBefore = false; }
 
             foreach (var run in runs)
             {
-                var font = run.Kind switch { RunKind.Bold => _bold, RunKind.Code => _mono, _ => _reg };
-                foreach (var token in Tokenize(run.Text))
+                if (run.Math >= 0 && Formulas.At(run.Math) is { } formula)
                 {
-                    if (token == "\n") { Y += lineH; cursorX = x; continue; }
+                    if (Typeset(formula) is { } painter)
+                    {
+                        System.Drawing.RectangleF m;
+                        lock (MathLock) m = painter.Measure();
+                        float w = m.Width + 2, ascent = -m.Y, descent = m.Height + m.Y;
+                        if (formula.Display)
+                        {
+                            if (lines[^1].Count > 0) NewLine();
+                            lines[^1].Add(new("", null, run.Kind, w, painter, ascent, descent, Display: true));
+                            breakBefore = true;
+                            continue;
+                        }
+                        if (breakBefore) NewLine();
+                        if (cursorX + w > maxRight && cursorX > x) NewLine();
+                        lines[^1].Add(new("", null, run.Kind, w, painter, ascent, descent));
+                        cursorX += w + 2;
+                        continue;
+                    }
+                    // not typesettable: fall through and draw its plain-text form
+                }
+
+                var font = run.Kind switch { RunKind.Bold => _bold, RunKind.Code => _mono, _ => _reg };
+                var text = run.Math >= 0 ? PlainMath(Formulas.At(run.Math)?.Tex) ?? "" : run.Text;
+                foreach (var token in Tokenize(text))
+                {
+                    if (token == "\n") { NewLine(); continue; }
+                    if (breakBefore) NewLine();
                     float w = font.MeasureText(token);
                     if (cursorX + w > maxRight && cursorX > x)
                     {
-                        Y += lineH;
-                        cursorX = x;
+                        NewLine();
                         if (token.Trim().Length == 0) continue;
                     }
-                    if (run.Kind == RunKind.Code)
-                        Canvas.DrawRoundRect(new SKRect(cursorX - 1, Y - bodySize + 3, cursorX + w + 1, Y + 4), 3, 3, _codeBg);
-                    Canvas.DrawText(token, cursorX, Y, SKTextAlign.Left, font, _text);
+                    lines[^1].Add(new(token, font, run.Kind, w));
                     cursorX += w;
                 }
             }
+
+            // Pass 2: draw. A line with a tall formula gets room above and below it; plain lines keep the old 22 px rhythm.
+            float below = 0;
+            bool first = true;
+            foreach (var line in lines)
+            {
+                float above = line.Select(i => i.Ascent).DefaultIfEmpty(0).Max(), under = line.Select(i => i.Descent).DefaultIfEmpty(0).Max();
+                bool display = line.Count == 1 && line[0].Display;
+                float pad = display ? 8f : 0f;   // a display formula gets some air above and below it
+                Y += lineH + Math.Max(0, above - 17f) + pad + below;
+                below = Math.Max(0, under - 6f) + pad;
+
+                if (first && bullet is not null) Canvas.DrawText(bullet, x - 14, Y, SKTextAlign.Left, _reg, _text);
+                first = false;
+
+                float cx = x;
+                if (display) cx = x + Math.Max(0, (maxRight - x - line[0].Width) / 2);
+                foreach (var item in line)
+                {
+                    if (item.Painter is { } painter)
+                    {
+                        float room = maxRight - cx;
+                        if (item.Width > room && room > 40)   // wider than the page: shrink it to fit rather than clip it
+                        {
+                            Canvas.Save();
+                            float k = room / item.Width;
+                            Canvas.Scale(k, k, cx, Y);
+                            lock (MathLock) painter.Draw(Canvas, cx, Y);
+                            Canvas.Restore();
+                        }
+                        else lock (MathLock) painter.Draw(Canvas, cx, Y);
+                        cx += item.Width + 2;
+                        continue;
+                    }
+                    if (item.Kind == RunKind.Code)
+                        Canvas.DrawRoundRect(new SKRect(cx - 1, Y - bodySize + 3, cx + item.Width + 1, Y + 4), 3, 3, _codeBg);
+                    Canvas.DrawText(item.Text, cx, Y, SKTextAlign.Left, item.Font!, _text);
+                    cx += item.Width;
+                }
+            }
+            Y += below;   // the last line's formula hangs below its baseline: keep the next paragraph clear of it
         }
     }
 
     // ---- markdown inline helpers -----------------------------------------------
 
     private enum RunKind { Normal, Bold, Code }
-    private sealed record Run(string Text, RunKind Kind);
+    /// <summary><paramref name="Math"/> is an index into the statement's formulas (-1 = ordinary text).</summary>
+    private sealed record Run(string Text, RunKind Kind, int Math = -1);
 
-    private static List<Run> Runs(ContainerInline? inline) => RunsOf(inline ?? Enumerable.Empty<Inline>());
+    private static List<Run> Runs(ContainerInline? inline, StatementMath.Set math) => RunsOf(inline ?? Enumerable.Empty<Inline>(), math);
 
-    private static List<Run> RunsOf(IEnumerable<Inline> nodes)
+    private static List<Run> RunsOf(IEnumerable<Inline> nodes, StatementMath.Set math)
     {
         var runs = new List<Run>();
+        void Text(string text, RunKind kind)
+        {
+            int at = 0;
+            foreach (System.Text.RegularExpressions.Match m in StatementMath.Placeholder.Matches(text))
+            {
+                if (m.Index > at) runs.Add(new(text[at..m.Index], kind));
+                runs.Add(new("", kind, int.Parse(m.Groups[1].Value)));
+                at = m.Index + m.Length;
+            }
+            if (at < text.Length) runs.Add(new(text[at..], kind));
+        }
         void Walk(Inline node, RunKind kind)
         {
             switch (node)
             {
-                case LiteralInline lit: runs.Add(new(lit.Content.ToString(), kind)); break;
+                case LiteralInline lit: Text(lit.Content.ToString(), kind); break;
                 case CodeInline code: runs.Add(new(code.Content, RunKind.Code)); break;
                 case LineBreakInline: runs.Add(new("\n", kind)); break;
+                case HtmlInline: break;   // a raw tag cannot be drawn (its ToString() is the class name)
+                case HtmlEntityInline entity: Text(entity.Transcoded.ToString(), kind); break;   // &lt; &amp; ...
                 case EmphasisInline em:
                     var k = em.DelimiterCount >= 2 ? RunKind.Bold : kind;
                     foreach (var child in em) Walk(child, k);
@@ -349,7 +461,7 @@ public class StatementImageService : IDisposable
                     foreach (var child in cont) Walk(child, kind);
                     break;
                 default:
-                    runs.Add(new(node.ToString() ?? "", kind));
+                    Text(node.ToString() ?? "", kind);
                     break;
             }
         }
@@ -357,8 +469,9 @@ public class StatementImageService : IDisposable
         return runs;
     }
 
-    private static string InlineText(ContainerInline? inline) =>
-        string.Concat(Runs(inline).Select(r => r.Text)).Replace("\n", " ").Trim();
+    /// <summary>Plain text of an inline (for a heading): a formula becomes its ASCII form.</summary>
+    private static string InlineText(ContainerInline? inline, StatementMath.Set math) =>
+        string.Concat(Runs(inline, math).Select(r => r.Math >= 0 ? PlainMath(math.At(r.Math)?.Tex) ?? "" : r.Text)).Replace("\n", " ").Trim();
 
     private static IEnumerable<string> Tokenize(string s)
     {
