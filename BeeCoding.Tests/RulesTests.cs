@@ -138,6 +138,17 @@ public class ProblemRulesTests
     private static string? V(string? title, string? statement, IEnumerable<UpsertTestCaseDto>? tests, bool required = true) =>
         ProblemRules.Validate(title, statement, tests, required);
 
+    [Fact]
+    public void A_students_tests_are_capped_far_below_a_teachers()
+    {
+        var big = new string('1', 500_000);   // 500 KB of input
+        Assert.NotNull(ProblemRules.Validate("t", "s", [T(big, "1")], true, student: true));                 // one test over the student cap
+        Assert.Null(ProblemRules.Validate("t", "s", [T(big, "1")], true, student: false));                   // a teacher may have megabyte tests
+        Assert.NotNull(ProblemRules.Validate("t", "s", Enumerable.Range(0, 20).Select(_ => T(new string('1', 90_000), "1")), true, student: true));   // each fine, 1.8 MB together
+        Assert.Null(ProblemRules.Validate("t", "s", Enumerable.Range(0, 5).Select(_ => T(new string('1', 90_000), "1")), true, student: true));
+        Assert.NotNull(ProblemRules.Validate("t", "s", [T(new string('1', 6_000_000), "1")], true, student: false));   // and even a teacher's has a ceiling
+    }
+
     [Fact] public void A_complete_problem_passes() => Assert.Null(V("A+B", "Add two numbers.", [T("1 2", "3")]));
 
     [Theory]

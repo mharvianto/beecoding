@@ -114,7 +114,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
                 return Conflict(max == 0 ? "Students can't create problems right now." : $"You can keep up to {max} problems in your bank — delete one first.");
             if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
         }
-        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: true) is { } invalid) return BadRequest(invalid);
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: true, student: IsStudent) is { } invalid) return BadRequest(invalid);
         var b = new BankProblem { OwnerId = UserId };
         Apply(b, dto);
         if (IsStudent) b.IsPublic = false;   // a student never publishes directly
@@ -143,7 +143,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
                 return Conflict("This problem has a pending board proposal, so it can't be edited.");
             if ((dto.TestCases?.Count() ?? 0) > MaxStudentTests) return BadRequest($"At most {MaxStudentTests} test cases.");
         }
-        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: false) is { } invalid) return BadRequest(invalid);
+        if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: false, student: IsStudent) is { } invalid) return BadRequest(invalid);
         bool wasPublic = b.IsPublic;
 
         // Captured before Apply() adds any brand-new TestCase rows to b.TestCases — those
