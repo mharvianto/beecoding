@@ -38,7 +38,7 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
             user = new User
             {
                 Email = email,
-                DisplayName = string.IsNullOrWhiteSpace(claims.Name) ? "LTI user" : claims.Name!,
+                DisplayName = DisplayNamePolicy.FromOutside(claims.Name, "LTI user"),
                 Role = LtiClaims.IsInstructor(claims.Roles) ? UserRole.Teacher : UserRole.Student,
                 EmailVerifiedAt = DateTime.UtcNow,   // the LMS vouches for this identity
             };
@@ -87,9 +87,9 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
     {
         var changed = false;
 
-        if (user.DisplayName == "LTI user" && !string.IsNullOrWhiteSpace(claims.Name))
+        if (user.DisplayName == "LTI user" && DisplayNamePolicy.FromOutside(claims.Name, "LTI user") is var ltiName && ltiName != "LTI user")
         {
-            user.DisplayName = claims.Name!;
+            user.DisplayName = ltiName;
             changed = true;
         }
 

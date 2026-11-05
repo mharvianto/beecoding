@@ -172,9 +172,11 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
         var p = ReadPending(dto.Ticket);
         if (p is null) return Unauthorized("This Google sign-in expired. Start again.");
 
-        var name = (string.IsNullOrWhiteSpace(dto.DisplayName) ? p.Name : dto.DisplayName).Trim();
-        if (name.Length < 2) return BadRequest("Display name must be at least 2 characters.");
-        if (name.Length > 40) name = name[..40];
+        // The person typed dto.DisplayName: hold it to the rule; Google's own name is only cleaned and cut.
+        string name;
+        if (string.IsNullOrWhiteSpace(dto.DisplayName)) name = DisplayNamePolicy.FromOutside(p.Name, "");
+        else if (DisplayNamePolicy.Validate(dto.DisplayName, out name) is string nameErr) return BadRequest(nameErr);
+        if (name.Length < DisplayNamePolicy.Min) return BadRequest($"Display name must be at least {DisplayNamePolicy.Min} characters.");
 
         var (role, roleError) = SignupRole.Resolve(_cfg, dto.Role, dto.TeacherCode);
         if (role is null) return BadRequest(roleError);
