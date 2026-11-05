@@ -140,14 +140,13 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     {
         var p = ReadPending(dto.Ticket);
         if (p is null) return Unauthorized("This Google sign-in expired. Start again.");
-        if (_throttle.IsBlocked(ClientIp, p.Email))
+        if (!_throttle.TryBegin(ClientIp, p.Email))  // counted up front; a success clears it
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == p.Email && u.DeletedAt == null);
         if (user is null) return Unauthorized("This Google sign-in expired. Start again.");
         if (_pw.Reauth(user, dto.Password) is string err)
         {
-            _throttle.RecordFailure(ClientIp, p.Email);
             return Unauthorized(err);
         }
         _throttle.RecordSuccess(ClientIp, p.Email);

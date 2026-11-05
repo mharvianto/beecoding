@@ -31,11 +31,12 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
 
     // ======================== finishing a login ========================
 
-    private async Task<(User? User, ActionResult? Fail)> LoadForTicketAsync(string? ticket)
+    /// <param name="guess">The caller is a code guess (counted up front, see LoginThrottle.TryBegin); false for lookups that only read.</param>
+    private async Task<(User? User, ActionResult? Fail)> LoadForTicketAsync(string? ticket, bool guess = false)
     {
         var uid = _mfa.ReadTicket(ticket);
         if (uid is null) return (null, Unauthorized("This sign-in expired. Enter your password again."));
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(uid.Value), strict: true))
+        if (guess ? !_throttle.TryBegin(ClientIp, ThrottleKey(uid.Value), strict: true) : _throttle.IsBlocked(ClientIp, ThrottleKey(uid.Value), strict: true))
             return (null, StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes."));
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid.Value);
         if (user is null || user.DeletedAt is not null) return (null, Unauthorized("This sign-in expired. Enter your password again."));
@@ -54,7 +55,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     [AllowAnonymous]
     public async Task<ActionResult<MeDto>> Verify(MfaVerifyDto dto)
     {
-        var (user, fail) = await LoadForTicketAsync(dto.Ticket);
+        var (user, fail) = await LoadForTicketAsync(dto.Ticket, guess: true);
         if (user is null) return fail!;
 
         bool ok = dto.Method switch
@@ -66,7 +67,6 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         };
         if (!ok)
         {
-            _throttle.RecordFailure(ClientIp, ThrottleKey(user.Id));
             return Unauthorized(dto.Method switch
             {
                 "recovery" => "That recovery code is wrong or already used.",
@@ -135,13 +135,11 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         if (user is null) return Unauthorized();
         if (user.TotpEnabledAt != null) return Conflict("An authenticator app is already set up.");
         if (string.IsNullOrEmpty(user.TotpSecret)) return BadRequest("Start the setup again.");
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id), strict: true))
+        if (!_throttle.TryBegin(ClientIp, ThrottleKey(user.Id), strict: true))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (!await _mfa.VerifyTotpAsync(user, dto.Code))
-        {
-            _throttle.RecordFailure(ClientIp, ThrottleKey(user.Id));
             return BadRequest("That code is wrong. Check the time on your phone and try again.");
-        }
+        _throttle.RecordSuccess(ClientIp, ThrottleKey(user.Id));
         user.TotpEnabledAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return new MfaRecoveryCodesDto(await EnsureRecoveryCodesAsync(user));
@@ -194,13 +192,11 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (user.EmailMfaEnabledAt != null) return Conflict("Email codes are already turned on.");
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey(user.Id), strict: true))
+        if (!_throttle.TryBegin(ClientIp, ThrottleKey(user.Id), strict: true))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (!await _mfa.VerifyEmailCodeAsync(user, dto.Code))
-        {
-            _throttle.RecordFailure(ClientIp, ThrottleKey(user.Id));
             return BadRequest("That code is wrong or expired. Send a new one and try again.");
-        }
+        _throttle.RecordSuccess(ClientIp, ThrottleKey(user.Id));
         user.EmailMfaEnabledAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return new MfaRecoveryCodesDto(await EnsureRecoveryCodesAsync(user));

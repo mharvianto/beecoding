@@ -26,30 +26,53 @@ public sealed class LoginThrottle
     // account) is caught by this much higher total instead.
     private const int AccountTotalCap = 100;
 
+    private readonly object _gate = new();   // the buckets are plain objects: counting must not interleave
     private readonly ConcurrentDictionary<string, Bucket> _byIp = new();
     private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();
     private readonly ConcurrentDictionary<string, Bucket> _byPair = new();
 
     /// <param name="strict">For guessing a short code (2-step): the account-wide cap stays at <see cref="AccountCap"/>
     /// whatever IPs the guesses come from, since 100 tries at a 6-digit code is too generous.</param>
-    public bool IsBlocked(string ip, string account, bool strict = false) =>
-        Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, strict ? AccountCap : AccountTotalCap);
+    public bool IsBlocked(string ip, string account, bool strict = false)
+    {
+        lock (_gate)
+            return Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, strict ? AccountCap : AccountTotalCap);
+    }
+
+    /// <summary>Checks the caps and, in the same step, counts this attempt as a failure (a success later clears it with
+    /// <see cref="RecordSuccess"/>). Use it BEFORE checking the password or code: checking first and recording after lets a burst of
+    /// simultaneous guesses all pass the check, so the cap would not hold. False = refuse the attempt.</summary>
+    public bool TryBegin(string ip, string account, bool strict = false)
+    {
+        lock (_gate)
+        {
+            if (IsBlocked(ip, account, strict)) return false;
+            RecordFailure(ip, account);
+            return true;
+        }
+    }
 
     private static string Pair(string ip, string account) => string.IsNullOrEmpty(account) ? "" : account + "|" + ip;
 
     public void RecordFailure(string ip, string account)
     {
-        Bump(_byIp, ip);
-        Bump(_byAccount, account);
-        Bump(_byPair, Pair(ip, account));
-        Prune();
+        lock (_gate)
+        {
+            Bump(_byIp, ip);
+            Bump(_byAccount, account);
+            Bump(_byPair, Pair(ip, account));
+            Prune();
+        }
     }
 
     public void RecordSuccess(string ip, string account)
     {
-        _byIp.TryRemove(ip, out _);
-        _byAccount.TryRemove(account, out _);
-        _byPair.TryRemove(Pair(ip, account), out _);
+        lock (_gate)
+        {
+            _byIp.TryRemove(ip, out _);
+            _byAccount.TryRemove(account, out _);
+            _byPair.TryRemove(Pair(ip, account), out _);
+        }
     }
 
     private static bool Over(ConcurrentDictionary<string, Bucket> map, string key, int cap)

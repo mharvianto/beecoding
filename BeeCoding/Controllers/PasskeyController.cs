@@ -48,7 +48,7 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
     public async Task<ActionResult<MeDto>> LoginVerify(LoginDto dto)
     {
         if (!_passkeys.Enabled) return NotFound();
-        if (_throttle.IsBlocked(ClientIp, ThrottleKey))
+        if (!_throttle.TryBegin(ClientIp, ThrottleKey))  // counted up front; a success clears it
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
 
         var json = _mfa.ReadState(StateLogin, 0, dto.State);
@@ -58,7 +58,6 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
         var stored = await _db.UserPasskeys.Include(p => p.User).FirstOrDefaultAsync(p => p.CredentialId == dto.Response.RawId);
         if (stored?.User is not { DeletedAt: null } user)
         {
-            _throttle.RecordFailure(ClientIp, ThrottleKey);
             return Unauthorized("That passkey isn't registered here. Sign in with your password instead.");
         }
         try
@@ -70,7 +69,6 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
         }
         catch (Fido2VerificationException)
         {
-            _throttle.RecordFailure(ClientIp, ThrottleKey);
             return Unauthorized("Passkey verification failed.");
         }
 
