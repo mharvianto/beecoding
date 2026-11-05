@@ -103,8 +103,18 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
 
         // The AI call + compiling & running the reference against N tests takes minutes, far
         // longer than a request should hang. Run it detached; the client polls the job id.
-        var job = await _jobs.CreateAsync(UserId);
-        _ = Task.Run(() => RunGenerateAsync(job.Id, UserId, dto.Idea!, level, wantLang, count, lang, orgId, isStudent));
+        // The job store's count above is read-then-create, so parallel requests all pass it: reserve a slot first (per process).
+        if (!TryStartGeneration(UserId))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "You already have generations running — wait for those to finish.");
+        AiJob job;
+        try { job = await _jobs.CreateAsync(UserId); }
+        catch { EndGeneration(UserId); throw; }
+        var userId = UserId;
+        _ = Task.Run(async () =>
+        {
+            try { await RunGenerateAsync(job.Id, userId, dto.Idea!, level, wantLang, count, lang, orgId, isStudent); }
+            finally { EndGeneration(userId); }
+        });
         return Accepted(new { jobId = job.Id });
     }
 
@@ -760,6 +770,21 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         await Response.Body.WriteAsync(Encoding.UTF8.GetBytes(line), ct);
         await Response.Body.FlushAsync(ct);
     }
+
+    private static readonly ConcurrentDictionary<int, int> _generating = new();
+    private const int MaxGenerationsPerUser = 2;
+
+    private static bool TryStartGeneration(int userId)
+    {
+        while (true)
+        {
+            var running = _generating.GetOrAdd(userId, 0);
+            if (running >= MaxGenerationsPerUser) return false;
+            if (_generating.TryUpdate(userId, running + 1, running)) return true;
+        }
+    }
+
+    private static void EndGeneration(int userId) => _generating.AddOrUpdate(userId, 0, (_, n) => Math.Max(0, n - 1));
 
     private bool RateLimited()
     {
