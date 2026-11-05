@@ -298,6 +298,25 @@ namespace BeeCoding.Migrations
                     b.ToTable("BankProblems");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.BankProblemEmbedding", b =>
+                {
+                    b.Property<int>("BankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TextHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<byte[]>("Vector")
+                        .IsRequired()
+                        .HasColumnType("BLOB");
+
+                    b.HasKey("BankProblemId");
+
+                    b.ToTable("BankProblemEmbeddings");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.BankSubmission", b =>
                 {
                     b.Property<int>("Id")

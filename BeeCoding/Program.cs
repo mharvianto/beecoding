@@ -166,6 +166,8 @@ builder.Services.AddAuthorizationBuilder()
 
 builder.Services.Configure<JudgeOptions>(builder.Configuration.GetSection("Judge"));
 builder.Services.Configure<LspOptions>(builder.Configuration.GetSection("Lsp"));
+builder.Services.Configure<BeeCoding.Services.Similarity.EmbeddingOptions>(builder.Configuration.GetSection("Embeddings"));
+builder.Services.AddSingleton<BeeCoding.Services.Similarity.EmbeddingService>();
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
 builder.Services.AddSingleton<SharedClangd>();
 builder.Services.AddSingleton<LspEndpoint>();
@@ -272,6 +274,7 @@ builder.Services.AddHostedService<JudgeJanitor>();
 builder.Services.AddHostedService<NotificationJanitor>();
 builder.Services.AddHostedService<StatementImageJanitor>();
 builder.Services.AddHostedService<AuditLogJanitor>();
+builder.Services.AddHostedService<BeeCoding.Services.Similarity.EmbeddingBackfill>();
 
 builder.Services.AddScoped<VisibilityService>();
 builder.Services.AddScoped<BoardService>();

@@ -29,6 +29,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<PostComment> PostComments => Set<PostComment>();
     public DbSet<BankProblem> BankProblems => Set<BankProblem>();
     public DbSet<BankTestCase> BankTestCases => Set<BankTestCase>();
+    public DbSet<BankProblemEmbedding> BankProblemEmbeddings => Set<BankProblemEmbedding>();
     public DbSet<BankSubmission> BankSubmissions => Set<BankSubmission>();
     public DbSet<ProblemProposal> ProblemProposals => Set<ProblemProposal>();
     public DbSet<SolveRecord> SolveRecords => Set<SolveRecord>();
@@ -49,6 +50,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<User>().HasIndex(u => u.Email).IsUnique();
+        b.Entity<BankProblemEmbedding>().HasKey(e => e.BankProblemId);
+        b.Entity<BankProblemEmbedding>().Property(e => e.BankProblemId).ValueGeneratedNever();
 
         b.Entity<Board>().HasIndex(x => x.JoinCode).IsUnique();
         b.Entity<Board>().HasIndex(x => x.Slug).IsUnique();

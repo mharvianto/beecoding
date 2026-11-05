@@ -179,6 +179,17 @@ differences from the stored expected outputs are listed; triage adds one more ca
 evidence. Strictly advisory — results are only displayed, user-written text in the prompts is treated as untrusted data,
 and they share the AI kill switch, daily quota and detached-job + polling pattern with problem generation.
 
+### Similar problems (admin review aid)
+
+Admin → Problem review → "Similar problems" (`SimilarProblemsController`, `SimilarProblems.vue`) lists the public/pending bank problems closest to
+one, to catch a duplicate before approving. Two rankers: `TextSimilarity` (TF-IDF over character 4-grams, no model — always available) and, when
+`Embeddings:ModelDir` holds multilingual-e5-small, `EmbeddingService` (ONNX Runtime, loaded on use, released when idle) with vectors cached in
+`BankProblemEmbeddings` by `EmbeddingBackfill`. The endpoint uses e5 only when EVERY candidate has a current vector (a partial set would hide problems),
+else text overlap. Measured on this bank: with 15 hand-written rewrites e5 had the original in the top 5 every time, text overlap 13/15, but neither
+gives a threshold that separates duplicates from same-topic problems — so it is only a list for a person; do not auto-reject on a score. It is not AI
+(no provider, no kill switch/quota). The tokenizer is `Microsoft.ML.Tokenizers` sentencepiece with ids remapped to the XLM-R vocabulary (`ToModelIds`,
+checked against the Hugging Face tokenizer by a test that runs when `E5_MODEL_DIR` is set).
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

@@ -1060,3 +1060,15 @@ public class WebPushSubscription
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>Sentence embedding of a bank problem's title + statement (multilingual-e5-small, 384 floats), kept so the
+/// admin's "similar problems" does not re-embed the whole bank on each click. <see cref="TextHash"/> says which text
+/// (and model) it was made from; a stale row is simply recomputed. No foreign key: rows of problems that stop being
+/// candidates are swept by the backfill.</summary>
+public class BankProblemEmbedding
+{
+    public int BankProblemId { get; set; }
+    [MaxLength(64)]
+    public string TextHash { get; set; } = "";
+    public byte[] Vector { get; set; } = [];
+}

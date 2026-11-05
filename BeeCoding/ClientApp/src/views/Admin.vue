@@ -15,6 +15,7 @@ import MarkdownBlock from '../components/MarkdownBlock.vue';
 import LevelBadge from '../components/LevelBadge.vue';
 import ImageUsagePanel from '../components/ImageUsagePanel.vue';
 import AiCheckPanel from '../components/AiCheckPanel.vue';
+import SimilarProblems from '../components/SimilarProblems.vue';
 import TableViewToggle from '../components/TableViewToggle.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
@@ -1767,7 +1768,10 @@ onMounted(async () => {
           <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
         </div>
 
-        <AiCheckPanel v-if="row.id" kind="bank" :id="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800" />
+        <div v-if="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-start gap-x-4 gap-y-2">
+          <AiCheckPanel kind="bank" :id="row.id" class="w-full" />
+          <SimilarProblems :id="row.id" class="w-full" />
+        </div>
 
         <div v-if="expandedReview === row.slug" class="mt-3 space-y-3">
           <div class="bg-slate-50 dark:bg-slate-800/40 rounded-lg p-3 max-h-64 overflow-auto">
