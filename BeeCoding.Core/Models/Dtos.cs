@@ -8,7 +8,8 @@ public record MeDto(int Id, string Email, string DisplayName, string Role, bool 
     bool HasPassword = true,      // false => created via Google; no password until the user sets one
     bool MfaEnabled = false,      // has an authenticator app or email code on (drives the "turn on 2-step" offer)
     bool MfaRequired = false,     // the platform policy requires it for this account (admin / org admin / teacher)
-    bool MfaOfferSnoozed = false); // the user dismissed the "turn on two-step" banner (for now, or for good)
+    bool MfaOfferSnoozed = false,  // the user dismissed the "turn on two-step" banner (for now, or for good)
+    int PendingOrgInvites = 0);    // organization invitations waiting for this user to accept
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----
@@ -485,8 +486,8 @@ public record LtiDeepLinkSelectDto(string Token, string? BoardSlug = null, strin
 public record LtiDeepLinkResultDto(string ReturnUrl, string Jwt);
 
 // ---- Organizations (multi-tenant: separate universities/institutions) ----
-public record OrganizationDto(int Id, string Name, string Slug, DateTime CreatedAt);
-public record AdminUpsertOrganizationDto(string Name, string Slug);
+public record OrganizationDto(int Id, string Name, string Slug, DateTime CreatedAt, string EmailDomains = "");
+public record AdminUpsertOrganizationDto(string Name, string Slug, string? EmailDomains = null);   // null = leave the domains as they are
 public record OrgSummaryDto(int MemberCount, int BoardCount);
 public record OrgMemberRow(int UserId, string Email, string DisplayName, string OrgRole, DateTime JoinedAt);
 public record OrgAddMemberDto(string Email, string OrgRole);   // "Member" | "Admin"
@@ -496,7 +497,13 @@ public record OrgBoardRow(int Id, string Slug, string Title, string OwnerEmail, 
 // ---- Org Admin: bulk member add via CSV (existing accounts only — no signup here) ----
 public record OrgMemberImportDto(string Csv);
 public record OrgMemberImportRow(string Email, string OrgRole, bool Added, string? Message);
-public record OrgMemberImportResult(int Added, int Skipped, int Errors, List<OrgMemberImportRow> Rows);
+public record OrgMemberImportResult(int Added, int Skipped, int Errors, List<OrgMemberImportRow> Rows, int Invited = 0);
+
+// ---- Org invitations (an org admin offers, the user accepts) ----
+public record OrgInviteRow(int Id, int UserId, string Email, string DisplayName, string OrgRole, DateTime CreatedAt);
+public record OrgSettingsDto(string EmailDomains);
+public record MyOrgInviteDto(int Id, string OrganizationName, string OrgRole, string InvitedBy, DateTime CreatedAt);
+public record MyOrgDto(int OrganizationId, string Name, string OrgRole);
 
 // ---- Org Admin: bulk-create boards, all owned by one existing Teacher, all in this org ----
 public record OrgBulkCreateBoardsDto(string OwnerEmail, List<string> Titles);

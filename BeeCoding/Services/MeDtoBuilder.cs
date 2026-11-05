@@ -16,6 +16,7 @@ public class MeDtoBuilder(AppDbContext db, AdminAccess admin, MfaPolicy policy)
         var hasOrgAdmin = isAdmin || await db.OrganizationMemberships.AnyAsync(m => m.UserId == user.Id && m.Role == OrgRole.Admin);
         return new MeDto(user.Id, user.Email, user.DisplayName, user.Role.ToString(), isAdmin, hasOrgAdmin,
             user.EmailVerifiedAt != null, user.HasPassword, MfaPolicy.HasFactor(user), await policy.RequiredAsync(user, principal),
-            user.MfaOfferHiddenUntil is { } until && until > DateTime.UtcNow);
+            user.MfaOfferHiddenUntil is { } until && until > DateTime.UtcNow,
+            await db.OrganizationInvites.CountAsync(i => i.UserId == user.Id));
     }
 }

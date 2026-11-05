@@ -10,6 +10,7 @@ import TopicBarChart from '../components/TopicBarChart.vue';
 import MfaSettings from '../components/MfaSettings.vue';
 import ConnectedAccounts from '../components/ConnectedAccounts.vue';
 import PasskeySettings from '../components/PasskeySettings.vue';
+import OrganizationSettings from '../components/OrganizationSettings.vue';
 import SnippetSettings from '../components/SnippetSettings.vue';
 import BrowserNotificationSettings from '../components/BrowserNotificationSettings.vue';
 import { localDayKey } from '../lib/localDay';
@@ -329,6 +330,7 @@ async function deleteAccount(force = false) {
 
         <!-- Profile -->
         <div v-else-if="section === 'profile'" class="max-w-xl space-y-10">
+        <OrganizationSettings />
         <!-- display name -->
         <section class="space-y-3">
           <h2 class="font-semibold text-sm">Display name</h2>

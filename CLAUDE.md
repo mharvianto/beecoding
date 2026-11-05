@@ -211,7 +211,13 @@ required relationships — expected, not a bug to fix.
 `Organization` / `OrganizationMembership` scope boards, AI usage (proxied via membership,
 since `AiUsage` itself isn't per-org), and dashboards (`OrgAdminController`). A platform
 super admin (`AdminAccess.IsAdminEmail`, config `Admin:Emails`) can manage every
-organization without an explicit membership row. LTI 1.3 (`Services/Lti/`,
+organization without an explicit membership row.
+
+Joining an organization is never silent: `OrgAdminController.AddMember`/`ImportMembers` add an account straight away only when its email is on one of
+`Organization.EmailDomains` (`OrgDomains`, set only by the platform admin in Admin → Organizations, since it skips consent; empty = never, since organizations can be departments of one university); anyone else gets an
+`OrganizationInvite` that `OrgInvitesController` lets them accept, decline, or later leave (banner via `MeDto.PendingOrgInvites`, UI in
+`OrganizationSettings.vue`). Membership shows the org admin the member's practice activity, and the org-admin bank (`BankFor`) is public problems
+only — a member's private drafts are never offered. LTI auto-enrolment is unchanged (the user arrived from that org's LMS). LTI 1.3 (`Services/Lti/`,
 `LtiController`) lets an LMS launch into a board/practice problem and sync grades back;
 see INSTALL.md §5A.
 

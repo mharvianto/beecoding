@@ -20,6 +20,33 @@ public class Organization
     [MaxLength(64)]
     public string Slug { get; set; } = "";
 
+    /// <summary>Comma-separated email domains ("binus.ac.id, student.binus.ac.id"). An org admin adds an account with one of
+    /// these domains straight away; anyone else gets an invitation they must accept. Empty = every addition is an invitation
+    /// (the safe default: organizations can be departments of one university, so a shared domain says little).</summary>
+    [MaxLength(400)]
+    public string EmailDomains { get; set; } = "";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>
+/// An org admin's offer to add an existing account. Nothing is granted until the user accepts (then it becomes an
+/// <see cref="OrganizationMembership"/> and this row goes away) — membership lets the org admin see the member's practice activity.
+/// </summary>
+public class OrganizationInvite
+{
+    public int Id { get; set; }
+
+    public int OrganizationId { get; set; }
+    public Organization? Organization { get; set; }
+
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    public OrgRole Role { get; set; } = OrgRole.Member;
+
+    public int? InvitedById { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 

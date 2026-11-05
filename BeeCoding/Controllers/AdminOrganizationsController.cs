@@ -35,7 +35,7 @@ public class AdminOrganizationsController(AppDbContext db, AuditLog audit, LtiPl
     public async Task<ActionResult<List<OrganizationDto>>> Organizations()
     {
         return await _db.Organizations.OrderBy(o => o.Name)
-            .Select(o => new OrganizationDto(o.Id, o.Name, o.Slug, o.CreatedAt)).ToListAsync();
+            .Select(o => new OrganizationDto(o.Id, o.Name, o.Slug, o.CreatedAt, o.EmailDomains)).ToListAsync();
     }
 
     [HttpPost("organizations")]
@@ -45,11 +45,13 @@ public class AdminOrganizationsController(AppDbContext db, AuditLog audit, LtiPl
         if (problem is not null) return BadRequest(problem);
         if (await _db.Organizations.AnyAsync(o => o.Slug == slug)) return Conflict("That slug is already used.");
 
-        var org = new Organization { Name = name, Slug = slug };
+        var (domains, domainError) = OrgDomains.Normalize(dto.EmailDomains);
+        if (domainError is not null) return BadRequest(domainError);
+        var org = new Organization { Name = name, Slug = slug, EmailDomains = domains! };
         _db.Organizations.Add(org);
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "create", "Organization", org.Id, org.Name);
-        return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt);
+        return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt, org.EmailDomains);
     }
 
     /// <summary>Rename an organization and/or change its slug. The slug only appears in URLs (/org-admin/&lt;slug&gt;,
@@ -66,10 +68,20 @@ public class AdminOrganizationsController(AppDbContext db, AuditLog audit, LtiPl
         var before = $"{org.Name} ({org.Slug})";
         org.Name = name;
         org.Slug = slug;
+        // Only the platform admin sets these: a domain skips the member's consent (see OrgAdminController.AddMember), so the
+        // organization's own admin must not be able to widen it.
+        if (dto.EmailDomains is not null)
+        {
+            var (domains, domainError) = OrgDomains.Normalize(dto.EmailDomains);
+            if (domainError is not null) return BadRequest(domainError);
+            if (domains != org.EmailDomains)
+                await _audit.RecordAsync(UserId, ActorEmail, "org-settings", "Organization", org.Id, $"email domains: {(domains!.Length == 0 ? "none" : domains)}");
+            org.EmailDomains = domains!;
+        }
         await _db.SaveChangesAsync();
         if (before != $"{org.Name} ({org.Slug})")
             await _audit.RecordAsync(UserId, ActorEmail, "update", "Organization", org.Id, $"{before} -> {org.Name} ({org.Slug})");
-        return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt);
+        return new OrganizationDto(org.Id, org.Name, org.Slug, org.CreatedAt, org.EmailDomains);
     }
 
     private static (string Name, string Slug, string? Problem) ParseOrganization(AdminUpsertOrganizationDto dto)

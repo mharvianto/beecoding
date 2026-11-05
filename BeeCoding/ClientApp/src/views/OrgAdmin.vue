@@ -41,6 +41,9 @@ const engagementStats = ref(null);
 const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');                    // 'day' | 'week' — AiUsage has no finer data than a day
 const aiEngagementStats = ref(null);
 const members = ref(null);
+const invites = ref([]);              // offers waiting for the user to accept
+const emailDomains = ref('');         // this org's auto-accept domains (comma separated)
+const notice = ref('');
 const boards = ref(null);
 const plagiarismBoardId = ref(null);
 const plagiarismPairs = ref([]);
@@ -87,7 +90,7 @@ async function loadOrgs() {
 function selectOrg(id) {
   orgId.value = id;
   summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null;
-  members.value = null; boards.value = null; aiSettings.value = null; aiProvider.value = null; imageUsage.value = null;
+  members.value = null; invites.value = []; notice.value = ''; boards.value = null; aiSettings.value = null; aiProvider.value = null; imageUsage.value = null;
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
   const org = orgs.value?.find((o) => o.id === id);
   if (org && (route.params.slug !== org.slug || route.params.tab !== tab.value))
@@ -201,13 +204,25 @@ async function loadImageUsage() {
 }
 async function loadMembers() {
   err.value = '';
-  try { members.value = await api.get(`/api/org-admin/${orgId.value}/members`); } catch (e) { err.value = e.message; }
+  try {
+    const [m, inv, settings] = await Promise.all([
+      api.get(`/api/org-admin/${orgId.value}/members`),
+      api.get(`/api/org-admin/${orgId.value}/invites`),
+      api.get(`/api/org-admin/${orgId.value}/settings`),
+    ]);
+    members.value = m; invites.value = inv; emailDomains.value = settings.emailDomains;
+  } catch (e) { err.value = e.message; }
+}
+async function cancelInvite(i) {
+  err.value = '';
+  try { await api.del(`/api/org-admin/${orgId.value}/invites/${i.id}`); await loadMembers(); } catch (e) { err.value = e.message; }
 }
 async function addMember() {
   if (!newMemberEmail.value.trim()) return;
-  err.value = '';
+  err.value = ''; notice.value = '';
   try {
-    await api.post(`/api/org-admin/${orgId.value}/members`, { email: newMemberEmail.value.trim(), orgRole: newMemberRole.value });
+    const res = await api.post(`/api/org-admin/${orgId.value}/members`, { email: newMemberEmail.value.trim(), orgRole: newMemberRole.value });
+    if (res?.invited) notice.value = `Invitation sent to ${res.email}. They become a member when they accept it.`;
     newMemberEmail.value = '';
     await loadMembers();
   } catch (e) { err.value = e.message; }
@@ -564,18 +579,44 @@ onMounted(() => { url.read(); loadOrgs(); });
           </select>
           <button @click="addMember" class="text-sm bg-amber-500 text-white rounded-lg px-4 font-medium">Add</button>
         </div>
+        <p v-if="notice" class="text-xs text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
+
+        <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Joining</h3>
+          <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+            Someone you add must accept an invitation first — as a member, you can see their practice activity. Accounts whose
+            email is on one of the organization's domains are added at once instead. The platform admin sets those domains
+            (none = always invite, the usual choice when several departments share one university domain).
+          </p>
+          <p class="text-xs">
+            <template v-if="emailDomains">Auto-accepted domains: <b>{{ emailDomains }}</b></template>
+            <template v-else>No domains set — everyone is invited.</template>
+            <span class="text-slate-400 dark:text-slate-500"> (set by the platform admin)</span>
+          </p>
+        </div>
+
+        <div v-if="invites.length" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Waiting for an answer ({{ invites.length }})</h3>
+          <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+            <li v-for="i in invites" :key="i.id" class="py-1.5 flex items-center gap-2 text-sm">
+              <span class="flex-1 min-w-0 truncate">{{ i.displayName }} <span class="text-xs text-slate-400">· {{ i.email }} · {{ i.orgRole.toLowerCase() }}</span></span>
+              <button @click="cancelInvite(i)" class="row-action-btn">Cancel</button>
+            </li>
+          </ul>
+        </div>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk add (CSV)</h3>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
             Header row with an <code>email</code> column (optional <code>role</code>: Member/Admin, default
-            Member). Only existing BeeCoding accounts can be added — have others register first.
+            Member). Only existing BeeCoding accounts can be added — have others register first. Accounts outside this
+            organization's domains are invited, not added.
           </p>
           <input type="file" accept="text/csv,.csv" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
           <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">Importing…</p>
           <div v-if="memberImportResult" class="mt-2 text-xs space-y-1">
             <p class="text-emerald-600 dark:text-emerald-400">
-              Added {{ memberImportResult.added }} · Skipped {{ memberImportResult.skipped }} · Errors {{ memberImportResult.errors }}
+              Added {{ memberImportResult.added }} · Invited {{ memberImportResult.invited }} · Skipped {{ memberImportResult.skipped }} · Errors {{ memberImportResult.errors }}
             </p>
             <ul class="space-y-0.5">
               <li v-for="(row, i) in memberImportResult.rows.filter((r) => r.message)" :key="i" class="text-slate-400 dark:text-slate-500">
@@ -652,7 +693,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk-create boards</h3>
           <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
             One title per line — e.g. 13 session boards for one course. The owner must already have a
-            Teacher account; if they're not a member of this org yet, adding their first board here enrolls them.
+            Teacher account and be a member of this org (or have an email on one of its domains) — invite them on the Members tab first.
           </p>
           <input v-model="bulkBoardOwnerEmail" placeholder="Owner's email (existing Teacher account)"
                  class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />

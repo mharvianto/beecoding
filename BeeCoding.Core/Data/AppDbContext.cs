@@ -46,6 +46,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<LtiToolKey> LtiToolKeys => Set<LtiToolKey>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
+    public DbSet<OrganizationInvite> OrganizationInvites => Set<OrganizationInvite>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -252,6 +253,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(x => x.Organization).WithMany()
             .HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<OrganizationMembership>()
+            .HasOne(x => x.User).WithMany()
+            .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<OrganizationInvite>().HasIndex(x => new { x.OrganizationId, x.UserId }).IsUnique();
+        b.Entity<OrganizationInvite>()
+            .HasOne(x => x.Organization).WithMany()
+            .HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<OrganizationInvite>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 

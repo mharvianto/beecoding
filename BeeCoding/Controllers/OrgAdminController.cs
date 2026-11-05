@@ -135,8 +135,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         var problems = await _db.Problems.Where(p => p.Board!.OrganizationId == orgId)
             .Select(p => new { p.Id, p.Tags }).ToListAsync();
         var problemIds = problems.Select(p => p.Id).ToHashSet();
-        var subs = await _db.Submissions.Where(s => problemIds.Contains(s.ProblemId))
-            .Select(s => new { s.ProblemId, s.UserId, s.Verdict, s.Score }).ToListAsync();
+        var subsByProblem = (await _db.Submissions.Where(s => problemIds.Contains(s.ProblemId))
+            .Select(s => new { s.ProblemId, s.UserId, s.Verdict, s.Score }).ToListAsync()).ToLookup(s => s.ProblemId);
 
         var byTag = new Dictionary<string, (int Attempts, int Accepted, HashSet<int> Solvers)>();
         static IEnumerable<string> TagsOf(string? t) =>
@@ -145,7 +145,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
 
         foreach (var p in problems)
         {
-            var pSubs = subs.Where(s => s.ProblemId == p.Id).ToList();
+            var pSubs = subsByProblem[p.Id].ToList();
             foreach (var tag in TagsOf(p.Tags))
             {
                 var (attempts, accepted, solvers) = byTag.TryGetValue(tag, out var v) ? v : (0, 0, new HashSet<int>());
@@ -178,7 +178,10 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;
         var src = source?.Trim().ToLowerInvariant();
 
+        // Only the newest page*pageSize of each source can land on this page, so that is all we read; the totals are counts.
         var rows = new List<AdminSubmissionRow>();
+        var total = 0;
+        var take = page * pageSize;
 
         if (src is null or "board")
         {
@@ -190,7 +193,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                     || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
                     || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
             if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
-            rows.AddRange(await boardQuery
+            total += await boardQuery.CountAsync();
+            rows.AddRange(await boardQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
@@ -208,7 +212,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                     || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
                     || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
             if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
-            rows.AddRange(await bankQuery
+            total += await bankQuery.CountAsync();
+            rows.AddRange(await bankQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
@@ -216,7 +221,6 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                 .ToListAsync());
         }
 
-        var total = rows.Count;
         var pageRows = rows.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
@@ -251,28 +255,68 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             .ToListAsync();
     }
 
-    /// <summary>Adds an EXISTING BeeCoding user (by email) to the organization — this isn't
-    /// an email invite that creates an account; have them register (or launch via this
-    /// org's LTI platform, which auto-enrolls) first.</summary>
+    /// <summary>Offers an EXISTING BeeCoding user (by email) a place in the organization — this isn't an email invite that
+    /// creates an account. An address on one of the organization's own domains (Organization.EmailDomains) is added at once;
+    /// anyone else gets an invitation (202) that takes effect only when they accept it, because membership lets this
+    /// organization's admins see their practice activity.</summary>
     [HttpPost("{orgId:int}/members")]
     public async Task<ActionResult<OrgMemberRow>> AddMember(int orgId, OrgAddMemberDto dto)
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
         if (!Enum.TryParse<OrgRole>(dto.OrgRole, ignoreCase: true, out var role))
             return BadRequest("OrgRole must be 'Member' or 'Admin'.");
+        var org = await _db.Organizations.FindAsync(orgId);
+        if (org is null) return NotFound();
 
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email && u.DeletedAt == null);
         if (user is null) return NotFound($"No BeeCoding account for '{email}' yet — they need to register (or launch via this org's LTI platform) first.");
 
-        var existing = await _db.OrganizationMemberships.FirstOrDefaultAsync(m => m.OrganizationId == orgId && m.UserId == user.Id);
-        if (existing is not null) return Conflict("Already a member.");
+        if (await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == user.Id)) return Conflict("Already a member.");
+        if (await _db.OrganizationInvites.AnyAsync(i => i.OrganizationId == orgId && i.UserId == user.Id)) return Conflict("Already invited — waiting for them to accept.");
+
+        if (!OrgDomains.Matches(org.EmailDomains, user.Email))
+        {
+            _db.OrganizationInvites.Add(new OrganizationInvite { OrganizationId = orgId, UserId = user.Id, Role = role, InvitedById = UserId });
+            await _db.SaveChangesAsync();
+            await _audit.RecordAsync(UserId, ActorEmail, "org-member-invite", "Organization", orgId, $"{user.Email} as {role}");
+            return Accepted(new { invited = true, email = user.Email });
+        }
 
         var membership = new OrganizationMembership { OrganizationId = orgId, UserId = user.Id, Role = role };
         _db.OrganizationMemberships.Add(membership);
         await _db.SaveChangesAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "org-member-add", "Organization", orgId, $"{user.Email} as {role}");
         return new OrgMemberRow(user.Id, user.Email, user.DisplayName, role.ToString(), membership.JoinedAt);
+    }
+
+    [HttpGet("{orgId:int}/invites")]
+    public async Task<ActionResult<List<OrgInviteRow>>> Invites(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        return await _db.OrganizationInvites.Where(i => i.OrganizationId == orgId).OrderBy(i => i.CreatedAt)
+            .Select(i => new OrgInviteRow(i.Id, i.UserId, i.User!.Email, i.User.DisplayName, i.Role.ToString(), i.CreatedAt)).ToListAsync();
+    }
+
+    [HttpDelete("{orgId:int}/invites/{id:int}")]
+    public async Task<IActionResult> CancelInvite(int orgId, int id)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var invite = await _db.OrganizationInvites.FirstOrDefaultAsync(i => i.Id == id && i.OrganizationId == orgId);
+        if (invite is null) return NotFound();
+        _db.OrganizationInvites.Remove(invite);
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "org-invite-cancel", "Organization", orgId, $"user #{invite.UserId}");
+        return NoContent();
+    }
+
+    /// <summary>Read only: the domains are set by the platform admin (Admin → Organizations), because they skip the member's consent.</summary>
+    [HttpGet("{orgId:int}/settings")]
+    public async Task<ActionResult<OrgSettingsDto>> GetSettings(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var domains = await _db.Organizations.Where(o => o.Id == orgId).Select(o => o.EmailDomains).FirstOrDefaultAsync();
+        return domains is null ? NotFound() : new OrgSettingsDto(domains);
     }
 
     [HttpPut("{orgId:int}/members/{userId:int}")]
@@ -328,8 +372,10 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         int roleCol = header.IndexOf("role");
         if (emailCol < 0) return BadRequest("The CSV header must include an 'email' column.");
 
+        var org = await _db.Organizations.FindAsync(orgId);
+        if (org is null) return NotFound();
         var resultRows = new List<OrgMemberImportRow>();
-        int added = 0, skipped = 0, errors = 0;
+        int added = 0, skipped = 0, errors = 0, invited = 0;
 
         for (int r = 1; r < rows.Count; r++)
         {
@@ -350,14 +396,25 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             if (existing is not null)
             { resultRows.Add(new(email, role.ToString(), false, "Already a member")); skipped++; continue; }
 
+            if (!OrgDomains.Matches(org.EmailDomains, user.Email))
+            {
+                if (await _db.OrganizationInvites.AnyAsync(i => i.OrganizationId == orgId && i.UserId == user.Id))
+                { resultRows.Add(new(email, role.ToString(), false, "Already invited")); skipped++; continue; }
+                _db.OrganizationInvites.Add(new OrganizationInvite { OrganizationId = orgId, UserId = user.Id, Role = role, InvitedById = UserId });
+                await _db.SaveChangesAsync();
+                resultRows.Add(new(email, role.ToString(), false, "Invited — they must accept it first"));
+                invited++;
+                continue;
+            }
+
             _db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = orgId, UserId = user.Id, Role = role });
             await _db.SaveChangesAsync();
             resultRows.Add(new(email, role.ToString(), true, null));
             added++;
         }
 
-        await _audit.RecordAsync(UserId, ActorEmail, "org-member-bulk-add", "Organization", orgId, $"{added} added, {skipped} skipped, {errors} errors");
-        return new OrgMemberImportResult(added, skipped, errors, resultRows);
+        await _audit.RecordAsync(UserId, ActorEmail, "org-member-bulk-add", "Organization", orgId, $"{added} added, {invited} invited, {skipped} skipped, {errors} errors");
+        return new OrgMemberImportResult(added, skipped, errors, resultRows, invited);
     }
 
     [HttpGet("{orgId:int}/boards")]
@@ -383,11 +440,9 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         return await _plagiarism.ComputeForBoardAsync(boardId);
     }
 
-    /// <summary>Bank problems an org admin may copy into the org's boards: public ones, plus
-    /// anything owned by a member of this organization.</summary>
-    private IQueryable<BankProblem> BankFor(int orgId) =>
-        _db.BankProblems.Where(b => b.IsPublic
-            || _db.OrganizationMemberships.Any(m => m.OrganizationId == orgId && m.UserId == b.OwnerId));
+    /// <summary>Bank problems an org admin may copy into the org's boards: public ones only. A member's private problems stay
+    /// private — an admin may have added the account, and a draft exam must not be readable (or copyable, tests included) that way.</summary>
+    private IQueryable<BankProblem> BankFor(int orgId) => _db.BankProblems.Where(b => b.IsPublic);
 
     [HttpGet("{orgId:int}/bank")]
     public async Task<ActionResult<List<BankSummaryDto>>> Bank(int orgId, [FromQuery] string? q)
@@ -430,9 +485,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
 
     /// <summary>Bulk-create boards, all owned by one existing Teacher and all assigned to
     /// this org in one go — e.g. 13 session boards for one course. The owner must already
-    /// have a Teacher account (this doesn't create one) and does not need to already be an
-    /// org member — creating the first board here auto-enrolls them, same as an LTI launch
-    /// would.</summary>
+    /// have a Teacher account (this doesn't create one) and be a member of the org — or have an email
+    /// on one of the org's own domains, in which case the first board here enrolls them.</summary>
     [HttpPost("{orgId:int}/boards/bulk")]
     public async Task<ActionResult<OrgBulkCreateBoardsResult>> BulkCreateBoards(int orgId, OrgBulkCreateBoardsDto dto)
     {
@@ -444,7 +498,13 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         if (owner.Role != UserRole.Teacher) return BadRequest($"'{email}' is not a Teacher account.");
 
         if (!await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == owner.Id))
+        {
+            var orgDomains = await _db.Organizations.Where(o => o.Id == orgId).Select(o => o.EmailDomains).FirstOrDefaultAsync();
+            if (!OrgDomains.Matches(orgDomains, owner.Email))
+                return BadRequest($"'{email}' is not a member of this organization yet — invite them on the Members tab first.");
             _db.OrganizationMemberships.Add(new OrganizationMembership { OrganizationId = orgId, UserId = owner.Id, Role = OrgRole.Member });
+            await _db.SaveChangesAsync();   // now, so a failed board below cannot take the membership down with it
+        }
 
         var resultRows = new List<OrgBulkCreateBoardsRow>();
         int created = 0, errors = 0;
@@ -474,6 +534,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             }
             catch (Exception ex)
             {
+                _db.ChangeTracker.Clear();   // else the board that failed to save is retried — and fails again — on every later SaveChanges
                 resultRows.Add(new(title, false, null, ex.Message));
                 errors++;
             }
@@ -601,6 +662,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
         if (string.IsNullOrWhiteSpace(dto.Issuer) || string.IsNullOrWhiteSpace(dto.ClientId))
             return BadRequest("Issuer and Client ID are required.");
+        if (await CheckLtiPlatformAsync(orgId, null, dto) is { } bad) return BadRequest(bad);
         var org = await _db.Organizations.FindAsync(orgId);
         if (org is null) return NotFound();
 
@@ -626,6 +688,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             return BadRequest("Issuer and Client ID are required.");
         var p = await _db.LtiPlatforms.FirstOrDefaultAsync(x => x.Id == id && x.OrganizationId == orgId);
         if (p is null) return NotFound();   // also hides platforms owned by other orgs
+        if (await CheckLtiPlatformAsync(orgId, id, dto) is { } bad) return BadRequest(bad);
 
         p.Name = dto.Name.Trim(); p.Issuer = dto.Issuer.Trim(); p.ClientId = dto.ClientId.Trim();
         p.DeploymentIds = dto.DeploymentIds.Trim(); p.AuthLoginUrl = dto.AuthLoginUrl.Trim();
@@ -650,6 +713,22 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         await RefreshLtiOriginsAsync();
         await _audit.RecordAsync(UserId, ActorEmail, "org-lti-platform-delete", "LtiPlatform", id, p.Name);
         return NoContent();
+    }
+
+    /// <summary>The server fetches the keys URL and posts to the token URL, and /lti/login redirects to the login URL, so an
+    /// org admin may only name public https addresses (SSRF). The issuer must not already belong to another organization:
+    /// /lti/login picks a platform by issuer, so a copy would capture that organization's launches.</summary>
+    private async Task<string?> CheckLtiPlatformAsync(int orgId, int? selfId, AdminUpsertLtiPlatformDto dto)
+    {
+        foreach (var (label, url) in new[] { ("Issuer", dto.Issuer), ("Login URL", dto.AuthLoginUrl), ("Token URL", dto.AuthTokenUrl), ("Keys URL", dto.JwksUrl) })
+        {
+            if (string.IsNullOrWhiteSpace(url)) return $"{label} is required.";
+            if (AiUrl.Validate(url, strict: true) is { } err) return $"{label}: {err.Replace("Base URL", "address")}";
+        }
+        var issuer = dto.Issuer.Trim();
+        if (await _db.LtiPlatforms.AnyAsync(p => p.Issuer == issuer && p.OrganizationId != orgId && p.Id != selfId))
+            return "That issuer is already registered by another organization.";
+        return null;
     }
 
     /// <summary>Re-reads every enabled LTI platform's issuer into LtiPlatformOriginsCache —

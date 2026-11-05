@@ -11,6 +11,7 @@ import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import MfaOfferBanner from './components/MfaOfferBanner.vue';
+import OrgInviteBanner from './components/OrgInviteBanner.vue';
 import NotificationOfferBanner from './components/NotificationOfferBanner.vue';
 import MfaRequiredBanner from './components/MfaRequiredBanner.vue';
 import { onSignedIn, onSignedOut } from './lib/prefs';
@@ -154,6 +155,7 @@ onBeforeUnmount(() => {
     </header>
     <MfaRequiredBanner v-if="auth.mustSetupMfa" />
     <VerifyEmailBanner v-else-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
+    <OrgInviteBanner v-else-if="auth.user?.pendingOrgInvites > 0 && !route.path.startsWith('/account/profile')" />
     <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !auth.user.mfaOfferSnoozed && !route.path.startsWith('/account/security')" />
     <!-- one nudge at a time: this one waits until the two-step offer is answered or not applicable -->
     <NotificationOfferBanner v-else-if="auth.user && !route.path.startsWith('/account')" />

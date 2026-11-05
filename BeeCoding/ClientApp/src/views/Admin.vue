@@ -707,13 +707,13 @@ async function createOrganization() {
   } catch (e) { err.value = e.message; }
 }
 const orgEdit = ref(null);   // { id, name, slug } while a row is being edited
-function startOrgEdit(o) { orgEdit.value = { id: o.id, name: o.name, slug: o.slug }; }
+function startOrgEdit(o) { orgEdit.value = { id: o.id, name: o.name, slug: o.slug, emailDomains: o.emailDomains || '' }; }
 async function saveOrgEdit() {
   const e = orgEdit.value;
   if (!e || !e.name.trim() || !e.slug.trim()) return;
   err.value = '';
   try {
-    await api.put(`/api/admin-ui/organizations/${e.id}`, { name: e.name, slug: e.slug });
+    await api.put(`/api/admin-ui/organizations/${e.id}`, { name: e.name, slug: e.slug, emailDomains: e.emailDomains });
     orgEdit.value = null;
     await loadOrganizations();
   } catch (x) { err.value = x.message; }
@@ -2247,6 +2247,8 @@ onMounted(async () => {
                      class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug"
                      class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+              <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu"
+                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <div class="flex gap-2">
                 <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">Save</button>
                 <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
@@ -2262,6 +2264,7 @@ onMounted(async () => {
               </div>
             </div>
             <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
+            <div class="text-[11px] text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : 'always invites' }}</div>
           </template>
         </div>
         <p v-if="organizations && !organizations.length" class="text-slate-400 dark:text-slate-500 text-sm">No organizations yet.</p>
@@ -2273,7 +2276,7 @@ onMounted(async () => {
           <thead>
             <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Slug</th>
-              <th class="font-normal pr-3">Created</th><th class="font-normal pr-3"></th>
+              <th class="font-normal pr-3">Auto-accept domains</th><th class="font-normal pr-3">Created</th><th class="font-normal pr-3"></th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -2282,6 +2285,8 @@ onMounted(async () => {
                 <td><input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
                            class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
+                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="univ.ac.id, univ.edu"
                            class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td></td>
                 <td class="whitespace-nowrap">
@@ -2292,6 +2297,7 @@ onMounted(async () => {
               <template v-else>
                 <td class="font-medium">{{ o.name }}</td>
                 <td class="text-[11px] text-slate-400">{{ o.slug }}</td>
+                <td class="text-[11px] text-slate-400">{{ o.emailDomains || '—' }}</td>
                 <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
                 <td class="whitespace-nowrap">
                   <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
