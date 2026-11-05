@@ -173,23 +173,28 @@ const insertBlock = (block, selFrom, selTo) => edit((v, s, e) => {
 const TABLE = '| Column 1 | Column 2 |\n| --- | --- |\n| a | b |';
 const insertTable = () => insertBlock(TABLE, 2, 10);
 
-// Formulas: $...$ inside a sentence, $$...$$ on its own line. The list gives the usual ones in problem statements.
+// Formulas: $...$ inside a sentence, $$...$$ on its own line. The list feeds both the menu and the help panel.
 const FORMULAS = [
-  { label: 'Constraint  1 ≤ n ≤ 2·10⁵', tex: '1 \\le n \\le 2 \\times 10^5' },
-  { label: 'Fraction', tex: '\\frac{a}{b}' },
-  { label: 'Square root', tex: '\\sqrt{x}' },
-  { label: 'Power / subscript', tex: 'a_i^2' },
-  { label: 'Modulo 10⁹+7', tex: '\\bmod (10^9 + 7)' },
-  { label: 'Sum (own line)', tex: '\\sum_{i=1}^{n} a_i', display: true },
-  { label: 'Cases (own line)', tex: 'f(n) = \\begin{cases} 1 & n = 0 \\\\ n \\cdot f(n-1) & n > 0 \\end{cases}', display: true },
-  { label: 'Matrix (own line)', tex: '\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}', display: true },
+  { label: 'Constraint  1 ≤ n ≤ 2·10⁵', tex: '1 \\le n \\le 2 \\times 10^5', hint: '\\le ≤  \\ge ≥  \\ne ≠  \\times ×  \\cdot ·' },
+  { label: 'Fraction', tex: '\\frac{a}{b}', hint: 'a over b' },
+  { label: 'Square root', tex: '\\sqrt{x}', hint: 'other roots: \\sqrt[3]{x}' },
+  { label: 'Power / subscript', tex: 'a_{i+1}^{10}', hint: '^ power, _ subscript; braces when it is more than one character' },
+  { label: 'Modulo 10⁹+7', tex: '\\text{answer} \\bmod (10^9 + 7)', hint: 'also \\pmod{p}; \\text{...} writes words inside a formula' },
+  { label: 'Floor / ceiling', tex: '\\lfloor n/2 \\rfloor + \\lceil n/2 \\rceil', hint: 'round down / round up' },
+  { label: 'List  a₁, …, aₙ', tex: 'a_1, a_2, \\ldots, a_n', hint: '\\ldots gives the dots' },
+  { label: 'Symbols', tex: '\\alpha + \\beta \\ge \\gamma,\\ \\forall x \\in \\mathbb{N}', hint: 'Greek letters, \\in, \\forall, \\mathbb{N}' },
+  { label: 'Binomial', tex: '\\binom{n}{k}', hint: 'n choose k' },
+  { label: 'Min / max', tex: '\\min_{1 \\le i \\le n} a_i', hint: '\\max, \\gcd and \\log work the same way' },
+  { label: 'Sum (own line)', tex: '\\sum_{i=1}^{n} a_i', display: true, hint: 'a formula on its own line is centred and bigger' },
+  { label: 'Cases (own line)', tex: 'f(n) = \\begin{cases} 1 & n = 0 \\\\ n \\cdot f(n-1) & n > 0 \\end{cases}', display: true, hint: '& separates the columns, \\\\ ends a row' },
+  { label: 'Matrix (own line)', tex: '\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}', display: true, hint: 'same & and \\\\ rules' },
 ];
+const showFormulaHelp = ref(false);
 const inlineFormula = () => wrap('$', '$', 'x^2');
 const blockFormula = () => insertBlock('$$\\sum_{i=1}^{n} a_i$$', 2, 20);
-function pickFormula(e) {
-  const f = FORMULAS[e.target.value];
-  e.target.value = '';   // back to the label, so the same one can be picked again
+function insertFormula(f) {
   if (!f || !stmtEl.value) return;
+  showWrite.value = true;
   // A formula inserted a moment ago stays selected between its dollar signs: take those along, so the new one replaces it whole.
   const el = stmtEl.value, v = form.value.statementMarkdown;
   let s = el.selectionStart, end = el.selectionEnd;
@@ -197,6 +202,11 @@ function pickFormula(e) {
   el.setSelectionRange(s, end);
   if (f.display) insertBlock(`$$${f.tex}$$`, 2, 2 + f.tex.length);
   else edit((v, s, e) => apply(s, e, `$${f.tex}$`, 1, 1 + f.tex.length));   // replaces the selection: a pick adds a formula, it does not wrap one
+}
+function pickFormula(e) {
+  const f = FORMULAS[e.target.value];
+  e.target.value = '';   // back to the label, so the same one can be picked again
+  insertFormula(f);
 }
 </script>
 
@@ -258,6 +268,24 @@ function pickFormula(e) {
               <option value="">Formula ▾</option>
               <option v-for="(f, i) in FORMULAS" :key="i" :value="i">{{ f.label }}</option>
             </select>
+            <button type="button" @mousedown.prevent @click="showFormulaHelp = !showFormulaHelp" class="tb" :class="showFormulaHelp ? '!border-amber-400 !text-amber-700 dark:!text-amber-300' : ''"
+                    title="Examples of formulas often used in problems" :aria-expanded="showFormulaHelp">? Formula help</button>
+          </div>
+          <div v-if="showWrite && showFormulaHelp" class="mb-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-xs">
+            <div class="px-3 py-2 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+              Type the code between dollar signs: <code v-pre>$...$</code> inside a sentence, <code v-pre>$$...$$</code> on its own line.
+              Click <b>Insert</b> to put an example at the cursor. A plain dollar sign (<code v-pre>$5 and $10</code>) needs nothing special.
+            </div>
+            <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+              <div v-for="(f, i) in FORMULAS" :key="i" class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-3 items-center px-3 py-1.5">
+                <div class="min-w-0 overflow-x-auto"><MarkdownBlock :text="(f.display ? '$$' : '$') + f.tex + (f.display ? '$$' : '$')" class="[&_p]:!my-0" /></div>
+                <div class="min-w-0">
+                  <code class="block font-mono text-[11px] text-slate-600 dark:text-slate-300 break-all">{{ f.tex }}</code>
+                  <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ f.label }} · {{ f.hint }}</span>
+                </div>
+                <button type="button" @mousedown.prevent @click="insertFormula(f)" class="tb">Insert</button>
+              </div>
+            </div>
           </div>
           <div class="flex flex-col md:flex-row gap-2">
             <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" rows="12"
