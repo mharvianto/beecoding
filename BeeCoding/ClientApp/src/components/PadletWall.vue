@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, computed, onMounted, nextTick } from 'vue';
+import { ref, watch, computed, onMounted, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
@@ -52,7 +52,11 @@ async function applyDeepLink() {
   setTimeout(() => { flashPost.value = null; }, 2500);
 }
 onMounted(load);
-watch(() => props.refreshSignal, load);
+// The hub signals on every submission, reaction and comment, and each client would reload the whole wall for each one:
+// a class submitting together turned into hundreds of full rebuilds. Reload once after a quiet moment instead.
+let reloadTimer = null;
+watch(() => props.refreshSignal, () => { clearTimeout(reloadTimer); reloadTimer = setTimeout(load, 400); });
+onBeforeUnmount(() => clearTimeout(reloadTimer));
 watch(() => route.query.problem, (v) => { if (v) load(); });
 
 const activeExam = computed(() => !!wall.value.problems.find((p) => p.id === activeProblem.value)?.examMode);
