@@ -126,10 +126,12 @@ const sections = [
           <li>Gambar yang tidak lagi dipakai statement mana pun dihapus otomatis beberapa hari setelah berhenti dipakai (awalnya 3), jadi gambar yang tak sengaja terhapus dari statement masih sempat dikembalikan. Jumlah gambar per orang juga dibatasi.</li>
         </ul>
         <h3>Rumus</h3>
-        <p>Belum ada mesin rumus (LaTeX). Tulis rumus sebagai teks seperti di kode C:</p>
+        <p>Rumus ditulis dengan LaTeX di antara tanda dolar, dan tampil sebagai rumus matematika, baik di tampilan guru maupun di gambar soal yang dilihat siswa:</p>
         <ul>
-          <li><code v-pre>x^2</code>, <code v-pre>sqrt(x)</code>, <code v-pre>a / b</code>, <code v-pre>a &lt;= b</code>, <code v-pre>a != b</code>, <code v-pre>|x|</code>, <code v-pre>10^9</code>.</li>
-          <li>LaTeX sederhana (<code v-pre>\frac{a}{b}</code>, <code v-pre>\sqrt{x}</code>, <code v-pre>\leq</code>) otomatis diubah menjadi teks seperti di atas. Rumus yang rumit (sigma, integral, matriks) lebih baik digambar lalu diunggah sebagai gambar.</li>
+          <li><code v-pre>$1 \le n \le 2 \times 10^5$</code> untuk rumus di tengah kalimat, dan <code v-pre>$$\sum_{i=1}^{n} a_i$$</code> untuk rumus yang berdiri sendiri. <code v-pre>\(...\)</code> dan <code v-pre>\[...\]</code> juga bisa.</li>
+          <li>Yang didukung antara lain pecahan (<code v-pre>\frac</code>), akar, pangkat dan indeks, sigma, limit, matriks, <code v-pre>cases</code>, huruf Yunani, <code v-pre>\binom</code>, <code v-pre>\bmod</code> dan <code v-pre>\pmod{p}</code>.</li>
+          <li>Tanda dolar yang bukan rumus (misalnya <code v-pre>$5 dan $10</code>) dibiarkan, begitu juga isi <code v-pre>`kode`</code> dan blok kode.</li>
+          <li>Rumus yang salah ditulis tampil apa adanya (merah di tampilan guru), dan teks lain tetap terbaca. Satu soal memuat paling banyak 200 rumus, masing-masing paling panjang 500 karakter.</li>
         </ul>
       </section>
 
@@ -321,10 +323,12 @@ const sections = [
           <li>An image that no statement uses any more is deleted automatically a few days after it stops being used (3 to begin with), so one removed by accident can still be put back. The number of images per person is also limited.</li>
         </ul>
         <h3>Formulas</h3>
-        <p>There is no formula engine (LaTeX). Write formulas as text, the way you would in C code:</p>
+        <p>Write formulas in LaTeX between dollar signs. They appear as typeset maths, both in the teacher's view and in the statement picture students see:</p>
         <ul>
-          <li><code v-pre>x^2</code>, <code v-pre>sqrt(x)</code>, <code v-pre>a / b</code>, <code v-pre>a &lt;= b</code>, <code v-pre>a != b</code>, <code v-pre>|x|</code>, <code v-pre>10^9</code>.</li>
-          <li>Simple LaTeX (<code v-pre>\frac{a}{b}</code>, <code v-pre>\sqrt{x}</code>, <code v-pre>\leq</code>) is converted to text like the above. Complicated formulas (sums, integrals, matrices) are better drawn and uploaded as an image.</li>
+          <li><code v-pre>$1 \le n \le 2 \times 10^5$</code> for a formula inside a sentence, and <code v-pre>$$\sum_{i=1}^{n} a_i$$</code> for one on its own line. <code v-pre>\(...\)</code> and <code v-pre>\[...\]</code> work too.</li>
+          <li>Supported include fractions (<code v-pre>\frac</code>), roots, powers and subscripts, sums, limits, matrices, <code v-pre>cases</code>, Greek letters, <code v-pre>\binom</code>, <code v-pre>\bmod</code> and <code v-pre>\pmod{p}</code>.</li>
+          <li>A dollar sign that is not a formula (for example <code v-pre>$5 and $10</code>) is left alone, and so is anything inside <code v-pre>`code`</code> and code blocks.</li>
+          <li>A formula that is written wrongly is shown as typed (in red in the teacher's view) and the rest of the text still reads. A statement holds at most 200 formulas, each at most 500 characters long.</li>
         </ul>
       </section>
 
