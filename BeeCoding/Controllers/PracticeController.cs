@@ -312,6 +312,45 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         return new PracticeGuideDto(topics, recommended, source, _ai.Available);
     }
 
+    private const int StuckAfterFailures = 5;
+
+    /// <summary>
+    /// "Stuck? Try an easier one first": after <see cref="StuckAfterFailures"/> failed submissions on a problem that is still
+    /// unsolved, up to two easier public problems that share a tag with it and that the caller has not solved, closest in meaning
+    /// first. The shared-tag rule is what keeps it on topic (measured: closeness alone offered unrelated problems for hard ones).
+    /// Empty when not stuck, when the problem is already Easy, or when no easier problem shares a tag.
+    /// </summary>
+    [HttpGet("{slug}/easier")]
+    public async Task<ActionResult<List<RecommendationDto>>> Easier(string slug, [FromServices] SimilarProblemFinder finder, [FromServices] SimilarCooldown cooldown)
+    {
+        var cur = await Playable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown, x.Level, x.Tags }).FirstOrDefaultAsync();
+        if (cur is null) return NotFound();
+        if (cur.Level == ProblemLevel.Easy) return new List<RecommendationDto>();
+
+        var mine = _db.BankSubmissions.Where(s => s.UserId == UserId && s.Status == SubmissionStatus.Done);
+        var solvedIds = mine.Where(s => s.Verdict == Verdict.Accepted && s.Score >= 1.0).Select(s => s.BankProblemId);
+        if (await solvedIds.ContainsAsync(cur.Id)) return new List<RecommendationDto>();
+        if (await mine.CountAsync(s => s.BankProblemId == cur.Id) < StuckAfterFailures) return new List<RecommendationDto>();   // no solve, so every finished submission here failed
+        if (!cooldown.TryAcquire(UserId, "easier", TimeSpan.FromSeconds(3))) return new List<RecommendationDto>();
+
+        var mineTags = TagsOf(cur.Tags).ToHashSet();
+        if (mineTags.Count == 0) return new List<RecommendationDto>();
+        var pool = (await Pool().Where(b => b.Id != cur.Id && b.Level < cur.Level && !solvedIds.Contains(b.Id))
+            .Select(b => new { b.Id, b.Slug, b.Title, b.StatementMarkdown, b.AllowedLanguages, b.Level, b.Tags, b.OwnerId }).ToListAsync())
+            .Where(b => TagsOf(b.Tags).Any(mineTags.Contains)).ToList();
+        if (pool.Count == 0) return new List<RecommendationDto>();
+
+        var ranked = await finder.FindAsync(cur.Title, cur.StatementMarkdown,
+            pool.Select(b => new SimilarProblemFinder.Candidate(b.Id, b.Slug, b.Title, b.StatementMarkdown, true, b.OwnerId)).ToList(), UserId, 2);
+        var byId = pool.ToDictionary(b => b.Id);
+        return ranked.Items.Select(r =>
+        {
+            var b = byId[r.Id];
+            var shared = TagsOf(b.Tags).Where(mineTags.Contains).Take(2);
+            return new RecommendationDto(b.Id, b.Slug, b.Title, b.AllowedLanguages, b.Level.ToString(), b.Tags, $"Easier, same topic ({string.Join(", ", shared)})");
+        }).ToList();
+    }
+
     /// <summary>
     /// "You might be looking for": public problems closest in meaning to what was typed, for when the title/tag search finds
     /// little. Needs the e5 model (else an empty list). Ranks by the stored vectors of the same public pool the list shows,

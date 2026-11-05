@@ -10,6 +10,7 @@ import VerdictBadge from '../components/VerdictBadge.vue';
 import LevelBadge from '../components/LevelBadge.vue';
 import ProblemFeedback from '../components/ProblemFeedback.vue';
 import NextProblems from '../components/NextProblems.vue';
+import EasierProblems from '../components/EasierProblems.vue';
 import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
@@ -245,6 +246,7 @@ onBeforeUnmount(async () => {
       </p>
 
       <NextProblems :slug="props.slug" :solved="!!problem.solved" />
+      <EasierProblems :slug="props.slug" :solved="!!problem.solved" :attempts="submissions.length" />
 
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
         <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>

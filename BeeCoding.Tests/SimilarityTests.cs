@@ -206,6 +206,56 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task When_stuck_the_easier_offers_share_a_tag_and_are_public_unsolved_and_really_easier()
+    {
+        using var app = new TestApp();
+        var kid = app.CreateClient();
+        (await kid.PostAsJsonAsync("/api/auth/register", new { email = "stuck@test.dev", password = "Passw0rd!x1", displayName = "Kid", role = "Student" })).EnsureSuccessStatusCode();
+        string stuckSlug, easySlug; int sameTagId, otherTagId, doneId, hardId, draftId; int userId;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var me = await db.Users.FirstAsync(u => u.Email == "stuck@test.dev"); userId = me.Id;
+            var teacher = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+            BankProblem Make(string title, string text, ProblemLevel level, string tags, bool pub = true) => new() { OwnerId = teacher.Id, Title = title, StatementMarkdown = text, Level = level, Tags = tags, IsPublic = pub };
+            var stuck = Make("Kata Terpendek Sulit", Shortest, ProblemLevel.Hard, "string,greedy");
+            var sameTag = Make("Kata Terpanjang", Longest, ProblemLevel.Easy, "string");           // easier, shares "string"
+            var otherTag = Make("Faktorisasi Prima", Primes, ProblemLevel.Easy, "math");           // easier, no shared tag
+            var done = Make("Kata Tersingkat Selesai", ShortestCopy, ProblemLevel.Easy, "string"); // easier, shares a tag, but already solved
+            var hard = Make("Kata Sulit Lain", ShortestCopy, ProblemLevel.Hard, "string");         // same level, not easier
+            var draft = Make("Kata Draf", ShortestCopy, ProblemLevel.Easy, "string", pub: false);  // not public
+            var easy = Make("Sudah Mudah", Longest, ProblemLevel.Easy, "string");
+            db.BankProblems.AddRange(stuck, sameTag, otherTag, done, hard, draft, easy);
+            await db.SaveChangesAsync();
+            db.BankSubmissions.Add(new BankSubmission { BankProblemId = done.Id, UserId = me.Id, Code = "x", Status = SubmissionStatus.Done, Verdict = Verdict.Accepted, Score = 1.0 });
+            await db.SaveChangesAsync();
+            stuckSlug = stuck.Slug; easySlug = easy.Slug; sameTagId = sameTag.Id; otherTagId = otherTag.Id; doneId = done.Id; hardId = hard.Id; draftId = draft.Id;
+            for (int i = 0; i < 4; i++)
+                db.BankSubmissions.Add(new BankSubmission { BankProblemId = stuck.Id, UserId = me.Id, Code = "x", Status = SubmissionStatus.Done, Verdict = Verdict.WrongAnswer, Score = 0 });
+            await db.SaveChangesAsync();
+        }
+        async Task<List<JsonElement>> Easier(string slug) => JsonDocument.Parse(await kid.GetStringAsync($"/api/practice/{slug}/easier")).RootElement.EnumerateArray().ToList();
+
+        Assert.Empty(await Easier(stuckSlug));          // four failures: not stuck yet
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            db.BankSubmissions.Add(new BankSubmission { BankProblemId = (await db.BankProblems.FirstAsync(b => b.Slug == stuckSlug)).Id, UserId = userId, Code = "x", Status = SubmissionStatus.Done, Verdict = Verdict.TimeLimit, Score = 0.4 });
+            await db.SaveChangesAsync();
+        }
+        var ids = (await Easier(stuckSlug)).Select(i => i.GetProperty("id").GetInt32()).ToList();
+        Assert.Contains(sameTagId, ids);                // easier, same topic
+        Assert.DoesNotContain(otherTagId, ids);         // no shared tag
+        Assert.DoesNotContain(doneId, ids);             // already solved
+        Assert.DoesNotContain(hardId, ids);             // not easier
+        Assert.DoesNotContain(draftId, ids);            // not public
+        Assert.True(ids.Count <= 2);
+
+        Assert.Empty(await Easier(easySlug));           // an Easy problem has nothing easier to offer
+    }
+
+    [Fact]
     public void The_embedding_matches_the_reference_implementation_and_ranks_by_meaning()
     {
         if (ModelDir is null) return;
