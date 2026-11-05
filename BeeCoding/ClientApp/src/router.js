@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuth } from './stores/auth';
 
+// meta.keyed: the :params name one entity (a board, a problem) whose page loads its data once when created, so a link
+// from one entity to another of the same kind must remount the page (see the RouterView key in App.vue). Do NOT add it
+// where a param only picks a tab (admin, account, org-admin): remounting would reset the page for nothing.
 const routes = [
   { path: '/', component: () => import('./views/Landing.vue'), meta: { anon: true } },
   { path: '/login', component: () => import('./views/Login.vue'), meta: { anon: true } },
@@ -12,30 +15,30 @@ const routes = [
   { path: '/terms', component: () => import('./views/Terms.vue'), meta: { public: true } },
   { path: '/dashboard', redirect: '/account' },
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
-  { path: '/join/:code', component: () => import('./views/JoinBoard.vue'), props: true },
+  { path: '/join/:code', component: () => import('./views/JoinBoard.vue'), props: true, meta: { keyed: true } },
   { path: '/bank', component: () => import('./views/Bank.vue') },
   { path: '/guide/problems', component: () => import('./views/ProblemGuide.vue') },
   { path: '/reports/problems', component: () => import('./views/ProblemReports.vue'), meta: { teacherOnly: true, adminToo: true } },
-  { path: '/bank/new', component: () => import('./views/ProblemEdit.vue') },
-  { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true },
+  { path: '/bank/new', component: () => import('./views/ProblemEdit.vue'), meta: { keyed: true } },
+  { path: '/bank/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true, meta: { keyed: true } },
   { path: '/practice', component: () => import('./views/Practice.vue') },
   { path: '/playground', component: () => import('./views/Playground.vue') },
-  { path: '/practice/:slug', component: () => import('./views/PracticeSolveRoute.vue'), props: true },
+  { path: '/practice/:slug', component: () => import('./views/PracticeSolve.vue'), props: true, meta: { keyed: true } },
   { path: '/leaderboard', component: () => import('./views/Leaderboard.vue') },
   { path: '/account/:section(profile|editor|security|danger)?', component: () => import('./views/Account.vue') },
   { path: '/admin/:tab?', component: () => import('./views/Admin.vue') },
   { path: '/org-admin', component: () => import('./views/OrgAdmin.vue') },
   { path: '/org-admin/:slug/:tab?', component: () => import('./views/OrgAdmin.vue') },
   { path: '/lti/deep-link', component: () => import('./views/LtiDeepLink.vue') },
-  { path: '/boards/:slug', component: () => import('./views/Board.vue'), props: true },
-  { path: '/boards/:slug/stats', component: () => import('./views/BoardStats.vue'), props: true },
-  { path: '/boards/:slug/submissions', component: () => import('./views/BoardSubmissions.vue'), props: true },
-  { path: '/boards/:slug/plagiarism', component: () => import('./views/BoardPlagiarism.vue'), props: true },
-  { path: '/boards/:slug/live', component: () => import('./views/LiveCode.vue'), props: true },
-  { path: '/boards/:slug/problems', component: () => import('./views/BoardProblems.vue'), props: true },
-  { path: '/boards/:slug/problems/new', component: () => import('./views/ProblemEdit.vue'), props: true },
-  { path: '/boards/:slug/problems/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true },
-  { path: '/boards/:slug/problems/:problemSlug', component: () => import('./views/Solve.vue'), props: true },
+  { path: '/boards/:slug', component: () => import('./views/Board.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/stats', component: () => import('./views/BoardStats.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/submissions', component: () => import('./views/BoardSubmissions.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/plagiarism', component: () => import('./views/BoardPlagiarism.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/live', component: () => import('./views/LiveCode.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/problems', component: () => import('./views/BoardProblems.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/problems/new', component: () => import('./views/ProblemEdit.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/problems/:problemSlug/edit', component: () => import('./views/ProblemEdit.vue'), props: true, meta: { keyed: true } },
+  { path: '/boards/:slug/problems/:problemSlug', component: () => import('./views/Solve.vue'), props: true, meta: { keyed: true } },
 ];
 
 export const router = createRouter({

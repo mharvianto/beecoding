@@ -160,7 +160,9 @@ onBeforeUnmount(() => {
     <main class="flex-1 min-h-0 flex flex-col">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div class="flex-1" :class="{ 'min-h-0': !showFooter }">
-          <RouterView />
+          <RouterView v-slot="{ Component, route: r }">
+            <component :is="Component" :key="r.meta.keyed ? r.path : undefined" />
+          </RouterView>
         </div>
         <AppFooter v-if="showFooter" class="shrink-0" />
       </div>
