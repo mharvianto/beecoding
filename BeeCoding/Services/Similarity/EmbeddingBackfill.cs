@@ -6,12 +6,13 @@ namespace BeeCoding.Services.Similarity;
 
 /// <summary>
 /// Keeps <see cref="BeeCoding.Models.BankProblemEmbedding"/> current for the problems a new one is compared with (public or
-/// awaiting review). Does nothing unless <c>Embeddings:ModelDir</c> is set. A pass embeds at most <see cref="PerPass"/>
-/// problems, so a big first backfill spreads over a few passes instead of holding the CPU.
+/// awaiting review). Does nothing unless <c>Embeddings:ModelDir</c> is set. A pass works for at most <see cref="Budget"/>
+/// (about 15-50 ms per problem, so a few thousand fit) and saves as it goes; what is left waits for the next pass.
 /// </summary>
 public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingService embeddings, IOptions<EmbeddingOptions> opt, ILogger<EmbeddingBackfill> log) : BackgroundService
 {
-    private const int PerPass = 200;
+    private static readonly TimeSpan Budget = TimeSpan.FromSeconds(60);
+    private const int SaveEvery = 50;
 
     /// <summary>Title + statement: what both rankings compare.</summary>
     public static string TextOf(string title, string statement) => title + "\n" + statement;
@@ -43,10 +44,11 @@ public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingServ
         var gone = have.Keys.Where(k => !ids.Contains(k)).ToList();
         if (gone.Count > 0) await db.BankProblemEmbeddings.Where(e => gone.Contains(e.BankProblemId)).ExecuteDeleteAsync(ct);
 
-        int written = 0;
+        int written = 0, unsaved = 0;
+        var clock = System.Diagnostics.Stopwatch.StartNew();
         foreach (var p in problems)
         {
-            if (written >= PerPass) break;
+            if (clock.Elapsed > Budget) break;
             ct.ThrowIfCancellationRequested();
             var text = TextOf(p.Title, p.StatementMarkdown);
             var hash = EmbeddingService.HashOf(text);
@@ -57,6 +59,7 @@ public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingServ
             }
             else db.BankProblemEmbeddings.Add(new() { BankProblemId = p.Id, TextHash = hash, Vector = EmbeddingService.ToBytes(embeddings.Embed(text)) });
             written++;
+            if (++unsaved >= SaveEvery) { await db.SaveChangesAsync(ct); unsaved = 0; }   // a shutdown mid-pass keeps what is done
         }
         await db.SaveChangesAsync(ct);
         return written;

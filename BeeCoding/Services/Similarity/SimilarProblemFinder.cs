@@ -31,7 +31,7 @@ public sealed class SimilarCooldown
 /// (a half-filled set would hide the rest), otherwise text overlap. The caller decides who the candidates are — that is where
 /// access is enforced (a viewer must only be offered problems they may already see); this only ranks what it is given.
 /// </summary>
-public sealed class SimilarProblemFinder(AppDbContext db, EmbeddingService embeddings)
+public sealed class SimilarProblemFinder(AppDbContext db, EmbeddingService embeddings, TextCorpusCache corpora)
 {
     public sealed record Candidate(int Id, string Slug, string Title, string StatementMarkdown, bool IsPublic, int OwnerId);
 
@@ -54,7 +54,12 @@ public sealed class SimilarProblemFinder(AppDbContext db, EmbeddingService embed
                 method = "e5";
             }
         }
-        scores ??= TextSimilarity.Scores(text, others.Select(TextOf).ToList());
+        if (scores is null)
+        {
+            var corpus = await corpora.GetAsync(async () => (await db.BankProblems.Where(b => b.IsPublic || b.PendingReview)
+                .Select(b => new { b.Id, b.Title, b.StatementMarkdown }).ToListAsync()).Select(b => (b.Id, EmbeddingBackfill.TextOf(b.Title, b.StatementMarkdown))).ToList());
+            scores = corpus.Scores(text, others.Select(o => o.Id).ToList());
+        }
 
         var items = others.Select((o, i) => new SimilarProblemDto(o.Id, o.Slug, o.Title, Math.Round(scores[i], 3),
                 o.IsPublic ? "public" : "pending", o.IsPublic || o.OwnerId == viewerId))

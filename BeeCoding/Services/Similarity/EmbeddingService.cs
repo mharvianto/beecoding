@@ -35,7 +35,13 @@ public sealed class EmbeddingService(IOptions<EmbeddingOptions> options, ILogger
     private string TokenizerFile => Path.Combine(_opt.ModelDir, "sentencepiece.bpe.model");
     public bool Enabled => !string.IsNullOrWhiteSpace(_opt.ModelDir) && File.Exists(ModelFile) && File.Exists(TokenizerFile);
 
-    /// <summary>Identifies what an embedding was made from, so a changed text or a new model recomputes it.</summary>
+    /// <summary>A different model in the folder (e5-base is 768 wide) must fail loudly: reading its first 384 numbers would store plausible but wrong vectors.</summary>
+    public static void RequireDim(int actual)
+    {
+        if (actual != Dim) throw new InvalidOperationException($"The model in Embeddings:ModelDir produces {actual}-dimensional vectors; this build expects multilingual-e5-small ({Dim}).");
+    }
+
+    /// <summary>Identifies what an embedding was made from, so a changed text recomputes it. The "e5s1" prefix names the model: change it whenever another model (even another 384-wide one) is installed, or old and new vectors would be mixed.</summary>
     public static string HashOf(string text) => "e5s1:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text)))[..32];
 
     /// <summary>XLM-R ids from the sentencepiece ones: this tokenizer starts with &lt;s&gt; = 1 and has no &lt;/s&gt;, and the model's
@@ -74,6 +80,7 @@ public sealed class EmbeddingService(IOptions<EmbeddingOptions> options, ILogger
                     inputs.Add(NamedOnnxValue.CreateFromTensor("token_type_ids", new DenseTensor<long>(new long[ids.Length], shape)));
                 using var run = _session.Run(inputs);
                 var hidden = run.First().AsTensor<float>();   // [1, tokens, 384]
+                RequireDim(hidden.Dimensions[2]);
                 var v = new float[Dim];
                 for (int t = 0; t < ids.Length; t++) for (int d = 0; d < Dim; d++) v[d] += hidden[0, t, d];
                 double norm = 0;

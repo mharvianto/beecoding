@@ -30,6 +30,28 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task The_corpus_is_built_once_and_a_missing_problem_scores_zero_instead_of_failing()
+    {
+        var cache = new TextCorpusCache();
+        int loads = 0;
+        Task<List<(int, string)>> Load() { loads++; return Task.FromResult(new List<(int, string)> { (1, "Kata Terpendek\n" + ShortestCopy), (2, "Faktorisasi Prima\n" + Primes), (3, "Kata Terpanjang\n" + Longest) }); }
+        var a = await cache.GetAsync(Load);
+        var b = await cache.GetAsync(Load);
+        Assert.Same(a, b);
+        Assert.Equal(1, loads);                                           // the second caller reuses it
+        var s = a.Scores("Kata Terpendek\n" + Shortest, [1, 2, 99]);
+        Assert.True(s[0] > s[1]);
+        Assert.Equal(0, s[2]);                                            // 99 was added after the corpus was built
+    }
+
+    [Fact]
+    public void A_model_of_another_width_is_refused_not_silently_truncated()
+    {
+        EmbeddingService.RequireDim(384);
+        Assert.Throws<InvalidOperationException>(() => EmbeddingService.RequireDim(768));   // e5-base
+    }
+
+    [Fact]
     public void Sentencepiece_ids_become_the_ids_the_xlmr_model_expects()
     {
         // verified against the Hugging Face tokenizer: <s> dropped and re-added as 0, pieces shifted by one, </s> = 2 appended
@@ -189,6 +211,13 @@ public class SimilarityTests
             Assert.Equal("text", first.GetProperty("method").GetString());   // nothing embedded yet: falls back instead of hiding problems
 
             var backfill = app.Services.GetServices<IHostedService>().OfType<EmbeddingBackfill>().Single();
+            using (var scope = app.Services.CreateScope())   // more than the old 200-per-pass cap
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var owner = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+                for (int i = 0; i < 210; i++) db.BankProblems.Add(new BankProblem { OwnerId = owner.Id, Title = "Filler " + i, StatementMarkdown = "Soal pengisi nomor " + i + " tentang penjumlahan bilangan.", IsPublic = true });
+                await db.SaveChangesAsync();
+            }
             int candidates;
             using (var scope = app.Services.CreateScope())
                 candidates = await scope.ServiceProvider.GetRequiredService<AppDbContext>().BankProblems.CountAsync(b => b.IsPublic || b.PendingReview);

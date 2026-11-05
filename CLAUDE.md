@@ -182,7 +182,7 @@ and they share the AI kill switch, daily quota and detached-job + polling patter
 ### Similar problems (admin review aid)
 
 Admin → Problem review → "Similar problems" (`SimilarProblemsController`, `SimilarProblems.vue`) lists the public/pending bank problems closest to
-one, to catch a duplicate before approving. Two rankers: `TextSimilarity` (TF-IDF over character 4-grams, no model — always available) and, when
+one, to catch a duplicate before approving. Two rankers: `TextSimilarity` (TF-IDF over character 4-grams, no model — always available; the corpus of all public/pending problems is cached 5 min in `TextCorpusCache`, so a problem added or edited in that window is missing or old in it) and, when
 `Embeddings:ModelDir` holds multilingual-e5-small, `EmbeddingService` (ONNX Runtime, loaded on use, released when idle) with vectors cached in
 `BankProblemEmbeddings` by `EmbeddingBackfill`. The endpoint uses e5 only when EVERY candidate has a current vector (a partial set would hide problems),
 else text overlap. Measured on this bank: with 15 hand-written rewrites e5 had the original in the top 5 every time, text overlap 13/15, but neither

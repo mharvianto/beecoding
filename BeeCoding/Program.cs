@@ -170,6 +170,7 @@ builder.Services.Configure<BeeCoding.Services.Similarity.EmbeddingOptions>(build
 builder.Services.AddSingleton<BeeCoding.Services.Similarity.EmbeddingService>();
 builder.Services.AddScoped<BeeCoding.Services.Similarity.SimilarProblemFinder>();
 builder.Services.AddSingleton<BeeCoding.Services.Similarity.SimilarCooldown>();
+builder.Services.AddSingleton<BeeCoding.Services.Similarity.TextCorpusCache>();
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
 builder.Services.AddSingleton<SharedClangd>();
 builder.Services.AddSingleton<LspEndpoint>();
