@@ -55,6 +55,8 @@ public class OrgInviteTests
 
         var orgs = await guest.GetFromJsonAsync<JsonElement>("/api/org-invites/memberships");
         Assert.Equal(1, orgs.GetArrayLength());
+        Assert.Equal(orgId, orgs[0].GetProperty("organizationId").GetInt32());   // the shape OrganizationSettings.vue reads
+        Assert.Equal("Member", orgs[0].GetProperty("orgRole").GetString());
         Assert.Equal(HttpStatusCode.NoContent, (await guest.DeleteAsync($"/api/org-invites/memberships/{orgId}")).StatusCode);   // and can leave again
     }
 

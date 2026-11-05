@@ -503,7 +503,7 @@ public record OrgMemberImportResult(int Added, int Skipped, int Errors, List<Org
 public record OrgInviteRow(int Id, int UserId, string Email, string DisplayName, string OrgRole, DateTime CreatedAt);
 public record OrgSettingsDto(string EmailDomains);
 public record MyOrgInviteDto(int Id, string OrganizationName, string OrgRole, string InvitedBy, DateTime CreatedAt);
-public record MyOrgDto(int OrganizationId, string Name, string OrgRole);
+public record OrgMembershipDto(int OrganizationId, string Name, string OrgRole);   // not MyOrgDto: ProgressController has its own record of that name
 
 // ---- Org Admin: bulk-create boards, all owned by one existing Teacher, all in this org ----
 public record OrgBulkCreateBoardsDto(string OwnerEmail, List<string> Titles);

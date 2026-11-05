@@ -55,9 +55,9 @@ public class OrgInvitesController(AppDbContext db, AuditLog audit) : ApiControll
     }
 
     [HttpGet("memberships")]
-    public async Task<List<MyOrgDto>> Memberships() =>
+    public async Task<List<OrgMembershipDto>> Memberships() =>
         await _db.OrganizationMemberships.Where(m => m.UserId == UserId).OrderBy(m => m.Organization!.Name)
-            .Select(m => new MyOrgDto(m.OrganizationId, m.Organization!.Name, m.Role.ToString())).ToListAsync();
+            .Select(m => new OrgMembershipDto(m.OrganizationId, m.Organization!.Name, m.Role.ToString())).ToListAsync();
 
     /// <summary>Leave an organization. Its last admin cannot (it would be left with nobody to run it). A member who came in through the
     /// organization's LMS is enrolled again the next time they launch from it.</summary>
