@@ -22,7 +22,7 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp, EmailServic
     private readonly EmailService _email = email;
     private readonly ITimeLimitedDataProtector _tickets = dp.CreateProtector("beecoding.mfa-ticket").ToTimeLimitedDataProtector();
 
-    public Task<bool> HasMfaAsync(User user) => Task.FromResult(user.TotpEnabledAt != null || user.EmailMfaEnabledAt != null);
+    public bool HasMfa(User user) => user.TotpEnabledAt != null || user.EmailMfaEnabledAt != null;
 
     public bool EmailAvailable => _email.IsConfigured;
 
@@ -30,7 +30,7 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp, EmailServic
     /// session after a correct password (or a Google sign-in); null when it can sign in right away.</summary>
     public async Task<MfaChallengeDto?> ChallengeAsync(User user)
     {
-        if (!await HasMfaAsync(user)) return null;
+        if (!HasMfa(user)) return null;
         var methods = Methods(user);
         return new MfaChallengeDto(true, IssueTicket(user.Id), methods, methods.Contains("email") ? MaskEmail(user.Email) : null);
     }
@@ -197,12 +197,18 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp, EmailServic
             .OrderByDescending(c => c.CreatedAt).FirstOrDefaultAsync();
         if (row is null) return false;
 
-        row.Attempts++;
+        // Count the guess in the database, and only while fewer than the cap were made: a read-then-write counter lets
+        // simultaneous requests all see "0 attempts so far". Zero rows changed = the cap is reached, or the code was just used.
+        var counted = await _db.EmailLoginCodes.Where(c => c.Id == row.Id && c.UsedAt == null && c.Attempts < EmailMaxAttempts)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.Attempts, c => c.Attempts + 1));
+        if (counted == 0) return false;
+
         bool ok = CryptographicOperations.FixedTimeEquals(
             Encoding.ASCII.GetBytes(row.CodeHash), Encoding.ASCII.GetBytes(EmailCodeHash(user.Id, digits)));
-        if (ok || row.Attempts >= EmailMaxAttempts) row.UsedAt = now;
-        await _db.SaveChangesAsync();
-        return ok;
+        // Burn the code on success (only one request may win it) — the cap itself already stops further guesses.
+        if (ok) return await _db.EmailLoginCodes.Where(c => c.Id == row.Id && c.UsedAt == null)
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.UsedAt, now)) == 1;
+        return false;
     }
 
     // ---- recovery codes ----------------------------------------------------

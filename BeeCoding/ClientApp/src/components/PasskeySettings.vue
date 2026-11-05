@@ -11,6 +11,7 @@ const name = ref('');
 const renaming = ref(null);        // { id, name }
 const removing = ref(null);        // passkey id waiting for the password
 const password = ref('');
+const addPassword = ref('');       // adding needs the password too: an open session alone must not be able to plant a sign-in method
 
 const supported = computed(() => passkeysSupported());
 
@@ -26,10 +27,10 @@ async function guarded(fn) {
 }
 
 const add = () => guarded(async () => {
-  const { options, state } = await api.post('/api/auth/passkeys/options');
+  const { options, state } = await api.post('/api/auth/passkeys/options', { password: addPassword.value });
   const response = await createPasskey(options);
   await api.post('/api/auth/passkeys', { state, name: name.value, response });
-  name.value = '';
+  name.value = ''; addPassword.value = '';
   await load();
 });
 const saveRename = () => guarded(async () => {
@@ -93,7 +94,8 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
 
       <div v-if="supported" class="flex flex-wrap gap-2">
         <input v-model="name" maxlength="80" placeholder="Name, e.g. My phone" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-        <button @click="add" :disabled="busy" :class="primaryBtn">Add a passkey</button>
+        <input v-model="addPassword" type="password" autocomplete="current-password" placeholder="Your password" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <button @click="add" :disabled="busy || !addPassword" :class="primaryBtn">Add a passkey</button>
       </div>
     </div>
   </section>

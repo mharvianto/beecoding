@@ -228,7 +228,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (_pw.Reauth(user, dto.Password) is string pwErr) return BadRequest(pwErr);
-        if (!await _mfa.HasMfaAsync(user)) return BadRequest("Turn on an authenticator app or email codes first.");
+        if (!_mfa.HasMfa(user)) return BadRequest("Turn on an authenticator app or email codes first.");
         return new MfaRecoveryCodesDto(await _mfa.RegenerateRecoveryCodesAsync(user));
     }
 
@@ -240,7 +240,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
 
     private async Task DropRecoveryCodesIfNoFactorAsync(User user)
     {
-        if (await _mfa.HasMfaAsync(user)) return;
+        if (_mfa.HasMfa(user)) return;
         _db.MfaRecoveryCodes.RemoveRange(_db.MfaRecoveryCodes.Where(c => c.UserId == user.Id));
         await _db.SaveChangesAsync();
     }

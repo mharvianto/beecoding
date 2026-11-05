@@ -92,11 +92,13 @@ public class PasskeyController(AppDbContext db, PasswordService pw, MfaService m
 
     [HttpPost("options")]
     [Authorize]
-    public async Task<IActionResult> RegisterOptions()
+    public async Task<IActionResult> RegisterOptions(MfaPasswordDto dto)
     {
         if (!_passkeys.Enabled) return NotFound();
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
+        // Same re-check as removing one: a passkey signs in without a password or a second factor, so a stolen open session must not be able to add one.
+        if (_pw.Reauth(user, dto.Password) is string err) return BadRequest(err);
         var existing = await _db.UserPasskeys.Where(p => p.UserId == user.Id).Select(p => p.CredentialId).ToListAsync();
         var options = _passkeys.CreationOptions(user, existing);
         return Ok(new { options, state = _mfa.ProtectState(StateRegister, user.Id, options.ToJson()) });
