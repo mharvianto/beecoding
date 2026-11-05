@@ -48,15 +48,29 @@ onBeforeUnmount(() => clearInterval(timer));
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading && !rows.length }">
       <div v-for="r in rows" :key="r.userId + '-' + r.problemSlug"
-           class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900"
+           class="px-4 py-2.5 bg-white dark:bg-slate-900"
            :class="{ 'bg-amber-50 dark:bg-amber-500/10': r.me }">
-        <span class="text-sm font-medium truncate min-w-0 sm:w-56 sm:shrink-0">
-          {{ r.displayName }}<span v-if="r.me" class="text-xs text-amber-600 dark:text-amber-400"> (you)</span>
-        </span>
-        <span class="hidden sm:inline text-xs text-slate-400 dark:text-slate-500 shrink-0">solved</span>
-        <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
-        <LevelBadge :level="r.level" />
-        <span class="text-[11px] text-slate-400 dark:text-slate-500 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
+        <!-- narrow screens: who and when on top, the whole problem title below (it wraps instead of being cut to a few letters) -->
+        <div class="sm:hidden">
+          <div class="flex items-baseline gap-2">
+            <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span></span>
+            <span class="ml-auto text-[11px] text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
+          </div>
+          <div class="flex items-start gap-2 mt-0.5">
+            <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline line-clamp-2 min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
+            <LevelBadge :level="r.level" class="shrink-0 mt-0.5" />
+          </div>
+        </div>
+        <!-- wider screens: one row -->
+        <div class="hidden sm:flex items-center gap-3">
+          <span class="text-sm font-medium truncate w-56 shrink-0">
+            {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span>
+          </span>
+          <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">solved</span>
+          <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
+          <LevelBadge :level="r.level" />
+          <span class="text-[11px] text-slate-400 dark:text-slate-500 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
+        </div>
       </div>
       <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">
         Nothing solved yet. <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> a problem to be first.
