@@ -1770,7 +1770,7 @@ onMounted(async () => {
 
         <div v-if="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-start gap-x-4 gap-y-2">
           <AiCheckPanel kind="bank" :id="row.id" class="w-full" />
-          <SimilarProblems :id="row.id" class="w-full" />
+          <SimilarProblems :url="`/api/admin-ui/bank/${row.id}/similar`" class="w-full" />
         </div>
 
         <div v-if="expandedReview === row.slug" class="mt-3 space-y-3">

@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import { langLabel } from '../lib/templates';
 import LevelBadge from '../components/LevelBadge.vue';
+import SimilarProblems from '../components/SimilarProblems.vue';
 import { useUrlQuery } from '../lib/urlQuery';
 
 const router = useRouter();
@@ -321,6 +322,7 @@ onBeforeUnmount(() => { pollStopped = true; });
             <button @click="openPropose(b)" class="row-action-btn"><span>💡</span><span>Propose to a board</span></button>
           </template>
         </div>
+        <SimilarProblems v-if="b.mine" :url="`/api/bank/${b.slug}/similar`" class="mt-1 -ml-2" />
         <div v-if="!b.mine && auth.user.isAdmin" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
           <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" title="Admin: move this problem to Trash"><span>🗑</span><span>Delete</span></button>
         </div>

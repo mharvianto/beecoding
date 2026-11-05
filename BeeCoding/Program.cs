@@ -168,6 +168,8 @@ builder.Services.Configure<JudgeOptions>(builder.Configuration.GetSection("Judge
 builder.Services.Configure<LspOptions>(builder.Configuration.GetSection("Lsp"));
 builder.Services.Configure<BeeCoding.Services.Similarity.EmbeddingOptions>(builder.Configuration.GetSection("Embeddings"));
 builder.Services.AddSingleton<BeeCoding.Services.Similarity.EmbeddingService>();
+builder.Services.AddScoped<BeeCoding.Services.Similarity.SimilarProblemFinder>();
+builder.Services.AddSingleton<BeeCoding.Services.Similarity.SimilarCooldown>();
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
 builder.Services.AddSingleton<SharedClangd>();
 builder.Services.AddSingleton<LspEndpoint>();

@@ -1,6 +1,7 @@
 using BeeCoding.Data;
 using BeeCoding.Models;
 using BeeCoding.Services;
+using BeeCoding.Services.Similarity;
 using BeeCoding.Services.Judge;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,23 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     private IQueryable<BankProblem> Readable() => IsStudent
         ? _db.BankProblems.Where(b => b.OwnerId == UserId)
         : _db.BankProblems.Where(b => b.OwnerId == UserId || b.IsPublic);
+
+    /// <summary>
+    /// The public problems (plus the caller's own pending ones) closest to one of the caller's problems, so an author can spot a
+    /// duplicate before submitting it. Never offers anyone else's draft or pending problem: a viewer only gets what practice already
+    /// shows them (public) or what is theirs. Titles and a score only — no statement, no tests.
+    /// </summary>
+    [HttpGet("api/bank/{slug}/similar")]
+    public async Task<ActionResult<SimilarProblemsDto>> Similar(string slug, [FromServices] SimilarProblemFinder finder, [FromServices] SimilarCooldown cooldown)
+    {
+        var b = await Readable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown }).FirstOrDefaultAsync();
+        if (b is null) return NotFound();
+        if (!cooldown.TryAcquire(UserId)) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait a few seconds before checking again.");
+        var others = (await _db.BankProblems.Where(x => x.Id != b.Id && (x.IsPublic || (x.PendingReview && x.OwnerId == UserId)))
+            .Select(x => new { x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId }).ToListAsync())
+            .Select(x => new SimilarProblemFinder.Candidate(x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId)).ToList();
+        return await finder.FindAsync(b.Title, b.StatementMarkdown, others, UserId, 5);
+    }
 
     [HttpGet("api/bank")]
     public async Task<ActionResult<IEnumerable<BankSummaryDto>>> List(

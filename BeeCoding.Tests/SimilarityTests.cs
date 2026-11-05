@@ -78,6 +78,50 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task An_author_is_only_offered_public_problems_and_their_own_never_anyone_elses_draft()
+    {
+        using var app = new TestApp();
+        async Task<HttpClient> Student(string email)
+        {
+            var c = app.CreateClient();
+            (await c.PostAsJsonAsync("/api/auth/register", new { email, password = "Passw0rd!x1", displayName = "Siswa", role = "Student" })).EnsureSuccessStatusCode();
+            return c;
+        }
+        var alice = await Student("alice@test.dev");
+        var bob = await Student("bob@test.dev");
+        int aliceDraft, bobDraft, bobPending, alicePending; string aliceSlug, bobSlug;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var a = await db.Users.FirstAsync(u => u.Email == "alice@test.dev");
+            var b = await db.Users.FirstAsync(u => u.Email == "bob@test.dev");
+            var teacher = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+            BankProblem Make(int owner, string title, string text, bool pub = false, bool pending = false) => new() { OwnerId = owner, Title = title, StatementMarkdown = text, IsPublic = pub, PendingReview = pending };
+            var d1 = Make(a.Id, "Kata Terpendek", Shortest);
+            var p1 = Make(a.Id, "Kata Terpendek v2", ShortestCopy, pending: true);
+            var d2 = Make(b.Id, "Kata Tersingkat Bob", ShortestCopy);                 // Bob's draft
+            var p2 = Make(b.Id, "Kata Pendek Bob Pending", ShortestCopy, pending: true);   // Bob's pending
+            db.BankProblems.AddRange(d1, p1, d2, p2, Make(teacher.Id, "Kata Publik", ShortestCopy, pub: true));
+            await db.SaveChangesAsync();
+            aliceDraft = d1.Id; aliceSlug = d1.Slug; alicePending = p1.Id; bobDraft = d2.Id; bobPending = p2.Id; bobSlug = d2.Slug;
+        }
+
+        var r = JsonDocument.Parse(await alice.GetStringAsync($"/api/bank/{aliceSlug}/similar")).RootElement;
+        var items = r.GetProperty("items").EnumerateArray().ToList();
+        var ids = items.Select(i => i.GetProperty("id").GetInt32()).ToList();
+        Assert.DoesNotContain(bobDraft, ids);        // someone else's draft
+        Assert.DoesNotContain(bobPending, ids);      // someone else's problem under review
+        Assert.DoesNotContain(aliceDraft, ids);      // never itself
+        Assert.Contains(alicePending, ids);          // her own pending one is fine
+        Assert.Contains(items, i => i.GetProperty("title").GetString() == "Kata Publik" && i.GetProperty("linkable").GetBoolean());
+        Assert.All(items, i => Assert.True(i.GetProperty("linkable").GetBoolean()));   // everything she is offered she may open
+
+        // another author's problem is not hers to check, and checks are spaced out
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, (await alice.GetAsync($"/api/bank/{bobSlug}/similar")).StatusCode);
+        Assert.Equal(System.Net.HttpStatusCode.TooManyRequests, (await alice.GetAsync($"/api/bank/{aliceSlug}/similar")).StatusCode);
+    }
+
+    [Fact]
     public void The_embedding_matches_the_reference_implementation_and_ranks_by_meaning()
     {
         if (ModelDir is null) return;

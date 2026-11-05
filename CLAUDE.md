@@ -186,7 +186,7 @@ one, to catch a duplicate before approving. Two rankers: `TextSimilarity` (TF-ID
 `Embeddings:ModelDir` holds multilingual-e5-small, `EmbeddingService` (ONNX Runtime, loaded on use, released when idle) with vectors cached in
 `BankProblemEmbeddings` by `EmbeddingBackfill`. The endpoint uses e5 only when EVERY candidate has a current vector (a partial set would hide problems),
 else text overlap. Measured on this bank: with 15 hand-written rewrites e5 had the original in the top 5 every time, text overlap 13/15, but neither
-gives a threshold that separates duplicates from same-topic problems — so it is only a list for a person; do not auto-reject on a score. It is not AI
+gives a threshold that separates duplicates from same-topic problems — so it is only a list for a person; do not auto-reject on a score. Authors (students too) get the same list for their own problems on `/bank` (`BankController.Similar`): candidates are ONLY public problems plus the caller's own pending ones — never anyone else's draft or pending problem — each with `Linkable` (public or own) → `/practice/{slug}`; titles and scores only, one check per 3 s (`SimilarCooldown`). Admins see public + everyone's pending. `SimilarProblemFinder` only ranks what the caller hands it, so the access rule lives in the two callers. It is not AI
 (no provider, no kill switch/quota). The tokenizer is `Microsoft.ML.Tokenizers` sentencepiece with ids remapped to the XLM-R vocabulary (`ToModelIds`,
 checked against the Hugging Face tokenizer by a test that runs when `E5_MODEL_DIR` is set).
 
