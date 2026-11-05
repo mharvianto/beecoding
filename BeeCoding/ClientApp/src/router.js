@@ -46,6 +46,32 @@ export const router = createRouter({
   routes,
 });
 
+// A deploy replaces the build, and the old build's hashed chunk files are gone. A tab opened before the deploy still runs the old
+// code, so the first click on a page it has not loaded yet asks for a file that no longer exists ("Failed to fetch dynamically
+// imported module") and the link seems dead until a manual refresh. Reload onto the page that was asked for: the new index.html
+// brings the new build. Once per 15 s at most, so a build that is itself broken cannot loop.
+const CHUNK_ERROR = /dynamically imported module|importing a module script failed|error loading dynamically imported module|Unable to preload CSS/i;
+function reloadForNewBuild(target) {
+  try {
+    const last = Number(sessionStorage.getItem('beecoding.chunkReload')) || 0;
+    if (Date.now() - last < 15_000) return false;
+    sessionStorage.setItem('beecoding.chunkReload', String(Date.now()));
+  } catch { /* storage blocked: reload anyway, the page is useless as it is */ }
+  window.location.assign(target ?? window.location.href);
+  return true;
+}
+// Vite reports a failed chunk on its own event first (and the router error never fires if that is handled), so keep track of where the
+// current navigation is going: that is the page to reload onto.
+let navigatingTo = null;
+router.beforeEach((to) => { navigatingTo = to.fullPath; });
+router.afterEach(() => { navigatingTo = null; });
+const hrefOf = (fullPath) => (fullPath ? router.resolve(fullPath).href : undefined);
+router.onError((err, to) => {
+  if (CHUNK_ERROR.test(String(err?.message ?? err))) reloadForNewBuild(hrefOf(to?.fullPath ?? navigatingTo));
+});
+// Chunks a page loads on its own (the editor's KaTeX, Monaco workers, ...) fail the same way.
+window.addEventListener('vite:preloadError', (e) => { if (reloadForNewBuild(hrefOf(navigatingTo))) e.preventDefault(); });
+
 router.beforeEach(async (to) => {
   const auth = useAuth();
   if (!auth.ready) await auth.fetchMe();

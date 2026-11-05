@@ -524,21 +524,22 @@ app.UseResponseCompression();
 if (app.Environment.IsDevelopment())
     app.UseCors(DevCors);
 
-app.UseDefaultFiles();
-app.UseStaticFiles(new StaticFileOptions
+// Vite writes content-hashed names under /assets — safe to cache forever.
+// Everything else (index.html, theme-init.js, favicon) must revalidate so a
+// deploy is picked up; ETag/Last-Modified still give cheap 304s.
+var spaFiles = new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
-        // Vite writes content-hashed names under /assets — safe to cache forever.
-        // Everything else (index.html, theme-init.js, favicon) must revalidate so a
-        // deploy is picked up; ETag/Last-Modified still give cheap 304s.
         var dir = ctx.Context.Request.Path.Value ?? "";
         ctx.Context.Response.Headers["Cache-Control"] =
             dir.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
                 ? "public, max-age=31536000, immutable"
                 : "no-cache";
     },
-});
+};
+app.UseDefaultFiles();
+app.UseStaticFiles(spaFiles);
 
 // CSRF: the session cookie is SameSite=None (LTI iframes), so the browser would attach it to a
 // forged cross-site POST. Browsers label every request with Sec-Fetch-Site; refuse unsafe methods
@@ -591,7 +592,12 @@ app.MapGet("/lsp/cpp", (HttpContext c, LspEndpoint ep) => ep.HandleAsync(c)).Req
 app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
     Results.Ok(new { enabled = cfg.LspEnabled }));
 
-app.MapFallbackToFile("index.html");
+// A file under /assets that is not there (the old build's chunk, after a deploy) is a 404 — not index.html with a 200, which the browser
+// then refuses as a script ("MIME type text/html") with no hint of what happened.
+app.MapGet("/assets/{**path}", () => Results.NotFound());
+// The fallback page (every deep link) revalidates like index.html itself; with the default options it carried no Cache-Control, so a
+// browser could keep an index.html naming chunks that a deploy has since removed.
+app.MapFallbackToFile("index.html", spaFiles);
 
 app.Run();
 
