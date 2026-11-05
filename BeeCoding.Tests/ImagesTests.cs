@@ -217,3 +217,23 @@ public class ImageUsageTests
         Assert.Equal((1, 5000L, 1), (onlyStudent.Images, onlyStudent.Bytes, onlyStudent.Users));
     }
 }
+
+[Collection("app")]
+public class StatementCacheTests
+{
+    [Fact]
+    public void The_rendered_statement_cache_stays_within_its_size_limit_however_many_edits_there_are()
+    {
+        using var app = new TestApp();
+        var env = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
+        using var svc = new BeeCoding.Services.StatementImageService(env, cacheLimitBytes: 120_000);
+        long biggest = 0;
+        for (int edit = 0; edit < 40; edit++)   // 40 versions of one statement, each under its own fingerprint
+        {
+            var png = svc.RenderPng($"k1:v{edit}:l", $"# Soal\n\nRevisi nomor {edit} dari pernyataan ini.", [("1 2", "3")], "tester", dark: false);
+            biggest = Math.Max(biggest, png.Length);
+        }
+        Assert.True(biggest * 40 > 120_000, "the test proves nothing unless 40 entries would not fit without eviction");
+        Assert.InRange(svc.CachedBytes, 1, 120_000);
+    }
+}

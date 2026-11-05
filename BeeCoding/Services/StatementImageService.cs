@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using Microsoft.Extensions.Caching.Memory;
 using Markdig;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -11,22 +11,31 @@ namespace BeeCoding.Services;
 /// never receives the text — there is nothing to select, copy, or read from the DOM.
 /// A per-viewer identity watermark is baked into the pixels.
 /// </summary>
-public class StatementImageService
+public class StatementImageService : IDisposable
 {
     private const int Width = 780;
     private const float Margin = 28f;
     private const int MaxHeight = 6000;
 
     private readonly SKTypeface _regular, _bold, _mono;
-    private readonly ConcurrentDictionary<string, byte[]> _baseCache = new();
+    // The key holds a fingerprint of the statement, so every edit makes a new entry; a plain dictionary would keep all the old ones until
+    // restart. Size-limited and expiring instead: ~40 KB an entry, so the default holds well over a thousand statements in each theme.
+    private readonly MemoryCache _baseCache;
+    private static readonly TimeSpan KeepFor = TimeSpan.FromHours(1);
 
-    public StatementImageService(IWebHostEnvironment env)
+    /// <summary>Bytes of rendered statements currently kept (for tests and diagnostics).</summary>
+    public long CachedBytes => _baseCache.GetCurrentStatistics()?.CurrentEstimatedSize ?? 0;
+
+    public StatementImageService(IWebHostEnvironment env, long cacheLimitBytes = 64L * 1024 * 1024)
     {
+        _baseCache = new MemoryCache(new MemoryCacheOptions { SizeLimit = cacheLimitBytes, TrackStatistics = true });
         var dir = Path.Combine(env.ContentRootPath, "Assets", "fonts");
         _regular = LoadFace(Path.Combine(dir, "DejaVuSans.ttf"));
         _bold = LoadFace(Path.Combine(dir, "DejaVuSans-Bold.ttf"));
         _mono = LoadFace(Path.Combine(dir, "DejaVuSansMono.ttf"));
     }
+
+    public void Dispose() => _baseCache.Dispose();
 
     private static SKTypeface LoadFace(string path) =>
         File.Exists(path) ? SKTypeface.FromFile(path) ?? SKTypeface.Default : SKTypeface.Default;
@@ -42,7 +51,13 @@ public class StatementImageService
         IReadOnlyList<(string Input, string Output)> samples, string watermark, bool dark,
         IReadOnlyDictionary<string, byte[]>? images = null)
     {
-        var basePng = _baseCache.GetOrAdd(cacheKey, _ => RenderBase(markdown, samples, dark, images ?? new Dictionary<string, byte[]>()));
+        var basePng = _baseCache.GetOrCreate(cacheKey, e =>
+        {
+            var png = RenderBase(markdown, samples, dark, images ?? new Dictionary<string, byte[]>());
+            e.Size = png.Length;
+            e.SlidingExpiration = KeepFor;
+            return png;
+        })!;
 
         using var bmp = SKBitmap.Decode(basePng);
         using var canvas = new SKCanvas(bmp);
