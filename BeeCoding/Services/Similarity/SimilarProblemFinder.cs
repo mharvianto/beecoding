@@ -8,19 +8,18 @@ namespace BeeCoding.Services.Similarity;
 public record SimilarProblemDto(int Id, string Slug, string Title, double Score, string State, bool Linkable);
 public record SimilarProblemsDto(string Method, List<SimilarProblemDto> Items, int Candidates);
 
-/// <summary>One author check per user per <see cref="Gap"/>: embedding is CPU work a whole class could trigger at once.</summary>
+/// <summary>Minimum spacing between a user's requests of one kind (an author check, a search suggestion): embedding is CPU work a whole class could trigger at once.</summary>
 public sealed class SimilarCooldown
 {
-    public static readonly TimeSpan Gap = TimeSpan.FromSeconds(3);
-    private readonly ConcurrentDictionary<int, long> _last = new();
+    private readonly ConcurrentDictionary<(int, string), long> _last = new();
 
-    public bool TryAcquire(int userId)
+    public bool TryAcquire(int userId, string kind, TimeSpan gap)
     {
         var now = DateTime.UtcNow.Ticks;
         lock (_last)
         {
-            if (_last.TryGetValue(userId, out var prev) && now - prev < Gap.Ticks) return false;
-            _last[userId] = now;
+            if (_last.TryGetValue((userId, kind), out var prev) && now - prev < gap.Ticks) return false;
+            _last[(userId, kind)] = now;
             return true;
         }
     }

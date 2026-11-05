@@ -49,7 +49,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     {
         var b = await Readable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown }).FirstOrDefaultAsync();
         if (b is null) return NotFound();
-        if (!cooldown.TryAcquire(UserId)) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait a few seconds before checking again.");
+        if (!cooldown.TryAcquire(UserId, "check", TimeSpan.FromSeconds(3))) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait a few seconds before checking again.");
         var others = (await _db.BankProblems.Where(x => x.Id != b.Id && (x.IsPublic || (x.PendingReview && x.OwnerId == UserId)))
             .Select(x => new { x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId }).ToListAsync())
             .Select(x => new SimilarProblemFinder.Candidate(x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId)).ToList();

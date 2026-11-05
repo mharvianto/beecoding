@@ -36,6 +36,21 @@ const page = ref(route.query.page ? Math.max(1, Number(route.query.page) || 1) :
 const pageSize = ref(25);
 const total = ref(0);
 const solvedTotal = ref(0);
+// "You might be looking for": by-meaning guesses, asked only when a typed search finds little (the server returns none if the model is off).
+const suggestions = ref([]);
+let suggestSeq = 0;
+async function loadSuggestions() {
+  const seq = ++suggestSeq;
+  suggestions.value = [];
+  const text = q.value.trim();
+  if (text.length < 3 || total.value >= 3) return;
+  try {
+    const p = new URLSearchParams({ q: text });
+    if (level.value) p.set('level', level.value);
+    const r = await api.get(`/api/practice/suggest?${p}`);
+    if (seq === suggestSeq) suggestions.value = (r ?? []).filter((s) => !items.value.some((i) => i.id === s.id));   // a slow answer for an older search must not land on a newer one
+  } catch { /* optional */ }
+}
 
 const guide = ref({ topics: [], recommended: [], source: 'heuristic', aiAvailable: false });
 const showAllTopics = ref(false);
@@ -84,6 +99,7 @@ async function load() {
     total.value = res.total ?? 0;
     solvedTotal.value = res.solved ?? 0;
     page.value = res.page ?? 1;   // server clamps into range
+    loadSuggestions();
   } catch (e) { error.value = e.message; }
 }
 
@@ -276,6 +292,20 @@ onMounted(() => {
         <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>
       <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">No problems.</p>
+    </div>
+
+    <div v-if="suggestions.length" class="mt-4">
+      <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">You might be looking for</h2>
+      <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
+        <RouterLink v-for="s in suggestions" :key="s.id" :to="`/practice/${s.slug}`"
+                    class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60">
+          <span class="flex-1 min-w-0 text-sm font-medium truncate">{{ s.title }}</span>
+          <span v-if="s.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ s.tags }}</span>
+          <LevelBadge :level="s.level" />
+          <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(s.allowedLanguages) }}</span>
+        </RouterLink>
+      </div>
+      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Matched by meaning, so some may be off.</p>
     </div>
 
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-1 mt-4 text-sm">

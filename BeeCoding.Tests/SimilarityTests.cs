@@ -30,6 +30,15 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task Search_suggestions_are_empty_while_no_model_is_set_up()
+    {
+        using var app = new TestApp();
+        var c = app.CreateClient();
+        (await c.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+        Assert.Equal(0, JsonDocument.Parse(await c.GetStringAsync("/api/practice/suggest?q=faktor+prima+bilangan")).RootElement.GetArrayLength());
+    }
+
+    [Fact]
     public async Task The_corpus_is_built_once_and_a_missing_problem_scores_zero_instead_of_failing()
     {
         var cache = new TextCorpusCache();
@@ -227,6 +236,14 @@ public class SimilarityTests
             var r = JsonDocument.Parse(await admin.GetStringAsync($"/api/admin-ui/bank/{targetId}/similar")).RootElement;
             Assert.Equal("e5", r.GetProperty("method").GetString());
             Assert.Equal(copyId, r.GetProperty("items")[0].GetProperty("id").GetInt32());
+
+            // search by meaning: finds the public problem by a description, honours the level filter, never offers a non-public one
+            var found = JsonDocument.Parse(await admin.GetStringAsync("/api/practice/suggest?q=" + Uri.EscapeDataString("uraikan bilangan menjadi faktor prima"))).RootElement;
+            Assert.Contains(found.EnumerateArray(), x => x.GetProperty("title").GetString() == "Faktorisasi Prima");
+            Assert.DoesNotContain(found.EnumerateArray(), x => x.GetProperty("id").GetInt32() == targetId);   // the target is pending, not public
+            await Task.Delay(1100);   // the per-user search spacing
+            var hard = JsonDocument.Parse(await admin.GetStringAsync("/api/practice/suggest?level=Hard&q=" + Uri.EscapeDataString("uraikan bilangan menjadi faktor prima"))).RootElement;
+            Assert.DoesNotContain(hard.EnumerateArray(), x => x.GetProperty("title").GetString() == "Faktorisasi Prima");   // it is Medium
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); Environment.SetEnvironmentVariable("Embeddings__ModelDir", null); }
     }

@@ -313,6 +313,35 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     }
 
     /// <summary>
+    /// "You might be looking for": public problems closest in meaning to what was typed, for when the title/tag search finds
+    /// little. Needs the e5 model (else an empty list). Ranks by the stored vectors of the same public pool the list shows,
+    /// honouring the level filter; a problem without a vector yet is simply not suggested (the plain search still finds it).
+    /// There is no score cut-off: e5 scores crowd together, so the list is a few guesses, not an answer.
+    /// </summary>
+    [HttpGet("suggest")]
+    public async Task<ActionResult<List<RecommendationDto>>> Suggest([FromQuery] string? q, [FromQuery] string? level,
+        [FromServices] EmbeddingService embeddings, [FromServices] SimilarCooldown cooldown)
+    {
+        var text = (q ?? "").Trim();
+        if (text.Length < 3 || text.Length > 200 || !embeddings.Enabled) return new List<RecommendationDto>();
+        if (!cooldown.TryAcquire(UserId, "search", TimeSpan.FromSeconds(1))) return new List<RecommendationDto>();
+
+        var pool = Pool();
+        if (Enum.TryParse<ProblemLevel>(level, ignoreCase: true, out var lvl)) pool = pool.Where(b => b.Level == lvl);
+        var problems = await pool.Select(b => new { b.Id, b.Slug, b.Title, b.AllowedLanguages, b.Level, b.Tags }).ToListAsync();
+        var ids = problems.Select(p => p.Id).ToList();
+        var stored = await _db.BankProblemEmbeddings.Where(e => ids.Contains(e.BankProblemId)).ToDictionaryAsync(e => e.BankProblemId, e => e.Vector);
+        if (stored.Count == 0) return new List<RecommendationDto>();
+
+        var v = await Task.Run(() => embeddings.Embed(text));
+        return problems.Where(p => stored.ContainsKey(p.Id))
+            .Select(p => (p, score: EmbeddingService.Dot(v, EmbeddingService.FromBytes(stored[p.Id]))))
+            .OrderByDescending(x => x.score).Take(5)
+            .Select(x => new RecommendationDto(x.p.Id, x.p.Slug, x.p.Title, x.p.AllowedLanguages, x.p.Level.ToString(), x.p.Tags, "Close in meaning to your search"))
+            .ToList();
+    }
+
+    /// <summary>
     /// "What next?" right after solving: the guide's top pick plus up to two unsolved public problems closest to the one just
     /// solved, never an easier one (so it stays a step forward). Empty until the caller has solved this problem. Public problems
     /// only — the same pool the list shows — so nothing private is offered.
@@ -330,7 +359,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         if (pick is not null) result.Add(pick);
 
         // Similar ones cost a ranking pass; if this user just asked, they get the guide's pick alone rather than an error.
-        if (cooldown.TryAcquire(UserId))
+        if (cooldown.TryAcquire(UserId, "check", TimeSpan.FromSeconds(3)))
         {
             var pool = await Pool().Where(b => b.Id != cur.Id && b.Level >= cur.Level && !solvedIds.Contains(b.Id) && (pick == null || b.Id != pick.Id))
                 .Select(b => new { b.Id, b.Slug, b.Title, b.StatementMarkdown, b.AllowedLanguages, b.Level, b.Tags, b.OwnerId }).ToListAsync();
