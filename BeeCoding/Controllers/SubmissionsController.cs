@@ -39,13 +39,13 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
             return BadRequest("This session is closed — submissions are no longer accepted.");
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
         if (dto.Code.Length > 200_000) return BadRequest("Code is too large.");
-        if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
-        if (!_submitCooldown.TryAcquire(UserId))
-            return StatusCode(429, $"Please wait {Math.Ceiling(_submitCooldown.SecondsRemaining(UserId))}s before submitting again.");
-
+        // A rejected language must not use up the rate / cool-down slot.
         var lang = dto.Language is "c" or "cpp" ? dto.Language : Languages.Default(problem.AllowedLanguages);
         if (!Languages.Allows(problem.AllowedLanguages, lang))
             return BadRequest($"This problem only accepts {Languages.Label(problem.AllowedLanguages)}.");
+        if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
+        if (!_submitCooldown.TryAcquire(UserId))
+            return StatusCode(429, $"Please wait {Math.Ceiling(_submitCooldown.SecondsRemaining(UserId))}s before submitting again.");
 
         DateOnly? localDay = DateOnly.TryParseExact(dto.LocalDay, "yyyy-MM-dd", out var ld) ? ld : null;
         var sub = new Submission
