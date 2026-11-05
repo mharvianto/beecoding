@@ -1,11 +1,14 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
+import RecentSolves from '../components/RecentSolves.vue';
 
 const route = useRoute();
 const router = useRouter();
 
+// 'ranking' | 'recent' — kept in the URL (?tab=recent) like scope and period.
+const tab = ref(route.query.tab === 'recent' ? 'recent' : 'ranking');
 const rows = ref([]);
 const error = ref('');
 const loading = ref(false);
@@ -71,6 +74,7 @@ async function load() {
 }
 function syncQuery() {
   const query = { ...route.query, scope: scope.value, period: period.value };
+  if (tab.value === 'recent') query.tab = 'recent'; else delete query.tab;
   if (page.value > 1) query.page = String(page.value); else delete query.page;
   router.replace({ query });
   saveLastQuery();
@@ -83,7 +87,8 @@ function nextPage() { if (page.value * pageSize < total.value) { page.value++; s
 
 // Browser back/forward (or a direct /leaderboard?scope=...&period=... link) changes the
 // query without going through setScope/setPeriod — keep local state in sync.
-watch(() => [route.query.scope, route.query.period, route.query.page], ([s, p, pg]) => {
+watch(() => [route.query.scope, route.query.period, route.query.page, route.query.tab], ([s, p, pg, t]) => {
+  tab.value = t === 'recent' ? 'recent' : 'ranking';
   const nextScope = /^(org|board):[\w-]+$/.test(s) ? s : 'global';
   const nextPeriod = p === '1m' ? '1m' : 'all';
   const nextPage = pageFromQuery(pg);
@@ -106,6 +111,13 @@ onMounted(async () => {
   await load();
 });
 
+function setTab(t) { tab.value = t; syncQuery(); }
+// Which org/board the scope picker points at, for the "Recent" tab (the ranking tab builds the same ids in load()).
+const scopeIds = computed(() => {
+  if (scope.value.startsWith('org:')) return { organizationId: orgs.value.find((o) => o.slug === scope.value.slice(4))?.id };
+  if (scope.value.startsWith('board:')) return { boardId: boards.value.find((b) => b.slug === scope.value.slice(6))?.id };
+  return {};
+});
 const medal = (r) => (r === 1 ? '🥇' : r === 2 ? '🥈' : r === 3 ? '🥉' : '');
 const showHowItWorks = ref(false);
 </script>
@@ -119,7 +131,13 @@ const showHowItWorks = ref(false);
         How is ranking calculated?
       </button>
     </div>
-    <div v-if="showHowItWorks" class="text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 space-y-1">
+    <div class="flex gap-1.5 text-sm mb-3">
+      <button @click="setTab('ranking')" class="rounded-lg px-3 py-1.5"
+              :class="tab === 'ranking' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">Ranking</button>
+      <button @click="setTab('recent')" class="rounded-lg px-3 py-1.5"
+              :class="tab === 'recent' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">Recent solves</button>
+    </div>
+    <div v-if="showHowItWorks && tab === 'ranking'" class="text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 space-y-1">
       <p>Ranked by total XP earned in the selected scope and period, highest first.</p>
       <p>XP comes from your <em>first</em> Accepted solve of each problem: Easy = 10 XP, Medium = 20 XP, Hard = 40 XP. Solving it again, or an unsuccessful attempt, earns no extra XP.</p>
       <p>Equal XP shares the same rank (e.g. two people tied for #2 are both "#2"; the next distinct XP total is "#4", not "#3").</p>
@@ -143,7 +161,7 @@ const showHowItWorks = ref(false);
           <option v-for="b in boards" :key="b.id" :value="b.slug">{{ b.title }}</option>
         </select>
       </div>
-      <div class="flex gap-1.5 text-sm sm:ml-auto">
+      <div v-if="tab === 'ranking'" class="flex gap-1.5 text-sm sm:ml-auto">
         <button v-for="p in periods" :key="p[0]" @click="setPeriod(p[0])"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
                 :class="period === p[0] ? 'bg-amber-500 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
@@ -152,6 +170,9 @@ const showHowItWorks = ref(false);
       </div>
     </div>
 
+    <RecentSolves v-if="tab === 'recent'" :organization-id="scopeIds.organizationId" :board-id="scopeIds.boardId" />
+
+    <template v-else>
     <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
@@ -209,5 +230,6 @@ const showHowItWorks = ref(false);
                 class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
       </div>
     </div>
+    </template>
   </div>
 </template>

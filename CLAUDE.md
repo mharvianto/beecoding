@@ -156,6 +156,13 @@ that reference: `MarkdownBlock.vue` (prefixes `withBase` for a sub-path deployme
 student sees; `StatementController` loads the ids found by `ImagesController.RefsIn`). `StatementImageJanitor` deletes pictures no statement names (live or soft-deleted, board or bank) `Images:OrphanRetentionDays` (3; 0 = never) after the sweep that first found them unused (`StatementImage.UnusedSince`), so un-using a picture always leaves time to undo. Storage per uploader is shown to platform admins (Admin → System, `GET /api/admin-ui/image-usage`) and, scoped to the members, to org admins (Members tab, `GET /api/org-admin/{id}/image-usage`) through `ImageUsage` / `ImageUsagePanel.vue`. There is no
 math engine anywhere — LaTeX is downgraded to ASCII in both renderers.
 
+### Recent solves (leaderboard tab)
+
+`GET /api/leaderboard/recent` (`ProgressController.RecentSolves`, `RecentSolves.vue`, tab "Recent solves" on the leaderboard): the latest 20 first full Accepted
+solves in PRACTICE (`BankSubmission`, not `SolveRecord`, because a solve through a board is recorded there too under the same `bank:` key and would leak a
+board/exam's progress), full display names like the ranking, link to `/practice/{slug}`. Only PUBLIC bank problems, never one solved by its own author, same
+org/board scope + membership check (403) as the ranking, cached 15 s per scope. Board problems are deliberately not listed.
+
 ### Student-authored problems
 
 A student's problem bank (`/bank`, "My problems") is a private drafting space: `BankController` scopes a student to

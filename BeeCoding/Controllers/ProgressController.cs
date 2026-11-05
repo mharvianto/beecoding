@@ -12,6 +12,7 @@ namespace BeeCoding.Controllers;
 // (see ProgressController.GetYesterdayRanksAsync) — positive = moved up, negative = moved
 // down, null = not computed (a windowed period) or the user has no solves before today.
 public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null, int SolvedCount = 0, int? XpDelta = null);
+public record RecentSolveDto(int UserId, string DisplayName, string ProblemSlug, string ProblemTitle, string Level, DateTime SolvedAt, bool Me);
 public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
 public record MyOrgDto(int Id, string Name, string Slug);
 public record MyBoardDto(int Id, string Slug, string Title);
@@ -232,6 +233,49 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
                 ProgressService.LevelForXp(x.Xp), x.UserId == UserId, delta, x.Solved, xpDelta);
         }).ToList();
         return new LeaderboardPageDto(rows, total, page, pageSize);
+    }
+
+    private sealed record RecentSolveRow(int UserId, string DisplayName, string ProblemSlug, string ProblemTitle, string Level, DateTime SolvedAt);
+
+    /// <summary>
+    /// The latest 20 problems solved in Practice, with who solved them (full display name, like the ranking) and a link target.
+    /// Same scope rule as <see cref="Leaderboard"/>: an org/board needs the caller to belong to it. Only PUBLIC bank problems from
+    /// Practice submissions: a board's own problems (and a private problem copied to a board) never appear here, so neither a
+    /// board's exam progress nor a private title reaches people outside it. One row per person and problem (their first full
+    /// Accepted); problems solved by their own author are left out, as they earn no XP either. Shortcut: cached 15 s per scope,
+    /// so a new solve can take that long to show up.
+    /// </summary>
+    [HttpGet("api/leaderboard/recent")]
+    public async Task<ActionResult<List<RecentSolveDto>>> RecentSolves([FromQuery] int? organizationId = null, [FromQuery] int? boardId = null)
+    {
+        if (organizationId is int orgId
+            && !await _db.OrganizationMemberships.AnyAsync(m => m.OrganizationId == orgId && m.UserId == UserId))
+            return Forbid();
+        if (boardId is int bId
+            && !await _db.BoardMemberships.AnyAsync(m => m.BoardId == bId && m.UserId == UserId))
+            return Forbid();
+
+        var rows = await _cache.GetOrCreateAsync($"leaderboard:recent:org={organizationId}:board={boardId}", async e =>
+        {
+            e.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15);
+            var solves = _db.BankSubmissions.Where(s => s.Status == SubmissionStatus.Done && s.Verdict == Verdict.Accepted && s.Score >= 1.0
+                && s.BankProblem!.IsPublic && s.BankProblem.OwnerId != s.UserId);
+            if (organizationId is int oid) solves = solves.Where(s => _db.OrganizationMemberships.Any(m => m.OrganizationId == oid && m.UserId == s.UserId));
+            if (boardId is int bid) solves = solves.Where(s => _db.BoardMemberships.Any(m => m.BoardId == bid && m.UserId == s.UserId));
+            var latest = await solves.GroupBy(s => new { s.UserId, s.BankProblemId })
+                .Select(g => new { g.Key.UserId, g.Key.BankProblemId, At = g.Min(x => x.CreatedAt) })
+                .OrderByDescending(x => x.At).Take(20).ToListAsync();
+
+            var userIds = latest.Select(x => x.UserId).Distinct().ToList();
+            var problemIds = latest.Select(x => x.BankProblemId).Distinct().ToList();
+            var names = await _db.Users.Where(u => userIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+            var problems = await _db.BankProblems.Where(b => problemIds.Contains(b.Id)).Select(b => new { b.Id, b.Slug, b.Title, b.Level }).ToDictionaryAsync(b => b.Id);
+            return latest.Where(x => names.ContainsKey(x.UserId) && problems.ContainsKey(x.BankProblemId))
+                .Select(x => new RecentSolveRow(x.UserId, names[x.UserId], problems[x.BankProblemId].Slug, problems[x.BankProblemId].Title,
+                    problems[x.BankProblemId].Level.ToString(), DateTime.SpecifyKind(x.At, DateTimeKind.Utc))).ToList();
+        }) ?? [];
+        return rows.Select(r => new RecentSolveDto(r.UserId, string.IsNullOrWhiteSpace(r.DisplayName) ? "Anonymous" : r.DisplayName.Trim(),
+            r.ProblemSlug, r.ProblemTitle, r.Level, r.SolvedAt, r.UserId == UserId)).ToList();
     }
 
     /// <summary>Each user's competition rank (1 = best, ties share a rank — same method as
