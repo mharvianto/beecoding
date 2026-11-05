@@ -5,6 +5,7 @@ import { SUPPORTED_LANGS } from '../lib/templates';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
 import { docLang } from '../lib/docLang';
+import TagSuggest from './TagSuggest.vue';
 
 // statement: editor + preview side by side, either pane hideable (never both)
 const showWrite = ref(true);
@@ -57,6 +58,10 @@ const blank = () => ({
   level: 'Medium', tags: '', isPublic: false, bannedHeaders: '', bannedSymbols: '', inputFileName: '', testCases: [],
 });
 const form = ref(blank());
+function addTag(t) {
+  const cur = form.value.tags.split(',').map((x) => x.trim()).filter(Boolean);
+  if (!cur.some((x) => x.toLowerCase() === t.toLowerCase())) form.value.tags = [...cur, t].join(', ');
+}
 const tab = ref('problem');   // 'problem' | 'tests'
 let saved = '';               // form as loaded/saved, to tell whether it changed
 
@@ -237,6 +242,7 @@ async function addImage(e) {
             <input v-model="form.tags" placeholder="loop, array, dp"
                    class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
+          <TagSuggest class="w-full" :title="form.title" :statement="form.statementMarkdown" :current="form.tags" @add="addTag" />
           <label v-if="showBankFields && !studentMode" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
             <input type="checkbox" v-model="form.isPublic" :disabled="props.problem?.pendingReview" />
             Share with other teachers

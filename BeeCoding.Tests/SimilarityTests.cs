@@ -39,6 +39,18 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task Tag_suggestions_are_off_without_the_model_and_ignore_too_little_text()
+    {
+        using var app = new TestApp();
+        var c = app.CreateClient();
+        (await c.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+        Assert.False(JsonDocument.Parse(await c.GetStringAsync("/api/tag-suggestions/enabled")).RootElement.GetProperty("enabled").GetBoolean());
+        var r = await c.PostAsJsonAsync("/api/tag-suggestions", new { title = "Faktorisasi Prima", statement = Primes });
+        Assert.Equal(0, JsonDocument.Parse(await r.Content.ReadAsStringAsync()).RootElement.GetArrayLength());
+        Assert.Equal(System.Net.HttpStatusCode.Unauthorized, (await app.CreateClient().GetAsync("/api/tag-suggestions/enabled")).StatusCode);
+    }
+
+    [Fact]
     public async Task The_corpus_is_built_once_and_a_missing_problem_scores_zero_instead_of_failing()
     {
         var cache = new TextCorpusCache();
@@ -79,7 +91,9 @@ public class SimilarityTests
             BankProblem Make(string title, string text, bool pub) => new() { OwnerId = owner.Id, Title = title, StatementMarkdown = text, IsPublic = pub, PendingReview = !pub };
             var target = Make("Kata Terpendek", Shortest, false);
             var copy = Make("Kata Tersingkat", ShortestCopy, true);
-            db.BankProblems.AddRange(target, copy, Make("Kata Terpanjang", Longest, true), Make("Faktorisasi Prima", Primes, true));
+            var primes = Make("Faktorisasi Prima", Primes, true);
+            primes.Tags = "math,primes";
+            db.BankProblems.AddRange(target, copy, Make("Kata Terpanjang", Longest, true), primes);
             await db.SaveChangesAsync();
             targetId = target.Id; copyId = copy.Id;
         }
@@ -241,6 +255,14 @@ public class SimilarityTests
             var found = JsonDocument.Parse(await admin.GetStringAsync("/api/practice/suggest?q=" + Uri.EscapeDataString("uraikan bilangan menjadi faktor prima"))).RootElement;
             Assert.Contains(found.EnumerateArray(), x => x.GetProperty("title").GetString() == "Faktorisasi Prima");
             Assert.DoesNotContain(found.EnumerateArray(), x => x.GetProperty("id").GetInt32() == targetId);   // the target is pending, not public
+
+            // tag suggestions: the tags of the nearest public problems, and nothing from too little text
+            var tags = JsonDocument.Parse(await (await admin.PostAsJsonAsync("/api/tag-suggestions", new { title = "Uraikan ke faktor prima", statement = "Diberikan bilangan N, tulis perkalian faktor primanya dari yang terkecil ke terbesar." })).Content.ReadAsStringAsync()).RootElement;
+            Assert.Contains(tags.EnumerateArray(), t => t.GetString() is "primes" or "math");
+            await Task.Delay(2100);
+            var none = await admin.PostAsJsonAsync("/api/tag-suggestions", new { title = "x", statement = "pendek" });
+            Assert.Equal(0, JsonDocument.Parse(await none.Content.ReadAsStringAsync()).RootElement.GetArrayLength());
+
             await Task.Delay(1100);   // the per-user search spacing
             var hard = JsonDocument.Parse(await admin.GetStringAsync("/api/practice/suggest?level=Hard&q=" + Uri.EscapeDataString("uraikan bilangan menjadi faktor prima"))).RootElement;
             Assert.DoesNotContain(hard.EnumerateArray(), x => x.GetProperty("title").GetString() == "Faktorisasi Prima");   // it is Medium
