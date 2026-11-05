@@ -78,7 +78,7 @@ running dev server (curl / a Playwright script).
 
 ### Judge prerequisites
 
-`gcc`/`g++` must be on `PATH`. `bubblewrap` (`bwrap`) engages automatically if the
+`gcc`/`g++` must be on `PATH`. The compiler itself runs behind `prlimit` (util-linux, `/usr/bin/prlimit`: 2 GB address space, 20 s CPU, 64 MB output file) and its messages are cut at 20 000 characters — a self-doubling macro in a few hundred bytes otherwise makes `cc1plus` eat gigabytes; without `prlimit` the judge logs a warning and compiles unlimited. `bubblewrap` (`bwrap`) engages automatically if the
 environment allows unprivileged user namespaces; otherwise the judge logs a warning at
 startup and falls back to rlimits-only (this is the case in the default dev container).
 

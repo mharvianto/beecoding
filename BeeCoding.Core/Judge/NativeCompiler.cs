@@ -10,6 +10,16 @@ public class NativeCompiler(NativeToolchain tc, ILogger<NativeCompiler> log)
     private readonly NativeToolchain _tc = tc;
     private readonly ILogger<NativeCompiler> _log = log;
 
+    // The compiler runs fully untrusted source, and a few hundred bytes can make it ask for gigabytes (a macro that doubles itself
+    // thirty times): it gets its own memory / CPU / output-file ceiling, like the programs get. 2 GB of address space is far above what
+    // a heavy <bits/stdc++.h> program needs (it compiles inside 1 GB).
+    private const string PrlimitPath = "/usr/bin/prlimit";
+    private const string CompilerLimits = "--as=2147483648 --cpu=20 --fsize=67108864";
+    // What of the compiler's messages is kept: it is stored with the submission and sent to the browser.
+    internal const int MaxOutputChars = 20_000;
+    private static readonly bool HaveLimiter = File.Exists(PrlimitPath);
+    private static int _warned;
+
     public static string SourceName(string language) => Normalize(language) == "c" ? "main.c" : "main.cpp";
 
     public static string Normalize(string language) =>
@@ -39,13 +49,16 @@ public class NativeCompiler(NativeToolchain tc, ILogger<NativeCompiler> log)
             b.Append("--symlink usr/lib /lib --symlink usr/lib64 /lib64 ");
             b.Append("--symlink usr/bin /bin --symlink usr/sbin /sbin ");
             b.Append($"--bind \"{workDir}\" \"{workDir}\" --chdir \"{workDir}\" ");
-            b.Append($"-- \"{compilerPath}\" {compilerArgs}");
+            b.Append($"-- {Limited(compilerPath, compilerArgs)}");
             psi = new ProcessStartInfo(_tc.BwrapPath, b.ToString());
         }
         else
         {
-            psi = new ProcessStartInfo(compilerPath, compilerArgs);
+            psi = HaveLimiter
+                ? new ProcessStartInfo(PrlimitPath, $"{CompilerLimits} -- \"{compilerPath}\" {compilerArgs}")
+                : new ProcessStartInfo(compilerPath, compilerArgs);
         }
+        if (!HaveLimiter && Interlocked.Exchange(ref _warned, 1) == 0) _log.LogWarning("prlimit not found: the compiler runs without a memory limit");
 
         psi.WorkingDirectory = workDir;
         psi.RedirectStandardOutput = true;
@@ -54,8 +67,18 @@ public class NativeCompiler(NativeToolchain tc, ILogger<NativeCompiler> log)
 
         using var p = new Process { StartInfo = psi };
         var sb = new StringBuilder();
-        p.OutputDataReceived += (_, e) => { if (e.Data != null) sb.AppendLine(e.Data); };
-        p.ErrorDataReceived += (_, e) => { if (e.Data != null) sb.AppendLine(e.Data); };
+        var truncated = false;
+        void Collect(string? line)
+        {
+            if (line is null) return;
+            lock (sb)   // stdout and stderr arrive on different threads
+            {
+                if (sb.Length >= MaxOutputChars) { truncated = true; return; }   // keep draining the pipe, keep nothing
+                sb.AppendLine(line);
+            }
+        }
+        p.OutputDataReceived += (_, e) => Collect(e.Data);
+        p.ErrorDataReceived += (_, e) => Collect(e.Data);
 
         try
         {
@@ -78,9 +101,18 @@ public class NativeCompiler(NativeToolchain tc, ILogger<NativeCompiler> log)
         }
 
         var ok = p.ExitCode == 0 && File.Exists(exePath);
-        var output = sb.ToString().Replace(workDir + "/", "").Replace(workDir, "").Trim();
+        string output;
+        lock (sb)
+        {
+            output = sb.ToString().Replace(workDir + "/", "").Replace(workDir, "").Trim();
+            if (truncated) output += "\n[output truncated]";
+        }
         return new CompileResult(ok, output, ok ? exePath : null);
     }
+
+    /// <summary>The compiler command line, behind prlimit when it exists (the bwrap path has /usr bound in, so the same path works there).</summary>
+    private static string Limited(string compilerPath, string compilerArgs) =>
+        HaveLimiter ? $"{PrlimitPath} {CompilerLimits} -- \"{compilerPath}\" {compilerArgs}" : $"\"{compilerPath}\" {compilerArgs}";
 
     private static void TryKill(Process p)
     {
