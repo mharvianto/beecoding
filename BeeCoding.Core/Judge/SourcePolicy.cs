@@ -35,16 +35,24 @@ public static partial class SourcePolicy
             .Where(s => s.Length > 0 && Regex.IsMatch(s, @"^[A-Za-z_][A-Za-z0-9_:]*$"))
             .Distinct());
 
+    // shortcut: this is a text scan, not the compiler's view — preprocessor tricks such as token pasting (CAT(so,rt)) still get past a
+    // banned symbol. It exists to keep honest students on the exercise; for a hard guarantee compile with the symbol poisoned instead.
+    /// <summary>Phase 2 of C translation: a backslash at the end of a line joins it to the next, so "#inc\⏎lude" is an include.</summary>
+    private static string JoinContinuations(string code) => code.Replace("\\\r\n", "").Replace("\\\n", "");
+
     /// <summary>A human-readable message if the source breaks a restriction, else null.</summary>
     public static string? Violation(string? code, string? bannedHeadersCsv, string? bannedSymbolsCsv = null)
     {
         if (string.IsNullOrEmpty(code)) return null;
+        code = JoinContinuations(code);
 
         var headers = bannedHeadersCsv is null ? new HashSet<string>()
             : Normalize(bannedHeadersCsv).Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet();
         if (headers.Count > 0)
         {
-            foreach (Match m in IncludeRegex().Matches(code))
+            // A commented-out include (the natural way to drop a banned header) must not count, so look at the code without comments.
+            var live = LineComment().Replace(BlockComment().Replace(code, " "), " ");
+            foreach (Match m in IncludeRegex().Matches(live))
             {
                 var h = m.Groups[1].Value.ToLowerInvariant();
                 if (headers.Contains(h))
