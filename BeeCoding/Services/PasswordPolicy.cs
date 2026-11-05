@@ -10,6 +10,7 @@ namespace BeeCoding.Services;
 public static class PasswordPolicy
 {
     public const int MinLength = 8;
+    public const int MaxLength = 128;
 
     // Not exhaustive — just the passwords an attacker tries first. Case-insensitive.
     private static readonly HashSet<string> Common = new(StringComparer.OrdinalIgnoreCase)
@@ -28,6 +29,7 @@ public static class PasswordPolicy
     {
         var p = password ?? "";
         if (p.Length < MinLength) return $"Password must be at least {MinLength} characters.";
+        if (p.Length > MaxLength) return $"Password must be at most {MaxLength} characters.";
         if (Common.Contains(p.Trim())) return "That password is too common — please choose a less predictable one.";
         var localPart = (email ?? "").Split('@')[0];
         if (localPart.Length > 0 && p.Equals(localPart, StringComparison.OrdinalIgnoreCase))

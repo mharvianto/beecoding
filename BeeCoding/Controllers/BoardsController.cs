@@ -48,6 +48,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     public async Task<ActionResult<BoardDto>> Create(CreateBoardDto dto)
     {
         if (string.IsNullOrWhiteSpace(dto.Title)) return BadRequest("Title is required.");
+        if (dto.Title.Trim().Length > 160) return BadRequest("The title can be at most 160 characters.");
 
         int? organizationId;
         if (dto.OrganizationId is int requested)

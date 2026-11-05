@@ -47,9 +47,11 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     {
         if (await RequireHumanAsync(dto.TurnstileToken, "register") is { } notHuman) return notHuman;
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
-        if (email.Length < 3 || !email.Contains('@')) return BadRequest("Invalid email.");
+        // MailAddress also accepts "Name <a@b>"; requiring the parsed address to equal the input rejects those, and 256 is the column length.
+        if (email.Length > 256 || !System.Net.Mail.MailAddress.TryCreate(email, out var addr) || addr.Address != email || !addr.Host.Contains('.'))
+            return BadRequest("Invalid email.");
         if (PasswordPolicy.Validate(dto.Password, email) is string pwErr) return BadRequest(pwErr);
-        if (string.IsNullOrWhiteSpace(dto.DisplayName)) return BadRequest("Display name is required.");
+        if (DisplayNamePolicy.Validate(dto.DisplayName, out var displayName) is string nameErr) return BadRequest(nameErr);
 
         var (resolved, roleError) = SignupRole.Resolve(_cfg, dto.Role, dto.TeacherCode);
         if (resolved is null) return BadRequest(roleError);
@@ -61,7 +63,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         var user = new User
         {
             Email = email,
-            DisplayName = dto.DisplayName.Trim(),
+            DisplayName = displayName,
             Role = role,
         };
         user.PasswordHash = _pw.Hash(user, dto.Password!);
@@ -129,9 +131,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
 
-        var name = (dto.DisplayName ?? "").Trim();
-        if (name.Length < 2) return BadRequest("Display name must be at least 2 characters.");
-        if (name.Length > 40) return BadRequest("Display name must be 40 characters or fewer.");
+        if (DisplayNamePolicy.Validate(dto.DisplayName, out var name) is string nameErr) return BadRequest(nameErr);
 
         if (name != user.DisplayName)
         {

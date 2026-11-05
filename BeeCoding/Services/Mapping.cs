@@ -11,6 +11,7 @@ public static class Mapping
         string.Join(',', (tags ?? "")
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(t => t.ToLowerInvariant())
+            .Select(t => t.Length > 24 ? t[..24] : t)   // 12 tags of at most 24 fit the 300-character column
             .Distinct()
             .Take(12));
 
