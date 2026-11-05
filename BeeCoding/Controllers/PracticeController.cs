@@ -3,6 +3,7 @@ using BeeCoding.Data;
 using BeeCoding.Models;
 using BeeCoding.Services;
 using BeeCoding.Services.Judge;
+using BeeCoding.Services.Similarity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -309,6 +310,41 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         }
 
         return new PracticeGuideDto(topics, recommended, source, _ai.Available);
+    }
+
+    /// <summary>
+    /// "What next?" right after solving: the guide's top pick plus up to two unsolved public problems closest to the one just
+    /// solved, never an easier one (so it stays a step forward). Empty until the caller has solved this problem. Public problems
+    /// only — the same pool the list shows — so nothing private is offered.
+    /// </summary>
+    [HttpGet("{slug}/next")]
+    public async Task<ActionResult<List<RecommendationDto>>> Next(string slug, [FromServices] SimilarProblemFinder finder, [FromServices] SimilarCooldown cooldown)
+    {
+        var cur = await Playable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown, x.Level }).FirstOrDefaultAsync();
+        if (cur is null) return NotFound();
+        var solvedIds = _db.BankSubmissions.Where(s => s.UserId == UserId && s.Verdict == Verdict.Accepted && s.Score >= 1.0).Select(s => s.BankProblemId);
+        if (!await solvedIds.ContainsAsync(cur.Id)) return new List<RecommendationDto>();
+
+        var result = new List<RecommendationDto>();
+        var pick = (await Guide()).Value?.Recommended.FirstOrDefault(r => r.Slug != slug);
+        if (pick is not null) result.Add(pick);
+
+        // Similar ones cost a ranking pass; if this user just asked, they get the guide's pick alone rather than an error.
+        if (cooldown.TryAcquire(UserId))
+        {
+            var pool = await Pool().Where(b => b.Id != cur.Id && b.Level >= cur.Level && !solvedIds.Contains(b.Id) && (pick == null || b.Id != pick.Id))
+                .Select(b => new { b.Id, b.Slug, b.Title, b.StatementMarkdown, b.AllowedLanguages, b.Level, b.Tags, b.OwnerId }).ToListAsync();
+            var ranked = await finder.FindAsync(cur.Title, cur.StatementMarkdown,
+                pool.Select(b => new SimilarProblemFinder.Candidate(b.Id, b.Slug, b.Title, b.StatementMarkdown, true, b.OwnerId)).ToList(), UserId, 2);
+            var byId = pool.ToDictionary(b => b.Id);
+            foreach (var r in ranked.Items)
+            {
+                var b = byId[r.Id];
+                result.Add(new RecommendationDto(b.Id, b.Slug, b.Title, b.AllowedLanguages, b.Level.ToString(), b.Tags,
+                    b.Level > cur.Level ? "Similar to the one you just solved, a step up" : "Similar to the one you just solved"));
+            }
+        }
+        return result;
     }
 
     [HttpGet("{slug}")]

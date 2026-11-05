@@ -122,6 +122,45 @@ public class SimilarityTests
     }
 
     [Fact]
+    public async Task After_solving_a_problem_the_next_ones_are_public_unsolved_and_not_easier()
+    {
+        using var app = new TestApp();
+        var kid = app.CreateClient();
+        (await kid.PostAsJsonAsync("/api/auth/register", new { email = "kid@test.dev", password = "Passw0rd!x1", displayName = "Kid", role = "Student" })).EnsureSuccessStatusCode();
+        string solvedSlug, unsolvedSlug; int hardId, easyId, doneId, draftId;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var me = await db.Users.FirstAsync(u => u.Email == "kid@test.dev");
+            var teacher = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+            BankProblem Make(string title, string text, ProblemLevel level, bool pub = true) => new() { OwnerId = teacher.Id, Title = title, StatementMarkdown = text, Level = level, IsPublic = pub };
+            var solved = Make("Kata Terpendek", Shortest, ProblemLevel.Medium);
+            var hard = Make("Kata Tersingkat Sulit", ShortestCopy, ProblemLevel.Hard);
+            var easy = Make("Kata Tersingkat Mudah", ShortestCopy, ProblemLevel.Easy);       // easier than what she solved
+            var done = Make("Kata Tersingkat Selesai", ShortestCopy, ProblemLevel.Medium);   // she already solved this one
+            var draft = Make("Kata Draf", ShortestCopy, ProblemLevel.Hard, pub: false);      // not public
+            db.BankProblems.AddRange(solved, hard, easy, done, draft);
+            await db.SaveChangesAsync();
+            db.BankSubmissions.AddRange(
+                new BankSubmission { BankProblemId = solved.Id, UserId = me.Id, Code = "x", Status = SubmissionStatus.Done, Verdict = Verdict.Accepted, Score = 1.0 },
+                new BankSubmission { BankProblemId = done.Id, UserId = me.Id, Code = "x", Status = SubmissionStatus.Done, Verdict = Verdict.Accepted, Score = 1.0 });
+            await db.SaveChangesAsync();
+            solvedSlug = solved.Slug; unsolvedSlug = hard.Slug; hardId = hard.Id; easyId = easy.Id; doneId = done.Id; draftId = draft.Id;
+        }
+
+        var items = JsonDocument.Parse(await kid.GetStringAsync($"/api/practice/{solvedSlug}/next")).RootElement.EnumerateArray().ToList();
+        var ids = items.Select(i => i.GetProperty("id").GetInt32()).ToList();
+        Assert.Contains(hardId, ids);                 // the similar, harder one is offered
+        Assert.DoesNotContain(easyId, ids);           // never a step back
+        Assert.DoesNotContain(doneId, ids);           // never what she already solved
+        Assert.DoesNotContain(draftId, ids);          // never a non-public problem
+        Assert.True(items.Count <= 3);
+
+        // nothing is suggested for a problem she has not solved
+        Assert.Equal(0, JsonDocument.Parse(await kid.GetStringAsync($"/api/practice/{unsolvedSlug}/next")).RootElement.GetArrayLength());
+    }
+
+    [Fact]
     public void The_embedding_matches_the_reference_implementation_and_ranks_by_meaning()
     {
         if (ModelDir is null) return;

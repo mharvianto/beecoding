@@ -9,6 +9,7 @@ import MonacoEditor from '../components/MonacoEditor.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import LevelBadge from '../components/LevelBadge.vue';
 import ProblemFeedback from '../components/ProblemFeedback.vue';
+import NextProblems from '../components/NextProblems.vue';
 import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
@@ -242,6 +243,8 @@ onBeforeUnmount(async () => {
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
         📄 This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
       </p>
+
+      <NextProblems :slug="props.slug" :solved="!!problem.solved" />
 
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
         <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
