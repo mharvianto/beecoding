@@ -13,7 +13,7 @@ public class CompilerLimitsTests
         var root = Path.Combine(Path.GetTempPath(), "beecoding-compile-" + Guid.NewGuid().ToString("N"));
         try
         {
-            var tc = new NativeToolchain(Options.Create(new JudgeOptions { WorkRoot = root }), NullLogger<NativeToolchain>.Instance);
+            var tc = new NativeToolchain(Options.Create(new JudgeOptions { WorkRoot = root, RequireSandbox = false }), NullLogger<NativeToolchain>.Instance);
             try { tc.Initialize(); } catch (InvalidOperationException) { return null; }   // no gcc/g++ on this machine
             var dir = Directory.CreateDirectory(Path.Combine(root, "job")).FullName;
             var sw = Stopwatch.StartNew();

@@ -79,8 +79,9 @@ running dev server (curl / a Playwright script).
 ### Judge prerequisites
 
 `gcc`/`g++` must be on `PATH`. The compiler itself runs behind `prlimit` (util-linux, `/usr/bin/prlimit`: 2 GB address space, 20 s CPU, 64 MB output file) and its messages are cut at 20 000 characters — a self-doubling macro in a few hundred bytes otherwise makes `cc1plus` eat gigabytes; without `prlimit` the judge logs a warning and compiles unlimited. `bubblewrap` (`bwrap`) engages automatically if the
-environment allows unprivileged user namespaces; otherwise the judge logs a warning at
-startup and falls back to rlimits-only (this is the case in the default dev container).
+environment allows unprivileged user namespaces. `Judge:RequireSandbox` is **true by default** (code and `appsettings.json`): without a usable
+bwrap the app refuses to start, because rlimits-only mode lets judged code read the database and the Data Protection keys. The default dev
+container has no user namespaces, so `appsettings.Development.json` sets it to false there (the judge then logs a warning and runs rlimits-only).
 
 ## Architecture
 

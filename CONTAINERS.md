@@ -260,7 +260,7 @@ yang beda dari web:
 - **`Judge__Queue__RedisConnectionString` wajib diisi eksplisit** — beda dari web yang boleh
   `null` (nanti numpang multiplexer punya `Realtime`), judge berdiri sendiri jadi tidak ada
   yang dinumpangi.
-- Default `Judge__RequireSandbox=true` (beda dari web yang defaultnya `false`) — artinya
+- Default `Judge__RequireSandbox=true` (sama dengan web sekarang; hanya `appsettings.Development.json` yang mematikannya) — artinya
   kalau `bwrap` tidak bisa jalan di container (lihat catatan §1), **image judge akan
   menolak start** kecuali kamu set `Judge__RequireSandbox=false` secara eksplisit.
 
