@@ -234,6 +234,13 @@ calling anything that takes a `localDay` param (see `lib/localDay.js`).
 
 The AI daily quota and `AiUsage.Day` use the user's local calendar day too, but server-side code often has no request at hand (background AI jobs), so the browser's UTC offset rides on every request as `X-UTC-Offset` (`lib/api.js`), `UtcOffsetMiddleware` stores it in `User.UtcOffsetMinutes`, and `UserClock.LocalTodayAsync` turns it into a day. Rows from before that are UTC days.
 
+### Secrets at rest
+
+`SecretBox` (Core) seals the few secrets the database keeps — `User.TotpSecret`, `AiProviderConfig.ApiKey`, `LtiToolKey.PrivateKeyPem` — as `enc1:<Data Protection text>`
+through EF value converters (`AppDbContext.OnModelCreating`); `Program.cs` plugs the protector in right after `Build()` and re-saves legacy plain rows once at startup.
+A value that cannot be decrypted reads as null (lost key ring), never as an exception. The key ring must survive restarts: set `DataProtection:KeysPath` (INSTALL.md) and
+back that folder up with the database. The columns' `MaxLength` attributes are now shorter than the stored text — SQLite ignores them (`shortcut:` in the model).
+
 ### Frontend conventions
 
 - Charts with an hourly/daily/weekly granularity toggle persist the choice in

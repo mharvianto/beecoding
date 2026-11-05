@@ -65,4 +65,47 @@ public class AuditFixTests
         for (int i = 0; i < 5000; i++) Assert.NotNull(store.StartLogin(1, "n", "https://x"));
         Assert.Null(store.StartLogin(1, "n", "https://x"));
     }
+
+    [Fact]
+    public void Secrets_are_sealed_read_back_and_a_lost_key_reads_as_null()
+    {
+        SecretBox.Configure(v => "x" + new string(v.Reverse().ToArray()), v => v.StartsWith("x") ? new string(v[1..].Reverse().ToArray()) : throw new System.Security.Cryptography.CryptographicException());
+        var sealedValue = SecretBox.Seal("JBSWY3DP")!;
+        Assert.StartsWith("enc1:", sealedValue);
+        Assert.DoesNotContain("JBSWY3DP", sealedValue);
+        Assert.Equal("JBSWY3DP", SecretBox.Open(sealedValue));
+        Assert.Equal("JBSWY3DP", SecretBox.Open("JBSWY3DP"));              // a row from before sealing existed still reads
+        Assert.Equal(sealedValue, SecretBox.Seal(sealedValue));            // never sealed twice
+        Assert.Null(SecretBox.Open("enc1:not-ours"));                      // key ring lost: null, not an exception
+        Assert.Null(SecretBox.Seal(null));
+    }
+
+    [Fact]
+    public async Task The_lti_private_key_is_stored_encrypted()
+    {
+        using var app = new TestApp();
+        var http = app.CreateClient();
+        Assert.True((await http.GetAsync("/lti/jwks")).IsSuccessStatusCode);   // creates the key row
+
+        using var con = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={app.Db}");
+        con.Open();
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = "SELECT PrivateKeyPem FROM LtiToolKeys";
+        var raw = (string)cmd.ExecuteScalar()!;
+        Assert.StartsWith("enc1:", raw);
+        Assert.DoesNotContain("PRIVATE KEY", raw);
+
+        // an authenticator secret saved through EF is sealed too, and reads back as written
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var u = await db.Users.FirstAsync();
+            u.TotpSecret = "JBSWY3DPEHPK3PXP";
+            await db.SaveChangesAsync();
+            using var again = app.Services.CreateScope();
+            Assert.Equal("JBSWY3DPEHPK3PXP", (await again.ServiceProvider.GetRequiredService<AppDbContext>().Users.FirstAsync(x => x.Id == u.Id)).TotpSecret);
+        }
+        cmd.CommandText = "SELECT TotpSecret FROM Users WHERE TotpSecret IS NOT NULL";
+        Assert.StartsWith("enc1:", (string)cmd.ExecuteScalar()!);
+    }
 }

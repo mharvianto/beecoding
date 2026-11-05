@@ -53,6 +53,15 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 512 * 1024);
 builder.Services.AddMemoryCache();
 
+// Data Protection seals the login cookie, MFA tickets and (SecretBox) the secrets in the database. Its keys must survive a restart, or every
+// deploy signs everyone out and the encrypted secrets become unreadable. Left unset they go to the framework default (~/.aspnet), which a service
+// account without a home directory turns into memory only; INSTALL.md says how to check.
+{
+    var dpKeys = builder.Configuration["DataProtection:KeysPath"];
+    var dp = builder.Services.AddDataProtection();
+    if (!string.IsNullOrWhiteSpace(dpKeys)) Microsoft.AspNetCore.DataProtection.DataProtectionBuilderExtensions.PersistKeysToFileSystem(dp, new DirectoryInfo(dpKeys));
+}
+
 // /health = liveness (process is up); /health/ready = readiness (DB reachable).
 builder.Services.AddHealthChecks()
     .AddCheck<DbHealthCheck>("db", tags: new[] { "ready" });
@@ -308,10 +317,28 @@ builder.Services.AddCors(o => o.AddPolicy(DevCors, p => p
 
 var app = builder.Build();
 
+// Secrets stored in the database (TOTP secret, AI keys, LTI key) are encrypted with Data Protection — see SecretBox.
+{
+    var secretProtector = app.Services.GetRequiredService<Microsoft.AspNetCore.DataProtection.IDataProtectionProvider>().CreateProtector("beecoding.secrets.v1");
+    BeeCoding.Services.SecretBox.Configure(
+        s => Microsoft.AspNetCore.DataProtection.DataProtectionCommonExtensions.Protect(secretProtector, s),
+        s => Microsoft.AspNetCore.DataProtection.DataProtectionCommonExtensions.Unprotect(secretProtector, s));
+}
+
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
+
+    // Encrypt secrets written before SecretBox existed: they read fine as plain text, but only a save re-encodes them.
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM Users WHERE TotpSecret IS NOT NULL AND TotpSecret NOT LIKE 'enc1:%'").ToListAsync())
+        db.Entry(await db.Users.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.TotpSecret).IsModified = true;
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM AiProviderConfigs WHERE ApiKey IS NOT NULL AND ApiKey NOT LIKE 'enc1:%'").ToListAsync())
+        db.Entry(await db.AiProviderConfigs.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.ApiKey).IsModified = true;
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM LtiToolKeys WHERE PrivateKeyPem NOT LIKE 'enc1:%'").ToListAsync())
+        db.Entry(await db.LtiToolKeys.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.PrivateKeyPem).IsModified = true;
+    await db.SaveChangesAsync();
+
     await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<PasswordService>());
     await DbSeeder.SeedBankAsync(db);
 
