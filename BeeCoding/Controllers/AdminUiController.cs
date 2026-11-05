@@ -373,7 +373,7 @@ public class AdminUiController(
         {
             string Get(int col) => col >= 0 && col < rows[r].Length ? rows[r][col].Trim() : "";
             var email = Get(emailCol).ToLowerInvariant();
-            var name = Get(nameCol);
+            var name = DisplayNamePolicy.Clean(Get(nameCol));
             var roleStr = Get(roleCol);
             var explicitPw = Get(pwCol);
             var role = roleStr.Equals("Teacher", StringComparison.OrdinalIgnoreCase) ? UserRole.Teacher
@@ -385,6 +385,8 @@ public class AdminUiController(
             { resultRows.Add(new(email, name, role.ToString(), false, false, null, "Invalid email")); errors++; continue; }
             if (string.IsNullOrWhiteSpace(name))
             { resultRows.Add(new(email, name, role.ToString(), false, false, null, "Name is required")); errors++; continue; }
+            if (DisplayNamePolicy.Validate(name, out _) is string nameErr)
+            { resultRows.Add(new(email, name, role.ToString(), false, false, null, nameErr)); errors++; continue; }
 
             try
             {
@@ -420,6 +422,7 @@ public class AdminUiController(
             }
             catch (Exception ex)
             {
+                _db.ChangeTracker.Clear();   // else the row that failed to save is retried — and fails again — on every later SaveChanges
                 errors++;
                 resultRows.Add(new(email, name, role.ToString(), false, false, null, ex.Message));
             }
@@ -430,7 +433,7 @@ public class AdminUiController(
 
     private static string GeneratePassword() =>
         string.Concat(Enumerable.Range(0, 10)
-            .Select(_ => "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"[Random.Shared.Next(54)]));
+            .Select(_ => "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789"[System.Security.Cryptography.RandomNumberGenerator.GetInt32(54)]));
 
     // ---- browse all boards --------------------------------------------------
     [HttpGet("boards")]
@@ -780,13 +783,16 @@ public class AdminUiController(
         [FromQuery] string? q, [FromQuery] string? verdict, [FromQuery] string? source,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
     {
-        page = Math.Max(1, page);
+        page = Math.Clamp(page, 1, 10_000);   // page * pageSize below must not overflow
         pageSize = Math.Clamp(pageSize, 1, 500);
         var n = string.IsNullOrWhiteSpace(q) ? null : q.Trim();
         Verdict? v = !string.IsNullOrWhiteSpace(verdict) && Enum.TryParse<Verdict>(verdict, true, out var vv) ? vv : null;
         var src = source?.Trim().ToLowerInvariant();
 
+        // Only the newest page*pageSize of each source can land on this page, so that is all we read; the totals are counts.
         var rows = new List<AdminSubmissionRow>();
+        var total = 0;
+        var take = page * pageSize;
 
         if (src is null or "board")
         {
@@ -797,7 +803,8 @@ public class AdminUiController(
                     || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
                     || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
             if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
-            rows.AddRange(await boardQuery
+            total += await boardQuery.CountAsync();
+            rows.AddRange(await boardQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
@@ -813,7 +820,8 @@ public class AdminUiController(
                     || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
                     || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
             if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
-            rows.AddRange(await bankQuery
+            total += await bankQuery.CountAsync();
+            rows.AddRange(await bankQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
                 .Select(s => new AdminSubmissionRow(
                     s.Id, s.CreatedAt, s.Verdict.ToString(), s.Score, s.RuntimeMs, s.MemoryKb, s.Language,
                     s.UserId, s.User!.Email, s.User.DisplayName,
@@ -821,7 +829,6 @@ public class AdminUiController(
                 .ToListAsync());
         }
 
-        var total = rows.Count;
         var pageRows = rows.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id)
             .Skip((page - 1) * pageSize).Take(pageSize).ToList();
 
@@ -901,7 +908,11 @@ public class AdminUiController(
                 if (existing is null) { _db.BankProblems.Add(b); created++; } else updated++;
                 await _db.SaveChangesAsync();
             }
-            catch (Exception ex) { errors.Add($"{(title.Length == 0 ? "(untitled)" : title)}: {ex.Message}"); }
+            catch (Exception ex)
+            {
+                _db.ChangeTracker.Clear();   // see ImportUsers
+                errors.Add($"{(title.Length == 0 ? "(untitled)" : title)}: {ex.Message}");
+            }
         }
 
         return new AdminImportResult(created, updated, skipped, errors);
