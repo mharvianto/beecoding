@@ -247,10 +247,17 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
 
         var studentIds = students.Select(s => s.UserId).ToList();
         var problemIds = problems.Select(p => p.Id).ToList();
-        var subs = await _db.Submissions.AsNoTracking()
+        // Pick the attempt per (student, problem) from light rows, then load the code of those attempts only —
+        // reading every attempt's source (100 students x 10 problems x 20 attempts) would sit in memory for nothing.
+        var light = await _db.Submissions.AsNoTracking()
             .Where(s => problemIds.Contains(s.ProblemId) && studentIds.Contains(s.UserId))
+            .Select(s => new Submission { Id = s.Id, ProblemId = s.ProblemId, UserId = s.UserId, Language = s.Language, Score = s.Score, CreatedAt = s.CreatedAt })
             .ToListAsync();
-        var byKey = subs.GroupBy(s => (s.UserId, s.ProblemId)).ToDictionary(g => g.Key, g => g.ToList());
+        var chosen = light.GroupBy(s => (s.UserId, s.ProblemId))
+            .ToDictionary(g => g.Key, g => latest ? Latest(g) : Best(g));
+        var chosenIds = chosen.Values.Select(s => s.Id).ToList();
+        var codes = await _db.Submissions.AsNoTracking().Where(s => chosenIds.Contains(s.Id))
+            .Select(s => new { s.Id, s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
 
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
@@ -262,8 +269,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
                 var folder = label == "-" ? $"{Safe(p.Title)} (tersembunyi)" : $"{(label.All(char.IsDigit) ? label.PadLeft(2, '0') : label)}. {Safe(p.Title)}";
                 foreach (var m in students)
                 {
-                    if (!byKey.TryGetValue((m.UserId, p.Id), out var list) || list.Count == 0) continue;
-                    var s = latest ? Latest(list) : Best(list);
+                    if (!chosen.TryGetValue((m.UserId, p.Id), out var s)) continue;
                     var lang = string.IsNullOrEmpty(s.Language) ? Languages.Default(p.AllowedLanguages) : s.Language;
                     var path = $"{folder}/{Safe(m.User!.DisplayName)}_{m.UserId}.{(lang == "c" ? "c" : "cpp")}";
                     if (!used.Add(path)) continue;
@@ -271,7 +277,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
                     var stamp = new DateTimeOffset(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc));
                     entry.LastWriteTime = stamp.Year < 1980 ? new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero) : stamp;
                     await using var w = entry.Open();
-                    await w.WriteAsync(new UTF8Encoding(false).GetBytes(s.Code ?? ""));
+                    await w.WriteAsync(new UTF8Encoding(false).GetBytes(codes.GetValueOrDefault(s.Id) ?? ""));
                 }
             }
         }
