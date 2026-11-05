@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import MarkdownBlock from './MarkdownBlock.vue';
 import { SUPPORTED_LANGS } from '../lib/templates';
 import { api } from '../lib/api';
@@ -132,6 +132,72 @@ async function addImage(e) {
   } catch (err) { imgError.value = err.message; }
   finally { imgBusy.value = false; }
 }
+
+// Toolbar above the statement: each button edits the text around the cursor (or the selection).
+// The edit goes through execCommand('insertText') so Ctrl+Z still undoes it, like typing; assigning the value would wipe the undo history.
+function apply(start, end, text, selFrom, selTo) {
+  const el = stmtEl.value;
+  el.focus();
+  el.setSelectionRange(start, end);
+  if (!document.execCommand('insertText', false, text)) {   // not available: plain assignment (no undo, but never loses the edit)
+    const v = form.value.statementMarkdown;
+    form.value.statementMarkdown = v.slice(0, start) + text + v.slice(end);
+  }
+  nextTick(() => el.setSelectionRange(start + selFrom, start + selTo));
+}
+// Run an edit once the write pane is showing (v-show), with the current text and selection.
+function edit(fn) {
+  if (!stmtEl.value) return;
+  showWrite.value = true;
+  nextTick(() => { const el = stmtEl.value; fn(form.value.statementMarkdown, el.selectionStart, el.selectionEnd); });
+}
+const wrap = (before, after, placeholder) => edit((v, s, e) => {
+  const sel = v.slice(s, e) || placeholder;
+  apply(s, e, before + sel + after, before.length, before.length + sel.length);
+});
+/** Prefix every line touched by the selection: "- ", "1. " ... (a second click on a list button is not undone, use Ctrl+Z). */
+const prefixLines = (prefixOf) => edit((v, s, e) => {
+  const from = v.lastIndexOf('\n', s - 1) + 1;
+  const nl = v.indexOf('\n', e);
+  const to = nl === -1 ? v.length : nl;
+  const lines = v.slice(from, to).split('\n').map((l, i) => prefixOf(i) + l);
+  const text = lines.join('\n');
+  apply(from, to, text, 0, text.length);
+});
+/** A block of its own: blank line before and after, so Markdown reads it as a paragraph / table. */
+const insertBlock = (block, selFrom, selTo) => edit((v, s, e) => {
+  const lead = s === 0 || v.slice(Math.max(0, s - 2), s) === '\n\n' ? '' : v[s - 1] === '\n' ? '\n' : '\n\n';
+  const trail = v.slice(e, e + 2) === '\n\n' ? '' : v[e] === '\n' ? '\n' : '\n\n';
+  apply(s, e, lead + block + trail, lead.length + selFrom, lead.length + selTo);
+});
+const TABLE = '| Column 1 | Column 2 |\n| --- | --- |\n| a | b |';
+const insertTable = () => insertBlock(TABLE, 2, 10);
+
+// Formulas: $...$ inside a sentence, $$...$$ on its own line. The list gives the usual ones in problem statements.
+const FORMULAS = [
+  { label: 'Constraint  1 ≤ n ≤ 2·10⁵', tex: '1 \\le n \\le 2 \\times 10^5' },
+  { label: 'Fraction', tex: '\\frac{a}{b}' },
+  { label: 'Square root', tex: '\\sqrt{x}' },
+  { label: 'Power / subscript', tex: 'a_i^2' },
+  { label: 'Modulo 10⁹+7', tex: '\\bmod (10^9 + 7)' },
+  { label: 'Sum (own line)', tex: '\\sum_{i=1}^{n} a_i', display: true },
+  { label: 'Cases (own line)', tex: 'f(n) = \\begin{cases} 1 & n = 0 \\\\ n \\cdot f(n-1) & n > 0 \\end{cases}', display: true },
+  { label: 'Matrix (own line)', tex: '\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}', display: true },
+];
+const inlineFormula = () => wrap('$', '$', 'x^2');
+const blockFormula = () => insertBlock('$$\\sum_{i=1}^{n} a_i$$', 2, 20);
+function pickFormula(e) {
+  const f = FORMULAS[e.target.value];
+  e.target.value = '';   // back to the label, so the same one can be picked again
+  if (!f || !stmtEl.value) return;
+  // A formula inserted a moment ago stays selected between its dollar signs: take those along, so the new one replaces it whole.
+  const el = stmtEl.value, v = form.value.statementMarkdown;
+  let s = el.selectionStart, end = el.selectionEnd;
+  while (s > 0 && end < v.length && v[s - 1] === '$' && v[end] === '$' && s !== end) { s--; end++; if (end - s > 400) break; }
+  el.setSelectionRange(s, end);
+  if (f.display) insertBlock(`$$${f.tex}$$`, 2, 2 + f.tex.length);
+  else edit((v, s, e) => apply(s, e, `$${f.tex}$`, 1, 1 + f.tex.length));   // replaces the selection: a pick adds a formula, it does not wrap one
+}
 </script>
 
 <template>
@@ -176,8 +242,28 @@ async function addImage(e) {
                     :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'">👁 Preview</button>
           </div>
           <p v-if="imgError" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
+          <div v-show="showWrite" class="flex flex-wrap items-center gap-1 mb-1 text-xs" role="toolbar" aria-label="Formatting">
+            <!-- mousedown.prevent: the box keeps its focus and selection while a button is pressed -->
+            <button type="button" @mousedown.prevent @click="wrap('**', '**', 'bold')" class="tb font-bold" title="Bold (Ctrl+B)">B</button>
+            <button type="button" @mousedown.prevent @click="wrap('*', '*', 'italic')" class="tb italic" title="Italic (Ctrl+I)">I</button>
+            <button type="button" @mousedown.prevent @click="wrap('`', '`', 'code')" class="tb font-mono" title="Code">&lt;/&gt;</button>
+            <span class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></span>
+            <button type="button" @mousedown.prevent @click="prefixLines(() => '- ')" class="tb" title="Bulleted list">• List</button>
+            <button type="button" @mousedown.prevent @click="prefixLines((i) => `${i + 1}. `)" class="tb" title="Numbered list">1. List</button>
+            <button type="button" @mousedown.prevent @click="insertTable" class="tb" title="Insert a table">▦ Table</button>
+            <span class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></span>
+            <button type="button" @mousedown.prevent @click="inlineFormula" class="tb" title="Formula inside a sentence: $ ... $ (Ctrl+M)">$ x $</button>
+            <button type="button" @mousedown.prevent @click="blockFormula" class="tb" title="Formula on its own line: $$ ... $$">$$ ∑ $$</button>
+            <select @change="pickFormula" class="tb bg-transparent" title="Insert a common formula" aria-label="Insert a common formula">
+              <option value="">Formula ▾</option>
+              <option v-for="(f, i) in FORMULAS" :key="i" :value="i">{{ f.label }}</option>
+            </select>
+          </div>
           <div class="flex flex-col md:flex-row gap-2">
             <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" rows="12"
+                      @keydown.ctrl.b.prevent="wrap('**', '**', 'bold')" @keydown.meta.b.prevent="wrap('**', '**', 'bold')"
+                      @keydown.ctrl.i.prevent="wrap('*', '*', 'italic')" @keydown.meta.i.prevent="wrap('*', '*', 'italic')"
+                      @keydown.ctrl.m.prevent="inlineFormula" @keydown.meta.m.prevent="inlineFormula"
                       class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
             <div v-show="showPreview"
                  class="flex-1 min-w-0 h-[19rem] overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/40">

@@ -130,6 +130,7 @@ const sections = [
         <ul>
           <li><code v-pre>$1 \le n \le 2 \times 10^5$</code> untuk rumus di tengah kalimat, dan <code v-pre>$$\sum_{i=1}^{n} a_i$$</code> untuk rumus yang berdiri sendiri. <code v-pre>\(...\)</code> dan <code v-pre>\[...\]</code> juga bisa.</li>
           <li>Yang didukung antara lain pecahan (<code v-pre>\frac</code>), akar, pangkat dan indeks, sigma, limit, matriks, <code v-pre>cases</code>, huruf Yunani, <code v-pre>\binom</code>, <code v-pre>\bmod</code> dan <code v-pre>\pmod{p}</code>.</li>
+          <li>Bilah alat di atas kotak soal menyisipkannya untuk Anda: tombol <b>$ x $</b>, <b>$$ ∑ $$</b>, dan menu <b>Formula</b> berisi rumus yang umum (batasan, pecahan, modulo, sigma, <code v-pre>cases</code>, matriks). Pratinjau di sebelahnya langsung menampilkan hasilnya.</li>
           <li>Tanda dolar yang bukan rumus (misalnya <code v-pre>$5 dan $10</code>) dibiarkan, begitu juga isi <code v-pre>`kode`</code> dan blok kode.</li>
           <li>Rumus yang salah ditulis tampil apa adanya (merah di tampilan guru), dan teks lain tetap terbaca. Satu soal memuat paling banyak 200 rumus, masing-masing paling panjang 500 karakter.</li>
         </ul>
@@ -327,6 +328,7 @@ const sections = [
         <ul>
           <li><code v-pre>$1 \le n \le 2 \times 10^5$</code> for a formula inside a sentence, and <code v-pre>$$\sum_{i=1}^{n} a_i$$</code> for one on its own line. <code v-pre>\(...\)</code> and <code v-pre>\[...\]</code> work too.</li>
           <li>Supported include fractions (<code v-pre>\frac</code>), roots, powers and subscripts, sums, limits, matrices, <code v-pre>cases</code>, Greek letters, <code v-pre>\binom</code>, <code v-pre>\bmod</code> and <code v-pre>\pmod{p}</code>.</li>
+          <li>The toolbar above the statement box inserts them for you: the <b>$ x $</b> and <b>$$ ∑ $$</b> buttons, and the <b>Formula</b> menu of common ones (constraints, fractions, modulo, sums, <code v-pre>cases</code>, matrices). The preview beside the box shows the result as you type.</li>
           <li>A dollar sign that is not a formula (for example <code v-pre>$5 and $10</code>) is left alone, and so is anything inside <code v-pre>`code`</code> and code blocks.</li>
           <li>A formula that is written wrongly is shown as typed (in red in the teacher's view) and the rest of the text still reads. A statement holds at most 200 formulas, each at most 500 characters long.</li>
         </ul>
