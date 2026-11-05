@@ -1,19 +1,17 @@
 <script setup>
-import { computed } from 'vue';
+import { ref, watch } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { withBase } from '../lib/base';
+import { extractMath, restorePlain, restoreTypeset, loadKatex } from '../lib/math';
 
 const props = defineProps({ text: String });
 
-// There is no math engine here. Models (and the odd pasted statement) still emit LaTeX,
-// which renders as unreadable "\frac{r}{12\cdot100}". Downgrade the common bits to plain
-// ASCII so a formula stays legible.
+// Formulas ($..$, $$..$$, \(..\), \[..\]) are typeset by KaTeX (see lib/math.js). What is left of the text may still hold bare LaTeX
+// commands that a model or a pasted statement left outside any delimiter; those are downgraded to plain ASCII so they stay legible.
 function deLatex(s) {
-  if (!s || (!s.includes('\\') && !s.includes('$'))) return s;
+  if (!s || !s.includes('\\')) return s;
   return s
-    .replace(/\\\[|\\\]|\\\(|\\\)/g, '')                       // \[ \] \( \)
-    .replace(/\$\$?([^$]+?)\$\$?/g, '$1')                       // $...$  $$...$$
     .replace(/\\(d?frac|tfrac)\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '($2)/($3)')
     .replace(/\\sqrt\s*\{([^{}]+)\}/g, 'sqrt($1)')
     .replace(/\\left|\\right|\\displaystyle|\\,|\\;|\\!|\\quad|\\qquad/g, '')
@@ -28,24 +26,36 @@ function deLatex(s) {
 
 // Problem statements are authored by teachers (and the admin ingest endpoint), i.e.
 // not fully trusted. marked emits raw HTML as-is, so sanitise before v-html.
-const html = computed(() =>
-  DOMPurify.sanitize(marked.parse(deLatex(props.text || '').replaceAll('](/api/images/', `](${withBase('/api/images/')}`), { breaks: true }), {
-    ALLOWED_TAGS: [
-      'p', 'br', 'hr', 'span', 'div',
-      'strong', 'b', 'em', 'i', 'del', 's', 'mark', 'sub', 'sup',
-      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote',
-      'code', 'pre', 'kbd', 'samp',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td',
-      'a', 'img',
-    ],
-    ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'colspan', 'rowspan', 'align'],
-    ALLOW_DATA_ATTR: false,
-    // block javascript:, data: (except images), etc.
-    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|#|\/(?!\/))/i,
-    ADD_ATTR: ['target', 'rel'],
-  }),
-);
+const sanitize = (markdown) => DOMPurify.sanitize(marked.parse(markdown, { breaks: true }), {
+  ALLOWED_TAGS: [
+    'p', 'br', 'hr', 'span', 'div',
+    'strong', 'b', 'em', 'i', 'del', 's', 'mark', 'sub', 'sup',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li', 'blockquote',
+    'code', 'pre', 'kbd', 'samp',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td',
+    'a', 'img',
+  ],
+  ALLOWED_ATTR: ['href', 'title', 'alt', 'src', 'colspan', 'rowspan', 'align'],
+  ALLOW_DATA_ATTR: false,
+  // block javascript:, data: (except images), etc.
+  ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|#|\/(?!\/))/i,
+  ADD_ATTR: ['target', 'rel'],
+});
+
+const html = ref('');
+let latest = 0;
+watch(() => props.text, async (text) => {
+  const mine = ++latest;
+  const { text: bare, store } = extractMath(text || '');
+  const base = sanitize(deLatex(bare).replaceAll('](/api/images/', `](${withBase('/api/images/')}`));
+  if (store.length === 0) { html.value = base; return; }
+  html.value = restorePlain(base, store);   // readable at once; typeset as soon as KaTeX is there
+  try {
+    const katex = await loadKatex();
+    if (mine === latest) html.value = restoreTypeset(base, store, katex);
+  } catch { /* the plain version stays */ }
+}, { immediate: true });
 </script>
 
 <template>
