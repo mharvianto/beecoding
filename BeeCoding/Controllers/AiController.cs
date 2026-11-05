@@ -59,6 +59,8 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     private readonly AdminAccess _admin = admin;
 
     private static readonly ConcurrentDictionary<int, long> _last = new();
+    // One hint at a time per user: the daily quota counts a call only when it ends, so overlapping calls would all pass the check.
+    private static readonly ConcurrentDictionary<int, byte> _busy = new();
 
     [HttpGet("enabled")]
     public IActionResult Enabled() =>
@@ -670,23 +672,28 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         _ai.UseOrganization(orgId);
         if (!_ai.Available) return NotFound();
         if (RateLimited()) return StatusCode(StatusCodes.Status429TooManyRequests, "Give the AI tutor a few seconds between questions.");
-        var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
-        if (!allowed) return StatusCode(StatusCodes.Status429TooManyRequests, reason);
-
-        var (ctx, err) = await BuildContextAsync(dto);
-        if (err is not null) return err;
-
-        var level = await _prog.BumpAsync(UserId, ProblemKey(dto)!, AiHintProgressService.HashCode(dto.Code), HttpContext.RequestAborted);
+        if (!_busy.TryAdd(UserId, 0)) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait for your previous question to finish.");
         try
         {
-            var r = await _ai.HintAsync(ctx!, dto.Lang, level, HttpContext.RequestAborted);
-            await _usage.RecordAsync(UserId, r.PromptTokens, r.CompletionTokens);
-            return Ok(new { reply = r.Text, level });
+            var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
+            if (!allowed) return StatusCode(StatusCodes.Status429TooManyRequests, reason);
+
+            var (ctx, err) = await BuildContextAsync(dto);
+            if (err is not null) return err;
+
+            var level = await _prog.BumpAsync(UserId, ProblemKey(dto)!, AiHintProgressService.HashCode(dto.Code), HttpContext.RequestAborted);
+            try
+            {
+                var r = await _ai.HintAsync(ctx!, dto.Lang, level, HttpContext.RequestAborted);
+                await _usage.RecordAsync(UserId, r.PromptTokens, r.CompletionTokens);
+                return Ok(new { reply = r.Text, level });
+            }
+            catch (AiUnavailableException ex)
+            {
+                return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
+            }
         }
-        catch (AiUnavailableException ex)
-        {
-            return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
-        }
+        finally { _busy.TryRemove(UserId, out _); }
     }
 
     [HttpPost("hint/stream")]
@@ -695,7 +702,13 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         var orgId = await _orgs.ForHintAsync(dto.ProblemId, dto.BoardSlug, UserId);
         _ai.UseOrganization(orgId);
         if (!_ai.Available) { Response.StatusCode = StatusCodes.Status404NotFound; return; }
-        if (RateLimited()) { Response.StatusCode = StatusCodes.Status429TooManyRequests; return; }
+        if (RateLimited() || !_busy.TryAdd(UserId, 0)) { Response.StatusCode = StatusCodes.Status429TooManyRequests; return; }
+        try { await StreamCoreAsync(dto, orgId); }
+        finally { _busy.TryRemove(UserId, out _); }
+    }
+
+    private async Task StreamCoreAsync(AiHintDto dto, int? orgId)
+    {
         var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
         if (!allowed) { Response.StatusCode = StatusCodes.Status429TooManyRequests; await Response.WriteAsync(reason ?? ""); return; }
 
@@ -752,10 +765,12 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     {
         var now = DateTime.UtcNow.Ticks;
         var min = TimeSpan.FromSeconds(Math.Max(1, _opt.RateLimitSeconds)).Ticks;
-        var prev = _last.GetOrAdd(UserId, 0);
-        if (now - prev < min) return true;
-        _last[UserId] = now;
-        return false;
+        while (true)   // compare-and-swap: two simultaneous requests cannot both pass
+        {
+            if (!_last.TryGetValue(UserId, out var prev)) { if (_last.TryAdd(UserId, now)) return false; continue; }
+            if (now - prev < min) return true;
+            if (_last.TryUpdate(UserId, now, prev)) return false;
+        }
     }
 
     private async Task<(AiHintContext? ctx, ObjectResult? err)> BuildContextAsync(AiHintDto dto)
@@ -782,10 +797,14 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         }
         else if (dto.ProblemId is int pid)
         {
-            var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == pid);
+            var p = await _db.Problems.Include(x => x.TestCases).Include(x => x.Group).FirstOrDefaultAsync(x => x.Id == pid);
             if (p is null) return (null, new ObjectResult("Problem not found.") { StatusCode = 404 });
-            if (await _boards.GetMembershipAsync(p.BoardId, UserId) is null)
+            var member = await _boards.GetMembershipAsync(p.BoardId, UserId);
+            if (member is null)
                 return (null, new ObjectResult("Not a member of this board.") { StatusCode = 403 });
+            // The statement goes to the AI and comes back in its reply: a student must not get a hidden or not-yet-open problem this way.
+            if (member.Role == MembershipRole.Student && !GroupAccess.StudentVisible(p, DateTime.UtcNow))
+                return (null, new ObjectResult("Problem not found.") { StatusCode = 404 });
             statement = p.StatementMarkdown; language = Languages.Default(p.AllowedLanguages);
             samples = p.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
