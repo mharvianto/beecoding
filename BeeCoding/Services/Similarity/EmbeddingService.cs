@@ -30,6 +30,7 @@ public sealed class EmbeddingService(IOptions<EmbeddingOptions> options, ILogger
     private InferenceSession? _session;
     private SentencePieceTokenizer? _tokenizer;
     private Timer? _idle;
+    private DateTime _lastUsed;
 
     private string ModelFile => Path.Combine(_opt.ModelDir, "model_quantized.onnx");
     private string TokenizerFile => Path.Combine(_opt.ModelDir, "sentencepiece.bpe.model");
@@ -91,15 +92,20 @@ public sealed class EmbeddingService(IOptions<EmbeddingOptions> options, ILogger
             }
             finally
             {
-                _idle = new Timer(_ => Unload(), null, TimeSpan.FromSeconds(Math.Max(10, _opt.IdleUnloadSeconds)), Timeout.InfiniteTimeSpan);
+                _lastUsed = DateTime.UtcNow;
+                _idle = new Timer(_ => Unload(), null, IdleAfter, Timeout.InfiniteTimeSpan);
             }
         }
     }
+
+    private TimeSpan IdleAfter => TimeSpan.FromSeconds(Math.Max(10, _opt.IdleUnloadSeconds));
 
     private void Unload()
     {
         lock (_gate)
         {
+            // A timer that was already waiting for the lock while a request ran must not drop the model just used; the newer timer will.
+            if (_session is null || DateTime.UtcNow - _lastUsed < IdleAfter - TimeSpan.FromSeconds(1)) return;
             _session?.Dispose(); _session = null; _tokenizer = null;
             _idle?.Dispose(); _idle = null;
             log.LogInformation("Embedding model released");
