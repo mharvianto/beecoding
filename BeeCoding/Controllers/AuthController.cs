@@ -13,7 +13,8 @@ namespace BeeCoding.Controllers;
 [Route("api/auth")]
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
-    MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me, TurnstileService turnstile) : ApiControllerBase
+    MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me, TurnstileService turnstile,
+    Microsoft.Extensions.Caching.Memory.IMemoryCache cache) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -29,6 +30,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     private readonly GoogleAuthService _google = google;
     private readonly TurnstileService _turnstile = turnstile;
     private readonly MeDtoBuilder _me = me;
+    private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache = cache;
 
     private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
 
@@ -45,6 +47,10 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     [AllowAnonymous]
     public async Task<ActionResult<MeDto>> Register(RegisterDto dto)
     {
+        // Each sign-up costs a password hash (CPU) and, when email is set up, a verification mail to whatever address was typed.
+        // Generous because a whole class registers from one school IP.
+        if (!_resetThrottle.TryAcquire("register:" + ClientIp, 100))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many sign-ups from this network. Try again later.");
         if (await RequireHumanAsync(dto.TurnstileToken, "register") is { } notHuman) return notHuman;
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         // MailAddress also accepts "Name <a@b>"; requiring the parsed address to equal the input rejects those, and 256 is the column length.
@@ -82,14 +88,14 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         var ip = ClientIp;
 
-        if (_throttle.IsBlocked(ip, email))
+        // Counted up front (a success clears it): see LoginThrottle.TryBegin.
+        if (!_throttle.TryBegin(ip, email))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (await RequireHumanAsync(dto.TurnstileToken, "login") is { } notHuman) return notHuman;
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null || user.DeletedAt is not null || !_pw.Verify(user, dto.Password ?? ""))
         {
-            _throttle.RecordFailure(ip, email);
             return Unauthorized("Wrong email or password.");
         }
 
@@ -194,6 +200,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         if (row.ProvesEmail) user.EmailVerifiedAt ??= DateTime.UtcNow;   // the link came to their mailbox
         await _db.SaveChangesAsync();
+        _cache.Remove(CookieSignIn.CacheKey(user.Id));   // every open session of this account now fails its next check
         await _resets.ConsumeAsync(row);
         _throttle.RecordSuccess(ClientIp, user.Email);   // a locked-out account can sign in again
         return NoContent();
@@ -236,7 +243,16 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         await _db.SaveChangesAsync();
+        await EndOtherSessionsAsync(user);
         return NoContent();
+    }
+
+    /// <summary>The password changed, so every cookie issued under the old one stops working (a stolen copy included); this
+    /// session gets a fresh cookie and carries on.</summary>
+    private async Task EndOtherSessionsAsync(User user)
+    {
+        _cache.Remove(CookieSignIn.CacheKey(user.Id));
+        await SignInAsync(user);
     }
 
     /// <summary>Set a first password on an account created through Google (which has none).</summary>
@@ -251,6 +267,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         user.HasPassword = true;
         await _db.SaveChangesAsync();
+        await EndOtherSessionsAsync(user);
         return NoContent();
     }
 

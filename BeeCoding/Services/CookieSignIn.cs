@@ -18,6 +18,16 @@ public static class CookieSignIn
     /// identity provider) and are exempt from the two-step-verification requirement.</summary>
     public const string ViaClaim = "beecoding:via";
 
+    /// <summary>Claim holding a short fingerprint of the password hash the session was issued under. Changing or resetting the password
+    /// changes it, which ends every other session (see Program.cs OnValidatePrincipal). A cookie without it (issued before this
+    /// existed) is accepted.</summary>
+    public const string StampClaim = "beecoding:pwv";
+
+    public static string Stamp(string passwordHash) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(passwordHash)))[..12];
+
+    public static string CacheKey(int userId) => $"auth:user:{userId}";
+
     public static Task SignInAsync(HttpContext ctx, User user, string? via = null)
     {
         var claims = new List<Claim>
@@ -26,6 +36,7 @@ public static class CookieSignIn
             new(ClaimTypes.Name, user.DisplayName),
             new(ClaimTypes.Email, user.Email),
             new(ClaimTypes.Role, user.Role.ToString()),
+            new(StampClaim, Stamp(user.PasswordHash)),
         };
         if (via is not null) claims.Add(new Claim(ViaClaim, via));
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

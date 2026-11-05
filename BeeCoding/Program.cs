@@ -144,11 +144,17 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
             var db = ctx.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
             var cache = ctx.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
-            Task<AuthSnapshot?> Load() => db.Users.Where(u => u.Id == uid)
-                .Select(u => new AuthSnapshot(u.DeletedAt, u.Role, u.DisplayName, u.Email)).FirstOrDefaultAsync();
+            async Task<AuthSnapshot?> Load()
+            {
+                var u = await db.Users.Where(u => u.Id == uid)
+                    .Select(u => new { u.DeletedAt, u.Role, u.DisplayName, u.Email, u.PasswordHash }).FirstOrDefaultAsync();
+                return u is null ? null : new AuthSnapshot(u.DeletedAt, u.Role, u.DisplayName, u.Email, CookieSignIn.Stamp(u.PasswordHash));
+            }
             var row = recheck == TimeSpan.Zero ? await Load()
-                : await cache.GetOrCreateAsync($"auth:user:{uid}", e => { e.AbsoluteExpirationRelativeToNow = recheck; return Load(); });
-            if (row is null || row.DeletedAt is not null)
+                : await cache.GetOrCreateAsync(CookieSignIn.CacheKey(uid), e => { e.AbsoluteExpirationRelativeToNow = recheck; return Load(); });
+            // The password was changed or reset after this cookie was issued: that ends the session (a thief's copy included).
+            var issuedStamp = ctx.Principal!.FindFirst(CookieSignIn.StampClaim)?.Value;
+            if (row is null || row.DeletedAt is not null || (issuedStamp is not null && issuedStamp != row.Stamp))
             {
                 ctx.RejectPrincipal();
                 await CookieSignIn.SignOutAsync(ctx.HttpContext);
@@ -158,13 +164,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
             var currentRole = ctx.Principal!.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             if (currentRole != row.Role.ToString())
             {
-                var claims = new List<System.Security.Claims.Claim>
-                {
-                    new(System.Security.Claims.ClaimTypes.NameIdentifier, uid.ToString()),
-                    new(System.Security.Claims.ClaimTypes.Name, row.DisplayName),
-                    new(System.Security.Claims.ClaimTypes.Email, row.Email),
-                    new(System.Security.Claims.ClaimTypes.Role, row.Role.ToString()),
-                };
+                // Keep every other claim (how the session began, the password stamp): only these three come from the user row.
+                var claims = ctx.Principal.Claims.Where(c => c.Type is not (System.Security.Claims.ClaimTypes.Name or System.Security.Claims.ClaimTypes.Email or System.Security.Claims.ClaimTypes.Role)).ToList();
+                claims.Add(new(System.Security.Claims.ClaimTypes.Name, row.DisplayName));
+                claims.Add(new(System.Security.Claims.ClaimTypes.Email, row.Email));
+                claims.Add(new(System.Security.Claims.ClaimTypes.Role, row.Role.ToString()));
                 var identity = new System.Security.Claims.ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 ctx.ReplacePrincipal(new System.Security.Claims.ClaimsPrincipal(identity));
                 ctx.ShouldRenew = true;
@@ -593,6 +597,6 @@ app.Run();
 
 // Lets BeeCoding.Tests host the app with WebApplicationFactory.
 /// <summary>What the session check needs to know about a user, cached briefly (see OnValidatePrincipal).</summary>
-internal sealed record AuthSnapshot(DateTime? DeletedAt, BeeCoding.Models.UserRole Role, string DisplayName, string Email);
+internal sealed record AuthSnapshot(DateTime? DeletedAt, BeeCoding.Models.UserRole Role, string DisplayName, string Email, string Stamp);
 
 public partial class Program;

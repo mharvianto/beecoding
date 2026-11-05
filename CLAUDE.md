@@ -261,6 +261,8 @@ back that folder up with the database. The columns' `MaxLength` attributes are n
 - Custom code snippets (`lib/snippets.js`, edited at Account → Editor) are a synced preference (`beecoding.editor.snippets`, a JSON array) offered by one shared Monaco completion provider for `c`/`cpp`, independent of clangd.
 - Auth/session itself is an `HttpOnly` cookie, never `localStorage` — don't change that.
 
+Guess caps (`LoginThrottle`): count the attempt with `TryBegin` BEFORE checking the password or code (a success clears it) — checking first and recording after lets a burst of simultaneous guesses all pass.
+
 ### Config surface (`appsettings.json`, all overridable via `Section__Key` env vars)
 
 `Judge` (queue backend, concurrency, limits, sandbox), `Lsp` (clangd bridge, off by
@@ -271,7 +273,7 @@ default; `MaxConcurrent` clangd processes of one student each, or — Admin → 
 `Auth:Passkeys:RpId`/`RpName`/`Origins` (WebAuthn passkeys as a *passwordless* sign-in — user-verified, so it skips the TOTP step; unset = passkeys off; see `PasskeyController`/`PasskeyService`). optional second factors after password/Google live in `MfaController`/`MfaService`: TOTP authenticator apps (always available), emailed 6-digit codes (only while `Email` is configured; `EmailLoginCode`) and recovery codes — a user may enable several and chooses one at sign-in. MFA is optional unless Admin > Users switches on a required group (admins / org admins / teachers; `MfaPolicy` + `MfaRequirementGate`, stored in `PlatformRuntimeSettings`; LTI sessions exempt),
 `Auth:Turnstile:SiteKey`/`SecretKey`/`Hostnames` (Cloudflare Turnstile human check on sign-in, register and forgot-password; unset = off; the site key reaches the browser via `/api/auth/config`; verified server-side by `TurnstileService` for `success` + `action` + `hostname`, fails closed),
 `Push:PublicKey`/`PrivateKey`/`Subject` (Web Push for the bell with the tab closed: a VAPID pair + `mailto:` subject; unset = push off and its button hidden; browsers subscribe via `PushController`/`public/sw.js`, sends go through `WebPushService`, endpoints limited to the known browser push services),
-`Security:TrustAllProxies` (forwarded headers are trusted only from loopback/private proxies; set it when the reverse proxy has a public IP), `Security:CookieAlwaysSecure`, `Security:SessionRecheckSeconds` (default 10, 0 = every request: how long the per-request check that a cookie's user still exists / has the same role is cached — an admin deleting a user or changing a role takes effect within it),
+`Security:TrustAllProxies` (forwarded headers are trusted only from loopback/private proxies; set it when the reverse proxy has a public IP), `Security:CookieAlwaysSecure`, `Security:SessionRecheckSeconds` (default 10, 0 = every request: how long the per-request check that a cookie's user still exists / has the same role is cached — an admin deleting a user or changing a role takes effect within it); a password change or reset ends every other session through the `beecoding:pwv` claim — a fingerprint of the password hash, compared in `OnValidatePrincipal`, cookies without it still pass,
 `Auth:TeacherSignupCode`, `Realtime` (Redis backend for presence/drafts/lecture-mode
 stores). `BeeCoding/appsettings.json` and `beecoding.db` are local dev state — do not
 assume changes there should be committed.
