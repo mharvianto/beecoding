@@ -47,7 +47,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
 });
 
 builder.Services.AddControllers();
-builder.Services.AddSignalR();
+// The hub accepts a student's whole editor buffer (up to 200,000 characters, see BoardHub.PushDraft); SignalR's own default of 32 KB
+// per message would close the connection on a pasted file of that size, over and over as each keystroke pushes it again.
+builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 512 * 1024);
 builder.Services.AddMemoryCache();
 
 // /health = liveness (process is up); /health/ready = readiness (DB reachable).
