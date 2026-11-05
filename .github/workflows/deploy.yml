@@ -35,6 +35,10 @@ jobs:
           cache: npm
           cache-dependency-path: BeeCoding/ClientApp/package-lock.json
 
+      # The server deploys whatever the newest release holds, within minutes and with its migrations: a red test must stop it here.
+      - name: Test
+        run: dotnet test BeeCoding.Tests -c Release
+
       - name: Publish (linux-arm64)
         env:
           VITE_BASE_PATH: /beecoding/
