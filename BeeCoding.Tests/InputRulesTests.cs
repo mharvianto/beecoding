@@ -19,6 +19,26 @@ public class InputRulesTests
     }
 
     [Fact]
+    public async Task Names_are_checked_on_register_and_on_profile_edit()
+    {
+        using var app = new TestApp();
+        async Task<HttpResponseMessage> Register(string email, string name) =>
+            await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password = "Passw0rd!x1", displayName = name, role = "Student" });
+        Assert.Equal(HttpStatusCode.BadRequest, (await Register("n1@test.dev", new string('x', 41))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Register("n2@test.dev", "A")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Register("n3@test.dev", " \u200B ")).StatusCode);
+
+        var c = app.CreateClient();
+        (await c.PostAsJsonAsync("/api/auth/register", new { email = "n4@test.dev", password = "Passw0rd!x1", displayName = "  Budi   Santoso ", role = "Student" })).EnsureSuccessStatusCode();
+        Task<HttpResponseMessage> Patch(string name) => c.SendAsync(new HttpRequestMessage(HttpMethod.Patch, "/api/auth/profile") { Content = JsonContent.Create(new { displayName = name }) });
+        Assert.Equal(HttpStatusCode.BadRequest, (await Patch(new string('y', 41))).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Patch("B")).StatusCode);
+        var ok = await Patch("Budi S");
+        ok.EnsureSuccessStatusCode();
+        Assert.Contains("\"displayName\":\"Budi S\"", await ok.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task Register_rejects_odd_emails_and_board_titles_are_capped()
     {
         using var app = new TestApp();

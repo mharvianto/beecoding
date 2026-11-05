@@ -10,7 +10,10 @@ const items = ref([]);
 watch(() => [props.slug, props.solved], async ([slug, solved]) => {
   items.value = [];
   if (!solved) return;
-  try { items.value = await api.get(`/api/practice/${encodeURIComponent(slug)}/next`); } catch { /* a suggestion is optional */ }
+  try {
+    const r = await api.get(`/api/practice/${encodeURIComponent(slug)}/next`);
+    if (slug === props.slug) items.value = r;   // the router reuses this component: a slow answer for the previous problem must not land on the next one
+  } catch { /* a suggestion is optional */ }
 }, { immediate: true });
 </script>
 
