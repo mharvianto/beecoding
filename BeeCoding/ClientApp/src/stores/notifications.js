@@ -132,6 +132,12 @@ export function notificationText(n) {
     const what = n.kind === 'proposal-update' ? 'proposal' : 'practice submission';
     return `Your ${what} “${n.problemTitle}” was ${n.emoji === '✅' ? 'approved' : 'declined'} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
   }
+  if (n.kind === "org-invite") return `${n.actorName} invited you to the organization “${n.problemTitle}”`;
+  if (n.kind === "group-opens") return `The session “${n.problemTitle}” on ${n.snippet} is now open`;
+  if (n.kind === "group-closing") return `The session “${n.problemTitle}” on ${n.snippet} closes within the hour`;
+  if (n.kind === "problem-new") return n.count > 1 ? `${n.count} new problems on ${n.snippet} (latest: ${n.problemTitle})` : `New problem on ${n.snippet}: ${n.problemTitle}`;
+  if (n.kind === "lti-sync-failed") return n.count > 1 ? `Sending grades to the LMS failed ${n.count} times for “${n.problemTitle}”` : `Sending grades to the LMS failed for “${n.problemTitle}”`;
+  if (n.kind === "security") return `Security: ${n.problemTitle}`;
   const who = n.actorIsStaff ? `${n.actorName} 👨‍🏫` : n.actorName;
   if (n.kind === 'comment')
     return n.count > 1

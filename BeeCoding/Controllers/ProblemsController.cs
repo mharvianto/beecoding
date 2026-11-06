@@ -11,8 +11,9 @@ namespace BeeCoding.Controllers;
 [Authorize]
 [Route("api/boards/{slug}/problems")]
 public class ProblemsController(AppDbContext db, BoardService boards, VisibilityService vis,
-    IBoardNotifier notifier, AdminAccess admin, AuditLog audit) : ApiControllerBase
+    IBoardNotifier notifier, AdminAccess admin, AuditLog audit, NotificationService notifications) : ApiControllerBase
 {
+    private readonly NotificationService _notifications = notifications;
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
     private readonly VisibilityService _vis = vis;
@@ -83,9 +84,11 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p is null) return NotFound();
 
+        var wasHidden = p.Hidden;
         p.Hidden = dto.Hidden;
         await _db.SaveChangesAsync();
         await _notifier.ProblemChangedAsync(boardId!.Value);
+        if (wasHidden && !p.Hidden) await _notifications.ProblemPublishedAsync(p);
         return Mapping.ToOwnerDto(p);
     }
 
@@ -165,6 +168,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         _db.Problems.Add(p);
         await _db.SaveChangesAsync();
         await _notifier.ProblemChangedAsync(boardId.Value);
+        await _notifications.ProblemPublishedAsync(p);
 
         return Mapping.ToOwnerDto(p);
     }
@@ -185,6 +189,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         // start with Id 0 (not yet persisted) and must never reach the removal filter below,
         // or EF throws trying to mark a never-saved entity as Deleted.
         var existingIds = p.TestCases.Select(t => t.Id).ToHashSet();
+        var wasHidden = p.Hidden;
 
         Apply(p, dto);
 
@@ -196,6 +201,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
 
         await _db.SaveChangesAsync();
         await _notifier.ProblemChangedAsync(boardId!.Value);
+        if (wasHidden && !p.Hidden) await _notifications.ProblemPublishedAsync(p);
 
         var fresh = await _db.Problems.Include(x => x.TestCases).FirstAsync(x => x.Id == p.Id);
         return Mapping.ToOwnerDto(fresh);

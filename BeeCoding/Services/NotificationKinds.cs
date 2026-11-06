@@ -14,10 +14,16 @@ public static class NotificationKinds
         ("proposal-update", "My problem proposal was answered"),
         ("practice-review", "My practice submission was reviewed"),
         ("review-submitted", "A problem is waiting for review (admins)"),
+        ("org-invite", "I am invited to an organization"),
+        ("group-opens", "A session (folder) of a board I am in opens"),
+        ("group-closing", "A session of a board I am in closes within the hour"),
+        ("problem-new", "A new problem on a board I am in"),
+        ("lti-sync-failed", "Sending grades to the LMS failed (teachers)"),
+        ("security", "Security: password or two-step verification changed"),
     ];
 
     /// <summary>Reactions and comments are frequent, so they are not emailed unless an admin allows it.</summary>
-    public static readonly string[] DefaultEmail = ["report", "report-update", "proposal", "proposal-update", "practice-review", "review-submitted"];
+    public static readonly string[] DefaultEmail = ["report", "report-update", "proposal", "proposal-update", "practice-review", "review-submitted", "org-invite", "group-closing", "lti-sync-failed", "security"];
 
     public static bool IsKnown(string kind) => All.Any(k => k.Kind == kind);
 

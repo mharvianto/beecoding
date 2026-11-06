@@ -258,6 +258,81 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         await PushAsync(n, mail);
     }
 
+    // ---- board-less notices -----------------------------------------------------
+
+    /// <summary>An organization invited the user. The only prompt otherwise is a banner they see on their next visit.</summary>
+    public Task OrgInvitedAsync(int inviteeId, string orgName, string inviterName) =>
+        Safe("org invite", () => NoticeAsync(inviteeId, "org-invite", "🏫", orgName, "/account", null, 0, inviterName, coalesceBoardId: null));
+
+    /// <summary>A password or two-step verification change on the user's own account. Emailed whenever the platform allows email for
+    /// "security" (SMTP set up, verified address), without the per-user opt-in: a change nobody noticed is the point of the alert.</summary>
+    public Task SecurityAsync(int userId, string what) =>
+        Safe("security", () => NoticeAsync(userId, "security", "🔒", what, "/account/security", null, 0, "", coalesceBoardId: null, emailWithoutOptIn: true));
+
+    /// <summary>A session (group) of a board opened or is about to close: tell its students.</summary>
+    public async Task GroupScheduleAsync(string kind, IEnumerable<int> studentIds, string boardSlug, string boardTitle, string groupTitle) =>
+        await Safe("group schedule", async () =>
+        {
+            foreach (var uid in studentIds)
+                await NoticeAsync(uid, kind, kind == "group-opens" ? "🔓" : "⏰", groupTitle, $"/boards/{Uri.EscapeDataString(boardSlug)}", boardTitle, 0, "", coalesceBoardId: null);
+        });
+
+    /// <summary>A problem students can open was added (or unhidden): one unread row per student and board ("3 new problems").</summary>
+    public async Task ProblemPublishedAsync(Problem p) =>
+        await Safe("new problem", async () =>
+        {
+            await _db.Entry(p).Reference(x => x.Group).LoadAsync();
+            if (!GroupAccess.StudentVisible(p, DateTime.UtcNow)) return;   // hidden, or in a group that is hidden / not open yet (that has its own notice)
+            var board = await _db.Boards.Where(b => b.Id == p.BoardId).Select(b => new { b.Slug, b.Title }).FirstOrDefaultAsync();
+            if (board is null) return;
+            var students = await _db.BoardMemberships.Where(m => m.BoardId == p.BoardId && m.Role == MembershipRole.Student).Select(m => m.UserId).ToListAsync();
+            foreach (var uid in students)
+                await NoticeAsync(uid, "problem-new", "🆕", p.Title, $"/boards/{Uri.EscapeDataString(board.Slug)}", board.Title, 0, "", coalesceBoardId: p.BoardId);
+        });
+
+    /// <summary>Sending a grade to the LMS failed: tell the board's teachers once per unread pile, not once per student.</summary>
+    public async Task LtiSyncFailedAsync(int boardId) =>
+        await Safe("LTI sync failure", async () =>
+        {
+            var board = await _db.Boards.Where(b => b.Id == boardId).Select(b => new { b.Slug, b.Title }).FirstOrDefaultAsync();
+            if (board is null) return;
+            var staff = await _db.BoardMemberships.Where(m => m.BoardId == boardId && m.Role != MembershipRole.Student).Select(m => m.UserId).ToListAsync();
+            foreach (var uid in staff)
+                await NoticeAsync(uid, "lti-sync-failed", "⚠️", board.Title, $"/boards/{Uri.EscapeDataString(board.Slug)}", null, 0, "", coalesceBoardId: boardId);
+        });
+
+    /// <summary>The shared shape of the board-less kinds (ProposalId = 0 is what makes the bell show a row with no post). With
+    /// <paramref name="coalesceBoardId"/> an unread row of the same kind for that board gets its count bumped instead of a new row.</summary>
+    private async Task NoticeAsync(int userId, string kind, string emoji, string title, string link, string? snippet, int actorId, string actorName,
+        int? coalesceBoardId, bool emailWithoutOptIn = false)
+    {
+        var (bell, mail) = await ChannelsAsync(userId, kind, emailWithoutOptIn);
+        if (!bell) return;
+        title = Trim(title, 200);
+        Notification? n = null;
+        if (coalesceBoardId is int bid)
+            n = await _db.Notifications.FirstOrDefaultAsync(x => x.UserId == userId && x.Kind == kind && x.BoardId == bid && x.ReadAt == null);
+        if (n is null)
+        {
+            n = new Notification
+            {
+                UserId = userId, Kind = kind, ProposalId = 0, BoardId = coalesceBoardId ?? 0, ActorUserId = actorId, ActorName = Trim(actorName, 120),
+                Emoji = emoji, TargetTitle = title, Link = link, Snippet = snippet is null ? null : Trim(snippet, 200),
+            };
+            _db.Notifications.Add(n);
+        }
+        else { n.Count++; n.CreatedAt = DateTime.UtcNow; n.TargetTitle = title; mail = null; }   // a pile mails once
+        await _db.SaveChangesAsync();
+        await PushAsync(n, mail);
+    }
+
+    /// <summary>These notices ride on flows that must not fail because a notification did (publishing a problem, a grade sync).</summary>
+    private async Task Safe(string what, Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception ex) { log.LogWarning(ex, "Couldn't send the {What} notifications", what); }
+    }
+
     private Task<Notification?> UnreadReactionAsync(Post post) => UnreadAsync(post, "reaction");
 
     private Task<Notification?> UnreadAsync(Post post, string kind) =>
@@ -273,14 +348,14 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
 
     /// <summary>What this user gets for a kind: whether it shows in the bell (platform and user both allow it) and, when it
     /// should also be emailed (a kind the admin locked ignores the user's mute), the address (SMTP set up, address verified, platform allows email for the kind, user opted in).</summary>
-    private async Task<(bool Bell, string? EmailTo)> ChannelsAsync(int userId, string kind)
+    private async Task<(bool Bell, string? EmailTo)> ChannelsAsync(int userId, string kind, bool emailWithoutOptIn = false)
     {
         if (_platform.NotifyOffKinds.Contains(kind)) return (false, null);
         var u = await _db.Users.Where(x => x.Id == userId)
             .Select(x => new { x.NotifyOffKinds, x.NotifyEmailKinds, x.Email, x.EmailVerifiedAt }).FirstOrDefaultAsync();
         if (u is null || (!_platform.NotifyLockedKinds.Contains(kind) && NotificationKinds.Parse(u.NotifyOffKinds).Contains(kind))) return (false, null);
         var mail = _email.IsConfigured && u.EmailVerifiedAt != null && _platform.NotifyEmailKinds.Contains(kind)
-            && NotificationKinds.Parse(u.NotifyEmailKinds).Contains(kind);
+            && (emailWithoutOptIn || NotificationKinds.Parse(u.NotifyEmailKinds).Contains(kind));
         return (true, mail ? u.Email : null);
     }
 
@@ -315,6 +390,12 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
             "proposal" => $"{d.ActorName} proposed the problem \"{d.ProblemTitle}\" for your board{note}",
             "proposal-update" => $"Your proposal \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
             "practice-review" => $"Your practice submission \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
+            "org-invite" => $"{d.ActorName} invited you to the organization \"{d.ProblemTitle}\". Accept or decline it in your account.",
+            "group-opens" => $"The session \"{d.ProblemTitle}\" on {d.Snippet} is now open",
+            "group-closing" => $"The session \"{d.ProblemTitle}\" on {d.Snippet} closes within the hour",
+            "problem-new" => d.Count > 1 ? $"{d.Count} new problems on {d.Snippet}" : $"New problem on {d.Snippet}: \"{d.ProblemTitle}\"",
+            "lti-sync-failed" => $"Sending grades of the board \"{d.ProblemTitle}\" to the LMS failed. Check the LTI settings.",
+            "security" => $"Security notice for your account: {d.ProblemTitle}. If this was not you, reset your password now.",
             "comment" => $"{d.ActorName} commented on your card{note}",
             _ => $"{d.ActorName} reacted {d.Emoji} to your card",
         };

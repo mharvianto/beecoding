@@ -14,7 +14,7 @@ namespace BeeCoding.Services.Lti;
 /// the board"; a single-problem placement (<see cref="SyncPracticeAsync"/>) scores that
 /// one problem's best result (0..1) — see LtiProvisioningService.ResolveResourceLinkAsync.
 /// </summary>
-public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpClientFactory httpFactory, ILogger<LtiGradeSyncService> log)
+public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpClientFactory httpFactory, ILogger<LtiGradeSyncService> log, NotificationService notifications)
 {
     private readonly AppDbContext _db = db;
     private readonly LtiTokenService _tokens = tokens;
@@ -63,11 +63,15 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
 
             var res = await client.SendAsync(req, ct);
             if (!res.IsSuccessStatusCode)
+            {
                 _log.LogWarning("LTI grade sync rejected for board {BoardId} user {UserId}: {Status}", boardId, userId, res.StatusCode);
+                await notifications.LtiSyncFailedAsync(boardId);
+            }
         }
         catch (Exception ex)
         {
             _log.LogWarning(ex, "LTI grade sync failed for board {BoardId} user {UserId}", boardId, userId);
+            await notifications.LtiSyncFailedAsync(boardId);
         }
     }
 

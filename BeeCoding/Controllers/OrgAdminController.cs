@@ -21,8 +21,9 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/org-admin")]
-public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk, PlatformRuntimeConfig runtimeConfig) : ApiControllerBase
+public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk, PlatformRuntimeConfig runtimeConfig, NotificationService notifications) : ApiControllerBase
 {
+    private async Task<string> MyNameAsync() => await db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "An administrator";
     private readonly BoardBulkService _bulk = bulk;
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;
@@ -280,6 +281,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             _db.OrganizationInvites.Add(new OrganizationInvite { OrganizationId = orgId, UserId = user.Id, Role = role, InvitedById = UserId });
             await _db.SaveChangesAsync();
             await _audit.RecordAsync(UserId, ActorEmail, "org-member-invite", "Organization", orgId, $"{user.Email} as {role}");
+            await notifications.OrgInvitedAsync(user.Id, org.Name, await MyNameAsync());
             return Accepted(new { invited = true, email = user.Email });
         }
 
@@ -402,6 +404,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
                 { resultRows.Add(new(email, role.ToString(), false, "Already invited")); skipped++; continue; }
                 _db.OrganizationInvites.Add(new OrganizationInvite { OrganizationId = orgId, UserId = user.Id, Role = role, InvitedById = UserId });
                 await _db.SaveChangesAsync();
+                await notifications.OrgInvitedAsync(user.Id, org.Name, await MyNameAsync());
                 resultRows.Add(new(email, role.ToString(), false, "Invited — they must accept it first"));
                 invited++;
                 continue;

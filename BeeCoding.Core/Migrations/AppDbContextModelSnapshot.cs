@@ -1267,6 +1267,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("BoardId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("CloseNotifiedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("ClosesAt")
                         .HasColumnType("TEXT");
 
@@ -1278,6 +1281,9 @@ namespace BeeCoding.Migrations
 
                     b.Property<bool>("Hidden")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("OpenNotifiedAt")
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("OpensAt")
                         .HasColumnType("TEXT");

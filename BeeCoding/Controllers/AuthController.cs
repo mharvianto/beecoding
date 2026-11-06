@@ -14,7 +14,7 @@ namespace BeeCoding.Controllers;
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
     MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me, TurnstileService turnstile,
-    Microsoft.Extensions.Caching.Memory.IMemoryCache cache) : ApiControllerBase
+    Microsoft.Extensions.Caching.Memory.IMemoryCache cache, NotificationService notifications) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -203,6 +203,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         _cache.Remove(CookieSignIn.CacheKey(user.Id));   // every open session of this account now fails its next check
         await _resets.ConsumeAsync(row);
         _throttle.RecordSuccess(ClientIp, user.Email);   // a locked-out account can sign in again
+        await notifications.SecurityAsync(user.Id, "your password was reset");
         return NoContent();
     }
 
@@ -244,6 +245,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         await _db.SaveChangesAsync();
         await EndOtherSessionsAsync(user);
+        await notifications.SecurityAsync(user.Id, "your password was changed");
         return NoContent();
     }
 

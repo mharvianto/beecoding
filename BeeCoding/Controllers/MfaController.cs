@@ -15,7 +15,7 @@ namespace BeeCoding.Controllers;
 /// </summary>
 [Route("api/auth/mfa")]
 public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
-    LoginThrottle throttle, MeDtoBuilder me, MfaPolicy policy) : ApiControllerBase
+    LoginThrottle throttle, MeDtoBuilder me, MfaPolicy policy, NotificationService notifications) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -156,6 +156,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         user.TotpSecret = null; user.TotpEnabledAt = null; user.TotpLastStep = 0;
         await _db.SaveChangesAsync();
         await DropRecoveryCodesIfNoFactorAsync(user);
+        await notifications.SecurityAsync(user.Id, "the authenticator app was turned off for two-step verification");
         return NoContent();
     }
 
@@ -213,6 +214,7 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
         user.EmailMfaEnabledAt = null;
         await _db.SaveChangesAsync();
         await DropRecoveryCodesIfNoFactorAsync(user);
+        await notifications.SecurityAsync(user.Id, "email codes were turned off for two-step verification");
         return NoContent();
     }
 

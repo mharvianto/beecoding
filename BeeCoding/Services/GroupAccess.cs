@@ -50,7 +50,11 @@ public static class GroupAccess
         g.Title = title.Length > 120 ? title[..120] : title;
         g.Hidden = dto.Hidden;
         g.ExamMode = dto.ExamMode;
-        g.OpensAt = dto.OpensAt?.ToUniversalTime();
-        g.ClosesAt = dto.ClosesAt?.ToUniversalTime();
+        var opens = dto.OpensAt?.ToUniversalTime();
+        var closes = dto.ClosesAt?.ToUniversalTime();
+        if (opens != g.OpensAt) g.OpenNotifiedAt = null;
+        if (closes != g.ClosesAt) g.CloseNotifiedAt = null;
+        g.OpensAt = opens;
+        g.ClosesAt = closes;
     }
 }

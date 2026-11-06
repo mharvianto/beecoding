@@ -202,6 +202,10 @@ public class ProblemGroup
     /// Null = never closes.</summary>
     public DateTime? ClosesAt { get; set; }
 
+    /// <summary>When students were told this group opened / is about to close (GroupScheduleNotifier). Cleared when the date is edited, so a new date notifies again.</summary>
+    public DateTime? OpenNotifiedAt { get; set; }
+    public DateTime? CloseNotifiedAt { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<Problem> Problems { get; set; } = new();
