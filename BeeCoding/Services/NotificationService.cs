@@ -12,8 +12,12 @@ namespace BeeCoding.Services;
 /// live over SignalR. Reactions on the same post coalesce into one unread row; an author never
 /// gets notified about their own activity.
 /// </summary>
-public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPushService webPush, AdminAccess admin, ILogger<NotificationService> log)
+public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPushService webPush, AdminAccess admin, EmailService email,
+    PlatformRuntimeConfig platform, IConfiguration cfg, ILogger<NotificationService> log)
 {
+    private readonly EmailService _email = email;
+    private readonly PlatformRuntimeConfig _platform = platform;
+    private readonly IConfiguration _cfg = cfg;
     private readonly AdminAccess _admin = admin;
     private readonly WebPushService _webPush = webPush;
     private readonly AppDbContext _db = db;
@@ -22,8 +26,11 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task ReactionAddedAsync(Post post, int actorId, string actorName, bool actorIsStaff, string emoji)
     {
         if (actorId == post.UserId) return;
+        var (bell, mail) = await ChannelsAsync(post.UserId, "reaction");
+        if (!bell) return;
 
         var n = await UnreadReactionAsync(post);
+        var isNew = n is null;
         if (n is null)
         {
             n = new Notification { UserId = post.UserId, Kind = "reaction", BoardId = post.BoardId, ProblemId = post.ProblemId, PostId = post.Id };
@@ -39,7 +46,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         n.ActorIsStaff = actorIsStaff;
         n.Emoji = emoji;
         await _db.SaveChangesAsync();
-        await PushAsync(n);
+        await PushAsync(n, isNew ? mail : null);   // piles into one unread row, so one email per pile
     }
 
     /// <summary>A reaction was toggled off: take it back out of the still-unread notification.</summary>
@@ -56,9 +63,12 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task CommentAddedAsync(Post post, PostComment comment, string actorName, bool actorIsStaff)
     {
         if (comment.UserId == post.UserId) return;
+        var (bell, mail) = await ChannelsAsync(post.UserId, "comment");
+        if (!bell) return;
 
         // Like reactions: comments on one card pile into a single unread row ("3 new comments") instead of one each.
         var n = await UnreadAsync(post, "comment");
+        var isNew = n is null;
         if (n is null)
         {
             n = new Notification { UserId = post.UserId, Kind = "comment", BoardId = post.BoardId, ProblemId = post.ProblemId, PostId = post.Id };
@@ -73,7 +83,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         n.ActorUserId = comment.UserId; n.ActorName = Trim(actorName, 120); n.ActorIsStaff = actorIsStaff;
         n.Snippet = Trim(comment.Body, 200);
         await _db.SaveChangesAsync();
-        await PushAsync(n);
+        await PushAsync(n, isNew ? mail : null);
     }
 
     public async Task CommentRemovedAsync(int commentId)
@@ -131,6 +141,8 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     {
         foreach (var uid in recipientUserIds.Where(u => u != report.UserId).Distinct())
         {
+            var (bell, mail) = await ChannelsAsync(uid, "report");
+            if (!bell) continue;
             var n = new Notification
             {
                 UserId = uid, Kind = "report", ReportId = report.Id, ActorUserId = report.UserId, ActorName = Trim(reporterName, 120),
@@ -139,7 +151,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
             };
             _db.Notifications.Add(n);
             await _db.SaveChangesAsync();
-            await PushAsync(n);
+            await PushAsync(n, mail);
         }
     }
 
@@ -147,6 +159,8 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task ReportReviewedAsync(ProblemReport report, int reviewerId, string reviewerName, string problemTitle, string link)
     {
         if (reviewerId == report.UserId || report.Status == ReportStatus.Open) return;
+        var (bell, mail) = await ChannelsAsync(report.UserId, "report-update");
+        if (!bell) return;
         var n = new Notification
         {
             UserId = report.UserId, Kind = "report-update", ReportId = report.Id, ActorUserId = reviewerId, ActorName = Trim(reviewerName, 120),
@@ -155,7 +169,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         };
         _db.Notifications.Add(n);
         await _db.SaveChangesAsync();
-        await PushAsync(n);
+        await PushAsync(n, mail);
     }
 
     // ---- admins ---------------------------------------------------------------
@@ -175,6 +189,8 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         {
             foreach (var adminId in (await AdminUserIdsAsync()).Where(a => a != submitterId))
             {
+                var (bell, mail) = await ChannelsAsync(adminId, "review-submitted");
+                if (!bell) continue;
                 // A student who withdraws and sends the same problem again must not leave two rows behind: bump the unread one.
                 var title = Trim(problemTitle, 200);
                 var n = await _db.Notifications.FirstOrDefaultAsync(x => x.UserId == adminId && x.Kind == "review-submitted"
@@ -188,9 +204,9 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
                     };
                     _db.Notifications.Add(n);
                 }
-                else n.CreatedAt = DateTime.UtcNow;
+                else { n.CreatedAt = DateTime.UtcNow; mail = null; }   // a resend bumps the unread row: no second email
                 await _db.SaveChangesAsync();
-                await PushAsync(n);
+                await PushAsync(n, mail);
             }
         }
         catch (Exception ex) { log.LogWarning(ex, "Couldn't notify admins of a problem waiting for review"); }
@@ -202,6 +218,8 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     public async Task ProposalFiledAsync(ProblemProposal proposal, int ownerId, string proposerName, string problemTitle, string link)
     {
         if (ownerId == proposal.ProposerId) return;
+        var (bell, mail) = await ChannelsAsync(ownerId, "proposal");
+        if (!bell) return;
         var n = new Notification
         {
             UserId = ownerId, Kind = "proposal", ProposalId = proposal.Id, ActorUserId = proposal.ProposerId, ActorName = Trim(proposerName, 120),
@@ -210,7 +228,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         };
         _db.Notifications.Add(n);
         await _db.SaveChangesAsync();
-        await PushAsync(n);
+        await PushAsync(n, mail);
     }
 
     /// <summary>The board owner approved or declined a proposal: tell the proposer.</summary>
@@ -227,6 +245,8 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         string problemTitle, string link, bool approved, string? note)
     {
         if (toUserId == reviewerId) return;
+        var (bell, mail) = await ChannelsAsync(toUserId, kind);
+        if (!bell) return;
         var n = new Notification
         {
             UserId = toUserId, Kind = kind, ProposalId = proposalId, ActorUserId = reviewerId, ActorName = Trim(reviewerName, 120),
@@ -235,7 +255,7 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         };
         _db.Notifications.Add(n);
         await _db.SaveChangesAsync();
-        await PushAsync(n);
+        await PushAsync(n, mail);
     }
 
     private Task<Notification?> UnreadReactionAsync(Post post) => UnreadAsync(post, "reaction");
@@ -251,12 +271,53 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         await _notifier.NotificationRemovedAsync(n.UserId, n.Id, await UnreadCountAsync(n.UserId));
     }
 
-    private async Task PushAsync(Notification n)
+    /// <summary>What this user gets for a kind: whether it shows in the bell (platform and user both allow it) and, when it
+    /// should also be emailed, the address (SMTP set up, address verified, platform allows email for the kind, user opted in).</summary>
+    private async Task<(bool Bell, string? EmailTo)> ChannelsAsync(int userId, string kind)
+    {
+        if (_platform.NotifyOffKinds.Contains(kind)) return (false, null);
+        var u = await _db.Users.Where(x => x.Id == userId)
+            .Select(x => new { x.NotifyOffKinds, x.NotifyEmailKinds, x.Email, x.EmailVerifiedAt }).FirstOrDefaultAsync();
+        if (u is null || NotificationKinds.Parse(u.NotifyOffKinds).Contains(kind)) return (false, null);
+        var mail = _email.IsConfigured && u.EmailVerifiedAt != null && _platform.NotifyEmailKinds.Contains(kind)
+            && NotificationKinds.Parse(u.NotifyEmailKinds).Contains(kind);
+        return (true, mail ? u.Email : null);
+    }
+
+    private async Task PushAsync(Notification n, string? emailTo = null)
     {
         var dto = await ToDtoAsync(n);
         if (dto is null) return;
         await _notifier.NotificationAsync(n.UserId, dto, await UnreadCountAsync(n.UserId));
         _webPush.Queue(n.UserId, dto);
+        if (emailTo is not null) QueueEmail(emailTo, dto);
+    }
+
+    /// <summary>Plain-text mail, sent in the background (SMTP can take seconds and must not hold up the click that caused it;
+    /// <see cref="EmailService.SendAsync"/> never throws). Without <c>App:PublicUrl</c> there is no link to put in it, so none is sent.</summary>
+    private void QueueEmail(string to, NotificationDto d)
+    {
+        var baseUrl = _cfg["App:PublicUrl"]?.Trim().TrimEnd('/');
+        if (string.IsNullOrEmpty(baseUrl)) return;
+        var path = d.Link ?? $"/boards/{Uri.EscapeDataString(d.BoardSlug)}?problem={d.ProblemId}&post={d.PostId}";
+        var body = $"{EmailText(d)}\n\nOpen it: {baseUrl}{path}\n\nChoose which notifications you get by email: {baseUrl}/account";
+        _ = Task.Run(() => _email.SendAsync(to, "BeeCoding: you have a new notification", body));
+    }
+
+    public static string EmailText(NotificationDto d)
+    {
+        var note = string.IsNullOrWhiteSpace(d.Snippet) ? "" : $": \"{d.Snippet}\"";
+        return d.Kind switch
+        {
+            "report" => $"{d.ActorName} reported your problem \"{d.ProblemTitle}\"{note}",
+            "report-update" => $"Your report on \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "resolved" : "dismissed")} by {d.ActorName}{note}",
+            "review-submitted" => $"{d.ActorName} submitted \"{d.ProblemTitle}\" for review",
+            "proposal" => $"{d.ActorName} proposed the problem \"{d.ProblemTitle}\" for your board{note}",
+            "proposal-update" => $"Your proposal \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
+            "practice-review" => $"Your practice submission \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
+            "comment" => $"{d.ActorName} commented on your card{note}",
+            _ => $"{d.ActorName} reacted {d.Emoji} to your card",
+        };
     }
 
     private async Task<NotificationDto?> ToDtoAsync(Notification n)

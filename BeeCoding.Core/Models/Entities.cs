@@ -67,6 +67,11 @@ public class User
     /// where no request is at hand, e.g. the AI daily quota (<see cref="AiUsage.Day"/>).</summary>
     public int UtcOffsetMinutes { get; set; }
 
+    /// <summary>Notification kinds this user turned off (comma-separated, see NotificationKinds) and the ones they also want by email.
+    /// Email is opt-in: empty = none. Both only narrow what the platform allows (PlatformRuntimeSettings).</summary>
+    public string? NotifyOffKinds { get; set; }
+    public string? NotifyEmailKinds { get; set; }
+
     /// <summary>When the user turned on "email me a code" as a second factor. Null = off.</summary>
     public DateTime? EmailMfaEnabledAt { get; set; }
 
@@ -1036,6 +1041,10 @@ public class PlatformRuntimeSettings
 
     /// <summary>Days a notification stays in the bell after it was read, then it is deleted (0 = never; read ones then go with the 30-day sweep).</summary>
     public int NotificationReadRetentionDays { get; set; } = 7;
+
+    /// <summary>Notification kinds switched off for everyone, and the kinds that may be emailed at all (comma-separated, see NotificationKinds). Null email list = the built-in default.</summary>
+    public string? NotifyOffKinds { get; set; }
+    public string? NotifyEmailKinds { get; set; }
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

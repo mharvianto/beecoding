@@ -30,6 +30,15 @@ public class PlatformRuntimeConfig
     public int NotificationReadRetentionDays { get; private set; } = 7;
     public void SetNotificationReadRetentionDays(int days) => NotificationReadRetentionDays = Math.Max(0, days);
 
+    /// <summary>Kinds off for everyone, and kinds that may be emailed (null in the database = NotificationKinds.DefaultEmail).</summary>
+    public HashSet<string> NotifyOffKinds { get; private set; } = [];
+    public HashSet<string> NotifyEmailKinds { get; private set; } = [.. NotificationKinds.DefaultEmail];
+    public void SetNotifyKinds(string? off, string? email)
+    {
+        NotifyOffKinds = NotificationKinds.Parse(off);
+        NotifyEmailKinds = email is null ? [.. NotificationKinds.DefaultEmail] : NotificationKinds.Parse(email);
+    }
+
     public void SetImageLimits(int maxKb, int maxPerUser) { ImageMaxKb = Math.Max(1, maxKb); ImageMaxPerUser = Math.Max(0, maxPerUser); }
 
     public void SetMfaPolicy(bool admin, bool orgAdmin, bool teacher)

@@ -30,10 +30,11 @@ public class AdminUiController(
     NativeToolchain toolchain, IJudgeQueue judgeQueue, IOptions<JudgeOptions> judgeOpt,
     IOptions<LspOptions> lspOpt, IOptions<RealtimeStoreOptions> realtimeOpt, SysstatService sysstat,
     PlagiarismService plagiarism, ProgressService progress, BoardBulkService bulk, PasswordResetService resets, MfaService mfa,
-    NotificationService notifications, SharedClangd sharedLsp)
+    NotificationService notifications, SharedClangd sharedLsp, EmailService email)
     : ApiControllerBase
 {
     private readonly SharedClangd _sharedLsp = sharedLsp;
+    private readonly EmailService _email = email;
     private readonly BoardBulkService _bulk = bulk;
     private readonly NotificationService _notifications = notifications;
     private readonly PasswordResetService _resets = resets;
@@ -749,6 +750,30 @@ public class AdminUiController(
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
             $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, lspShared={row.LspShared}");
         return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared);
+    }
+
+    /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>
+    [HttpGet("notification-kinds")]
+    public AdminNotifyKindsDto GetNotificationKinds() => new(
+        NotificationKinds.All.Select(k => new AdminNotifyKindDto(k.Kind, k.Label,
+            !_runtimeConfig.NotifyOffKinds.Contains(k.Kind), _runtimeConfig.NotifyEmailKinds.Contains(k.Kind))).ToList(),
+        _email.IsConfigured);
+
+    [HttpPut("notification-kinds")]
+    public async Task<AdminNotifyKindsDto> SetNotificationKinds(List<AdminNotifyKindDto> kinds)
+    {
+        var off = NotificationKinds.Join(kinds.Where(k => !k.Enabled).Select(k => k.Kind));
+        // "" (not null) once saved: an empty list now means "email nothing", null would mean the built-in default.
+        var email = NotificationKinds.Join(kinds.Where(k => k.Enabled && k.Email).Select(k => k.Kind)) ?? "";
+        var row = await _db.PlatformRuntimeSettings.FindAsync(1);
+        if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
+        row.NotifyOffKinds = off;
+        row.NotifyEmailKinds = email;
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        _runtimeConfig.SetNotifyKinds(row.NotifyOffKinds, row.NotifyEmailKinds);
+        await _audit.RecordAsync(UserId, ActorEmail, "notification-kinds-set", "RuntimeConfig", row.Id, $"off={off ?? "-"}, email={(email == "" ? "-" : email)}");
+        return GetNotificationKinds();
     }
 
     // ---- audit log ------------------------------------------------------------

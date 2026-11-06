@@ -321,6 +321,14 @@ public record AdminJudgeLatencyDto(int Hours, int Slots, long? PendingNow, int T
     int Unfinished = 0, double OldestUnfinishedSeconds = 0);
 
 /// <summary>The judge/LSP knobs editable from /admin/reports — see PlatformRuntimeSettings.</summary>
+/// <summary>One notification kind in the user's own settings: what the platform allows and what they chose.</summary>
+public record NotifyKindDto(string Kind, string Label, bool PlatformOff, bool EmailAllowed, bool Bell, bool Email);
+public record NotifySettingsDto(List<NotifyKindDto> Kinds, bool EmailAvailable, bool EmailVerified);
+public record NotifyChoiceDto(string Kind, bool Bell, bool Email);
+/// <summary>Platform-wide: a kind can be switched off for everyone, and email can be allowed per kind.</summary>
+public record AdminNotifyKindDto(string Kind, string Label, bool Enabled, bool Email);
+public record AdminNotifyKindsDto(List<AdminNotifyKindDto> Kinds, bool EmailConfigured);
+
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it

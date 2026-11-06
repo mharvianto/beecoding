@@ -11,12 +11,35 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/notifications")]
-public class NotificationsController(AppDbContext db, NotificationService notifications) : ApiControllerBase
+public class NotificationsController(AppDbContext db, NotificationService notifications, PlatformRuntimeConfig platform, EmailService email) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly NotificationService _notifications = notifications;
 
     private const int PageSize = 30;
+
+    /// <summary>The caller's own choices per kind next to what the platform allows. Email is opt-in and needs a verified address.</summary>
+    [HttpGet("settings")]
+    public async Task<NotifySettingsDto> GetSettings()
+    {
+        var u = await _db.Users.Where(x => x.Id == UserId).Select(x => new { x.NotifyOffKinds, x.NotifyEmailKinds, x.EmailVerifiedAt }).FirstAsync();
+        var off = NotificationKinds.Parse(u.NotifyOffKinds);
+        var mail = NotificationKinds.Parse(u.NotifyEmailKinds);
+        return new NotifySettingsDto(
+            NotificationKinds.All.Select(k => new NotifyKindDto(k.Kind, k.Label, platform.NotifyOffKinds.Contains(k.Kind),
+                platform.NotifyEmailKinds.Contains(k.Kind), !off.Contains(k.Kind), mail.Contains(k.Kind))).ToList(),
+            email.IsConfigured, u.EmailVerifiedAt != null);
+    }
+
+    [HttpPut("settings")]
+    public async Task<NotifySettingsDto> PutSettings(List<NotifyChoiceDto> choices)
+    {
+        var user = await _db.Users.FirstAsync(x => x.Id == UserId);
+        user.NotifyOffKinds = NotificationKinds.Join(choices.Where(c => !c.Bell).Select(c => c.Kind));
+        user.NotifyEmailKinds = NotificationKinds.Join(choices.Where(c => c.Bell && c.Email).Select(c => c.Kind));   // email only for what the bell shows
+        await _db.SaveChangesAsync();
+        return await GetSettings();
+    }
 
     /// <summary>One page, newest first; <c>skip</c> pages further back ("load more").</summary>
     [HttpGet]

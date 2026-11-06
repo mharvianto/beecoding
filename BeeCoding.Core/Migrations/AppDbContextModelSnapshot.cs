@@ -1049,6 +1049,12 @@ namespace BeeCoding.Migrations
                     b.Property<int>("NotificationReadRetentionDays")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("NotifyEmailKinds")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyOffKinds")
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("StudentMaxProblems")
                         .HasColumnType("INTEGER");
 
@@ -1619,6 +1625,12 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("MfaOfferHiddenUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyEmailKinds")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NotifyOffKinds")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("PasswordHash")

@@ -145,6 +145,10 @@ reporter when it is resolved or dismissed (`report-update`); those rows have no 
 after being read (default 7, Admin → System, 0 = off), and each user keeps only the newest 200. Reactions and comments on one card pile into
 a single unread row (`Count`). The bell pages 30 at a time (`GET /api/notifications?skip=`); a user may delete only notifications they already read.
 
+### Notification kinds + email
+
+`NotificationKinds` lists the kinds (reaction, comment, report, report-update, proposal, proposal-update, practice-review, review-submitted). Every creator in `NotificationService` asks `ChannelsAsync(user, kind)` first: a kind the platform switched off (Admin → System → "Notification kinds", `PlatformRuntimeSettings.NotifyOffKinds`, cached in `PlatformRuntimeConfig`) or the user muted (Account → "What to notify me about", `User.NotifyOffKinds`) creates no row, no push and no email. Email is opt-in per user (`User.NotifyEmailKinds`, only for kinds that stay in the bell), allowed per kind by the platform (`NotifyEmailKinds`, null = all but reaction/comment), and sent only when `Email` (SMTP) and `App:PublicUrl` are set and the address is verified. Reactions/comments email once per unread pile (a bump does not mail again). Sent in the background; a failure is only logged.
+
 ### Audit log lifetime
 
 `AuditLogJanitor` (daily) deletes audit-log rows older than `Audit:RetentionDays` (365; 0 = keep forever).

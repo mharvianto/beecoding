@@ -434,6 +434,7 @@ using (var scope = app.Services.CreateScope())
     runtimeConfig.SetStudentMaxProblems(platformRuntime.StudentMaxProblems);
     runtimeConfig.SetImageLimits(platformRuntime.ImageMaxKb, platformRuntime.ImageMaxPerUser);
     runtimeConfig.SetNotificationReadRetentionDays(platformRuntime.NotificationReadRetentionDays);
+    runtimeConfig.SetNotifyKinds(platformRuntime.NotifyOffKinds, platformRuntime.NotifyEmailKinds);
     runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }
 

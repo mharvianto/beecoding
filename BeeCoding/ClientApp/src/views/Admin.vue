@@ -23,6 +23,7 @@ import PlagiarismTable from '../components/PlagiarismTable.vue';
 import SubmissionDiffView from '../components/SubmissionDiffView.vue';
 import { useUrlQuery, lastPage } from '../lib/urlQuery';
 import BulkAddPanel from '../components/BulkAddPanel.vue';
+import AdminNotifyKinds from '../components/AdminNotifyKinds.vue';
 import { tableView } from '../lib/tableView';
 
 const auth = useAuth();
@@ -2035,6 +2036,8 @@ onMounted(async () => {
             Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
           </p>
         </div>
+
+        <AdminNotifyKinds class="mt-4" />
 
         <ImageUsagePanel :usage="imageUsage" />
 

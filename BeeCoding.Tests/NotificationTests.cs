@@ -54,6 +54,53 @@ public class NotificationTests
     }
 
     [Fact]
+    public async Task A_kind_the_user_or_the_platform_turned_off_creates_no_notification_and_email_needs_the_bell()
+    {
+        using var app = new TestApp();
+        var http = app.CreateClient();
+        (await http.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+
+        // The user keeps comments out of the bell and asks for email on a kind that stays in it, and on the muted one.
+        var saved = await http.PutAsJsonAsync("/api/notifications/settings", new[]
+        {
+            new { kind = "comment", bell = false, email = true },
+            new { kind = "report", bell = true, email = true },
+        });
+        saved.EnsureSuccessStatusCode();
+        var s = await saved.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+        var kinds = s.GetProperty("kinds").EnumerateArray().ToDictionary(k => k.GetProperty("kind").GetString()!);
+        Assert.False(kinds["comment"].GetProperty("bell").GetBoolean());
+        Assert.False(kinds["comment"].GetProperty("email").GetBoolean());   // no bell, no email
+        Assert.True(kinds["report"].GetProperty("email").GetBoolean());
+        Assert.True(kinds["reaction"].GetProperty("bell").GetBoolean());
+
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var teacher = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+        var student = new User { Email = "s2@test.dev", DisplayName = "S", Role = UserRole.Student, PasswordHash = "x" };
+        db.Users.Add(student);
+        var post = new Post { BoardId = (await db.Boards.FirstAsync()).Id, ProblemId = (await db.Problems.FirstAsync()).Id, UserId = teacher.Id };
+        db.Posts.Add(post);
+        await db.SaveChangesAsync();
+        var svc = scope.ServiceProvider.GetRequiredService<NotificationService>();
+
+        var c = new PostComment { PostId = post.Id, UserId = student.Id, Body = "hi" };
+        db.PostComments.Add(c);
+        await db.SaveChangesAsync();
+        await svc.CommentAddedAsync(post, c, "S", false);
+        Assert.Equal(0, await db.Notifications.CountAsync(n => n.UserId == teacher.Id));   // the user's own mute
+
+        await svc.ReactionAddedAsync(post, student.Id, "S", false, "👍");
+        Assert.Equal(1, await db.Notifications.CountAsync(n => n.UserId == teacher.Id));   // other kinds still arrive
+
+        scope.ServiceProvider.GetRequiredService<PlatformRuntimeConfig>().SetNotifyKinds("reaction", null);
+        db.Notifications.RemoveRange(db.Notifications);
+        await db.SaveChangesAsync();
+        await svc.ReactionAddedAsync(post, student.Id, "S", false, "👍");
+        Assert.Equal(0, await db.Notifications.CountAsync());   // the platform's switch beats everyone's choice
+    }
+
+    [Fact]
     public async Task The_sweep_drops_old_read_ones_keeps_the_rest_and_trims_to_the_newest_200()
     {
         using var app = new TestApp();
