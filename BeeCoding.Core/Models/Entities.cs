@@ -1045,6 +1045,8 @@ public class PlatformRuntimeSettings
     /// <summary>Notification kinds switched off for everyone, and the kinds that may be emailed at all (comma-separated, see NotificationKinds). Null email list = the built-in default.</summary>
     public string? NotifyOffKinds { get; set; }
     public string? NotifyEmailKinds { get; set; }
+    /// <summary>Kinds every user must get in the bell: their own mute is ignored (switched off for everyone still wins).</summary>
+    public string? NotifyLockedKinds { get; set; }
 
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

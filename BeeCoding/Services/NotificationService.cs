@@ -272,13 +272,13 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
     }
 
     /// <summary>What this user gets for a kind: whether it shows in the bell (platform and user both allow it) and, when it
-    /// should also be emailed, the address (SMTP set up, address verified, platform allows email for the kind, user opted in).</summary>
+    /// should also be emailed (a kind the admin locked ignores the user's mute), the address (SMTP set up, address verified, platform allows email for the kind, user opted in).</summary>
     private async Task<(bool Bell, string? EmailTo)> ChannelsAsync(int userId, string kind)
     {
         if (_platform.NotifyOffKinds.Contains(kind)) return (false, null);
         var u = await _db.Users.Where(x => x.Id == userId)
             .Select(x => new { x.NotifyOffKinds, x.NotifyEmailKinds, x.Email, x.EmailVerifiedAt }).FirstOrDefaultAsync();
-        if (u is null || NotificationKinds.Parse(u.NotifyOffKinds).Contains(kind)) return (false, null);
+        if (u is null || (!_platform.NotifyLockedKinds.Contains(kind) && NotificationKinds.Parse(u.NotifyOffKinds).Contains(kind))) return (false, null);
         var mail = _email.IsConfigured && u.EmailVerifiedAt != null && _platform.NotifyEmailKinds.Contains(kind)
             && NotificationKinds.Parse(u.NotifyEmailKinds).Contains(kind);
         return (true, mail ? u.Email : null);

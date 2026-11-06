@@ -756,7 +756,8 @@ public class AdminUiController(
     [HttpGet("notification-kinds")]
     public AdminNotifyKindsDto GetNotificationKinds() => new(
         NotificationKinds.All.Select(k => new AdminNotifyKindDto(k.Kind, k.Label,
-            !_runtimeConfig.NotifyOffKinds.Contains(k.Kind), _runtimeConfig.NotifyEmailKinds.Contains(k.Kind))).ToList(),
+            !_runtimeConfig.NotifyOffKinds.Contains(k.Kind), _runtimeConfig.NotifyEmailKinds.Contains(k.Kind),
+            _runtimeConfig.NotifyLockedKinds.Contains(k.Kind))).ToList(),
         _email.IsConfigured);
 
     [HttpPut("notification-kinds")]
@@ -765,14 +766,16 @@ public class AdminUiController(
         var off = NotificationKinds.Join(kinds.Where(k => !k.Enabled).Select(k => k.Kind));
         // "" (not null) once saved: an empty list now means "email nothing", null would mean the built-in default.
         var email = NotificationKinds.Join(kinds.Where(k => k.Enabled && k.Email).Select(k => k.Kind)) ?? "";
+        var locked = NotificationKinds.Join(kinds.Where(k => k.Enabled && k.Locked).Select(k => k.Kind));
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.NotifyOffKinds = off;
+        row.NotifyLockedKinds = locked;
         row.NotifyEmailKinds = email;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        _runtimeConfig.SetNotifyKinds(row.NotifyOffKinds, row.NotifyEmailKinds);
-        await _audit.RecordAsync(UserId, ActorEmail, "notification-kinds-set", "RuntimeConfig", row.Id, $"off={off ?? "-"}, email={(email == "" ? "-" : email)}");
+        _runtimeConfig.SetNotifyKinds(row.NotifyOffKinds, row.NotifyEmailKinds, row.NotifyLockedKinds);
+        await _audit.RecordAsync(UserId, ActorEmail, "notification-kinds-set", "RuntimeConfig", row.Id, $"off={off ?? "-"}, locked={locked ?? "-"}, email={(email == "" ? "-" : email)}");
         return GetNotificationKinds();
     }
 

@@ -34,8 +34,9 @@ const canEmail = (k) => s.value.emailAvailable && s.value.emailVerified && k.ema
         <span class="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200">
           {{ k.label }}
           <span v-if="k.platformOff" class="block text-[11px] text-slate-400 dark:text-slate-500">Turned off for everyone by an admin.</span>
+          <span v-else-if="k.locked" class="block text-[11px] text-slate-400 dark:text-slate-500">Required by an admin: always in your bell.</span>
         </span>
-        <span class="w-12 text-center"><input type="checkbox" v-model="k.bell" :disabled="k.platformOff || saving" @change="save" :aria-label="`${k.label}: bell`" /></span>
+        <span class="w-12 text-center"><input type="checkbox" v-model="k.bell" :disabled="k.platformOff || k.locked || saving" @change="save" :aria-label="`${k.label}: bell`" /></span>
         <span v-if="s.emailAvailable" class="w-12 text-center">
           <input type="checkbox" v-model="k.email" :disabled="k.platformOff || !k.bell || !canEmail(k) || saving" @change="save" :aria-label="`${k.label}: email`" />
         </span>

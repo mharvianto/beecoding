@@ -1052,6 +1052,9 @@ namespace BeeCoding.Migrations
                     b.Property<string>("NotifyEmailKinds")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NotifyLockedKinds")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("NotifyOffKinds")
                         .HasColumnType("TEXT");
 

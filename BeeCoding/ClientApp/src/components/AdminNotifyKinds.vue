@@ -23,7 +23,7 @@ async function save() {
   <section v-if="s" class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-3">
     <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Notification kinds</h4>
     <p class="mt-1 text-[11px] leading-snug text-slate-400 dark:text-slate-500">
-      “On” = created at all (off: nobody gets it, not in the bell, push or email). “Email” = people may choose to get it by email
+      “Locked” = everyone gets it in the bell and cannot mute it. “On” = created at all (off: nobody gets it, not in the bell, push or email). “Email” = people may choose to get it by email
       <template v-if="!s.emailConfigured">— needs the <code>Email</code> settings (SMTP) in appsettings, so it has no effect yet</template>.
       Email goes only to verified addresses and only to people who turned it on in their account.
     </p>
@@ -32,6 +32,7 @@ async function save() {
         <span class="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200">{{ k.label }}</span>
         <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.enabled" /> On</label>
         <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.email" :disabled="!k.enabled" /> Email</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.locked" :disabled="!k.enabled" /> Locked</label>
       </div>
     </div>
     <div class="mt-3 flex items-center gap-3">

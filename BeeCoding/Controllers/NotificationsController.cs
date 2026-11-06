@@ -27,7 +27,8 @@ public class NotificationsController(AppDbContext db, NotificationService notifi
         var mail = NotificationKinds.Parse(u.NotifyEmailKinds);
         return new NotifySettingsDto(
             NotificationKinds.All.Select(k => new NotifyKindDto(k.Kind, k.Label, platform.NotifyOffKinds.Contains(k.Kind),
-                platform.NotifyEmailKinds.Contains(k.Kind), !off.Contains(k.Kind), mail.Contains(k.Kind))).ToList(),
+                platform.NotifyEmailKinds.Contains(k.Kind), platform.NotifyLockedKinds.Contains(k.Kind) || !off.Contains(k.Kind), mail.Contains(k.Kind),
+                platform.NotifyLockedKinds.Contains(k.Kind))).ToList(),
             email.IsConfigured, u.EmailVerifiedAt != null);
     }
 
@@ -35,8 +36,8 @@ public class NotificationsController(AppDbContext db, NotificationService notifi
     public async Task<NotifySettingsDto> PutSettings(List<NotifyChoiceDto> choices)
     {
         var user = await _db.Users.FirstAsync(x => x.Id == UserId);
-        user.NotifyOffKinds = NotificationKinds.Join(choices.Where(c => !c.Bell).Select(c => c.Kind));
-        user.NotifyEmailKinds = NotificationKinds.Join(choices.Where(c => c.Bell && c.Email).Select(c => c.Kind));   // email only for what the bell shows
+        user.NotifyOffKinds = NotificationKinds.Join(choices.Where(c => !c.Bell && !platform.NotifyLockedKinds.Contains(c.Kind)).Select(c => c.Kind));
+        user.NotifyEmailKinds = NotificationKinds.Join(choices.Where(c => (c.Bell || platform.NotifyLockedKinds.Contains(c.Kind)) && c.Email).Select(c => c.Kind));   // email only for what the bell shows
         await _db.SaveChangesAsync();
         return await GetSettings();
     }

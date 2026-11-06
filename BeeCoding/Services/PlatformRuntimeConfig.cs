@@ -33,8 +33,10 @@ public class PlatformRuntimeConfig
     /// <summary>Kinds off for everyone, and kinds that may be emailed (null in the database = NotificationKinds.DefaultEmail).</summary>
     public HashSet<string> NotifyOffKinds { get; private set; } = [];
     public HashSet<string> NotifyEmailKinds { get; private set; } = [.. NotificationKinds.DefaultEmail];
-    public void SetNotifyKinds(string? off, string? email)
+    public HashSet<string> NotifyLockedKinds { get; private set; } = [];
+    public void SetNotifyKinds(string? off, string? email, string? locked)
     {
+        NotifyLockedKinds = NotificationKinds.Parse(locked);
         NotifyOffKinds = NotificationKinds.Parse(off);
         NotifyEmailKinds = email is null ? [.. NotificationKinds.DefaultEmail] : NotificationKinds.Parse(email);
     }

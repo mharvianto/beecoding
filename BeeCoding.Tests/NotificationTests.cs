@@ -93,11 +93,23 @@ public class NotificationTests
         await svc.ReactionAddedAsync(post, student.Id, "S", false, "👍");
         Assert.Equal(1, await db.Notifications.CountAsync(n => n.UserId == teacher.Id));   // other kinds still arrive
 
-        scope.ServiceProvider.GetRequiredService<PlatformRuntimeConfig>().SetNotifyKinds("reaction", null);
+        var platform = scope.ServiceProvider.GetRequiredService<PlatformRuntimeConfig>();
+        platform.SetNotifyKinds("reaction", null, null);
         db.Notifications.RemoveRange(db.Notifications);
         await db.SaveChangesAsync();
         await svc.ReactionAddedAsync(post, student.Id, "S", false, "👍");
         Assert.Equal(0, await db.Notifications.CountAsync());   // the platform's switch beats everyone's choice
+
+        // Locked: the admin requires comments, so the user's mute no longer applies (and shows as on).
+        platform.SetNotifyKinds(null, null, "comment");
+        var c2 = new PostComment { PostId = post.Id, UserId = student.Id, Body = "again" };
+        db.PostComments.Add(c2);
+        await db.SaveChangesAsync();
+        await svc.CommentAddedAsync(post, c2, "S", false);
+        Assert.Equal(1, await db.Notifications.CountAsync(n => n.Kind == "comment"));
+        var locked = (await http.GetFromJsonAsync<System.Text.Json.JsonElement>("/api/notifications/settings")).GetProperty("kinds").EnumerateArray()
+            .First(k => k.GetProperty("kind").GetString() == "comment");
+        Assert.True(locked.GetProperty("bell").GetBoolean());
     }
 
     [Fact]
