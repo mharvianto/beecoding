@@ -201,6 +201,10 @@ gives a threshold that separates duplicates from same-topic problems — so it i
 (no provider, no kill switch/quota). The tokenizer is `Microsoft.ML.Tokenizers` sentencepiece with ids remapped to the XLM-R vocabulary (`ToModelIds`,
 checked against the Hugging Face tokenizer by a test that runs when `E5_MODEL_DIR` is set).
 
+### Practice default order
+
+`GET /api/practice` without `sort` orders by `PracticeRanking.Key`: level first, then easiest first by the full-AC rate pulled toward a per-level typical rate (`LevelPrior`, weight `PriorWeight` submissions), so one lucky submission does not top a well-tried problem and an untried one sits at its level’s typical spot; ties go to the most tried, then title. The priors are guesses, not measured on the production bank. The rate counts submissions, not people, and includes authors’ own tests. The explicit `sort` values (likes, submissions, acrate, acrate_asc) are unchanged.
+
 ### Soft delete via EF global query filters
 
 `Board`, `Problem`, and `BankProblem` have `HasQueryFilter(x => x.DeletedAt == null)`

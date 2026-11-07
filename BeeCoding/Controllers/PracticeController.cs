@@ -143,7 +143,9 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
             "acrate" => list.OrderByDescending(x => x.AcRate).ThenBy(x => x.Title),
             "likes" => list.OrderByDescending(x => x.Likes).ThenBy(x => x.Title),
             "acrate_asc" => list.OrderBy(x => x.SubmissionCount == 0 ? 2.0 : x.AcRate).ThenBy(x => x.Title),
-            _ => list,   // default: already Level, Title from the query above
+            // default: level, then the easiest first by smoothed AC rate, then the most tried, then title
+            _ => list.OrderBy(x => PracticeRanking.Key(Enum.Parse<ProblemLevel>(x.Level), x.SubmissionCount, x.AcRate))
+                     .ThenByDescending(x => x.SubmissionCount).ThenBy(x => x.Title),
         };
 
         var all = list.ToList();
