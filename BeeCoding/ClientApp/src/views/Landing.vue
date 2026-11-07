@@ -23,13 +23,15 @@ const teacher = [
   'Plagiarism spot-checks and full submission history',
   'Bulk-create boards and add problems across many at once',
   'LTI 1.3 launch and grade sync for your LMS',
+  'Organizations, Google or passkey sign-in and two-step verification',
 ];
 const student = [
   'Code, run and submit without installing anything',
   'Instant verdicts with per-test feedback',
   'XP, levels, streaks and a leaderboard',
   'A practice bank to keep going after class',
-  'Get notified when someone reacts or comments on your card',
+  'Notifications in the bell, by email or push — you choose which kinds',
+  'Write your own problems and submit them for review',
   'Optional AI hints that never hand over the answer',
 ];
 
