@@ -33,6 +33,7 @@ url.read();
 const aiEnabled = ref(false);
 const genOpen = ref(false);
 const genBusy = ref(false);
+const genElapsed = ref(0);   // seconds since the poll began, so a long wait shows it is still alive
 const genError = ref('');
 const gen = ref({ idea: '', level: 'Medium', language: 'cpp', count: 10, lang: 'id' });
 
@@ -62,9 +63,11 @@ async function generate() {
 async function pollJob(jobId) {
   pollStopped = false;
   genBusy.value = true;
+  genElapsed.value = 0;
   for (let n = 0; n < 240 && !pollStopped; n++) {   // ~8 min ceiling
     await new Promise((r) => setTimeout(r, 2000));
     if (pollStopped) return;
+    genElapsed.value = (n + 1) * 2;
     let r;
     try {
       r = await api.get(`/api/ai/generate-problem/${jobId}`);
@@ -248,7 +251,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       <div class="flex gap-2 items-center">
         <button @click="generate" :disabled="genBusy || !gen.idea.trim()"
                 class="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ genBusy ? 'Writing & checking…' : 'Generate' }}
+          {{ genBusy ? `Writing & checking… ${genElapsed}s` : 'Generate' }}
         </button>
         <button v-if="genBusy" @click="finishJob" class="text-slate-500 dark:text-slate-400 text-sm px-3">Stop watching</button>
         <button v-else @click="genOpen = false" class="text-slate-500 dark:text-slate-400 text-sm px-3">Cancel</button>
