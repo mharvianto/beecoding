@@ -873,6 +873,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
             }
 
             var full = new StringBuilder();
+            var reasoning = new StringBuilder();   // only used when the model never writes any content
             int promptTok = 0, completionTok = 0;
             await using var stream = await resp.Content.ReadAsStreamAsync(ct);
             using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -905,6 +906,9 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                             d.TryGetProperty("content", out var cEl) &&
                             cEl.ValueKind == JsonValueKind.String)
                             delta = cEl.GetString();
+                        else if (ch.TryGetProperty("delta", out var d2) &&
+                            d2.TryGetProperty("reasoning_content", out var rEl) && rEl.ValueKind == JsonValueKind.String)
+                            reasoning.Append(rEl.GetString());
                     }
                 }
                 catch { /* keep-alive / non-JSON line */ }
@@ -916,13 +920,16 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                 }
             }
 
-            var clamped = ClampCodeBlocks(full.ToString().Trim());
+            // A reasoning model that spent its whole budget thinking: show that rather than nothing.
+            var text = full.Length > 0 ? full.ToString() : reasoning.ToString();
+            if (string.IsNullOrWhiteSpace(text)) throw new AiUnavailableException("The AI tutor returned an empty reply.");
+            var clamped = ClampCodeBlocks(text.Trim());
             yield return FinalSentinel + clamped;
 
             if (promptTok == 0 && completionTok == 0)
             {
                 promptTok = EstTokens(sys + usr);
-                completionTok = EstTokens(full.ToString());
+                completionTok = EstTokens(text);
             }
             yield return $"{UsageSentinel}{promptTok} {completionTok}";
         }
