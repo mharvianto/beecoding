@@ -66,7 +66,7 @@ const hasEditContext = typeof window !== 'undefined' && 'EditContext' in window;
 const LSP_KEY = 'beecoding.editor.lsp';
 // font size is shared with the stdin/output panels beside the editor — see lib/editorFont.js
 const fontSize = editorFontSize;
-const lspEnabled = ref((() => { try { return localStorage.getItem(LSP_KEY) !== '0'; } catch { return true; } })());
+const lspEnabled = ref((() => { try { return localStorage.getItem(LSP_KEY) === '1'; } catch { return false; } })());   // off until the person turns it on
 
 // Is the clangd bridge switched on server-side? Asked once, shared by every editor.
 // Without this the editor opens a WebSocket that the server rejects -> console error.
