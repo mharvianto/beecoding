@@ -865,12 +865,22 @@ async function loadSysstat() {
   } catch (e) { sysstatErr.value = e.message; }
 }
 const sysstatDaily = ref(null);
+// how far back each bucket size reaches (hours of data are many points, so fewer days)
+const SYSSTAT_BUCKETS = [['hour', 'Per hour', 3], ['6h', 'Per 6 hours', 7], ['day', 'Per day', 30]];
+const SYSSTAT_BUCKET_KEY = 'beecoding.admin.sysstatBucket';
+const sysstatBucket = ref((() => { try { return localStorage.getItem(SYSSTAT_BUCKET_KEY) || 'day'; } catch { return 'day'; } })());
 async function loadSysstatDaily() {
-  try { sysstatDaily.value = await api.get(`/api/admin-ui/system/sysstat/daily?metric=${sysstatMetric.value}&days=30`); }
+  const days = (SYSSTAT_BUCKETS.find((b) => b[0] === sysstatBucket.value) || SYSSTAT_BUCKETS[2])[2];
+  try { sysstatDaily.value = await api.get(`/api/admin-ui/system/sysstat/daily?metric=${sysstatMetric.value}&days=${days}&bucket=${sysstatBucket.value}`); }
   catch { sysstatDaily.value = null; }
 }
+function setSysstatBucket(b) {
+  sysstatBucket.value = b;
+  try { localStorage.setItem(SYSSTAT_BUCKET_KEY, b); } catch { /* ignore */ }
+  loadSysstatDaily();
+}
 function setSysstatMetric(m) { sysstatMetric.value = m; loadSysstat(); loadSysstatDaily(); }
-const dailyPoints = (key) => (sysstatDaily.value?.days || []).map((d) => ({ label: shortDate(d.day), value: d[key] }));
+const dailyPoints = (key) => (sysstatDaily.value?.days || []).map((d) => ({ label: sysstatBucket.value === 'day' ? shortDate(d.start) : hourLabel(d.start), value: d[key] }));
 const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
@@ -1954,15 +1964,21 @@ onMounted(async () => {
           <MiniLineChart v-else-if="sysstatResult?.points?.length"
                          :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
           <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data for this day.</p>
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mt-4 mb-2">
-            Per day, last 30 days — {{ sysstatMetric === 'cpu' ? 'CPU' : 'memory' }} used %
-            <span class="font-normal">(days without saved data are skipped)</span>
-          </h3>
-          <div v-if="sysstatDaily?.days?.length" class="grid md:grid-cols-2 gap-4">
-            <MiniLineChart title="Average % per day" :points="dailyPoints('avg')" />
-            <MiniLineChart title="Peak % per day" :points="dailyPoints('max')" color="#ef4444" />
+          <div class="flex items-center gap-2 mt-4 mb-2 flex-wrap">
+            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
+              {{ sysstatMetric === 'cpu' ? 'CPU' : 'Memory' }} used % — average vs peak
+              <span class="font-normal">(periods without saved data are skipped)</span>
+            </h3>
+            <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+              <button v-for="b in SYSSTAT_BUCKETS" :key="b[0]" @click="setSysstatBucket(b[0])" class="px-2.5 py-1"
+                      :class="sysstatBucket === b[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
+                {{ b[1] }}
+              </button>
+            </span>
           </div>
-          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No saved days yet.</p>
+          <MiniLineChart v-if="sysstatDaily?.days?.length" title="Average vs peak %" name="Avg" :points="dailyPoints('avg')"
+                         :second="{ name: 'Peak', color: '#ef4444', points: dailyPoints('max') }" />
+          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No saved data yet.</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">

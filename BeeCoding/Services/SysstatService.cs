@@ -42,6 +42,13 @@ public class SysstatService
         catch (JsonException) { return null; }
     }
 
+    /// <summary>Start of the "hour" or "6h" bucket (UTC) a sample falls in.</summary>
+    public static DateTime BucketStart(DateTime utc, string bucket)
+    {
+        int step = bucket == "6h" ? 6 : 1;
+        return new DateTime(utc.Year, utc.Month, utc.Day, utc.Hour / step * step, 0, 0, DateTimeKind.Utc);
+    }
+
     // Debian/Ubuntu keep /var/log/sysstat/saDD (or saYYYYMMDD), RHEL /var/log/sa/saDD. saDD is reused every month, so a
     // file not written on the wanted day is last month's leftover and is refused.
     private static string? DayFile(DateTime day)

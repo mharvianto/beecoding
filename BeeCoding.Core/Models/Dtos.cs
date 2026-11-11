@@ -312,7 +312,7 @@ public record AdminSystemStatusDto(
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
 public record SysstatResultDto(string Hostname, string Metric, List<SysstatPointDto> Points);
-public record SysstatDayDto(string Day, double Avg, double Max, int Samples);
+public record SysstatDayDto(string Start, double Avg, double Max, int Samples);
 public record SysstatDailyDto(string Hostname, string Metric, List<SysstatDayDto> Days);
 
 /// <summary>Time from submit to verdict (queue wait + compile + run), bucketed by hour (UTC).</summary>

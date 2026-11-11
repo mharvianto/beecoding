@@ -15,6 +15,9 @@ const props = defineProps({
   title: { type: String, required: true },
   points: { type: Array, required: true },   // [{ label: string, value: number }]
   color: { type: String, default: '#f59e0b' },   // amber-500, the app's existing accent
+  // Optional second line over the same x labels, to compare two measures of ONE unit (e.g. average vs peak %).
+  name: { type: String, default: '' },
+  second: { type: Object, default: null },   // { name, color, points: [{ value }] }
 });
 
 const canvasEl = ref(null);
@@ -63,6 +66,7 @@ function build() {
     data: {
       labels: props.points.map((p) => p.label),
       datasets: [{
+        label: props.name,
         data: props.points.map((p) => p.value),
         borderColor: props.color,
         backgroundColor: props.color + '1a',
@@ -75,7 +79,21 @@ function build() {
         pointBorderColor: isDark() ? '#0f172a' : '#fff',
         pointBorderWidth: 2,
         pointHitRadius: 12,
-      }],
+      }, ...(props.second ? [{
+        label: props.second.name,
+        data: props.second.points.map((p) => p.value),
+        borderColor: props.second.color,
+        backgroundColor: props.second.color,
+        fill: false,
+        tension: 0.25,
+        borderWidth: 2,
+        pointRadius: (ctx) => (ctx.dataIndex === last ? 4 : 0),
+        pointHoverRadius: 4,
+        pointBackgroundColor: props.second.color,
+        pointBorderColor: isDark() ? '#0f172a' : '#fff',
+        pointBorderWidth: 2,
+        pointHitRadius: 12,
+      }] : [])],
     },
     options: {
       responsive: true,
@@ -103,7 +121,7 @@ function build() {
         datalabels: { display: false },
         tooltip: {
           enabled: true,
-          displayColors: false,   // single series — the title already names it (dataviz)
+          displayColors: !!props.second,   // one series: the title already names it; two: the swatch tells them apart
           backgroundColor: tooltipBg(),
           borderColor: gridColor(),
           borderWidth: 1,
@@ -115,10 +133,9 @@ function build() {
           bodyFont: { size: 11, weight: 'normal' },
           // Values lead, labels follow: the bold title slot carries the number,
           // the plain body slot carries the date/time it happened.
-          callbacks: {
-            title: (items) => fmt(items[0]?.raw),
-            label: (item) => item.label,
-          },
+          callbacks: props.second
+            ? { title: (items) => items[0]?.label, label: (item) => `${item.dataset.label}: ${fmt(item.raw)}` }
+            : { title: (items) => fmt(items[0]?.raw), label: (item) => item.label },
         },
       },
     },
@@ -126,7 +143,7 @@ function build() {
 }
 
 onMounted(build);
-watch(() => [props.points, props.color], build, { deep: true });
+watch(() => [props.points, props.color, props.second], build, { deep: true });
 watch(appTheme, build);
 onBeforeUnmount(() => chart?.destroy());
 
@@ -138,7 +155,11 @@ const activePoint = () => (hoverIdx.value === null ? lastPoint() : props.points[
   <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
     <div class="flex items-baseline justify-between mb-1">
       <div class="text-xs text-slate-400 dark:text-slate-500">{{ title }}</div>
-      <div class="text-sm font-semibold tabular-nums">{{ fmt(activePoint()?.value) }}</div>
+      <div v-if="second" class="text-xs font-semibold tabular-nums flex gap-3">
+        <span :style="{ color }">{{ name }} {{ fmt(activePoint()?.value) }}</span>
+        <span :style="{ color: second.color }">{{ second.name }} {{ fmt(second.points[hoverIdx ?? second.points.length - 1]?.value) }}</span>
+      </div>
+      <div v-else class="text-sm font-semibold tabular-nums">{{ fmt(activePoint()?.value) }}</div>
     </div>
     <div class="h-32">
       <canvas ref="canvasEl" @mouseleave="hoverIdx = null"></canvas>

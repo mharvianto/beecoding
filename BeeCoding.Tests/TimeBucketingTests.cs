@@ -33,3 +33,15 @@ public class TimeBucketingTests
         Assert.All(w, d => Assert.Equal(DayOfWeek.Monday, d.DayOfWeek));
     }
 }
+
+public class SysstatBucketTests
+{
+    [Fact]
+    public void Samples_fall_into_the_hour_or_the_six_hour_block_they_belong_to()
+    {
+        var t = new DateTime(2026, 11, 4, 13, 45, 30, DateTimeKind.Utc);
+        Assert.Equal(new DateTime(2026, 11, 4, 13, 0, 0, DateTimeKind.Utc), SysstatService.BucketStart(t, "hour"));
+        Assert.Equal(new DateTime(2026, 11, 4, 12, 0, 0, DateTimeKind.Utc), SysstatService.BucketStart(t, "6h"));
+        Assert.Equal(new DateTime(2026, 11, 4, 0, 0, 0, DateTimeKind.Utc), SysstatService.BucketStart(new DateTime(2026, 11, 4, 5, 59, 0, DateTimeKind.Utc), "6h"));
+    }
+}

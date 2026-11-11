@@ -681,17 +681,19 @@ public class AdminUiController(
         return (hostname, points);
     }
 
-    /// <summary>Average and peak CPU / memory use for each of the last <paramref name="days"/> days, from the saved
-    /// sysstat files. A day with no file (sysstat off then, or already cleaned up) is left out, not shown as zero.</summary>
+    /// <summary>Average and peak CPU / memory use per "hour", "6h" or "day" (the host's calendar day) over the last
+    /// <paramref name="days"/> days, from the saved sysstat files. A bucket with no samples (sysstat off then, or
+    /// already cleaned up) is left out, not shown as zero.</summary>
     [HttpGet("system/sysstat/daily")]
-    public async Task<ActionResult<SysstatDailyDto>> SysstatDaily([FromQuery] string metric = "cpu", [FromQuery] int days = 30)
+    public async Task<ActionResult<SysstatDailyDto>> SysstatDaily([FromQuery] string metric = "cpu", [FromQuery] int days = 30, [FromQuery] string bucket = "day")
     {
         metric = metric == "mem" ? "mem" : "cpu";
+        bucket = bucket is "hour" or "6h" ? bucket : "day";
         days = Math.Clamp(days, 1, 31);
         if (!await _sysstat.IsInstalledAsync()) return NotFound("sysstat is not installed on this host.");
 
         var host = Environment.MachineName;
-        var rows = new List<SysstatDayDto>();
+        var acc = new SortedDictionary<DateTime, (double Sum, double Max, int N)>();
         try
         {
             for (int i = days - 1; i >= 0; i--)
@@ -699,16 +701,24 @@ public class AdminUiController(
                 using var doc = await _sysstat.GetTodayAsync(metric, i);
                 if (doc is null) continue;
                 var (h, pts) = ReadSysstat(doc, metric);
-                if (pts.Count == 0) continue;
                 host = h;
-                rows.Add(new SysstatDayDto(DateTime.Now.Date.AddDays(-i).ToString("yyyy-MM-dd"),
-                    Math.Round(pts.Average(p => p.Value), 1), Math.Round(pts.Max(p => p.Value), 1), pts.Count));
+                foreach (var p in pts)
+                {
+                    // hour / 6h buckets are UTC like sysstat's own timestamps; a day bucket is the file's local day
+                    var key = bucket == "day" ? DateTime.Now.Date.AddDays(-i)
+                        : SysstatService.BucketStart(DateTime.Parse(p.Time, null, System.Globalization.DateTimeStyles.AdjustToUniversal), bucket);
+                    var cur = acc.GetValueOrDefault(key);
+                    acc[key] = (cur.Sum + p.Value, Math.Max(cur.Max, p.Value), cur.N + 1);
+                }
             }
         }
         catch (Exception ex) when (ex is KeyNotFoundException or InvalidOperationException or IndexOutOfRangeException)
         {
             return StatusCode(502, "sysstat's output didn't match the expected shape (version mismatch?).");
         }
+        var rows = acc.Select(kv => new SysstatDayDto(
+            bucket == "day" ? kv.Key.ToString("yyyy-MM-dd") : kv.Key.ToString("yyyy-MM-ddTHH:00:00Z"),
+            Math.Round(kv.Value.Sum / kv.Value.N, 1), Math.Round(kv.Value.Max, 1), kv.Value.N)).ToList();
         return new SysstatDailyDto(host, metric, rows);
     }
 
