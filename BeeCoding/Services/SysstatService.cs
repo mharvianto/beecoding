@@ -26,13 +26,34 @@ public class SysstatService
     /// "mem" — as sysstat's own JSON output (sadf -j), parsed but not reshaped, since the
     /// exact field set varies a bit by sysstat version. Null if sysstat isn't installed, has
     /// no data yet for today, or its output couldn't be parsed.</summary>
-    public async Task<JsonDocument?> GetTodayAsync(string metric, CancellationToken ct = default)
+    public async Task<JsonDocument?> GetTodayAsync(string metric, int daysAgo = 0, CancellationToken ct = default)
     {
         var flag = metric == "mem" ? "-r" : "-u";
-        var output = await RunAsync("sadf", ["-j", "--", flag], ct);
+        string[] args = ["-j", "--", flag];
+        if (daysAgo > 0)
+        {
+            var file = DayFile(DateTime.Now.Date.AddDays(-daysAgo));
+            if (file is null) return null;
+            args = ["-j", file, "--", flag];   // sadf reads that day's saved file instead of today's
+        }
+        var output = await RunAsync("sadf", args, ct);
         if (output is null) return null;
         try { return JsonDocument.Parse(output); }
         catch (JsonException) { return null; }
+    }
+
+    // Debian/Ubuntu keep /var/log/sysstat/saDD (or saYYYYMMDD), RHEL /var/log/sa/saDD. saDD is reused every month, so a
+    // file not written on the wanted day is last month's leftover and is refused.
+    private static string? DayFile(DateTime day)
+    {
+        // HISTORY above 28 makes sysstat file each month under its own YYYYMM folder
+        foreach (var dir in new[] { "/var/log/sysstat", "/var/log/sa" }.SelectMany(d => new[] { d, Path.Combine(d, $"{day:yyyyMM}") }))
+            foreach (var name in new[] { $"sa{day:yyyyMMdd}", $"sa{day:dd}" })
+            {
+                var f = Path.Combine(dir, name);
+                if (File.Exists(f) && File.GetLastWriteTime(f).Date >= day && File.GetLastWriteTime(f).Date <= day.AddDays(1)) return f;
+            }
+        return null;
     }
 
     private static async Task<string?> RunAsync(string file, string[] args, CancellationToken ct)

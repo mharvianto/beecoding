@@ -644,13 +644,14 @@ public class AdminUiController(
     }
 
     [HttpGet("system/sysstat")]
-    public async Task<ActionResult<SysstatResultDto>> Sysstat([FromQuery] string metric = "cpu")
+    public async Task<ActionResult<SysstatResultDto>> Sysstat([FromQuery] string metric = "cpu", [FromQuery] int daysAgo = 0)
     {
         metric = metric == "mem" ? "mem" : "cpu";
+        daysAgo = Math.Clamp(daysAgo, 0, 30);
         if (!await _sysstat.IsInstalledAsync()) return NotFound("sysstat is not installed on this host.");
 
-        var doc = await _sysstat.GetTodayAsync(metric);
-        if (doc is null) return StatusCode(502, "Could not read sysstat data for today yet.");
+        var doc = await _sysstat.GetTodayAsync(metric, daysAgo);
+        if (doc is null) return StatusCode(502, daysAgo == 0 ? "Could not read sysstat data for today yet." : "No sysstat data kept for that day (sysstat keeps 7 days by default — raise HISTORY in /etc/sysstat/sysstat).");
 
         try
         {

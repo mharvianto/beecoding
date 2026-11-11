@@ -150,7 +150,7 @@ async function loadDashboard() {
 }
 
 function periodsFor(granularity) {
-  return granularity === 'hour' ? 24 : granularity === 'day' ? 30 : 12;
+  return granularity === 'hour' ? 168 : granularity === 'day' ? 90 : 12;   // the server's own caps for hour/day
 }
 async function loadEngagement() {
   err.value = '';
@@ -857,10 +857,11 @@ const latencyTone = (s) => (s >= 30 ? 'text-rose-600 dark:text-rose-400 font-med
 const sysstatMetric = ref('cpu');   // 'cpu' | 'mem'
 const sysstatResult = ref(null);
 const sysstatErr = ref('');
+const sysstatDaysAgo = ref(0);
 async function loadSysstat() {
   sysstatErr.value = '';
   try {
-    sysstatResult.value = await api.get(`/api/admin-ui/system/sysstat?metric=${sysstatMetric.value}`);
+    sysstatResult.value = await api.get(`/api/admin-ui/system/sysstat?metric=${sysstatMetric.value}&daysAgo=${sysstatDaysAgo.value}`);
   } catch (e) { sysstatErr.value = e.message; }
 }
 function setSysstatMetric(m) { sysstatMetric.value = m; loadSysstat(); }
@@ -1924,9 +1925,13 @@ onMounted(async () => {
         <div v-if="systemStatus?.sysstatInstalled" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 mb-2 flex-wrap">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
-              CPU / memory — today, host <span class="font-mono">{{ sysstatResult?.hostname }}</span> only
+              CPU / memory — {{ sysstatDaysAgo ? sysstatDaysAgo + ' day(s) ago' : 'today' }}, host <span class="font-mono">{{ sysstatResult?.hostname }}</span> only
             </h3>
-            <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+            <select v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
+              <option :value="0">Today</option>
+              <option v-for="d in 30" :key="d" :value="d">{{ d }} day(s) ago</option>
+            </select>
+            <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
               <button v-for="m in [['cpu', 'CPU'], ['mem', 'Memory']]" :key="m[0]"
                       @click="setSysstatMetric(m[0])" class="px-2.5 py-1"
                       :class="sysstatMetric === m[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
@@ -1942,7 +1947,7 @@ onMounted(async () => {
           <p v-if="sysstatErr" class="text-sm text-red-600 dark:text-red-400">{{ sysstatErr }}</p>
           <MiniLineChart v-else-if="sysstatResult?.points?.length"
                          :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
-          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data yet for today.</p>
+          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data for this day.</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
