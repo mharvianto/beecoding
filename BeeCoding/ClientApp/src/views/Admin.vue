@@ -830,7 +830,7 @@ async function loadSystemStatus() {
   err.value = '';
   try {
     systemStatus.value = await api.get('/api/admin-ui/system-status');
-    if (systemStatus.value.sysstatInstalled) loadSysstat();
+    if (systemStatus.value.sysstatInstalled) { loadSysstat(); loadSysstatDaily(); }
     loadLatency();
   } catch (e) { err.value = e.message; }
 }
@@ -864,7 +864,13 @@ async function loadSysstat() {
     sysstatResult.value = await api.get(`/api/admin-ui/system/sysstat?metric=${sysstatMetric.value}&daysAgo=${sysstatDaysAgo.value}`);
   } catch (e) { sysstatErr.value = e.message; }
 }
-function setSysstatMetric(m) { sysstatMetric.value = m; loadSysstat(); }
+const sysstatDaily = ref(null);
+async function loadSysstatDaily() {
+  try { sysstatDaily.value = await api.get(`/api/admin-ui/system/sysstat/daily?metric=${sysstatMetric.value}&days=30`); }
+  catch { sysstatDaily.value = null; }
+}
+function setSysstatMetric(m) { sysstatMetric.value = m; loadSysstat(); loadSysstatDaily(); }
+const dailyPoints = (key) => (sysstatDaily.value?.days || []).map((d) => ({ label: shortDate(d.day), value: d[key] }));
 const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
@@ -1948,6 +1954,15 @@ onMounted(async () => {
           <MiniLineChart v-else-if="sysstatResult?.points?.length"
                          :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
           <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data for this day.</p>
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mt-4 mb-2">
+            Per day, last 30 days — {{ sysstatMetric === 'cpu' ? 'CPU' : 'memory' }} used %
+            <span class="font-normal">(days without saved data are skipped)</span>
+          </h3>
+          <div v-if="sysstatDaily?.days?.length" class="grid md:grid-cols-2 gap-4">
+            <MiniLineChart title="Average % per day" :points="dailyPoints('avg')" />
+            <MiniLineChart title="Peak % per day" :points="dailyPoints('max')" color="#ef4444" />
+          </div>
+          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No saved days yet.</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
