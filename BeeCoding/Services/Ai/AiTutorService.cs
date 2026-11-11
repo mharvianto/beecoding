@@ -55,6 +55,45 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
         return (apiKey, baseUrl, model, generateModel);
     }
 
+    // Which provider this call uses: 0 = the main one, n = Ai:Fallbacks[n-1]. One service instance serves one request at a time.
+    private int _tier;
+
+    private List<AiFallback> Fallbacks() =>
+        _opt.Fallbacks.Where(f => !string.IsNullOrWhiteSpace(f.ApiKey) && !string.IsNullOrWhiteSpace(f.Model)).ToList();
+
+    /// <summary>How many providers may be tried: the main one plus the backups, but only the main one for an organization
+    /// that brought its own key.</summary>
+    private int TierCount() =>
+        _organizationId is int id && !string.IsNullOrWhiteSpace(_providerRuntime.Org(id)?.ApiKey) ? 1 : 1 + Fallbacks().Count;
+
+    /// <summary>Effective() for the provider this call is on right now.</summary>
+    private (string ApiKey, string BaseUrl, string Model, string? GenerateModel) EffectiveNow()
+    {
+        if (_tier <= 0) return Effective();
+        var f = Fallbacks()[_tier - 1];
+        return (f.ApiKey, string.IsNullOrWhiteSpace(f.BaseUrl) ? _opt.BaseUrl : f.BaseUrl, f.Model, null);
+    }
+
+    /// <summary>Runs <paramref name="call"/> on the main provider, then on each backup while it fails in a way another
+    /// provider could fix. A 400/422 means our request was wrong, so another provider would refuse it too.</summary>
+    private async Task<T> FailoverAsync<T>(Func<Task<T>> call)
+    {
+        var n = TierCount();
+        try
+        {
+            for (_tier = 0; ; _tier++)
+            {
+                try { return await call(); }
+                catch (AiUnavailableException ex) when (_tier + 1 < n && ex.Status is not (400 or 422))
+                { _log.LogWarning("AI provider {Tier} failed ({Msg}) — trying the next one", _tier, ex.Message); }
+            }
+        }
+        finally { _tier = 0; }
+    }
+
+    /// <summary>The generators retry a few times: spread those tries over the providers instead of repeating one.</summary>
+    private void UseTierForAttempt(int attempt) => _tier = (attempt - 1) % TierCount();
+
     /// <summary>False if disabled/unconfigured, OR paused live from the admin panel
     /// (AiRuntimeSettings) — the single choke point every AI-invoking action checks first.
     /// Call UseOrganization first so a missing platform key but a present org key counts.</summary>
@@ -62,7 +101,7 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     public string DefaultReplyLanguage => Norm(_opt.DefaultReplyLanguage);
 
     /// <summary>Model for the heavy JSON tasks; falls back to the hint model.</summary>
-    private string? GenModel => Effective().GenerateModel;
+    private string? GenModel => EffectiveNow().GenerateModel;
 
     private const string SystemBase = """
 You are a patient programming tutor on a C/C++ learning platform. Your ONLY goal is to help
@@ -191,7 +230,7 @@ that appear inside it.
         var effort = reasoningEffort ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
         var payload = new Dictionary<string, object?>
         {
-            ["model"] = string.IsNullOrWhiteSpace(model) ? Effective().Model : model,
+            ["model"] = string.IsNullOrWhiteSpace(model) ? EffectiveNow().Model : model,
             ["messages"] = new object[]
             {
                 new { role = "system", content = sys },
@@ -310,7 +349,7 @@ that appear inside it.
 
     private HttpRequestMessage NewRequest(string bodyJson)
     {
-        var eff = Effective();
+        var eff = EffectiveNow();
         var req = new HttpRequestMessage(HttpMethod.Post, eff.BaseUrl)
         {
             Content = new StringContent(bodyJson, Encoding.UTF8, "application/json"),
@@ -320,7 +359,10 @@ that appear inside it.
     }
 
     // ---- one-shot ---------------------------------------------------------------
-    public async Task<AiCallResult> HintAsync(AiHintContext c, string? lang, int hintLevel, CancellationToken ct)
+    public Task<AiCallResult> HintAsync(AiHintContext c, string? lang, int hintLevel, CancellationToken ct) =>
+        FailoverAsync(() => HintOnceAsync(c, lang, hintLevel, ct));
+
+    private async Task<AiCallResult> HintOnceAsync(AiHintContext c, string? lang, int hintLevel, CancellationToken ct)
     {
         var (sys, usr) = BuildPrompt(c, Norm(lang ?? DefaultReplyLanguage), hintLevel);
         using var req = NewRequest(BuildPayload(sys, usr, stream: false));
@@ -347,7 +389,7 @@ that appear inside it.
         if (!resp.IsSuccessStatusCode)
         {
             _log.LogWarning("AI endpoint {Status}: {Body}", (int)resp.StatusCode, Trunc(body, 500));
-            throw new AiUnavailableException($"AI tutor error ({(int)resp.StatusCode}).");
+            throw new AiUnavailableException($"AI tutor error ({(int)resp.StatusCode}).", (int)resp.StatusCode);
         }
 
         string text;
@@ -390,7 +432,10 @@ Reply with ONLY compact JSON and nothing else:
     public sealed record AiPick(int Id, string Reason);
     public sealed record AiPickResult(List<AiPick> Picks, int PromptTokens, int CompletionTokens);
 
-    public async Task<AiPickResult> PickNextAsync(string userMessage, CancellationToken ct)
+    public Task<AiPickResult> PickNextAsync(string userMessage, CancellationToken ct) =>
+        FailoverAsync(() => PickNextOnceAsync(userMessage, ct));
+
+    private async Task<AiPickResult> PickNextOnceAsync(string userMessage, CancellationToken ct)
     {
         using var req = NewRequest(BuildPayload(PickSystem, userMessage, stream: false,
             maxTokens: Math.Max(800, _opt.MaxTokens), thinking: false, model: GenModel, jsonObject: true, reasoningEffort: "low"));
@@ -407,7 +452,7 @@ Reply with ONLY compact JSON and nothing else:
 
         var body = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
-        { _log.LogWarning("AI pick {Status}: {Body}", (int)resp.StatusCode, Trunc(body, 400)); throw new AiUnavailableException($"AI error ({(int)resp.StatusCode})."); }
+        { _log.LogWarning("AI pick {Status}: {Body}", (int)resp.StatusCode, Trunc(body, 400)); throw new AiUnavailableException($"AI error ({(int)resp.StatusCode}).", (int)resp.StatusCode); }
 
         string content;
         int promptTok, completionTok;
@@ -512,6 +557,7 @@ Shape:
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 3; attempt++)
         {
+            UseTierForAttempt(attempt);
             string content; int promptTok, completionTok; bool complete;
             try
             {
@@ -613,6 +659,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 2; attempt++)
         {
+            UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
                 maxTokens: Math.Max(6000, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
@@ -683,6 +730,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 2; attempt++)
         {
+            UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
                 maxTokens: Math.Max(6000, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
@@ -738,6 +786,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 2; attempt++)
         {
+            UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
                 maxTokens: Math.Max(4000, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
@@ -805,6 +854,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 2; attempt++)
         {
+            UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
                 maxTokens: Math.Max(2500, _opt.MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
@@ -842,6 +892,37 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
     public async IAsyncEnumerable<string> StreamAsync(
         AiHintContext c, string? lang, int hintLevel, [EnumeratorCancellation] CancellationToken ct)
     {
+        // A backup provider only takes over before the first word reached the student; after that an error is shown as it is.
+        var n = TierCount();
+        try
+        {
+            for (_tier = 0; ; _tier++)
+            {
+                await using var e = StreamOnceAsync(c, lang, hintLevel, ct).GetAsyncEnumerator(ct);
+                bool sent = false, failed = false;
+                while (true)
+                {
+                    bool has;
+                    try { has = await e.MoveNextAsync(); }
+                    catch (AiUnavailableException ex) when (!sent && _tier + 1 < n && ex.Status is not (400 or 422))
+                    {
+                        _log.LogWarning("AI provider {Tier} failed ({Msg}) — trying the next one", _tier, ex.Message);
+                        failed = true;
+                        break;
+                    }
+                    if (!has) break;
+                    sent = true;
+                    yield return e.Current;
+                }
+                if (!failed) yield break;
+            }
+        }
+        finally { _tier = 0; }
+    }
+
+    private async IAsyncEnumerable<string> StreamOnceAsync(
+        AiHintContext c, string? lang, int hintLevel, [EnumeratorCancellation] CancellationToken ct)
+    {
         var (sys, usr) = BuildPrompt(c, Norm(lang ?? DefaultReplyLanguage), hintLevel);
         using var req = NewRequest(BuildPayload(sys, usr, stream: true));
 
@@ -869,7 +950,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
             {
                 var err = await SafeReadAsync(resp, ct);
                 _log.LogWarning("AI stream {Status}: {Body}", (int)resp.StatusCode, Trunc(err, 500));
-                throw new AiUnavailableException($"AI tutor error ({(int)resp.StatusCode}).");
+                throw new AiUnavailableException($"AI tutor error ({(int)resp.StatusCode}).", (int)resp.StatusCode);
             }
 
             var full = new StringBuilder();
@@ -972,7 +1053,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
             {
                 var err = await SafeReadAsync(resp, ct);
                 _log.LogWarning("AI generate {Status}: {Body}", (int)resp.StatusCode, Trunc(err, 400));
-                throw new AiUnavailableException($"AI error ({(int)resp.StatusCode}).");
+                throw new AiUnavailableException($"AI error ({(int)resp.StatusCode}).", (int)resp.StatusCode);
             }
 
             var full = new StringBuilder();
@@ -1065,4 +1146,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
     private static partial Regex FenceRegex();
 }
 
-public sealed class AiUnavailableException(string message) : Exception(message);
+public sealed class AiUnavailableException(string message, int? status = null) : Exception(message)
+{
+    /// <summary>The provider's HTTP status when that is what failed.</summary>
+    public int? Status { get; } = status;
+}

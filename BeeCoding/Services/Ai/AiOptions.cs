@@ -47,6 +47,18 @@ public class AiOptions
     /// <summary>Minimum seconds between a user's hint requests.</summary>
     public int RateLimitSeconds { get; set; } = 8;
 
+    /// <summary>Backup providers tried in order when the main one fails (timeout, 429, 5xx, 401/403, empty reply).
+    /// A person's own organization key never falls back to these (that would spend the platform's money).</summary>
+    public List<AiFallback> Fallbacks { get; set; } = [];
+
     /// <summary>Student code is truncated to this many chars before being sent.</summary>
     public int MaxCodeChars { get; set; } = 16_000;
+}
+
+public class AiFallback
+{
+    public string ApiKey { get; set; } = "";
+    /// <summary>Blank = the main BaseUrl.</summary>
+    public string BaseUrl { get; set; } = "";
+    public string Model { get; set; } = "";
 }
