@@ -1236,7 +1236,7 @@ onMounted(async () => {
           </div>
           <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro"
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key'"
+          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />

@@ -99,4 +99,20 @@ public class AiFailoverTests
         Assert.Contains("\"max_tokens\":1234", body);
         Assert.Contains("\"reasoning_effort\":\"low\"", body);
     }
+
+    [Fact]
+    public async Task A_backup_without_its_own_key_uses_the_main_providers_key()
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetExtras(null, null, [new AiFallback { ApiKey = "", BaseUrl = "https://backup2.example/v1", Model = "m3" }]);
+        string? auth = null;
+        var h = new Route(r =>
+        {
+            if (r.RequestUri!.Host == "main.example") return Status(HttpStatusCode.ServiceUnavailable);
+            auth = r.Headers.Authorization?.ToString();
+            return Json("ok");
+        });
+        await Svc(h, rt).HintAsync(Ctx, "id", 1, default);
+        Assert.Equal("Bearer main", auth);
+    }
 }

@@ -63,7 +63,7 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     private string? ReasoningEffortSetting => _providerRuntime.Extras.ReasoningEffort ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
 
     private List<AiFallback> Fallbacks() =>
-        (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.ApiKey) && !string.IsNullOrWhiteSpace(f.Model)).ToList();
+        (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.Model)).ToList();
 
     /// <summary>How many providers may be tried: the main one plus the backups, but only the main one for an organization
     /// that brought its own key.</summary>
@@ -75,7 +75,8 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     {
         if (_tier <= 0) return Effective();
         var f = Fallbacks()[_tier - 1];
-        return (f.ApiKey, string.IsNullOrWhiteSpace(f.BaseUrl) ? _opt.BaseUrl : f.BaseUrl, f.Model, null);
+        // a backup with no key of its own bills the same account as the main provider
+        return (string.IsNullOrWhiteSpace(f.ApiKey) ? Effective().ApiKey : f.ApiKey, string.IsNullOrWhiteSpace(f.BaseUrl) ? _opt.BaseUrl : f.BaseUrl, f.Model, null);
     }
 
     /// <summary>Runs <paramref name="call"/> on the main provider, then on each backup while it fails in a way another

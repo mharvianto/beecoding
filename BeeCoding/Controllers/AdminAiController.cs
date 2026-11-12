@@ -172,8 +172,8 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
             if (AiUrl.Validate(e.BaseUrl, strict: false) is { } urlErr) return BadRequest(urlErr);
             var old = e.Id is not null && saved.TryGetValue(e.Id, out var o) ? o : null;
             var key = string.IsNullOrWhiteSpace(e.ApiKey) ? old?.ApiKey : e.ApiKey.Trim();
-            if (string.IsNullOrEmpty(key)) return BadRequest($"Backup provider “{model}” needs an API key.");
-            next.Add(new FallbackRow(old?.Id ?? Guid.NewGuid().ToString("N"), key, string.IsNullOrWhiteSpace(e.BaseUrl) ? null : e.BaseUrl.Trim(), model));
+            // blank = the same account as the main provider (the key is never shown, so asking for it again would be odd)
+            next.Add(new FallbackRow(old?.Id ?? Guid.NewGuid().ToString("N"), key ?? "", string.IsNullOrWhiteSpace(e.BaseUrl) ? null : e.BaseUrl.Trim(), model));
         }
         row.MaxTokens = dto.MaxTokens;
         row.ReasoningEffort = effort;
