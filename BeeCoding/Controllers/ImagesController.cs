@@ -78,7 +78,7 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         if (best.Length <= uploadedBytes) return best;
 
         using var flat = new SKBitmap(src.Width, src.Height);   // JPEG has no transparency: flatten on white
-        using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); canvas.DrawBitmap(src, 0, 0); }
+        using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); using var flatSrc = SKImage.FromBitmap(src); canvas.DrawImage(flatSrc, 0, 0, new SKSamplingOptions()); }
         using var flatImg = SKImage.FromBitmap(flat);
         var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, 85).ToArray();
         return jpg.Length < best.Length ? jpg : best;
@@ -99,7 +99,7 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
                 if (png.Size <= maxBytes) return png.ToArray();
 
             using var flat = new SKBitmap(src.Width, src.Height);
-            using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); canvas.DrawBitmap(src, 0, 0); }
+            using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); using var flatSrc = SKImage.FromBitmap(src); canvas.DrawImage(flatSrc, 0, 0, new SKSamplingOptions()); }
             using var flatImg = SKImage.FromBitmap(flat);
             foreach (var quality in new[] { 85, 65 })
                 using (var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, quality))
