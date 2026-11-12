@@ -250,7 +250,7 @@ readinessProbe:
 ```dockerfile
 # --- build SPA + publish ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && apt-get install -y nodejs
 WORKDIR /src
 COPY . .
 RUN dotnet publish BeeCoding/BeeCoding.csproj -c Release -o /app   # menjalankan npm ci && npm run build

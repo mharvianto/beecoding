@@ -40,7 +40,7 @@ Reuse Dockerfile multi-stage dari [DEPLOY.md §2.12](DEPLOY.md#212-image-dockerf
 ```dockerfile
 # --- build SPA + publish ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && apt-get install -y nodejs
 WORKDIR /src
 COPY . .
 RUN dotnet publish BeeCoding/BeeCoding.csproj -c Release -o /app   # menjalankan npm ci && npm run build
@@ -272,7 +272,7 @@ jadi dua stage runtime:
 ```dockerfile
 # --- build: publish DUA project ---
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && apt-get install -y nodejs
 WORKDIR /src
 COPY . .
 RUN dotnet publish BeeCoding/BeeCoding.csproj -c Release -o /app/web
