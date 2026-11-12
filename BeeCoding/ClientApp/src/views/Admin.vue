@@ -214,6 +214,7 @@ async function loadAiProvider() {
   err.value = '';
   try {
     aiProvider.value = await api.get('/api/admin-ui/ai-provider');
+    loadAiExtras();
     aiProviderForm.value = { apiKey: '', baseUrl: aiProvider.value.baseUrl || '', model: aiProvider.value.model || '', generateModel: aiProvider.value.generateModel || '' };
   } catch (e) { err.value = e.message; }
 }
@@ -225,6 +226,35 @@ async function saveAiProvider() {
     aiProviderMsg.value = 'Saved.';
   } catch (e) { err.value = e.message; }
   finally { aiProviderSaving.value = false; }
+}
+// ---- AI tuning + backup providers (tried in order when the main provider fails) ----
+const aiExtras = ref(null);
+const aiExtrasForm = ref({ maxTokens: '', reasoningEffort: '', fallbacks: [] });
+const aiExtrasSaving = ref(false);
+const aiExtrasMsg = ref('');
+function fillAiExtras(x) {
+  aiExtras.value = x;
+  aiExtrasForm.value = {
+    maxTokens: x.maxTokens ?? '', reasoningEffort: x.reasoningEffort || '',
+    fallbacks: x.fallbacks.map((f) => ({ id: f.id, apiKey: '', keyPreview: f.keyPreview, baseUrl: f.baseUrl || '', model: f.model })),
+  };
+}
+async function loadAiExtras() {
+  try { fillAiExtras(await api.get('/api/admin-ui/ai-provider/extras')); } catch (e) { err.value = e.message; }
+}
+function addAiFallback() { aiExtrasForm.value.fallbacks.push({ id: null, apiKey: '', keyPreview: null, baseUrl: '', model: '' }); }
+async function saveAiExtras() {
+  err.value = ''; aiExtrasSaving.value = true; aiExtrasMsg.value = '';
+  try {
+    const f = aiExtrasForm.value;
+    fillAiExtras(await api.put('/api/admin-ui/ai-provider/extras', {
+      maxTokens: f.maxTokens === '' || f.maxTokens === null ? null : Number(f.maxTokens),
+      reasoningEffort: f.reasoningEffort || null,
+      fallbacks: f.fallbacks.map((x) => ({ id: x.id, apiKey: x.apiKey, baseUrl: x.baseUrl, model: x.model })),
+    }));
+    aiExtrasMsg.value = 'Saved.';
+  } catch (e) { err.value = e.message; }
+  finally { aiExtrasSaving.value = false; }
 }
 async function clearAiProviderKey() {
   if (!(await confirmDialog.ask('Clear the saved API key? AI will fall back to appsettings.json\'s key (if any).', { confirmLabel: 'Clear' }))) return;
@@ -1174,6 +1204,51 @@ onMounted(async () => {
                 class="mt-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
           {{ aiProviderSaving ? 'Saving…' : 'Save' }}
         </button>
+      </div>
+
+      <!-- Tuning + backup providers -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiExtras">
+        <h2 class="font-semibold text-sm mb-1">AI tuning and backup providers</h2>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+          Blank fields use appsettings.json's <code>Ai:*</code>. Backups are tried in order when the provider above fails
+          (timeout, 429, 5xx, 401/403, empty reply — not for a 400/422). A hint only moves to a backup before its first word is shown.
+          An organization with its own key never falls back to these.
+        </p>
+        <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-slate-400 dark:text-slate-500">Max tokens per hint (100–16000)</span>
+            <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings"
+                   class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          </label>
+          <label class="flex flex-col gap-1">
+            <span class="text-xs text-slate-400 dark:text-slate-500">Reasoning effort</span>
+            <select v-model="aiExtrasForm.reasoningEffort"
+                    class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+              <option value="">appsettings / don't send</option>
+              <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+            </select>
+          </label>
+        </div>
+        <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>
+            <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
+          </div>
+          <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro"
+                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key'"
+                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
+                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+        </div>
+        <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
+        <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
+        <div>
+          <button @click="saveAiExtras" :disabled="aiExtrasSaving"
+                  class="mt-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+            {{ aiExtrasSaving ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
       </div>
 
       <!-- Per-user overrides / bans -->

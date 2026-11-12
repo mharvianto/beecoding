@@ -63,9 +63,15 @@ namespace BeeCoding.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Fallbacks")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("GenerateModel")
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxTokens")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Model")
                         .HasMaxLength(200)
@@ -73,6 +79,10 @@ namespace BeeCoding.Migrations
 
                     b.Property<int?>("OrganizationId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReasoningEffort")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");

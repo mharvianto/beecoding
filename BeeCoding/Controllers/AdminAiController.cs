@@ -133,6 +133,60 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         return NoContent();
     }
 
+    // ---- AI tuning + backup providers: platform default ------------------------
+    public sealed record FallbackRow(string Id, string ApiKey, string? BaseUrl, string Model);
+
+    public static List<FallbackRow> ParseFallbacks(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return [];
+        try { return System.Text.Json.JsonSerializer.Deserialize<List<FallbackRow>>(json) ?? []; }
+        catch (System.Text.Json.JsonException) { return []; }
+    }
+
+    private static AiExtrasDto ExtrasDto(AiProviderConfig? row) => new(row?.MaxTokens, row?.ReasoningEffort,
+        ParseFallbacks(row?.Fallbacks).Select(f => new AiFallbackViewDto(f.Id, f.BaseUrl, f.Model, ApiKeyPreview(f.ApiKey))).ToList());
+
+    [HttpGet("ai-provider/extras")]
+    public async Task<ActionResult<AiExtrasDto>> GetAiExtras() =>
+        ExtrasDto(await _db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == null));
+
+    /// <summary>Output token cap, reasoning effort and the backup providers tried in order when the main one fails.
+    /// A backup row's blank ApiKey keeps the key already saved under its Id; rows missing from the list are removed.</summary>
+    [HttpPut("ai-provider/extras")]
+    public async Task<ActionResult<AiExtrasDto>> SetAiExtras(AiExtrasUpdateDto dto)
+    {
+        if (dto.MaxTokens is { } mt && (mt < 100 || mt > 16000)) return BadRequest("Max tokens must be between 100 and 16000 (blank = appsettings).");
+        var effort = string.IsNullOrWhiteSpace(dto.ReasoningEffort) ? null : dto.ReasoningEffort.Trim().ToLowerInvariant();
+        if (effort is not (null or "low" or "medium" or "high")) return BadRequest("Reasoning effort must be low, medium or high (blank = don't send it).");
+        var edits = dto.Fallbacks ?? [];
+        if (edits.Count > 5) return BadRequest("At most 5 backup providers.");
+
+        var row = await _db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == null);
+        if (row is null) { row = new AiProviderConfig(); _db.AiProviderConfigs.Add(row); }
+        var saved = ParseFallbacks(row.Fallbacks).ToDictionary(f => f.Id);
+        var next = new List<FallbackRow>();
+        foreach (var e in edits)
+        {
+            var model = e.Model?.Trim();
+            if (string.IsNullOrEmpty(model)) return BadRequest("Every backup provider needs a model.");
+            if (AiUrl.Validate(e.BaseUrl, strict: false) is { } urlErr) return BadRequest(urlErr);
+            var old = e.Id is not null && saved.TryGetValue(e.Id, out var o) ? o : null;
+            var key = string.IsNullOrWhiteSpace(e.ApiKey) ? old?.ApiKey : e.ApiKey.Trim();
+            if (string.IsNullOrEmpty(key)) return BadRequest($"Backup provider “{model}” needs an API key.");
+            next.Add(new FallbackRow(old?.Id ?? Guid.NewGuid().ToString("N"), key, string.IsNullOrWhiteSpace(e.BaseUrl) ? null : e.BaseUrl.Trim(), model));
+        }
+        row.MaxTokens = dto.MaxTokens;
+        row.ReasoningEffort = effort;
+        row.Fallbacks = next.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(next);
+        row.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        _aiProviderRuntime.SetExtras(row.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList());
+        await _audit.RecordAsync(UserId, ActorEmail, "ai-extras-set", "AiProviderConfig", row.Id,
+            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
+        return ExtrasDto(row);
+    }
+
     private static string? ApiKeyPreview(string? key) =>
         string.IsNullOrEmpty(key) ? null : $"••••{key[Math.Max(0, key.Length - 4)..]}";
 

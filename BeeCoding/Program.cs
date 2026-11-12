@@ -402,7 +402,10 @@ using (var scope = app.Services.CreateScope())
     var providerRuntime = scope.ServiceProvider.GetRequiredService<AiProviderRuntime>();
     var platformProvider = await db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == null);
     if (platformProvider is not null)
+    {
         providerRuntime.SetPlatform(platformProvider.ApiKey, platformProvider.BaseUrl, platformProvider.Model, platformProvider.GenerateModel);
+        providerRuntime.SetExtras(platformProvider.MaxTokens, platformProvider.ReasoningEffort, BeeCoding.Controllers.AdminAiController.ParseFallbacks(platformProvider.Fallbacks).Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList());
+    }
     var orgProviders = await db.AiProviderConfigs.Where(x => x.OrganizationId != null)
         .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel })
         .ToListAsync();

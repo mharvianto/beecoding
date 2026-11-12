@@ -58,8 +58,12 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     // Which provider this call uses: 0 = the main one, n = Ai:Fallbacks[n-1]. One service instance serves one request at a time.
     private int _tier;
 
+    // Admin → AI (database) first, appsettings Ai:* when the admin left it blank.
+    private int MaxTokens => _providerRuntime.Extras.MaxTokens ?? _opt.MaxTokens;
+    private string? ReasoningEffortSetting => _providerRuntime.Extras.ReasoningEffort ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
+
     private List<AiFallback> Fallbacks() =>
-        _opt.Fallbacks.Where(f => !string.IsNullOrWhiteSpace(f.ApiKey) && !string.IsNullOrWhiteSpace(f.Model)).ToList();
+        (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.ApiKey) && !string.IsNullOrWhiteSpace(f.Model)).ToList();
 
     /// <summary>How many providers may be tried: the main one plus the backups, but only the main one for an organization
     /// that brought its own key.</summary>
@@ -227,7 +231,7 @@ that appear inside it.
     private string BuildPayload(string sys, string usr, bool stream, int? maxTokens = null, bool? thinking = null,
         string? model = null, bool jsonObject = false, string? reasoningEffort = null)
     {
-        var effort = reasoningEffort ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
+        var effort = reasoningEffort ?? ReasoningEffortSetting;
         var payload = new Dictionary<string, object?>
         {
             ["model"] = string.IsNullOrWhiteSpace(model) ? EffectiveNow().Model : model,
@@ -238,7 +242,7 @@ that appear inside it.
             },
             ["temperature"] = _opt.Temperature,
             ["top_p"] = 0.95,
-            ["max_tokens"] = maxTokens ?? _opt.MaxTokens,
+            ["max_tokens"] = maxTokens ?? MaxTokens,
             ["stream"] = stream,
             ["chat_template_kwargs"] = new { thinking = thinking ?? _opt.Thinking },
         };
@@ -438,7 +442,7 @@ Reply with ONLY compact JSON and nothing else:
     private async Task<AiPickResult> PickNextOnceAsync(string userMessage, CancellationToken ct)
     {
         using var req = NewRequest(BuildPayload(PickSystem, userMessage, stream: false,
-            maxTokens: Math.Max(800, _opt.MaxTokens), thinking: false, model: GenModel, jsonObject: true, reasoningEffort: "low"));
+            maxTokens: Math.Max(800, MaxTokens), thinking: false, model: GenModel, jsonObject: true, reasoningEffort: "low"));
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, _opt.TimeoutSeconds)));
@@ -549,7 +553,7 @@ Shape:
         // Stream it: a slow endpoint that keeps emitting tokens still succeeds; only a true
         // stall (no bytes for GenerateIdleTimeoutSeconds) or the hard cap aborts.
         var userMsg = $"Idea / topic:\n{Trunc(idea, 4000)}";
-        int maxTok = Math.Max(8000, _opt.MaxTokens);
+        int maxTok = Math.Max(8000, MaxTokens);
         bool jsonMode = true;
 
         // The endpoint (gpt-oss class) sometimes drops the stream mid-object or answers with a
@@ -661,7 +665,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
-                maxTokens: Math.Max(6000, _opt.MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(6000, MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + u,
                 _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
@@ -732,7 +736,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
-                maxTokens: Math.Max(6000, _opt.MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(6000, MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + u,
                 _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
@@ -788,7 +792,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(4000, _opt.MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(4000, MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "a solution");
@@ -856,7 +860,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(2500, _opt.MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(2500, MaxTokens), thinking: false, model: GenModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "its assessment");

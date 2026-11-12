@@ -55,6 +55,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         // shortcut: SQLite does not enforce MaxLength, so no migration; raise those lengths when moving to a server database.
         b.Entity<User>().Property(u => u.TotpSecret).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
         b.Entity<AiProviderConfig>().Property(c => c.ApiKey).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
+        b.Entity<AiProviderConfig>().Property(c => c.Fallbacks).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
         b.Entity<LtiToolKey>().Property(k => k.PrivateKeyPem).HasConversion(v => SecretBox.Seal(v)!, v => SecretBox.Open(v) ?? "");
         b.Entity<BankProblemEmbedding>().HasKey(e => e.BankProblemId);
         b.Entity<BankProblemEmbedding>().Property(e => e.BankProblemId).ValueGeneratedNever();

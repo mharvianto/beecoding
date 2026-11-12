@@ -932,6 +932,15 @@ public class AiProviderConfig
     [MaxLength(200)]
     public string? GenerateModel { get; set; }
 
+    // Platform row only (an organization's row leaves these null): tuning and backup providers an admin edits without server access.
+    /// <summary>Output token cap for a hint. Null = appsettings Ai:MaxTokens.</summary>
+    public int? MaxTokens { get; set; }
+    /// <summary>"low" | "medium" | "high" for reasoning models. Null = appsettings Ai:ReasoningEffort.</summary>
+    [MaxLength(20)]
+    public string? ReasoningEffort { get; set; }
+    /// <summary>JSON list of backup providers [{id, apiKey, baseUrl, model}], sealed like ApiKey because it holds keys.</summary>
+    public string? Fallbacks { get; set; }
+
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 

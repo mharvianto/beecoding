@@ -81,4 +81,22 @@ public class AiFailoverTests
         await Assert.ThrowsAsync<AiUnavailableException>(() => s.HintAsync(Ctx, "id", 1, default));
         Assert.Single(h.Hosts);
     }
+
+    [Fact]
+    public async Task Backups_and_token_cap_saved_by_an_admin_win_over_appsettings()
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetExtras(1234, "low", [new AiFallback { ApiKey = "k", BaseUrl = "https://admin-backup.example/v1", Model = "m3" }]);
+        string? body = null;
+        var h = new Route(r =>
+        {
+            if (r.RequestUri!.Host == "main.example") { body = r.Content!.ReadAsStringAsync().Result; return Status(HttpStatusCode.ServiceUnavailable); }
+            return Json("ok");
+        });
+        var res = await Svc(h, rt).HintAsync(Ctx, "id", 1, default);
+        Assert.Equal("ok", res.Text);
+        Assert.Equal(["main.example", "admin-backup.example"], h.Hosts);   // not appsettings' backup.example
+        Assert.Contains("\"max_tokens\":1234", body);
+        Assert.Contains("\"reasoning_effort\":\"low\"", body);
+    }
 }

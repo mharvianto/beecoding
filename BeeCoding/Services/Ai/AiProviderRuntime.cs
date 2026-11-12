@@ -48,5 +48,12 @@ public class AiProviderRuntime
         _orgs = next;
     }
 
+    /// <summary>What an admin set for the platform beyond the main provider; null/empty fields fall through to appsettings.</summary>
+    public record PlatformExtras(int? MaxTokens, string? ReasoningEffort, List<AiFallback> Fallbacks);
+    private volatile PlatformExtras _extras = new(null, null, []);
+    public PlatformExtras Extras => _extras;
+    public void SetExtras(int? maxTokens, string? reasoningEffort, List<AiFallback> fallbacks) =>
+        _extras = new PlatformExtras(maxTokens, Norm(reasoningEffort), fallbacks);
+
     public Config? Org(int organizationId) => _orgs.TryGetValue(organizationId, out var c) && !c.IsEmpty ? c : null;
 }
