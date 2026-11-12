@@ -726,7 +726,7 @@ variable (nesting pakai `__`).
 | `Ai:Enabled` | `false` | Aktifkan tutor AI (butuh `Ai:ApiKey` juga). |
 | `Ai:ApiKey` | `""` | Bearer token endpoint chat-completions (kompatibel OpenAI). Set via **env**, jangan commit. |
 | `Ai:BaseUrl` | NVIDIA NIM | URL chat-completions. |
-| `Ai:Model` | `deepseek-ai/deepseek-v4-flash-0731` | Nama model. |
+| `Ai:Model` | `nvidia/nemotron-3.5-bolt-e4b` | Nama model. |
 | `Ai:Thinking` | `false` | Kirim `chat_template_kwargs.thinking` (lebih teliti, lebih lambat). |
 | `Ai:DefaultReplyLanguage` | `id` | Bahasa balasan default (`id`/`en`); murid bisa memilih sendiri per pertanyaan. |
 | `Ai:TimeoutSeconds` | `60` | Batas tunggu 1 permintaan; lewat ⇒ `502` ramah. |

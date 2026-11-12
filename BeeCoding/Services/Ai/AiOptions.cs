@@ -9,7 +9,7 @@ public class AiOptions
     public string ApiKey { get; set; } = "";
 
     public string BaseUrl { get; set; } = "https://integrate.api.nvidia.com/v1/chat/completions";
-    public string Model { get; set; } = "deepseek-ai/deepseek-v4-flash-0731";
+    public string Model { get; set; } = "nvidia/nemotron-3.5-bolt-e4b";
 
     /// <summary>Model for the heavier one-shot JSON tasks (generate-problem, next-problem
     /// pick). Falls back to <see cref="Model"/> when empty. Point this at a fast model if the
