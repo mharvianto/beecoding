@@ -27,10 +27,10 @@ public class AiStreamTests
     private static string Chunk(string field, string text) => $"data: {{\"choices\":[{{\"delta\":{{\"{field}\":\"{text}\"}}}}]}}\n\n";
 
     [Fact]
-    public async Task A_reply_written_only_as_reasoning_content_is_still_shown()
+    public async Task A_reply_written_only_as_reasoning_content_is_an_error_not_shown_to_the_student()
     {
-        var got = await Run(Chunk("reasoning_content", "Coba pakai ") + Chunk("reasoning_content", "operator +") + "data: [DONE]\n\n");
-        Assert.Contains(AiTutorService.FinalSentinel + "Coba pakai operator +", got);
+        // the model's thinking can name the bug the hint must not reveal
+        await Assert.ThrowsAsync<AiUnavailableException>(() => Run(Chunk("reasoning_content", "The bug is case sensitivity") + "data: [DONE]\n\n"));
     }
 
     [Fact]
