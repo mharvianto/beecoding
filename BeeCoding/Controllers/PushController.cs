@@ -25,15 +25,16 @@ public class PushController(AppDbContext db, WebPushService push) : ApiControlle
     public async Task<ActionResult<object>> Subscribe(PushSubscribeDto dto)
     {
         if (!_push.Enabled) return NotFound();
-        if (!WebPushService.IsAllowedEndpoint(dto.Endpoint ?? "") || string.IsNullOrWhiteSpace(dto.P256dh) || string.IsNullOrWhiteSpace(dto.Auth)
+        var endpoint = dto.Endpoint ?? "";   // an empty one fails IsAllowedEndpoint just below
+        if (!WebPushService.IsAllowedEndpoint(endpoint) || string.IsNullOrWhiteSpace(dto.P256dh) || string.IsNullOrWhiteSpace(dto.Auth)
             || dto.P256dh.Length > 200 || dto.Auth.Length > 100)
             return BadRequest(new { error = "Invalid push subscription." });
 
         var ua = Request.Headers.UserAgent.ToString();
-        var sub = await _db.WebPushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == dto.Endpoint);
+        var sub = await _db.WebPushSubscriptions.FirstOrDefaultAsync(s => s.Endpoint == endpoint);
         if (sub is null)
         {
-            sub = new WebPushSubscription { Endpoint = dto.Endpoint };
+            sub = new WebPushSubscription { Endpoint = endpoint };
             _db.WebPushSubscriptions.Add(sub);
         }
         sub.UserId = UserId;   // the same browser signing in as someone else takes the subscription over
