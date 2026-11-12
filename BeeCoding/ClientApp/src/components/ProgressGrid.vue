@@ -8,6 +8,7 @@ const props = defineProps({
   students: Array,
   problems: Array,
   cells: Array,
+  hints: { type: Array, default: () => [] },   // staff only: [{ userId, problemId, level, lastAt }] — AI tutor hint depth right now
   isStaff: Boolean,
   canRemove: Boolean,   // board owner: may remove a student from the board
   currentUserId: Number,
@@ -28,6 +29,17 @@ const cellMap = computed(() => {
 });
 
 function cell(u, p) { return cellMap.value[`${u}:${p}`]; }
+
+// AI hint depth per student+problem. Level 3+ on a problem that is not solved yet reads as "may need help".
+const NEEDS_HELP_LEVEL = 3;
+const hintMap = computed(() => {
+  const m = {};
+  for (const h of props.hints) m[`${h.userId}:${h.problemId}`] = h;
+  return m;
+});
+const hint = (u, p) => hintMap.value[`${u}:${p}`];
+const stuck = (u, p) => (hint(u, p)?.level ?? 0) >= NEEDS_HELP_LEVEL && !cell(u, p)?.latest;
+const needsHelp = (u) => props.problems.some((p) => stuck(u, p.id));
 
 function solvedCount(userId) {
   return props.problems.filter((p) => cell(userId, p.id)?.latest).length;
@@ -81,6 +93,8 @@ const sortedStudents = computed(() => {
           <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-nowrap">
             <span :class="{ 'font-semibold': s.userId === currentUserId }">{{ s.displayName }}</span>
             <span v-if="s.userId === currentUserId" class="text-xs text-slate-400 dark:text-slate-500"> (you)</span>
+            <span v-if="isStaff && needsHelp(s.userId)" class="ml-2 text-[10px] px-1.5 py-0.5 rounded border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
+                  title="Asked the AI tutor for 3+ hints in a row on a problem that is not solved yet">may need help</span>
             <button v-if="isStaff" @click="emit('toggle-hide', s)"
                     class="ml-2 text-[10px] px-1.5 py-0.5 rounded border"
                     :class="s.hiddenByTeacher
@@ -107,6 +121,9 @@ const sortedStudents = computed(() => {
                    class="text-[10px] text-slate-400 dark:text-slate-500">×{{ cell(s.userId, p.id).attempts }}</div>
             </template>
             <span v-else class="text-slate-200 dark:text-slate-700">·</span>
+            <div v-if="isStaff && hint(s.userId, p.id)" class="text-[10px] mt-0.5"
+                 :class="stuck(s.userId, p.id) ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-400 dark:text-slate-500'"
+                 :title="`AI tutor hint level ${hint(s.userId, p.id).level} of 4 (resets after a quiet spell or a new attempt)`">💡{{ hint(s.userId, p.id).level }}</div>
           </td>
           <td class="px-3 py-2 text-center font-semibold text-slate-600 dark:text-slate-300">
             {{ solvedCount(s.userId) }}/{{ problems.length }}

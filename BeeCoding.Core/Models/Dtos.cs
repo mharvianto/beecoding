@@ -425,13 +425,17 @@ public record ProgressCellDto(
     DateTime LastAt,       // time of the latest submission
     int? LatestSubmissionId = null);   // null when Redacted — fetch GET /api/submissions/{id} for full code
 
+/// <summary>Staff-only: how deep a student is into the AI tutor's hints on one problem right now (1..4). No text, just the level.</summary>
+public record HintSignalDto(int UserId, int ProblemId, int Level, DateTime LastAt);
+
 public record ProgressBoardDto(
     int BoardId,
     bool ExamMode,
     bool ViewerIsStaff,
     List<MemberDto> Students,
     List<ProblemSummaryDto> Problems,
-    List<ProgressCellDto> Cells);
+    List<ProgressCellDto> Cells,
+    List<HintSignalDto>? Hints = null);   // staff only — null for a student
 
 public record ProblemSummaryDto(int Id, string Slug, string Title, int Position, int TimeLimitMs, int MemoryLimitKb, string AllowedLanguages, string Tags, string Level,
     int? GroupId = null, string? GroupTitle = null, bool ExamMode = false);

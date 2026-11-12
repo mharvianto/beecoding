@@ -133,10 +133,26 @@ public class BoardService(AppDbContext db, VisibilityService vis)
             }
         }
 
+        // Staff only: how deep each student is into the AI tutor's hints on a problem right now. A row the tutor
+        // would already reset (quiet for AiHintProgressService.ResetAfter) is not "stuck now", so it is left out.
+        List<HintSignalDto>? hints = null;
+        if (viewerIsStaff)
+        {
+            var keys = problemIds.Select(id => $"board:{id}").ToList();
+            var studentIds = studentMembers.Select(m => m.UserId).ToList();
+            var since = now - Services.Ai.AiHintProgressService.ResetAfter;
+            var rows = await _db.AiHintProgresses
+                .Where(h => studentIds.Contains(h.UserId) && keys.Contains(h.ProblemKey) && h.UpdatedAt >= since)
+                .Select(h => new { h.UserId, h.ProblemKey, h.Count, h.UpdatedAt })
+                .ToListAsync();
+            hints = rows.Select(h => new HintSignalDto(h.UserId, int.Parse(h.ProblemKey["board:".Length..]),
+                Math.Clamp(h.Count, 1, Services.Ai.AiHintProgressService.MaxLevel), h.UpdatedAt)).ToList();
+        }
+
         return new ProgressBoardDto(
             board.Id, board.ExamMode, viewerIsStaff,
             studentDtos,
             problems.Select(p => Mapping.ToSummary(p, examByProblem[p.Id])).ToList(),
-            cells);
+            cells, hints);
     }
 }

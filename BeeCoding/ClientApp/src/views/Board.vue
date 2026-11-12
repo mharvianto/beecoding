@@ -354,6 +354,7 @@ onBeforeUnmount(async () => {
       :students="progress.students"
       :problems="progress.problems"
       :cells="progress.cells"
+      :hints="progress.hints || []"
       :is-staff="progress.viewerIsStaff"
       :can-remove="board.isOwner"
       :current-user-id="auth.user?.id"

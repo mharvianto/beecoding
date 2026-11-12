@@ -51,7 +51,9 @@ import { docLang } from '../lib/docLang';
       statement, sample tests, your current code and any error output are sent to the
       AI provider configured by the Operator (for example NVIDIA NIM or an OpenAI-compatible
       endpoint) to generate that hint. Ask your Operator which provider is in use and review
-      that provider's own privacy terms.
+      that provider's own privacy terms. The platform keeps only how many hints you asked for on
+      each problem (not what you asked or the reply), and the teacher of a board can see that
+      count for the board's problems to know who may need help.
     </p>
 
     <h2>5. Data retention and deletion</h2>
@@ -133,7 +135,10 @@ import { docLang } from '../lib/docLang';
       <strong>tutor AI</strong> opsional, maka saat Anda meminta petunjuk, soal, contoh test, kode Anda
       saat ini, dan keluaran galat apa pun dikirim ke penyedia AI yang dikonfigurasi Operator (misalnya
       NVIDIA NIM atau endpoint yang kompatibel dengan OpenAI) untuk membuat petunjuk itu. Tanyakan ke
-      Operator penyedia mana yang dipakai dan baca ketentuan privasi penyedia tersebut.
+      Operator penyedia mana yang dipakai dan baca ketentuan privasi penyedia tersebut. Platform hanya
+      menyimpan berapa kali Anda meminta petunjuk pada tiap soal (bukan isi pertanyaan maupun
+      jawabannya), dan guru sebuah papan dapat melihat jumlah itu untuk soal di papannya agar tahu
+      siapa yang mungkin butuh bantuan.
     </p>
 
     <h2>5. Penyimpanan dan penghapusan data</h2>

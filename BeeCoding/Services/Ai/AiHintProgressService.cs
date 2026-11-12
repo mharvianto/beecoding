@@ -15,7 +15,7 @@ namespace BeeCoding.Services.Ai;
 public class AiHintProgressService(AppDbContext db)
 {
     private readonly AppDbContext _db = db;
-    private static readonly TimeSpan ResetAfter = TimeSpan.FromMinutes(90);
+    public static readonly TimeSpan ResetAfter = TimeSpan.FromMinutes(90);
     public const int MaxLevel = 4;
 
     public static string HashCode(string? code)
