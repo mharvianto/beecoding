@@ -359,9 +359,9 @@ public record AiSetUserOverrideDto(int? DailyQuotaOverride, bool Banned);
 public record AiProviderConfigDto(bool HasApiKey, string? ApiKeyPreview, string? BaseUrl, string? Model, string? GenerateModel);
 public record AiSetProviderConfigDto(string? ApiKey, string? BaseUrl, string? Model, string? GenerateModel);
 public record AiFallbackViewDto(string Id, string? BaseUrl, string Model, string? KeyPreview);
-public record AiExtrasDto(int? MaxTokens, string? ReasoningEffort, List<AiFallbackViewDto> Fallbacks);
+public record AiExtrasDto(int? MaxTokens, string? ReasoningEffort, string? ReviewModel, List<AiFallbackViewDto> Fallbacks);
 public record AiFallbackEditDto(string? Id, string? ApiKey, string? BaseUrl, string? Model);
-public record AiExtrasUpdateDto(int? MaxTokens, string? ReasoningEffort, List<AiFallbackEditDto>? Fallbacks);
+public record AiExtrasUpdateDto(int? MaxTokens, string? ReasoningEffort, string? ReviewModel, List<AiFallbackEditDto>? Fallbacks);
 
 // ---- Admin: bulk user import (CSV) ----
 public record AdminUserImportRequest(string Csv, string? BoardSlug, string? DefaultRole);

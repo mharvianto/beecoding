@@ -108,6 +108,9 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     /// <summary>Model for the heavy JSON tasks; falls back to the hint model.</summary>
     private string? GenModel => EffectiveNow().GenerateModel;
 
+    /// <summary>Model for the admin AI check and report triage: Admin's review model, else the generate model. A backup provider uses its own.</summary>
+    private string? ReviewModel => _tier > 0 ? null : _providerRuntime.Extras.ReviewModel ?? GenModel;
+
     private const string SystemBase = """
 You are a patient programming tutor on a C/C++ learning platform. Your ONLY goal is to help
 the student debug and design THEIR OWN solution.
@@ -793,7 +796,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(4000, MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(4000, MaxTokens), thinking: false, model: ReviewModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "a solution");
@@ -861,7 +864,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(2500, MaxTokens), thinking: false, model: GenModel,
+                maxTokens: Math.Max(2500, MaxTokens), thinking: false, model: ReviewModel,
                 jsonObject: true, reasoningEffort: "low"));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "its assessment");

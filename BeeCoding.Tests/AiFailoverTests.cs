@@ -115,4 +115,19 @@ public class AiFailoverTests
         await Svc(h, rt).HintAsync(Ctx, "id", 1, default);
         Assert.Equal("Bearer main", auth);
     }
+
+    [Fact]
+    public async Task The_review_model_from_admin_is_used_for_the_ai_check_but_not_for_hints()
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetPlatform("main", null, "hint-model", "gen-model");
+        rt.SetExtras(null, null, [], "review-model");
+        var bodies = new List<string>();
+        var h = new Route(r => { bodies.Add(r.Content!.ReadAsStringAsync().Result); return Sse("not json"); });
+        var s = Svc(h, rt);
+        try { await s.SolveForCheckAsync("print hi", "cpp", default); } catch (AiUnavailableException) { /* the fake reply is not a solution; only the request matters */ }
+        await s.HintAsync(Ctx, "id", 1, default).ContinueWith(_ => { });
+        Assert.Contains("\"model\":\"review-model\"", bodies[0]);
+        Assert.Contains(bodies, b => b.Contains("\"model\":\"hint-model\""));   // the hint kept its own model (later bodies are the backup tier)
+    }
 }

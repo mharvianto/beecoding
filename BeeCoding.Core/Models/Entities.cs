@@ -938,6 +938,9 @@ public class AiProviderConfig
     /// <summary>"low" | "medium" | "high" for reasoning models. Null = appsettings Ai:ReasoningEffort.</summary>
     [MaxLength(20)]
     public string? ReasoningEffort { get; set; }
+    /// <summary>Model for the admin AI check and report triage. Null = the generate-problem model.</summary>
+    [MaxLength(200)]
+    public string? ReviewModel { get; set; }
     /// <summary>JSON list of backup providers [{id, apiKey, baseUrl, model}], sealed like ApiKey because it holds keys.</summary>
     public string? Fallbacks { get; set; }
 

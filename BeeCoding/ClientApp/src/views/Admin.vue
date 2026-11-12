@@ -229,13 +229,13 @@ async function saveAiProvider() {
 }
 // ---- AI tuning + backup providers (tried in order when the main provider fails) ----
 const aiExtras = ref(null);
-const aiExtrasForm = ref({ maxTokens: '', reasoningEffort: '', fallbacks: [] });
+const aiExtrasForm = ref({ maxTokens: '', reasoningEffort: '', reviewModel: '', fallbacks: [] });
 const aiExtrasSaving = ref(false);
 const aiExtrasMsg = ref('');
 function fillAiExtras(x) {
   aiExtras.value = x;
   aiExtrasForm.value = {
-    maxTokens: x.maxTokens ?? '', reasoningEffort: x.reasoningEffort || '',
+    maxTokens: x.maxTokens ?? '', reasoningEffort: x.reasoningEffort || '', reviewModel: x.reviewModel || '',
     fallbacks: x.fallbacks.map((f) => ({ id: f.id, apiKey: '', keyPreview: f.keyPreview, baseUrl: f.baseUrl || '', model: f.model })),
   };
 }
@@ -250,6 +250,7 @@ async function saveAiExtras() {
     fillAiExtras(await api.put('/api/admin-ui/ai-provider/extras', {
       maxTokens: f.maxTokens === '' || f.maxTokens === null ? null : Number(f.maxTokens),
       reasoningEffort: f.reasoningEffort || null,
+      reviewModel: f.reviewModel || null,
       fallbacks: f.fallbacks.map((x) => ({ id: x.id, apiKey: x.apiKey, baseUrl: x.baseUrl, model: x.model })),
     }));
     aiExtrasMsg.value = 'Saved.';
@@ -1229,6 +1230,11 @@ onMounted(async () => {
             </select>
           </label>
         </div>
+        <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
+          <span class="text-xs text-slate-400 dark:text-slate-500">Review model (AI check + report triage; blank = the generate-problem model)</span>
+          <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b"
+                 class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+        </label>
         <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>

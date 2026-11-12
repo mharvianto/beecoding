@@ -143,7 +143,7 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         catch (System.Text.Json.JsonException) { return []; }
     }
 
-    private static AiExtrasDto ExtrasDto(AiProviderConfig? row) => new(row?.MaxTokens, row?.ReasoningEffort,
+    private static AiExtrasDto ExtrasDto(AiProviderConfig? row) => new(row?.MaxTokens, row?.ReasoningEffort, row?.ReviewModel,
         ParseFallbacks(row?.Fallbacks).Select(f => new AiFallbackViewDto(f.Id, f.BaseUrl, f.Model, ApiKeyPreview(f.ApiKey))).ToList());
 
     [HttpGet("ai-provider/extras")]
@@ -177,13 +177,14 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         }
         row.MaxTokens = dto.MaxTokens;
         row.ReasoningEffort = effort;
+        row.ReviewModel = string.IsNullOrWhiteSpace(dto.ReviewModel) ? null : dto.ReviewModel.Trim();
         row.Fallbacks = next.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(next);
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        _aiProviderRuntime.SetExtras(row.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList());
+        _aiProviderRuntime.SetExtras(row.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList(), row.ReviewModel);
         await _audit.RecordAsync(UserId, ActorEmail, "ai-extras-set", "AiProviderConfig", row.Id,
-            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
+            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, reviewModel={row.ReviewModel}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
         return ExtrasDto(row);
     }
 
