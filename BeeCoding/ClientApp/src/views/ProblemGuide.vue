@@ -451,7 +451,7 @@ const sections = [
       </section>
       </template>
 
-      <p class="pt-4 text-xs text-slate-400 dark:text-slate-500">
+      <p class="pt-4 text-xs text-slate-500 dark:text-slate-400">
         {{ lang === 'id' ? 'Ada yang kurang jelas? Tanyakan ke pengajar atau admin instansimu.' : 'Something unclear? Ask your teacher or your institution\'s admin.' }}
         <RouterLink :to="student ? '/bank' : '/bank/new'" class="ml-1">{{ lang === 'id' ? 'Mulai membuat soal →' : 'Start writing a problem →' }}</RouterLink>
       </p>

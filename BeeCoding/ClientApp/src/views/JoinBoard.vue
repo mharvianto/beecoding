@@ -21,6 +21,6 @@ onMounted(async () => {
       <p class="text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
       <RouterLink to="/boards" class="text-amber-600 dark:text-amber-400 hover:underline">Go to your boards</RouterLink>
     </template>
-    <p v-else class="text-slate-400 dark:text-slate-500">Joining board…</p>
+    <p v-else class="text-slate-500 dark:text-slate-400">Joining board…</p>
   </div>
 </template>

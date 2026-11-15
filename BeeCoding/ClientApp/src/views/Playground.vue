@@ -93,7 +93,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
   <div class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
       <h1 class="text-sm font-bold">🧪 Playground</h1>
-      <span class="text-xs text-slate-400 dark:text-slate-500">Scratch C / C++ — nothing is graded or shared.</span>
+      <span class="text-xs text-slate-500 dark:text-slate-400">Scratch C / C++ — nothing is graded or shared.</span>
       <div class="ml-auto flex items-center gap-2">
         <button @click="playgroundFocus = !playgroundFocus"
                 :title="playgroundFocus ? 'Show the top navigation bar' : 'Hide the top navigation bar for more room'"
@@ -113,7 +113,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
       </div>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
 
     <div class="flex-1 min-h-0">
       <SplitPane direction="vertical" storage-key="beecoding.split.playground" :initial="68" :min="110">
@@ -131,7 +131,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <div class="flex items-center justify-between gap-2">
-                  <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                  <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
                   <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
@@ -141,7 +141,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
                           class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
               </div>
               <div>
-                <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
+                <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
                 <pre :style="{ fontSize: editorFontSize + 'px' }"
                      class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                   runOut

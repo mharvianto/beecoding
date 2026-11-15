@@ -154,7 +154,7 @@ const activePoint = () => (hoverIdx.value === null ? lastPoint() : props.points[
 <template>
   <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
     <div class="flex items-baseline justify-between mb-1">
-      <div class="text-xs text-slate-400 dark:text-slate-500">{{ title }}</div>
+      <div class="text-xs text-slate-500 dark:text-slate-400">{{ title }}</div>
       <div v-if="second" class="text-xs font-semibold tabular-nums flex gap-3">
         <span :style="{ color }">{{ name }} {{ fmt(activePoint()?.value) }}</span>
         <span :style="{ color: second.color }">{{ second.name }} {{ fmt(second.points[hoverIdx ?? second.points.length - 1]?.value) }}</span>

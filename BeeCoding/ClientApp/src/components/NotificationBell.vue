@@ -61,7 +61,7 @@ async function go(n) {
             <span class="mt-1.5 w-2 h-2 rounded-full shrink-0" :class="n.read ? 'bg-transparent' : 'bg-amber-500'"></span>
             <span class="min-w-0 flex-1">
               <span class="block text-sm text-slate-700 dark:text-slate-200 break-words">{{ notificationText(n) }}</span>
-              <span class="block text-[11px] text-slate-400 dark:text-slate-500 truncate">{{ n.problemTitle }}<template v-if="n.boardTitle"> · {{ n.boardTitle }}</template> · {{ ago(n.createdAt) }}</span>
+              <span class="block text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ n.problemTitle }}<template v-if="n.boardTitle"> · {{ n.boardTitle }}</template> · {{ ago(n.createdAt) }}</span>
             </span>
             <button v-if="n.read" @click.stop="notif.deleteRead(n)" title="Delete" aria-label="Delete notification"
                     class="shrink-0 self-start text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 leading-none px-1">✕</button>
@@ -70,7 +70,7 @@ async function go(n) {
                   class="w-full px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800">
             Load more<template v-if="hiddenUnread > 0"> — {{ hiddenUnread }} more unread</template>
           </button>
-          <p v-if="!notif.items.length" class="px-3 py-6 text-center text-sm text-slate-400 dark:text-slate-500">
+          <p v-if="!notif.items.length" class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
             Nothing yet — reactions and comments on your cards, and updates on problem reports, show up here.
           </p>
         </div>

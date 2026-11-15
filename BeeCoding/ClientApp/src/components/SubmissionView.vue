@@ -56,7 +56,7 @@ function goTo(id) {
           </div>
           <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
         </div>
-        <div v-if="sub" class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-400 dark:text-slate-500">
+        <div v-if="sub" class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
           <span v-if="sub.status === 'Done'">{{ sub.runtimeMs }}ms · {{ sub.memoryKb }}KB · {{ Math.round(sub.score * 100) }}%</span>
           <button v-if="sub.previousSubmissionId" @click="comparingPrevious = true" class="row-action-btn shrink-0">
             <span>⇄</span><span>Compare with previous</span>
@@ -64,8 +64,8 @@ function goTo(id) {
         </div>
       </div>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ error }}</p>
-      <div v-else-if="!sub" class="px-5 py-3 text-sm text-slate-400 dark:text-slate-500">Loading…</div>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ error }}</p>
+      <div v-else-if="!sub" class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">Loading…</div>
       <template v-else>
         <div class="flex-1 min-h-0">
           <MonacoEditor :model-value="sub.code || ''" :language="sub.language" :read-only="true"

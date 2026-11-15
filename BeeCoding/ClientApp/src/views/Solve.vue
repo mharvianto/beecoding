@@ -323,7 +323,7 @@ function ago(ts) {
     <template #a>
     <!-- Left: statement + submissions -->
     <div class="h-full overflow-y-auto p-5 border-r border-slate-200 dark:border-slate-800">
-      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to board</RouterLink>
+      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
@@ -331,7 +331,7 @@ function ago(ts) {
               class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         <span class="ml-auto"><ProblemFeedback kind="board" :board-slug="props.slug" :slug="props.problemSlug" /></span>
       </div>
-      <div class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+      <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
         <span v-if="progress.streak > 0">· 🔥 {{ progress.streak }}-day practice streak</span>
       </div>
@@ -407,13 +407,13 @@ function ago(ts) {
             <button @click="openStudent = openStudent === s.uid ? null : s.uid"
                     class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <span class="flex-1 truncate">{{ s.authorName }}</span>
-              <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ ago(s.updatedAt) }} ago</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ ago(s.updatedAt) }} ago</span>
               <span class="text-xs text-slate-400">{{ openStudent === s.uid ? '▾' : '▸' }}</span>
             </button>
             <pre v-if="openStudent === s.uid"
                  class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg m-2 p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ s.code || '(empty)' }}</pre>
           </div>
-          <p v-if="!studentList.length" class="px-3 py-2 text-sm text-slate-400 dark:text-slate-500">No student is typing yet.</p>
+          <p v-if="!studentList.length" class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">No student is typing yet.</p>
         </div>
       </div>
 
@@ -428,11 +428,11 @@ function ago(ts) {
              class="flex items-center gap-2 text-sm border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1.5">
           <VerdictBadge :verdict="s.status === 'Done' ? s.verdict : s.status" small />
           <span class="text-slate-500 dark:text-slate-400">{{ s.authorName }}</span>
-          <span v-if="s.status === 'Done'" class="text-xs text-slate-400 dark:text-slate-500">
+          <span v-if="s.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">
             {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
           </span>
         </div>
-        <p v-if="!submissions.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions yet.</p>
+        <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions yet.</p>
       </div>
     </div>
     </template>
@@ -472,18 +472,18 @@ function ago(ts) {
           </span>
           <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
-        <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
+        <div v-else-if="submittingId" class="text-xs text-slate-500 dark:text-slate-400 animate-pulse">
           <template v-if="queuedAhead > 0">⏳ The judge is busy — {{ queuedAhead }} submission{{ queuedAhead === 1 ? '' : 's' }} ahead of yours. It will start on its own.</template>
           <template v-else>Still checking your last submission…</template>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-400 dark:text-slate-500">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
-            <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
                  class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
               runOut
@@ -495,7 +495,7 @@ function ago(ts) {
             }}</pre>
           </div>
         </div>
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       </div>
       </template>
     </SplitPane>

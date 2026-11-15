@@ -94,7 +94,7 @@ function downloadCodes() {
 }
 
 const inputCls = 'border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm';
-const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50';
+const primaryBtn = 'bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50';
 </script>
 
 <template>
@@ -108,7 +108,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
       <template v-if="hasFactor">✓ Required for your role, and it's on.</template>
       <template v-else>Required for your role: turn on an authenticator app or email code to keep using BeeCoding.</template>
     </p>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
     <div v-if="status" class="space-y-3">
       <!-- authenticator app -->

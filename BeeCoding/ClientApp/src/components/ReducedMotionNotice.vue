@@ -37,7 +37,7 @@ function dismiss() { visible.value = false; }
         <p><strong>Windows 11:</strong> Settings → Accessibility → Visual effects → aktifkan "Animation effects"</p>
         <p><strong>Windows 10:</strong> Settings → Ease of Access → Display → aktifkan "Show animations in Windows"</p>
         <p><strong>macOS:</strong> System Settings → Accessibility → Display → matikan "Reduce motion"</p>
-        <p class="text-slate-400 dark:text-slate-300">Ini pengaturan aksesibilitas perangkatmu — cuma info, bukan wajib diubah.</p>
+        <p class="text-slate-500 dark:text-slate-300">Ini pengaturan aksesibilitas perangkatmu — cuma info, bukan wajib diubah.</p>
       </div>
     </div>
   </Transition>

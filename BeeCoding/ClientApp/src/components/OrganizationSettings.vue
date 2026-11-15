@@ -35,7 +35,7 @@ async function leave(o) {
 <template>
   <section v-if="invites.length || orgs.length || error" id="organizations" class="space-y-3 scroll-mt-4">
     <h2 class="font-semibold text-sm">Organizations</h2>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
     <div v-for="i in invites" :key="i.id" class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 p-3 space-y-2">
       <p class="text-sm"><b>{{ i.invitedBy }}</b> invited you to join <b>{{ i.organizationName }}</b> as {{ i.orgRole.toLowerCase() }}.</p>
@@ -44,7 +44,7 @@ async function leave(o) {
         You can leave at any time.
       </p>
       <div class="flex gap-2">
-        <button @click="accept(i)" :disabled="busy" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Join</button>
+        <button @click="accept(i)" :disabled="busy" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Join</button>
         <button @click="decline(i)" :disabled="busy" class="text-sm text-slate-500 dark:text-slate-400 px-2">Decline</button>
       </div>
     </div>

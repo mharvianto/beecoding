@@ -50,9 +50,9 @@ onBeforeUnmount(revoke);
 
 <template>
   <div>
-    <p v-if="err" class="text-sm text-red-600 dark:text-red-400">{{ err }}</p>
+    <p v-if="err" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ err }}</p>
     <img v-else-if="src" :src="src" alt="" draggable="false"
          class="w-full rounded-lg border border-slate-200 dark:border-slate-800 select-none pointer-events-none" />
-    <p v-else class="text-sm text-slate-400 dark:text-slate-500">Loading problem…</p>
+    <p v-else class="text-sm text-slate-500 dark:text-slate-400">Loading problem…</p>
   </div>
 </template>

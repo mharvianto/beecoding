@@ -14,7 +14,7 @@ defineProps({ title: String, updated: String });
 
     <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
       <h1 class="text-2xl font-bold">{{ title }}</h1>
-      <p v-if="updated" class="text-xs text-slate-400 dark:text-slate-500 mt-1">{{ docLang === 'id' ? 'Terakhir diperbarui' : 'Last updated' }}: {{ updated }}</p>
+      <p v-if="updated" class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ docLang === 'id' ? 'Terakhir diperbarui' : 'Last updated' }}: {{ updated }}</p>
 
       <article class="mt-6 space-y-5 text-sm leading-relaxed text-slate-600 dark:text-slate-300
                       [&_h2]:text-slate-900 [&_h2]:dark:text-slate-100 [&_h2]:font-semibold [&_h2]:text-base [&_h2]:mt-6

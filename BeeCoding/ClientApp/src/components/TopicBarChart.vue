@@ -109,6 +109,6 @@ onBeforeUnmount(() => chart?.destroy());
     <div :style="{ height: Math.max(90, items.length * 26) + 'px' }">
       <canvas ref="canvasEl"></canvas>
     </div>
-    <p v-if="!items.length" class="text-slate-400 dark:text-slate-500 text-xs">No data yet.</p>
+    <p v-if="!items.length" class="text-slate-500 dark:text-slate-400 text-xs">No data yet.</p>
   </div>
 </template>

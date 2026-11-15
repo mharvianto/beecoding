@@ -164,7 +164,7 @@ function backToPassword(clearError = true) {
       <form v-if="challenge" @submit.prevent="submitCode" class="space-y-3">
         <template v-if="mfaMode === 'totp'">
           <p class="text-sm text-slate-600 dark:text-slate-300">Enter the 6-digit code from your authenticator app.</p>
-          <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus
+          <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code" required autofocus
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
         </template>
         <template v-else-if="mfaMode === 'email'">
@@ -177,7 +177,7 @@ function backToPassword(clearError = true) {
           </template>
           <template v-else>
             <p class="text-sm text-slate-600 dark:text-slate-300">Enter the code we sent to <b>{{ challenge.emailHint }}</b>. It expires in 10 minutes.</p>
-            <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" required autofocus
+            <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code" required autofocus
                    class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
             <button type="button" @click="sendEmailCode" :disabled="busy || resendIn > 0" class="text-sm text-amber-600 dark:text-amber-400 disabled:text-slate-400 disabled:dark:text-slate-500">
               {{ resendIn > 0 ? `Send again in ${resendIn}s` : 'Send a new code' }}
@@ -186,12 +186,12 @@ function backToPassword(clearError = true) {
         </template>
         <template v-else-if="mfaMode === 'recovery'">
           <p class="text-sm text-slate-600 dark:text-slate-300">Enter one of your recovery codes. Each code works once.</p>
-          <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" required autofocus
+          <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" aria-label="Recovery code" required autofocus
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-wider text-center font-mono" />
         </template>
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button v-if="mfaMode !== 'email' || emailSent" :disabled="busy || !mfaCode"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Verify' }}
         </button>
         <div class="text-sm flex flex-col gap-1.5 text-amber-600 dark:text-amber-400">
@@ -206,29 +206,29 @@ function backToPassword(clearError = true) {
           <b>{{ linkInfo.email }}</b> already has a BeeCoding account. Enter its password once to connect your Google account;
           after that you can sign in with Google.
         </p>
-        <input v-model="password" type="password" placeholder="BeeCoding password" autocomplete="current-password" required autofocus
+        <input v-model="password" type="password" placeholder="BeeCoding password" aria-label="BeeCoding password" autocomplete="current-password" required autofocus
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy || !password"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Connect and sign in' }}
         </button>
         <button type="button" @click="linkInfo = null; password = ''; error = ''" class="text-sm text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
       </form>
       <form v-else @submit.prevent="submit" class="space-y-3">
-        <input v-model="email" type="email" placeholder="Email" required
+        <input v-model="email" type="email" placeholder="Email" aria-label="Email" required
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <input v-model="password" type="password" placeholder="Password" required
+        <input v-model="password" type="password" placeholder="Password" aria-label="Password" required
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <TurnstileWidget ref="turnstile" action="login" v-model:token="human" />
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Sign in' }}
         </button>
       </form>
       <div v-if="(googleOn || passkeysOn) && !challenge && !linkInfo" class="mt-4 space-y-3">
-        <div class="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
+        <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
           <span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>or<span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>
         </div>
         <button v-if="passkeysOn" type="button" @click="usePasskey" :disabled="busy"

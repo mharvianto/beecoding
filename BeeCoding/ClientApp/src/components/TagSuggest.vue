@@ -39,8 +39,8 @@ async function ask() {
     </button>
     <button v-for="t in shown" :key="t" type="button" @click="emit('add', t)" :title="`Add “${t}”`"
             class="rounded px-2 py-0.5 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20">+ {{ t }}</button>
-    <span v-if="tags && !shown.length && tags.length" class="text-slate-400 dark:text-slate-500">Nothing new to suggest.</span>
+    <span v-if="tags && !shown.length && tags.length" class="text-slate-500 dark:text-slate-400">Nothing new to suggest.</span>
     <span v-if="message" class="text-slate-500 dark:text-slate-400">{{ message }}</span>
-    <span v-if="shown.length" class="text-[11px] text-slate-400 dark:text-slate-500">Guessed from similar problems; check them.</span>
+    <span v-if="shown.length" class="text-[11px] text-slate-500 dark:text-slate-400">Guessed from similar problems; check them.</span>
   </div>
 </template>

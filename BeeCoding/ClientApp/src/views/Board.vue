@@ -212,7 +212,7 @@ onBeforeUnmount(async () => {
         </span>
       </div>
     </div>
-    <p v-if="error" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
 
     <!-- Join QR: centered modal, with the code large enough to read from the back of a room -->
     <div v-if="isStaff && showQr" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
@@ -221,7 +221,7 @@ onBeforeUnmount(async () => {
         <button @click="showQr = false" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" aria-label="Close">✕</button>
         <h2 class="font-semibold mb-3">{{ board.title }}</h2>
         <QrCode :text="joinUrl" :size="260" />
-        <p class="mt-3 text-xs text-slate-400 dark:text-slate-500">Scan to join instantly, or enter the code:</p>
+        <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">Scan to join instantly, or enter the code:</p>
         <p class="mt-1 font-mono font-bold text-4xl tracking-widest text-slate-800 dark:text-slate-100 select-all">{{ board.joinCode }}</p>
       </div>
     </div>
@@ -246,12 +246,12 @@ onBeforeUnmount(async () => {
           <button @click="exportFile('results.xlsx', 'results.xlsx')"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             📊 Results (Excel)
-            <span class="block text-[11px] text-slate-400 dark:text-slate-500">Verdict, score and attempts per student and problem, plus every attempt</span>
+            <span class="block text-[11px] text-slate-500 dark:text-slate-400">Verdict, score and attempts per student and problem, plus every attempt</span>
           </button>
           <button @click="exportFile('answers.zip?pick=best', 'answers.zip')"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             📁 Answers (ZIP) — best attempt
-            <span class="block text-[11px] text-slate-400 dark:text-slate-500">Source code, one folder per problem, one file per student</span>
+            <span class="block text-[11px] text-slate-500 dark:text-slate-400">Source code, one folder per problem, one file per student</span>
           </button>
           <button @click="exportFile('answers.zip?pick=latest', 'answers.zip')"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -275,7 +275,7 @@ onBeforeUnmount(async () => {
             {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}{{ hasGroups ? ' (ungrouped)' : '' }}
           </button>
           <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" @click="settingsOpen = false"
-                      class="block px-3 pb-2 -mt-1 text-[11px] text-slate-400 dark:text-slate-500 hover:underline">
+                      class="block px-3 pb-2 -mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:underline">
             Grouped problems use their group's exam mode — set it on the Problems page
           </RouterLink>
           <button @click="toggleLecturing(); settingsOpen = false"
@@ -330,7 +330,7 @@ onBeforeUnmount(async () => {
         <span v-if="pendingProposals > 0" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white"
               :title="`${pendingProposals} proposed problem(s) waiting for you`">💡 {{ pendingProposals }}</span>
       </span>
-      <span class="text-slate-400 dark:text-slate-500 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
+      <span class="text-slate-500 dark:text-slate-400 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
     </RouterLink>
 
     <!-- Live board -->

@@ -48,19 +48,19 @@ async function submit() {
       <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Choose a new password</p>
 
-      <p v-if="checking" class="text-sm text-slate-400 dark:text-slate-500">Checking your link…</p>
+      <p v-if="checking" class="text-sm text-slate-500 dark:text-slate-400">Checking your link…</p>
       <div v-else-if="invalid" class="space-y-3">
         <p class="text-sm bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 rounded-lg px-3 py-3">{{ invalid }}</p>
         <RouterLink to="/forgot-password" class="inline-block text-sm text-amber-600 dark:text-amber-400">Request a new link</RouterLink>
       </div>
       <form v-else @submit.prevent="submit" class="space-y-3">
-        <input v-model="password" type="password" placeholder="New password (min 8 chars)" required minlength="8" autofocus autocomplete="new-password"
+        <input v-model="password" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" required minlength="8" autofocus autocomplete="new-password"
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <input v-model="confirm" type="password" placeholder="Repeat the new password" required autocomplete="new-password"
+        <input v-model="confirm" type="password" placeholder="Repeat the new password" aria-label="Repeat the new password" required autocomplete="new-password"
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy"
-                class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Set new password' }}
         </button>
       </form>

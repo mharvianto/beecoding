@@ -33,13 +33,13 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
 
 <template>
   <div>
-    <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+    <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
       Token-similarity between students' latest submissions to the same problem — a spot-check signal, not proof of copying.
       Three or more students linked at 65% or more are shown as one group (A~B and B~C put A, B and C together, so check the lowest
       figure: a low one means some members are only linked through another). Short/boilerplate submissions and pairs below 50% are left out.
     </p>
-    <div v-if="loading" class="text-sm text-slate-400 dark:text-slate-500">Loading…</div>
-    <div v-else-if="!sections.length" class="text-sm text-slate-400 dark:text-slate-500">No similar pairs found.</div>
+    <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">Loading…</div>
+    <div v-else-if="!sections.length" class="text-sm text-slate-500 dark:text-slate-400">No similar pairs found.</div>
     <div v-else class="space-y-5">
       <section v-for="s in sections" :key="s.id">
         <h3 v-if="sections.length > 1" class="text-sm font-semibold mb-2">{{ s.title }}</h3>
@@ -48,7 +48,7 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
              class="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 p-3 mb-2 text-sm">
           <div class="flex items-center gap-3 flex-wrap">
             <span class="font-semibold">{{ g.members.length }} students</span>
-            <span class="text-xs text-slate-400 dark:text-slate-500">
+            <span class="text-xs text-slate-500 dark:text-slate-400">
               highest <span :class="tier(g.maxSimilarity)">{{ pct(g.maxSimilarity) }}</span> ·
               average {{ pct(g.avgSimilarity) }} ·
               lowest <span :class="tier(g.minSimilarity)">{{ pct(g.minSimilarity) }}</span>

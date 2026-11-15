@@ -66,7 +66,7 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
       <h1 class="text-xl font-bold">Statistics</h1>
       <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
@@ -74,27 +74,27 @@ onMounted(async () => {
         <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 text-slate-500 dark:text-slate-400">Submissions</RouterLink>
       </span>
     </div>
-    <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <div class="space-y-4">
       <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Students</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Students</div>
           <div class="text-xl font-bold">{{ stats.totalStudents }}</div>
         </div>
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Problems</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Problems</div>
           <div class="text-xl font-bold">{{ stats.totalProblems }}</div>
         </div>
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 col-span-2 sm:col-span-1">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
           <div class="text-xl font-bold">{{ stats.totalSubmissions }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400">
             {{ stats.totalSubmissions ? Math.round(100 * stats.acceptedSubmissions / stats.totalSubmissions) : 0 }}% accepted
           </div>
         </div>
       </div>
-      <p v-else class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+      <p v-else class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
@@ -111,7 +111,7 @@ onMounted(async () => {
           <MiniLineChart :title="`Active students / ${engagementGranularity}`" :points="activeUserPoints()" />
           <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
         </div>
-        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
+        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
       </div>
 
       <div>
@@ -129,7 +129,7 @@ onMounted(async () => {
           <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
           <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
         </div>
-        <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage in this window yet.</p>
+        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage in this window yet.</p>
       </div>
 
       <div v-if="stats?.topics?.length">

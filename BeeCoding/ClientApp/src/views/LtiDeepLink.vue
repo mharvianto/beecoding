@@ -82,7 +82,7 @@ async function createAndSelect() {
 <template>
   <div class="max-w-lg mx-auto px-4 py-10">
     <h1 class="text-xl font-bold mb-1">Add a BeeCoding activity</h1>
-    <p v-if="context" class="text-sm text-slate-400 dark:text-slate-500 mb-5">
+    <p v-if="context" class="text-sm text-slate-500 dark:text-slate-400 mb-5">
       Picking a board or problem here links it to this activity in {{ context.platformName }} —
       everyone who opens it from the course lands on the same one.
     </p>
@@ -98,27 +98,27 @@ async function createAndSelect() {
       </button>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
 
-    <div v-if="selecting" class="text-sm text-slate-400 dark:text-slate-500">Sending you back to the LMS…</div>
+    <div v-if="selecting" class="text-sm text-slate-500 dark:text-slate-400">Sending you back to the LMS…</div>
 
     <template v-else-if="mode === 'board' && boards">
       <div class="space-y-2 mb-6">
         <button v-for="b in boards" :key="b.slug" @click="selectBoard(b.slug)"
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 hover:border-amber-400 dark:hover:border-amber-500/60">
           <div class="font-medium text-sm">{{ b.title }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500">{{ b.memberCount }} member(s) · {{ b.problemCount }} problem(s)</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ b.memberCount }} member(s) · {{ b.problemCount }} problem(s)</div>
         </button>
-        <p v-if="!boards.length" class="text-sm text-slate-400 dark:text-slate-500">You don't own any boards yet — create one below.</p>
+        <p v-if="!boards.length" class="text-sm text-slate-500 dark:text-slate-400">You don't own any boards yet — create one below.</p>
       </div>
 
       <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Or create a new board</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Or create a new board</p>
         <div class="flex gap-2">
           <input v-model="newTitle" @keyup.enter="createAndSelect" placeholder="Board title"
                  class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <button @click="createAndSelect" :disabled="creating || !newTitle.trim()"
-                  class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
             {{ creating ? 'Creating…' : 'Create' }}
           </button>
         </div>
@@ -126,7 +126,7 @@ async function createAndSelect() {
     </template>
 
     <template v-else-if="mode === 'problem'">
-      <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+      <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
         Students who open this activity go straight to solving this one problem — no board involved.
       </p>
       <div class="flex gap-2 mb-3">
@@ -143,11 +143,11 @@ async function createAndSelect() {
         <button v-for="p in problems" :key="p.slug" @click="selectProblem(p.slug)"
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-lg px-4 py-2.5 hover:border-amber-400 dark:hover:border-amber-500/60">
           <div class="font-medium text-sm">{{ p.title }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400">
             {{ p.level }}<span v-if="p.tags"> · {{ p.tags }}</span><span v-if="!p.mine"> · by {{ p.ownerName }}</span>
           </div>
         </button>
-        <p v-if="!problems.length" class="text-sm text-slate-400 dark:text-slate-500">
+        <p v-if="!problems.length" class="text-sm text-slate-500 dark:text-slate-400">
           No problems found — try a different scope, or add one in Problem bank first.
         </p>
       </div>

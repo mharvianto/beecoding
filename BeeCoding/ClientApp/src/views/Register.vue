@@ -56,7 +56,7 @@ async function submit() {
     <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-6">Create your account</h1>
     <template v-if="googleOn && !google">
       <GoogleButton label="Sign up with Google" :return-to="route.query.r ? String(route.query.r) : ''" />
-      <div class="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500 my-4">
+      <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 my-4">
         <span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>or with email<span class="flex-1 h-px bg-slate-200 dark:bg-slate-700"></span>
       </div>
     </template>
@@ -64,12 +64,12 @@ async function submit() {
       Almost done. Signing up with Google as <b>{{ google.email }}</b>; choose how you will use BeeCoding.
     </p>
     <form @submit.prevent="submit" class="space-y-3">
-      <input v-model="form.displayName" placeholder="Display name" required
+      <input v-model="form.displayName" placeholder="Display name" aria-label="Display name" required
              class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
       <template v-if="!google">
-        <input v-model="form.email" type="email" placeholder="Email" required
+        <input v-model="form.email" type="email" placeholder="Email" aria-label="Email" required
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <input v-model="form.password" type="password" placeholder="Password (min 8 chars)" required
+        <input v-model="form.password" type="password" placeholder="Password (min 8 chars)" aria-label="Password (min 8 chars)" required
                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
       </template>
       <div class="flex gap-2">
@@ -86,16 +86,16 @@ async function submit() {
           <input type="radio" value="Teacher" v-model="form.role" class="mr-2" />Teacher
         </label>
       </div>
-      <input v-if="form.role === 'Teacher'" v-model="form.teacherCode" placeholder="Teacher invite code"
+      <input v-if="form.role === 'Teacher'" v-model="form.teacherCode" placeholder="Teacher invite code" aria-label="Teacher invite code"
              class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
       <TurnstileWidget v-if="!google" ref="turnstile" action="register" v-model:token="human" />
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <button :disabled="busy || (!google && !!auth.config.turnstileSiteKey && !human)"
-              class="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+              class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
         {{ busy ? '…' : 'Register' }}
       </button>
     </form>
-    <p class="text-xs text-slate-400 dark:text-slate-500 mt-3">
+    <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">
       By creating an account you agree to the
       <RouterLink to="/terms" class="text-amber-600 dark:text-amber-400">Terms &amp; Agreement</RouterLink>
       and <RouterLink to="/privacy" class="text-amber-600 dark:text-amber-400">Privacy Policy</RouterLink>.

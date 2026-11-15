@@ -56,7 +56,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
           <div class="flex items-center gap-2 flex-wrap">
             <code class="text-sm font-semibold">{{ s.prefix }}</code>
             <span class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ langLabel(s.lang) }}</span>
-            <span v-if="s.description" class="text-xs text-slate-400 dark:text-slate-500 truncate">{{ s.description }}</span>
+            <span v-if="s.description" class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ s.description }}</span>
           </div>
           <pre class="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400 whitespace-pre-wrap break-all max-h-20 overflow-hidden">{{ s.body }}</pre>
         </div>
@@ -66,7 +66,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
         </div>
       </li>
     </ul>
-    <p v-else class="text-sm text-slate-400 dark:text-slate-500">
+    <p v-else class="text-sm text-slate-500 dark:text-slate-400">
       No snippets yet.
       <button @click="useExample" class="underline">Start from an example</button>
     </p>
@@ -85,14 +85,14 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
       </div>
       <textarea v-model="form.body" rows="6" spellcheck="false" placeholder="What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through."
                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono"></textarea>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400">
         <code>$1</code>, <code>$2</code>… are tab stops, <code>${1:text}</code> is a stop with default text, <code>$0</code> is the final cursor
         position. Write <code>\$</code> for a literal dollar sign.
       </p>
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div class="flex items-center gap-2">
         <button type="submit" :disabled="atLimit"
-                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
           {{ editing === null ? 'Add snippet' : 'Save changes' }}
         </button>
         <button v-if="editing !== null" type="button" @click="cancel" class="row-action-btn">Cancel</button>

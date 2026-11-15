@@ -21,8 +21,8 @@ async function save() {
 
 <template>
   <section v-if="s" class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-3">
-    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Notification kinds</h4>
-    <p class="mt-1 text-[11px] leading-snug text-slate-400 dark:text-slate-500">
+    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Notification kinds</h4>
+    <p class="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
       “Locked” = everyone gets it in the bell and cannot mute it. “On” = created at all (off: nobody gets it, not in the bell, push or email). “Email” = people may choose to get it by email
       <template v-if="!s.emailConfigured">— needs the <code>Email</code> settings (SMTP) in appsettings, so it has no effect yet</template>.
       Email goes only to verified addresses and only to people who turned it on in their account.

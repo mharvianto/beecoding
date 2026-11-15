@@ -89,8 +89,8 @@ onBeforeUnmount(() => {
         <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
       </div>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ error }}</p>
-      <div v-else-if="loading" class="px-5 py-3 text-sm text-slate-400 dark:text-slate-500">Loading…</div>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ error }}</p>
+      <div v-else-if="loading" class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">Loading…</div>
       <div v-show="!loading && !error" ref="el" class="flex-1 min-h-0"></div>
     </div>
   </div>

@@ -46,7 +46,7 @@ const confirmRemove = () => guarded(async () => {
 
 const when = (iso) => new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleDateString();
 const inputCls = 'border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm';
-const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50';
+const primaryBtn = 'bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50';
 </script>
 
 <template>
@@ -56,7 +56,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
       Sign in with your fingerprint, face or device PIN, with no email or password to type. A passkey stays on your
       device, can't be phished, and is already two-factor, so it skips the authenticator-app step.
     </p>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <p v-if="!supported" class="text-sm text-slate-500 dark:text-slate-400">
@@ -72,7 +72,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 p
           <template v-else>
             <div class="min-w-0 flex-1">
               <div class="text-sm font-medium truncate">🔑 {{ k.name }}</div>
-              <div class="text-xs text-slate-400 dark:text-slate-500">
+              <div class="text-xs text-slate-500 dark:text-slate-400">
                 Added {{ when(k.createdAt) }} · {{ k.lastUsedAt ? `last used ${when(k.lastUsedAt)}` : 'not used yet' }}
               </div>
             </div>

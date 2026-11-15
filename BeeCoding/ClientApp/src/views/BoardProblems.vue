@@ -282,7 +282,7 @@ async function reorderGroupTo(id, target, pos) {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
     <div class="flex items-center justify-between gap-2 flex-wrap mt-2 mb-4">
       <h1 class="text-xl font-bold">Problems</h1>
       <div v-if="isStaff" class="flex items-center gap-2 flex-wrap">
@@ -299,14 +299,14 @@ async function reorderGroupTo(id, target, pos) {
         </button>
       </div>
     </div>
-    <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <section v-if="board?.isOwner && proposals.length"
              class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">
       <h2 class="text-sm font-semibold mb-2">💡 Proposed problems
         <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white">{{ pendingProposals.length }}</span>
       </h2>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
         Approving adds the problem to this board <b>hidden</b>, with all of its tests — unhide it when you want students to see it.
       </p>
       <ul class="space-y-2">
@@ -315,7 +315,7 @@ async function reorderGroupTo(id, target, pos) {
           <div class="flex items-start justify-between gap-2 flex-wrap">
             <div class="min-w-0">
               <button @click="openProposal = openProposal === p.id ? null : p.id" class="font-medium text-sm text-left hover:underline">{{ p.title }}</button>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 flex-wrap">
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
                 <LevelBadge :level="p.level" /> by {{ p.proposerName }} · {{ p.testCases.length }} tests ({{ p.testCases.filter(t => t.isSample).length }} visible, {{ p.testCases.filter(t => !t.isSample).length }} hidden)
                 <span v-if="p.status !== 'Pending'" class="px-1.5 py-0.5 rounded-full"
                       :class="p.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">
@@ -363,10 +363,10 @@ async function reorderGroupTo(id, target, pos) {
 
     <input v-model="q" type="search" placeholder="Search by title or tag..."
            class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 mb-3" />
-    <p v-if="q && filtered.length !== problems.length" class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+    <p v-if="q && filtered.length !== problems.length" class="text-xs text-slate-500 dark:text-slate-400 mb-2">
       {{ filtered.length }} of {{ problems.length }} problems
     </p>
-    <p v-if="canReorder && problems.length > 1" class="max-sm:hidden text-xs text-slate-400 dark:text-slate-500 mb-2">
+    <p v-if="canReorder && problems.length > 1" class="max-sm:hidden text-xs text-slate-500 dark:text-slate-400 mb-2">
       Drag ⠿ to reorder or move problems between groups — drop on a group's header to send a problem to its end. Groups can be dragged by their ⠿ too.
     </p>
 
@@ -381,12 +381,12 @@ async function reorderGroupTo(id, target, pos) {
              :draggable="canReorder && !!sec.group"
              @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
           <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
-          <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-400 dark:text-slate-500 w-4 text-left"
+          <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-500 dark:text-slate-400 w-4 text-left"
                   :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
             {{ collapsed[sec.group ? sec.group.id : 'none'] ? '▸' : '▾' }}
           </button>
           <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : 'Ungrouped' }}</h2>
-          <span class="text-xs text-slate-400 dark:text-slate-500">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
             <span v-if="sec.group.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
@@ -429,7 +429,7 @@ async function reorderGroupTo(id, target, pos) {
                   <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
                         class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
                 </div>
-                <div class="text-xs text-slate-400 dark:text-slate-500">
+                <div class="text-xs text-slate-500 dark:text-slate-400">
                   {{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB
                   <template v-if="isStaff">
                     · ✅ {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved
@@ -465,13 +465,13 @@ async function reorderGroupTo(id, target, pos) {
               </RouterLink>
             </div>
           </div>
-          <p v-if="!sec.items.length && !q && groups.length" class="text-slate-400 dark:text-slate-500 text-sm px-1">
+          <p v-if="!sec.items.length && !q && groups.length" class="text-slate-500 dark:text-slate-400 text-sm px-1">
             {{ sec.group ? (canReorder ? 'No problems in this group yet — drag a problem here, or use its group menu.' : 'No problems in this group yet.') : 'Every problem is in a group.' }}
           </p>
         </div>
       </section>
-      <p v-if="!problems.length" class="text-slate-400 dark:text-slate-500 text-sm">No problems yet.</p>
-      <p v-else-if="!filtered.length" class="text-slate-400 dark:text-slate-500 text-sm">No problems match "{{ q }}".</p>
+      <p v-if="!problems.length" class="text-slate-500 dark:text-slate-400 text-sm">No problems yet.</p>
+      <p v-else-if="!filtered.length" class="text-slate-500 dark:text-slate-400 text-sm">No problems match "{{ q }}".</p>
     </div>
 
     <GroupEditor v-if="editingGroup !== undefined" :group="editingGroup" @save="saveGroup" @cancel="editingGroup = undefined" />

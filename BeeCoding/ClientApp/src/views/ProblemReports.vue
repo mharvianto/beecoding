@@ -78,7 +78,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
     <h1 class="text-xl font-bold mb-1">Problem reports</h1>
-    <p class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Reports from students about your problems: test input that doesn't match the statement or breaks its constraints, wrong expected output, unclear text.
     </p>
 
@@ -91,8 +91,8 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
       <button v-if="bankProblemId || problemId" @click="clearProblem" class="ml-2 text-xs text-amber-600 dark:text-amber-400">✕ Showing one problem · show all</button>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
-    <p v-if="data && !data.rows.length" class="text-sm text-slate-400 dark:text-slate-500 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl px-4 py-8 text-center">
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="data && !data.rows.length" class="text-sm text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl px-4 py-8 text-center">
       {{ status === 'Open' ? 'No open reports. 🎉' : 'Nothing here.' }}
     </p>
 
@@ -106,7 +106,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
           <span class="text-[11px] px-1.5 py-0.5 rounded-full ml-auto" :class="STATUS_STYLE[r.status]">{{ r.status }}</span>
         </div>
         <p class="text-sm whitespace-pre-wrap text-slate-700 dark:text-slate-200">{{ r.message }}</p>
-        <div class="text-[11px] text-slate-400 dark:text-slate-500">
+        <div class="text-[11px] text-slate-500 dark:text-slate-400">
           {{ r.reporterName }}<template v-if="r.reporterEmail"> ({{ r.reporterEmail }})</template> · {{ when(r.createdAt) }}
           <template v-if="r.resolvedAt"> · {{ r.status.toLowerCase() }} {{ r.resolvedByName ? `by ${r.resolvedByName}` : '' }} {{ when(r.resolvedAt) }}</template>
         </div>
@@ -116,7 +116,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
           <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is."
                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
           <div class="flex gap-2">
-            <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>
+            <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>
             <button @click="reviewing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
         </div>

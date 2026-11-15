@@ -60,20 +60,20 @@ function save() {
                  class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm" />
         </label>
       </div>
-      <p class="text-xs text-slate-400 dark:text-slate-500">
+      <p class="text-xs text-slate-500 dark:text-slate-400">
         Before it opens, students can't see the group. After it closes they can still read the problems but can't submit.
       </p>
 
       <label class="flex items-start gap-2 text-sm">
         <input v-model="examMode" type="checkbox" class="mt-1" />
-        <span>Exam mode <span class="text-slate-400 dark:text-slate-500">— students can't see peers' work on these problems, and paste is blocked.</span></span>
+        <span>Exam mode <span class="text-slate-500 dark:text-slate-400">— students can't see peers' work on these problems, and paste is blocked.</span></span>
       </label>
       <label class="flex items-start gap-2 text-sm">
         <input v-model="hidden" type="checkbox" class="mt-1" />
-        <span>Hidden <span class="text-slate-400 dark:text-slate-500">— keep it as a draft, invisible to students.</span></span>
+        <span>Hidden <span class="text-slate-500 dark:text-slate-400">— keep it as a draft, invisible to students.</span></span>
       </label>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div class="flex justify-end gap-2 pt-1">
         <button type="button" @click="emit('cancel')"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Cancel</button>

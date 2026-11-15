@@ -44,7 +44,7 @@ onBeforeUnmount(() => clearInterval(timer));
 
 <template>
   <div>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading && !rows.length }">
       <div v-for="r in rows" :key="r.userId + '-' + r.problemSlug"
@@ -54,7 +54,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <div class="sm:hidden">
           <div class="flex items-baseline gap-2">
             <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span></span>
-            <span class="ml-auto text-[11px] text-slate-400 dark:text-slate-500 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
+            <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
           </div>
           <div class="flex items-start gap-2 mt-0.5">
             <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline line-clamp-2 min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
@@ -66,17 +66,17 @@ onBeforeUnmount(() => clearInterval(timer));
           <span class="text-sm font-medium truncate w-56 shrink-0">
             {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span>
           </span>
-          <span class="text-xs text-slate-400 dark:text-slate-500 shrink-0">solved</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400 shrink-0">solved</span>
           <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
           <LevelBadge :level="r.level" />
-          <span class="text-[11px] text-slate-400 dark:text-slate-500 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
         </div>
       </div>
-      <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">
+      <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
         Nothing solved yet. <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> a problem to be first.
       </p>
     </div>
-    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
       The latest Practice solves (each person's first solve of a problem). Problems on a board are not listed here.
     </p>
   </div>

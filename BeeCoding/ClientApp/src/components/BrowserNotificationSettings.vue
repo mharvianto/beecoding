@@ -74,7 +74,7 @@ async function test() {
       </p>
       <button @click="toggle" :disabled="pushOn"
               class="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-              :class="on ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-500 hover:bg-amber-600 text-white'">
+              :class="on ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-700 hover:bg-amber-800 text-white'">
         {{ on ? 'Turn off' : 'Turn on' }}
       </button>
 
@@ -86,7 +86,7 @@ async function test() {
         </p>
         <button @click="togglePush" :disabled="pushBusy"
                 class="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
-                :class="pushOn ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-500 hover:bg-amber-600 text-white'">
+                :class="pushOn ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-700 hover:bg-amber-800 text-white'">
           {{ pushBusy ? '…' : pushOn ? 'Turn off push' : 'Turn on push' }}
         </button>
       </div>

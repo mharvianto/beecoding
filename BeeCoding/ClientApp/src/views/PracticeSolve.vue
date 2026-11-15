@@ -223,7 +223,7 @@ onBeforeUnmount(async () => {
    <SplitPane direction="horizontal" storage-key="beecoding.split.solve-main" :initial="42" :initial-stacked="34" :min="260">
     <template #a>
     <div class="h-full overflow-y-auto p-5 border-r border-slate-200 dark:border-slate-800">
-      <RouterLink to="/practice" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to Practice</RouterLink>
+      <RouterLink to="/practice" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to Practice</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
@@ -232,7 +232,7 @@ onBeforeUnmount(async () => {
               class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         <span v-if="problem.isPublic" class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
       </div>
-      <div class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+      <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
         <span v-if="progress.streak > 0">· 🔥 {{ progress.streak }}-day streak</span>
       </div>
@@ -263,7 +263,7 @@ onBeforeUnmount(async () => {
       </ContentGuard>
 
       <div v-if="problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
-        <span class="text-xs text-slate-400 dark:text-slate-500">Load sample input:</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">Load sample input:</span>
         <button v-for="(t, i) in problem.sampleTests" :key="i" @click="stdin = t.stdin"
                 class="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400">
           Sample {{ i + 1 }}
@@ -280,12 +280,12 @@ onBeforeUnmount(async () => {
         <div v-for="s in submissions" :key="s.id"
              class="flex items-center gap-2 text-sm border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1.5">
           <VerdictBadge :verdict="s.status === 'Done' ? s.verdict : s.status" small />
-          <span v-if="s.status === 'Done'" class="text-xs text-slate-400 dark:text-slate-500">
+          <span v-if="s.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">
             {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
           </span>
-          <span class="text-xs text-slate-400 dark:text-slate-500 ml-auto">{{ new Date(s.createdAt + 'Z').toLocaleTimeString() }}</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ new Date(s.createdAt + 'Z').toLocaleTimeString() }}</span>
         </div>
-        <p v-if="!submissions.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions yet.</p>
+        <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions yet.</p>
       </div>
     </div>
     </template>
@@ -321,18 +321,18 @@ onBeforeUnmount(async () => {
           </span>
           <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
         </div>
-        <div v-else-if="submittingId" class="text-xs text-slate-400 dark:text-slate-500 animate-pulse">
+        <div v-else-if="submittingId" class="text-xs text-slate-500 dark:text-slate-400 animate-pulse">
           <template v-if="queuedAhead > 0">⏳ The judge is busy — {{ queuedAhead }} submission{{ queuedAhead === 1 ? '' : 's' }} ahead of yours. It will start on its own.</template>
           <template v-else>Still checking your last submission…</template>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-400 dark:text-slate-500">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
-            <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
                  class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
               runOut
@@ -344,7 +344,7 @@ onBeforeUnmount(async () => {
             }}</pre>
           </div>
         </div>
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       </div>
       </template>
     </SplitPane>

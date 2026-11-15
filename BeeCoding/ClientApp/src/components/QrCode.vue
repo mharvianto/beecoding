@@ -25,6 +25,6 @@ watch(() => props.text, render);
 <template>
   <div class="inline-block bg-white p-2 rounded-lg">
     <canvas ref="canvas" :width="size" :height="size"></canvas>
-    <p v-if="error" class="text-xs text-red-600">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-xs text-red-600">{{ error }}</p>
   </div>
 </template>

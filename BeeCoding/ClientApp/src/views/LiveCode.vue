@@ -235,7 +235,7 @@ onBeforeUnmount(async () => {
 <template>
   <div v-if="board" class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
-      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to board</RouterLink>
+      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
       <h1 class="text-sm font-bold">🎥 Live code · {{ board.title }}</h1>
       <span v-if="isStaff"
             class="text-[11px] px-2 py-0.5 rounded-full"
@@ -277,7 +277,7 @@ onBeforeUnmount(async () => {
       </div>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
 
     <div v-if="observing"
          class="flex items-center gap-2 flex-wrap text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 px-4 py-2 border-b border-sky-100 dark:border-sky-500/20">
@@ -302,12 +302,12 @@ onBeforeUnmount(async () => {
                           class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
                     {{ running ? 'Running…' : 'Run' }}
                   </button>
-                  <span class="text-xs text-slate-400 dark:text-slate-500">Run only — nothing is graded.</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">Run only — nothing is graded.</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <div class="flex items-center justify-between gap-2">
-                      <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                      <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
                       <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
@@ -317,7 +317,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
                     <pre :style="{ fontSize: editorFontSize + 'px' }"
                          class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                       runOut
@@ -340,7 +340,7 @@ onBeforeUnmount(async () => {
           <div class="h-full flex flex-col bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
               <span class="font-semibold">👀 Student code</span>
-              <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ studentList.length }} live</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ studentList.length }} live</span>
               <select v-if="studentList.length" v-model="selectedUid"
                       class="ml-auto text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">
                 <option v-for="s in studentList" :key="s.uid" :value="s.uid">
@@ -348,12 +348,12 @@ onBeforeUnmount(async () => {
                 </option>
               </select>
               <button @click="toggleStudentsPanel" title="Hide this panel"
-                      class="text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                      class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                       :class="{ 'ml-auto': !studentList.length }">✕</button>
             </div>
             <MonacoEditor v-if="selectedStudent" :model-value="selectedStudent.code"
                           :language="liveLang" :read-only="true" class="flex-1 min-h-0" />
-            <div v-else class="flex-1 grid place-items-center text-sm text-slate-400 dark:text-slate-500 p-6 text-center">
+            <div v-else class="flex-1 grid place-items-center text-sm text-slate-500 dark:text-slate-400 p-6 text-center">
               No student is typing yet.
             </div>
           </div>
@@ -372,7 +372,7 @@ onBeforeUnmount(async () => {
                 <div class="flex items-center gap-2 px-3 py-1.5 text-xs shrink-0"
                      :class="lecturingOn && lecture
                        ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
-                       : 'bg-slate-50 dark:bg-slate-800/50 text-slate-400 dark:text-slate-500'">
+                       : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'">
                   <template v-if="lecturingOn && lecture">
                     <span class="truncate">👨‍🏫 {{ lecture.teacherName }} · {{ lecture.language === 'c' ? 'C' : 'C++' }} · {{ ago(lecture.updatedAt) }} ago</span>
                     <button @click="loadTeacherCode" class="ml-auto shrink-0 bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-2.5 py-0.5">Load into my editor</button>
@@ -381,7 +381,7 @@ onBeforeUnmount(async () => {
                 </div>
                 <MonacoEditor v-if="lecture" :model-value="lecture.code" :language="lecture.language || 'cpp'"
                               :read-only="true" class="flex-1 min-h-0" />
-                <div v-else class="flex-1 grid place-items-center text-sm text-slate-400 dark:text-slate-500 p-6 text-center">
+                <div v-else class="flex-1 grid place-items-center text-sm text-slate-500 dark:text-slate-400 p-6 text-center">
                   The teacher’s code will show here.
                 </div>
               </div>
@@ -390,7 +390,7 @@ onBeforeUnmount(async () => {
               <div class="h-full overflow-y-auto bg-white dark:bg-slate-900 p-3 space-y-2 border-r border-slate-200 dark:border-slate-800">
                 <div v-if="lecture && lecture.stdin">
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-slate-400 dark:text-slate-500">teacher's stdin</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">teacher's stdin</label>
                     <button @click="useTeacherStdin"
                             class="ml-auto text-[11px] px-2 py-0.5 rounded-lg border border-sky-300 dark:border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-500/10">
                       {{ stdinCopied ? 'Copied ✓' : 'Use this stdin' }}
@@ -419,12 +419,12 @@ onBeforeUnmount(async () => {
                           class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
                     {{ running ? 'Running…' : 'Run' }}
                   </button>
-                  <span class="text-xs text-slate-400 dark:text-slate-500">Your own editor — nothing is graded.</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">Your own editor — nothing is graded.</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <div class="flex items-center justify-between gap-2">
-                      <label class="text-xs text-slate-400 dark:text-slate-500">stdin</label>
+                      <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
                       <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
@@ -434,7 +434,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-400 dark:text-slate-500">output</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
                     <pre :style="{ fontSize: editorFontSize + 'px' }"
                          class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
                       runOut

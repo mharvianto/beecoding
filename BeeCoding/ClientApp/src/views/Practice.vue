@@ -174,7 +174,7 @@ onMounted(() => {
         Lv {{ progress.level }} · {{ progress.xp }} XP · {{ progress.toNext }} XP to next level
       </div>
     </div>
-    <p class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Solve anything from the public problem bank, independent of any class board. Your first
       full solve of a problem earns XP (Easy 10 · Medium 20 · Hard 40).
     </p>
@@ -190,7 +190,7 @@ onMounted(() => {
           {{ aiBusy ? `Thinking… ${aiElapsed}s` : '✨ Let AI pick' }}
         </button>
         <button v-else-if="guide.source === 'ai'" @click="loadGuide(false)"
-                class="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600">use heuristic</button>
+                class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600">use heuristic</button>
       </div>
       <div class="grid gap-2 sm:grid-cols-3">
         <RouterLink v-for="r in guide.recommended" :key="r.id" :to="`/practice/${r.slug}`"
@@ -201,7 +201,7 @@ onMounted(() => {
             <LevelBadge :level="r.level" />
           </div>
           <span class="text-[11px] text-amber-700 dark:text-amber-400">{{ r.reason }}</span>
-          <span v-if="r.tags" class="text-[10px] text-slate-400 dark:text-slate-500 truncate">{{ r.tags }}</span>
+          <span v-if="r.tags" class="text-[10px] text-slate-500 dark:text-slate-400 truncate">{{ r.tags }}</span>
         </RouterLink>
       </div>
     </div>
@@ -223,7 +223,7 @@ onMounted(() => {
           <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <span class="block h-full bg-amber-400" :style="{ width: (t.total ? t.solved / t.total * 100 : 0) + '%' }"></span>
           </span>
-          <span class="w-12 shrink-0 text-right tabular-nums text-slate-400 dark:text-slate-500">{{ t.solved }}/{{ t.total }}</span>
+          <span class="w-12 shrink-0 text-right tabular-nums text-slate-500 dark:text-slate-400">{{ t.solved }}/{{ t.total }}</span>
         </button>
       </div>
     </div>
@@ -257,8 +257,8 @@ onMounted(() => {
               title="Reset search, level, status and sort">✕ Clear filters</button>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
-    <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-2">
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
       <span>{{ total }} problems · {{ solvedTotal }} solved</span>
       <span v-if="total">
         Showing {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, total) }}
@@ -274,24 +274,24 @@ onMounted(() => {
         </span>
         <div class="flex-1 min-w-0">
           <span class="text-sm font-medium truncate block">{{ p.title }}</span>
-          <span v-if="p.tags" class="md:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">{{ p.tags }}</span>
-          <span class="sm:hidden text-[10px] text-slate-400 dark:text-slate-500 truncate block">
+          <span v-if="p.tags" class="md:hidden text-[10px] text-slate-500 dark:text-slate-400 truncate block">{{ p.tags }}</span>
+          <span class="sm:hidden text-[10px] text-slate-500 dark:text-slate-400 truncate block">
             {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
             <span v-if="p.likes" :class="p.liked ? 'text-rose-500' : ''"> · ♥ {{ p.likes }}</span>
           </span>
         </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
-        <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ p.tags }}</span>
-        <span class="hidden sm:block text-[11px] text-slate-400 dark:text-slate-500 w-36 whitespace-nowrap text-right tabular-nums"
+        <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[14rem]">{{ p.tags }}</span>
+        <span class="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400 w-36 whitespace-nowrap text-right tabular-nums"
               :title="`${p.submissionCount} submission(s) across every user`">
           {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
         </span>
-        <span class="hidden sm:block text-[11px] w-9 text-right tabular-nums" :class="p.liked ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500'"
+        <span class="hidden sm:block text-[11px] w-9 text-right tabular-nums" :class="p.liked ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'"
               :title="`${p.likes} like(s)`">{{ p.likes ? `♥ ${p.likes}` : '' }}</span>
         <LevelBadge :level="p.level" />
-        <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
+        <span class="text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>
-      <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">No problems.</p>
+      <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">No problems.</p>
     </div>
 
     <div v-if="suggestions.length" class="mt-4">
@@ -300,12 +300,12 @@ onMounted(() => {
         <RouterLink v-for="s in suggestions" :key="s.id" :to="`/practice/${s.slug}`"
                     class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60">
           <span class="flex-1 min-w-0 text-sm font-medium truncate">{{ s.title }}</span>
-          <span v-if="s.tags" class="hidden md:block text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[14rem]">{{ s.tags }}</span>
+          <span v-if="s.tags" class="hidden md:block text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[14rem]">{{ s.tags }}</span>
           <LevelBadge :level="s.level" />
-          <span class="text-[11px] text-slate-400 dark:text-slate-500 w-10 text-right">{{ langLabel(s.allowedLanguages) }}</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right">{{ langLabel(s.allowedLanguages) }}</span>
         </RouterLink>
       </div>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">Matched by meaning, so some may be off.</p>
+      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Matched by meaning, so some may be off.</p>
     </div>
 
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-1 mt-4 text-sm">

@@ -92,18 +92,18 @@ const sortedStudents = computed(() => {
         <tr v-for="s in sortedStudents" :key="s.userId" class="border-t border-slate-100 dark:border-slate-800">
           <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-nowrap">
             <span :class="{ 'font-semibold': s.userId === currentUserId }">{{ s.displayName }}</span>
-            <span v-if="s.userId === currentUserId" class="text-xs text-slate-400 dark:text-slate-500"> (you)</span>
+            <span v-if="s.userId === currentUserId" class="text-xs text-slate-500 dark:text-slate-400"> (you)</span>
             <span v-if="isStaff && needsHelp(s.userId)" class="ml-2 text-[10px] px-1.5 py-0.5 rounded border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
                   title="Asked the AI tutor for 3+ hints in a row on a problem that is not solved yet">may need help</span>
             <button v-if="isStaff" @click="emit('toggle-hide', s)"
                     class="ml-2 text-[10px] px-1.5 py-0.5 rounded border"
                     :class="s.hiddenByTeacher
                       ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
-                      : 'text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
+                      : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
               {{ s.hiddenByTeacher ? 'hidden from peers' : 'visible' }}
             </button>
             <button v-if="isStaff && canRemove" @click="emit('remove', s)" title="Remove from this board"
-                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-rose-600 hover:border-rose-300 dark:hover:text-rose-400 dark:hover:border-rose-500/40">
+                    class="ml-1 text-[10px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:border-rose-300 dark:hover:text-rose-400 dark:hover:border-rose-500/40">
               ✕ remove
             </button>
           </td>
@@ -118,11 +118,11 @@ const sortedStudents = computed(() => {
               </button>
               <VerdictBadge v-else :verdict="cell(s.userId, p.id).verdict" small />
               <div v-if="!cell(s.userId, p.id).redacted && cell(s.userId, p.id).attempts > 1"
-                   class="text-[10px] text-slate-400 dark:text-slate-500">×{{ cell(s.userId, p.id).attempts }}</div>
+                   class="text-[10px] text-slate-500 dark:text-slate-400">×{{ cell(s.userId, p.id).attempts }}</div>
             </template>
             <span v-else class="text-slate-200 dark:text-slate-700">·</span>
             <div v-if="isStaff && hint(s.userId, p.id)" class="text-[10px] mt-0.5"
-                 :class="stuck(s.userId, p.id) ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-400 dark:text-slate-500'"
+                 :class="stuck(s.userId, p.id) ? 'text-amber-600 dark:text-amber-400 font-semibold' : 'text-slate-500 dark:text-slate-400'"
                  :title="`AI tutor hint level ${hint(s.userId, p.id).level} of 4 (resets after a quiet spell or a new attempt)`">💡{{ hint(s.userId, p.id).level }}</div>
           </td>
           <td class="px-3 py-2 text-center font-semibold text-slate-600 dark:text-slate-300">
@@ -130,7 +130,7 @@ const sortedStudents = computed(() => {
           </td>
         </tr>
         <tr v-if="!students.length">
-          <td :colspan="problems.length + 2" class="px-3 py-6 text-center text-slate-400 dark:text-slate-500">
+          <td :colspan="problems.length + 2" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">
             No students yet.
           </td>
         </tr>

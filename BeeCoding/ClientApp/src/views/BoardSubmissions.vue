@@ -68,7 +68,7 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
       <h1 class="text-xl font-bold">Submissions</h1>
       <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
@@ -76,7 +76,7 @@ onMounted(async () => {
         <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 bg-slate-800 text-white dark:bg-slate-600">Submissions</RouterLink>
       </span>
     </div>
-    <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <div class="flex flex-wrap gap-2 mb-3">
       <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student or problem…"
@@ -117,14 +117,14 @@ onMounted(async () => {
           {{ s.userDisplayName }} · {{ Math.round(s.score * 100) }}% · {{ s.runtimeMs }}ms · {{ s.language || '—' }}
         </div>
       </button>
-      <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
+      <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions.</p>
     </div>
 
     <!-- desktop: table -->
     <div v-if="tableView === 'table'" class="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-xl">
       <table class="w-full text-sm">
         <thead>
-          <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+          <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
             <th class="font-normal py-1.5 px-3">When</th><th class="font-normal px-3">Student</th>
             <th class="font-normal px-3">Problem</th><th class="font-normal px-3">Verdict</th>
             <th class="font-normal px-3">Score</th><th class="font-normal px-3">Runtime</th><th class="font-normal px-3">Lang</th>
@@ -145,12 +145,12 @@ onMounted(async () => {
             <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
             <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
           </tr>
-          <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-400 dark:text-slate-500 py-3 px-3">No submissions.</td></tr>
+          <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3 px-3">No submissions.</td></tr>
         </tbody>
       </table>
     </div>
     <div v-if="submissionsTotal" class="flex items-center gap-3 text-sm mt-3">
-      <span class="text-slate-400 dark:text-slate-500">
+      <span class="text-slate-500 dark:text-slate-400">
         {{ (submissionsPage - 1) * submissionsPageSize + 1 }}–{{ Math.min(submissionsPage * submissionsPageSize, submissionsTotal) }} of {{ submissionsTotal }}
       </span>
       <div class="ml-auto flex gap-2">

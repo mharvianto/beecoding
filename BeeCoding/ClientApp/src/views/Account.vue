@@ -212,56 +212,56 @@ async function deleteAccount(force = false) {
             <h2 class="font-semibold text-sm">Progress</h2>
             <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">↻ refresh</button>
           </div>
-          <p v-if="dashErr" class="text-sm text-red-600 dark:text-red-400">{{ dashErr }}</p>
+          <p v-if="dashErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ dashErr }}</p>
 
           <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Level</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Level</div>
               <div class="text-2xl font-bold">Lv {{ dashboard.level }}</div>
               <div class="mt-1.5 w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
               </div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
             </div>
 
             <RouterLink to="/leaderboard" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Leaderboard rank</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Leaderboard rank</div>
               <div class="text-2xl font-bold">{{ dashboard.rank > 0 ? `#${fmt(dashboard.rank)}` : '—' }}</div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">of {{ fmt(dashboard.rankedUsers) }} ranked</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">of {{ fmt(dashboard.rankedUsers) }} ranked</div>
             </RouterLink>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Problems solved</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Problems solved</div>
               <div class="text-2xl font-bold">{{ fmt(dashboard.solvedCount) }}</div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{{ fmt(dashboard.boardsJoined) }} board(s) joined</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ fmt(dashboard.boardsJoined) }} board(s) joined</div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
               <div class="text-2xl font-bold">{{ fmt(dashboard.totalAttempts) }}</div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 {{ dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }}% accepted
               </div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Practice streak</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Practice streak</div>
               <div class="text-2xl font-bold">{{ dashboard.streak > 0 ? `🔥 ${fmt(dashboard.streak)}` : '—' }}</div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
               </div>
-              <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-400 dark:text-slate-500">
+              <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-500 dark:text-slate-400">
                 🏆 longest: {{ fmt(dashboard.longestStreak) }} day(s)
               </div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-400 dark:text-slate-500">Best day</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">Best day</div>
               <div class="text-2xl font-bold">{{ dashboard.maxSolvedInADay > 0 ? fmt(dashboard.maxSolvedInADay) : '—' }}</div>
-              <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">solved in a single day</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">solved in a single day</div>
             </div>
           </div>
-          <p v-else-if="!dashErr" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+          <p v-else-if="!dashErr" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
 
           <div>
             <div class="flex items-center gap-2 mb-2">
@@ -277,12 +277,12 @@ async function deleteAccount(force = false) {
               <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
               <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
             </div>
-            <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
+            <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
           </div>
 
           <div v-if="topicStats?.length">
             <h3 class="font-semibold text-sm mb-1.5">Topics you're struggling with</h3>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">Lowest accept rate first, across boards and practice.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Lowest accept rate first, across boards and practice.</p>
             <TopicBarChart :items="topicBarItems()" />
           </div>
         </section>
@@ -295,7 +295,7 @@ async function deleteAccount(force = false) {
             🚫 {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
           </div>
           <div v-else-if="aiUsage.dailyQuota > 0">
-            <div class="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 mb-1">
+            <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
               <span>Daily quota</span>
               <span>{{ fmt(aiUsage.today.calls) }} / {{ fmt(aiUsage.dailyQuota) }} requests used today</span>
             </div>
@@ -308,7 +308,7 @@ async function deleteAccount(force = false) {
           <div class="overflow-x-auto">
           <table class="w-full text-sm min-w-[360px]">
             <thead>
-              <tr class="text-xs text-slate-400 dark:text-slate-500 text-left">
+              <tr class="text-xs text-slate-500 dark:text-slate-400 text-left">
                 <th class="font-normal py-1"></th><th class="font-normal">Calls</th>
                 <th class="font-normal">Prompt</th><th class="font-normal">Reply</th><th class="font-normal">Total tokens</th>
               </tr>
@@ -335,16 +335,16 @@ async function deleteAccount(force = false) {
         <!-- display name -->
         <section class="space-y-3">
           <h2 class="font-semibold text-sm">Display name</h2>
-          <p class="text-xs text-slate-400 dark:text-slate-500">Shown on the board, wall cards and leaderboard.</p>
+          <p class="text-xs text-slate-500 dark:text-slate-400">Shown on the board, wall cards and leaderboard.</p>
           <div class="flex gap-2">
             <input v-model="name" maxlength="40" placeholder="Your name" @keyup.enter="saveName"
                    class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
-                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                    class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
               {{ nameBusy ? '…' : 'Save' }}
             </button>
           </div>
-          <p v-if="nameErr" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
+          <p v-if="nameErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
           <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ nameMsg }}</p>
         </section>
         <NotificationKindSettings />
@@ -369,10 +369,10 @@ async function deleteAccount(force = false) {
                    class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <input v-model="next2" type="password" placeholder="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
                    class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
             <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
             <button @click="setPassword" :disabled="pwBusy || !next"
-                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                    class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
               {{ pwBusy ? '…' : 'Set password' }}
             </button>
           </div>
@@ -387,10 +387,10 @@ async function deleteAccount(force = false) {
             <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
                    @keyup.enter="changePassword"
                    class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <p v-if="pwErr" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
+            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
             <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
             <button @click="changePassword" :disabled="pwBusy || !cur || !next"
-                    class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                    class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
               {{ pwBusy ? '…' : 'Update password' }}
             </button>
           </div>
@@ -430,7 +430,7 @@ async function deleteAccount(force = false) {
               </ul>
             </div>
 
-            <p v-if="delErr" class="text-sm text-red-600 dark:text-red-400">{{ delErr }}</p>
+            <p v-if="delErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ delErr }}</p>
 
             <div class="flex gap-2">
               <button @click="deleteAccount(!!ownedBoards)" :disabled="delBusy || !delPw"

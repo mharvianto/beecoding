@@ -35,7 +35,7 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
       <div class="absolute right-0 z-50 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1">
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
           <div class="text-sm font-semibold truncate">{{ auth.user.displayName }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 truncate">{{ auth.user.email }} · {{ auth.user.role }}</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ auth.user.email }} · {{ auth.user.role }}</div>
         </div>
         <RouterLink to="/account" @click="open = false"
                     class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -55,7 +55,7 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
           🛡️ Admin
         </RouterLink>
         <div class="px-3 py-2">
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mb-1">Theme</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Theme</div>
           <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="[key, icon, label] in THEMES" :key="key" @click="setTheme(key)" :title="label"
                     class="flex-1 px-2 py-1" :class="theme === key ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">

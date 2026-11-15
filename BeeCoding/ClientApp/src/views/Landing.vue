@@ -77,7 +77,7 @@ const faqs = [
         <div class="flex items-center gap-3 text-sm">
           <ThemeToggle />
           <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Sign in</RouterLink>
-          <RouterLink to="/register" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-1.5 font-medium">
+          <RouterLink to="/register" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1.5 font-medium">
             Get started
           </RouterLink>
         </div>
@@ -104,7 +104,7 @@ const faqs = [
             </p>
             <div class="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3">
               <RouterLink to="/register"
-                          class="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-6 py-3 font-semibold shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5">
+                          class="bg-amber-700 hover:bg-amber-800 text-white rounded-xl px-6 py-3 font-semibold shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5">
                 Create an account
               </RouterLink>
               <RouterLink to="/login"

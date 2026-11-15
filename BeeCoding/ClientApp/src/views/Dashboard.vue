@@ -44,7 +44,7 @@ async function join() {
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <h1 class="text-xl font-bold mb-1">Your boards</h1>
-    <p class="text-sm text-slate-400 dark:text-slate-500 mb-6">
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
       A board is shared with a class via a join code — for a class you're not in yet, ask the
       teacher for their code.
       <template v-if="auth.isTeacher">Building a personal problem library instead? See
@@ -60,7 +60,7 @@ async function join() {
         <form @submit.prevent="createBoard" class="flex gap-2">
           <input v-model="newTitle" placeholder="Board title" required
                  class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
-          <button class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 font-medium">Create</button>
+          <button class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 font-medium">Create</button>
         </form>
       </div>
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
@@ -73,7 +73,7 @@ async function join() {
       </div>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
 
     <input v-if="boards.length > 1" v-model="q" placeholder="Search by title or tag…"
            class="w-full sm:w-80 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-4" />
@@ -98,19 +98,19 @@ async function join() {
           <span>{{ b.problemCount }} problem{{ b.problemCount === 1 ? '' : 's' }}</span>
           <span>{{ b.memberCount }} student{{ b.memberCount === 1 ? '' : 's' }}</span>
         </div>
-        <div v-if="b.role !== 'Student'" class="text-xs text-slate-400 dark:text-slate-500 mt-2">
+        <div v-if="b.role !== 'Student'" class="text-xs text-slate-500 dark:text-slate-400 mt-2">
           Code: <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ b.joinCode }}</span>
         </div>
       </RouterLink>
     </div>
-    <p v-if="boards.length && !filteredBoards.length" class="text-slate-400 dark:text-slate-500 text-sm">
+    <p v-if="boards.length && !filteredBoards.length" class="text-slate-500 dark:text-slate-400 text-sm">
       No boards match "{{ q }}".
     </p>
     <div v-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
       <p class="text-slate-500 dark:text-slate-400 text-sm">
         {{ auth.isTeacher ? "You don't own or belong to any board yet." : "You haven't joined a board yet." }}
       </p>
-      <p class="text-slate-400 dark:text-slate-500 text-sm mt-1">
+      <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
         <template v-if="auth.isTeacher">
           Create one above to start a class, or
           <RouterLink to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">build a problem bank</RouterLink>

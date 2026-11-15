@@ -77,7 +77,7 @@ async function run() {
 
       <!-- groups -->
       <section class="space-y-2">
-        <h3 class="text-sm font-semibold">1 · Groups <span class="font-normal text-slate-400 dark:text-slate-500">(optional)</span></h3>
+        <h3 class="text-sm font-semibold">1 · Groups <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
         <textarea v-model="groupTitles" rows="3" placeholder="One group title per line&#10;Week 1&#10;Week 2"
                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
         <div class="grid grid-cols-2 gap-3">
@@ -92,27 +92,27 @@ async function run() {
           <label class="flex items-center gap-1.5"><input v-model="examMode" type="checkbox" /> Exam mode</label>
           <label class="flex items-center gap-1.5"><input v-model="hidden" type="checkbox" /> Hidden</label>
         </div>
-        <p class="text-[11px] text-slate-400 dark:text-slate-500">These settings apply to every new group. A group whose title already exists on a board is left untouched.</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400">These settings apply to every new group. A group whose title already exists on a board is left untouched.</p>
       </section>
 
       <!-- problems -->
       <section class="space-y-2">
-        <h3 class="text-sm font-semibold">2 · Problems from the bank <span class="font-normal text-slate-400 dark:text-slate-500">(optional)</span></h3>
+        <h3 class="text-sm font-semibold">2 · Problems from the bank <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
         <div class="flex gap-2">
           <input v-model="q" @keyup.enter="loadBank" placeholder="Search title or tag…"
                  class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <button @click="loadBank" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3">Search</button>
         </div>
-        <p v-if="bankError" class="text-sm text-red-600 dark:text-red-400">{{ bankError }}</p>
+        <p v-if="bankError" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ bankError }}</p>
         <div class="space-y-1 max-h-56 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-lg p-1">
           <label v-for="b in bank" :key="b.id"
                  class="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer text-sm">
             <input type="checkbox" :checked="picked.has(b.id)" @change="togglePick(b.id)" />
             <span class="truncate">{{ b.title }}</span>
             <LevelBadge :level="b.level" />
-            <span class="ml-auto text-[11px] text-slate-400 dark:text-slate-500 shrink-0">{{ b.ownerName }}</span>
+            <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400 shrink-0">{{ b.ownerName }}</span>
           </label>
-          <p v-if="!bank.length && !bankError" class="text-xs text-slate-400 dark:text-slate-500 px-2 py-2">No bank problems found.</p>
+          <p v-if="!bank.length && !bankError" class="text-xs text-slate-500 dark:text-slate-400 px-2 py-2">No bank problems found.</p>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400">{{ picked.size }} selected</p>
         <label v-if="picked.size" class="block text-xs text-slate-500 dark:text-slate-400">Put them in group (optional — created if missing)
@@ -122,7 +122,7 @@ async function run() {
         </label>
       </section>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div v-if="result" class="text-xs space-y-1 border border-slate-200 dark:border-slate-800 rounded-lg p-2 max-h-48 overflow-y-auto">
         <p class="font-medium text-emerald-600 dark:text-emerald-400">Updated {{ result.boardsUpdated }} · failed {{ result.boardsFailed }}</p>
         <p v-for="r in result.rows" :key="r.slug" :class="r.error ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'">

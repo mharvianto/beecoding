@@ -33,7 +33,7 @@ async function unlink() {
 <template>
   <section v-if="status && (auth.config.google || status.linked)" class="space-y-3">
     <h2 class="font-semibold text-sm">Connected accounts</h2>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     <p v-if="msg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ msg }}</p>
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <div class="flex items-center gap-2 flex-wrap">
@@ -47,7 +47,7 @@ async function unlink() {
       <div v-if="asking" class="flex flex-wrap gap-2">
         <input v-model="password" type="password" autocomplete="current-password" placeholder="Password to confirm" @keyup.enter="unlink"
                class="flex-1 min-w-[10rem] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="unlink" :disabled="busy || !password" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">Disconnect</button>
+        <button @click="unlink" :disabled="busy || !password" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">Disconnect</button>
         <button @click="asking = false; password = ''" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
       </div>
     </div>

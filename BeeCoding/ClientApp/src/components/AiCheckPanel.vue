@@ -96,7 +96,7 @@ const ACTION = {
           <pre class="bg-slate-100 dark:bg-slate-800 rounded p-2 overflow-auto max-h-64 mt-1">{{ check(result).referenceSolution }}</pre>
         </details>
       </template>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400">
         Advisory only: the AI saw just the statement{{ triage ? ' and the report' : '' }}. A difference means a stored output may be wrong, the statement may be ambiguous, or the AI erred.
       </p>
     </div>

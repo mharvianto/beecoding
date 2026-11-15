@@ -43,7 +43,7 @@ function pick() {
 
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-400 dark:text-slate-500">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
     <h1 class="text-xl font-bold mt-2 mb-4">Plagiarism check</h1>
     <label class="flex items-center gap-2 text-sm mb-3">
       <span class="text-slate-500 dark:text-slate-400">Problem</span>
@@ -53,7 +53,7 @@ function pick() {
         <option v-for="p in problems" :key="p.slug" :value="p.slug">{{ p.title }}</option>
       </select>
     </label>
-    <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <PlagiarismTable :result="pairs" :loading="loading" @view="viewSubmission = $event" @compare="compareData = $event" />
 

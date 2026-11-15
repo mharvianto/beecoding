@@ -5,7 +5,7 @@ const model = defineModel({ type: String, default: '' });
 </script>
 
 <template>
-  <label class="inline-flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500"
+  <label class="inline-flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"
          title="Leave blank to pipe stdin. Set a name (e.g. input.txt) and the program reads it with fopen() instead.">
     read from file
     <input v-model.trim="model" maxlength="64" placeholder="stdin"

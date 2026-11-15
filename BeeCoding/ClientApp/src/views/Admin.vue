@@ -1025,7 +1025,7 @@ onMounted(async () => {
       </div>
     </div>
 
-    <p v-if="err" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ err }}</p>
+    <p v-if="err" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ err }}</p>
 
     <!-- Dashboard: at-a-glance overview -->
     <section v-show="tab === 'dashboard'" class="space-y-5">
@@ -1033,30 +1033,30 @@ onMounted(async () => {
 
       <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <button type="button" @click="switchTab('users')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Users</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Users</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalUsers) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ dashboard.teacherCount }} teacher · {{ dashboard.studentCount }} student · {{ dashboard.adminCount }} admin
           </div>
         </button>
 
         <button type="button" @click="switchTab('boards')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Boards</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Boards</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalBoards) }}</div>
         </button>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Problems</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Problems</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalProblems + dashboard.totalBankProblems) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ fmt(dashboard.totalProblems) }} on boards · {{ fmt(dashboard.totalBankProblems) }} in bank
           </div>
         </div>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Submissions</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalSubmissions) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ dashboard.totalSubmissions ? Math.round(100 * dashboard.acceptedSubmissions / dashboard.totalSubmissions) : 0 }}% accepted
           </div>
         </div>
@@ -1065,7 +1065,7 @@ onMounted(async () => {
                 :class="dashboard.pendingAiReview
                   ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 hover:border-amber-400'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'">
-          <div class="text-xs text-slate-400 dark:text-slate-500">Pending problem review</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">Pending problem review</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.pendingAiReview) }}</div>
         </button>
 
@@ -1073,19 +1073,19 @@ onMounted(async () => {
                 :class="dashboard.trashCount
                   ? 'border-rose-300 dark:border-rose-500/40 bg-rose-50/50 dark:bg-rose-500/5 hover:border-rose-400'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'">
-          <div class="text-xs text-slate-400 dark:text-slate-500">In trash</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">In trash</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.trashCount) }}</div>
         </button>
 
         <button type="button" @click="switchTab('ai')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-400 dark:text-slate-500">AI calls today / this month</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">AI calls today / this month</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.aiToday.calls) }} / {{ fmt(dashboard.aiMonth.calls) }}</div>
-          <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ fmt(dashboard.aiToday.totalTokens) }} / {{ fmt(dashboard.aiMonth.totalTokens) }} tokens
           </div>
         </button>
       </div>
-      <p v-else-if="!dashboard" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+      <p v-else-if="!dashboard" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
@@ -1102,7 +1102,7 @@ onMounted(async () => {
           <MiniLineChart :title="`Active users / ${engagementGranularity}`" :points="activeUserPoints()" />
           <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
         </div>
-        <p v-else-if="engagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No activity in this window yet.</p>
+        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
       </div>
 
       <div>
@@ -1120,7 +1120,7 @@ onMounted(async () => {
           <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
           <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
         </div>
-        <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage yet.</p>
+        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage yet.</p>
       </div>
 
       <div v-if="topicStats">
@@ -1143,7 +1143,7 @@ onMounted(async () => {
             <div class="text-xs">{{ r.actorEmail }}</div>
             <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
           </div>
-          <p v-if="!dashboard.recentActivity.length" class="text-slate-400 dark:text-slate-500 text-sm">No activity yet.</p>
+          <p v-if="!dashboard.recentActivity.length" class="text-slate-500 dark:text-slate-400 text-sm">No activity yet.</p>
         </div>
 
         <!-- desktop: table -->
@@ -1156,7 +1156,7 @@ onMounted(async () => {
                 <td><span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span></td>
                 <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
               </tr>
-              <tr v-if="!dashboard.recentActivity.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No activity yet.</td></tr>
+              <tr v-if="!dashboard.recentActivity.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No activity yet.</td></tr>
             </tbody>
           </table>
         </div>
@@ -1186,7 +1186,7 @@ onMounted(async () => {
                    class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
         </div>
-        <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
           Requests per user per calendar day (UTC), across hints + problem generation combined.
           Takes effect on the next AI request platform-wide — no restart needed.
         </p>
@@ -1199,14 +1199,14 @@ onMounted(async () => {
       <!-- Which AI provider/credential is billed -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiProvider">
         <h2 class="font-semibold text-sm mb-1">AI provider (platform default)</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Overrides appsettings.json's <code>Ai:*</code> at runtime. An organization can set
           its own key/model in <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
           → AI settings, which takes priority over this for that organization only.
         </p>
         <div class="space-y-2 text-sm max-w-md">
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-slate-400 dark:text-slate-500">
+            <span class="text-xs text-slate-500 dark:text-slate-400">
               API key {{ aiProvider.hasApiKey ? `(saved: ${aiProvider.apiKeyPreview})` : '(none saved — using appsettings.json, if any)' }}
             </span>
             <div class="flex gap-2">
@@ -1238,7 +1238,7 @@ onMounted(async () => {
             <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
           </select>
         </div>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Per student and problem that asked for a hint (hints are logged from the release that added this, with no text).
           Pairs already solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is
           not a fair comparison — trust the speed numbers more.
@@ -1257,19 +1257,19 @@ onMounted(async () => {
       <!-- Tuning + backup providers -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiExtras">
         <h2 class="font-semibold text-sm mb-1">AI tuning and backup providers</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Blank fields use appsettings.json's <code>Ai:*</code>. Backups are tried in order when the provider above fails
           (timeout, 429, 5xx, 401/403, empty reply — not for a 400/422). A hint only moves to a backup before its first word is shown.
           An organization with its own key never falls back to these.
         </p>
         <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-slate-400 dark:text-slate-500">Max tokens per hint (100–16000)</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
             <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings"
                    class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </label>
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-slate-400 dark:text-slate-500">Reasoning effort</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort</span>
             <select v-model="aiExtrasForm.reasoningEffort"
                     class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
               <option value="">appsettings / don't send</option>
@@ -1278,7 +1278,7 @@ onMounted(async () => {
           </label>
         </div>
         <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
-          <span class="text-xs text-slate-400 dark:text-slate-500">Review model (AI check + report triage; blank = the generate-problem model)</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Review model (AI check + report triage; blank = the generate-problem model)</span>
           <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b"
                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </label>
@@ -1324,14 +1324,14 @@ onMounted(async () => {
               <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
             </div>
           </div>
-          <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-400 dark:text-slate-500 text-sm">No overrides set.</p>
+          <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-500 dark:text-slate-400 text-sm">No overrides set.</p>
         </div>
 
         <!-- desktop: table -->
         <div v-if="tableView === 'table'" class="overflow-x-auto mb-3">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <th class="font-normal py-1.5 pr-3">User</th><th class="font-normal pr-3">Daily quota</th>
                 <th class="font-normal pr-3">Banned</th><th class="font-normal pr-3"></th>
               </tr>
@@ -1349,16 +1349,16 @@ onMounted(async () => {
                   <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
                 </td>
               </tr>
-              <tr v-if="aiOverrides && !aiOverrides.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No overrides set.</td></tr>
+              <tr v-if="aiOverrides && !aiOverrides.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No overrides set.</td></tr>
             </tbody>
           </table>
         </div>
         <div class="flex flex-wrap items-end gap-2 text-sm">
-          <label class="flex flex-col text-xs text-slate-400 dark:text-slate-500">User ID
+          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">User ID
             <input v-model.number="newOverride.userId" type="number" placeholder="see Users tab"
                    class="w-28 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
-          <label class="flex flex-col text-xs text-slate-400 dark:text-slate-500">Daily quota
+          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">Daily quota
             <input v-model.number="newOverride.quota" type="number" min="0" placeholder="role default"
                    class="w-28 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
@@ -1398,14 +1398,14 @@ onMounted(async () => {
               <div><div class="text-[10px] text-slate-400">All time</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
             </div>
           </div>
-          <p v-if="aiRows && !aiRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage yet.</p>
+          <p v-if="aiRows && !aiRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage yet.</p>
         </div>
 
         <!-- desktop: table -->
         <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <SortTh class="py-1.5" field="user" label="User" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
                 <SortTh field="today" label="Today (calls / tokens)" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
                 <SortTh field="month" label="This month" :sort="aiSort" :dir="aiDir" @sort="sortAi" />
@@ -1419,12 +1419,12 @@ onMounted(async () => {
                 <td class="tabular-nums">{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</td>
                 <td class="tabular-nums font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</td>
               </tr>
-              <tr v-if="aiRows && !aiRows.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No AI usage yet.</td></tr>
+              <tr v-if="aiRows && !aiRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No AI usage yet.</td></tr>
             </tbody>
           </table>
         </div>
         <div v-if="aiTotal" class="flex items-center gap-3 mt-3 text-sm">
-          <span class="text-slate-400 dark:text-slate-500">
+          <span class="text-slate-500 dark:text-slate-400">
             {{ (aiPage - 1) * aiPageSize + 1 }}–{{ Math.min(aiPage * aiPageSize, aiTotal) }} of {{ aiTotal }}
           </span>
           <div class="ml-auto flex gap-2">
@@ -1443,13 +1443,13 @@ onMounted(async () => {
       <div v-if="mfaPolicy" class="mb-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
         <div class="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
           <h2 class="font-semibold text-sm whitespace-nowrap">🔒 Require two-step verification</h2>
-          <span class="text-xs text-slate-400 dark:text-slate-500">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5 pt-1">
           <label v-for="g in MFA_GROUPS" :key="g.key" class="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" :checked="mfaPolicy[g.key]" :disabled="mfaPolicyBusy" @click.prevent="toggleMfaPolicy(g)" class="accent-amber-500 w-4 h-4" />
             <span>{{ g.label }}</span>
-            <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'"
+            <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'"
                   :title="mfaPolicy[g.without] + ' without two-step verification'">· {{ mfaPolicy[g.without] }} without</span>
           </label>
         </div>
@@ -1498,7 +1498,7 @@ onMounted(async () => {
           <button type="button" @click="usersDir = usersDir === 'asc' ? 'desc' : 'asc'; usersPage = 1; loadUsers()" class="row-action-btn"
                   :title="usersDir === 'asc' ? 'Ascending' : 'Descending'">{{ usersDir === 'asc' ? '▲' : '▼' }}</button>
         </div>
-        <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 px-1">
+        <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-1">
           <input type="checkbox" :checked="selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
                  @change="selectAllUsers($event.target.checked)" /> Select all
         </label>
@@ -1529,14 +1529,14 @@ onMounted(async () => {
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
         </div>
-        <p v-if="users && !users.length" class="text-slate-400 dark:text-slate-500 text-sm">No users.</p>
+        <p v-if="users && !users.length" class="text-slate-500 dark:text-slate-400 text-sm">No users.</p>
       </div>
 
       <!-- desktop: table -->
       <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">
                 <input type="checkbox" :checked="!!users?.length && selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
                        @change="selectAllUsers($event.target.checked)" />
@@ -1577,12 +1577,12 @@ onMounted(async () => {
                                   @reset-mfa="resetMfa(u)" @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
               </td>
             </tr>
-            <tr v-if="users && !users.length"><td colspan="9" class="text-slate-400 dark:text-slate-500 py-3">No users.</td></tr>
+            <tr v-if="users && !users.length"><td colspan="9" class="text-slate-500 dark:text-slate-400 py-3">No users.</td></tr>
           </tbody>
         </table>
       </div>
       <div v-if="usersTotal" class="flex items-center gap-3 mt-3 text-sm">
-        <span class="text-slate-400 dark:text-slate-500">
+        <span class="text-slate-500 dark:text-slate-400">
           {{ (usersPage - 1) * usersPageSize + 1 }}–{{ Math.min(usersPage * usersPageSize, usersTotal) }} of {{ usersTotal }}
         </span>
         <div class="ml-auto flex gap-2">
@@ -1595,7 +1595,7 @@ onMounted(async () => {
 
       <div class="mt-5 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">Bulk import (CSV)</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
           Header row required — at least <code>email</code> and <code>name</code> (or
           <code>displayname</code>); optional <code>role</code> and <code>password</code>
           columns. An email that already exists is left alone (just optionally added to the
@@ -1620,7 +1620,7 @@ onMounted(async () => {
           <div class="overflow-x-auto mt-2">
             <table class="w-full text-xs">
               <thead>
-                <tr class="text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                <tr class="text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                   <th class="font-normal py-1 pr-3">Email</th><th class="font-normal pr-3">Name</th>
                   <th class="font-normal pr-3">Password</th><th class="font-normal pr-3">Note</th>
                 </tr>
@@ -1655,7 +1655,7 @@ onMounted(async () => {
       </div>
       <div v-if="selectedBoards.size" class="flex items-center gap-2 mb-2 text-sm">
         <span>{{ selectedBoards.size }} selected</span>
-        <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-3 py-1 text-xs font-medium">
+        <button @click="bulkAdding = true" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1 text-xs font-medium">
           ➕ Add groups / problems
         </button>
         <button @click="archiveSelectedBoards" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1 text-xs font-medium">
@@ -1682,14 +1682,14 @@ onMounted(async () => {
             {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
           </div>
         </div>
-        <p v-if="boards && !boards.length" class="text-slate-400 dark:text-slate-500 text-sm">No boards.</p>
+        <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">No boards.</p>
       </div>
 
       <!-- desktop: table -->
       <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">
                 <input type="checkbox" :checked="!!boards?.length && selectedBoards.size === boards.length"
                        @change="selectAllBoards($event.target.checked)" />
@@ -1710,7 +1710,7 @@ onMounted(async () => {
               <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
               <td><button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger">Delete</button></td>
             </tr>
-            <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-400 dark:text-slate-500 py-3">No boards.</td></tr>
+            <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">No boards.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1720,7 +1720,7 @@ onMounted(async () => {
     <section v-show="tab === 'problems'" class="space-y-4">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">Export</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
           Downloads every bank problem (all owners) with its test cases as a JSON file.
         </p>
         <button @click="exportProblems"
@@ -1731,7 +1731,7 @@ onMounted(async () => {
 
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">Import</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
           Upserts by (owner email, title). Owner resolved by email, falling back to the first teacher.
         </p>
         <label class="flex items-center gap-2 text-xs mb-2">
@@ -1793,14 +1793,14 @@ onMounted(async () => {
             {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
           </div>
         </button>
-        <p v-if="submissionRows && !submissionRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No submissions.</p>
+        <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions.</p>
       </div>
 
       <!-- desktop: table -->
       <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
               <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board / Source</th>
               <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
@@ -1823,12 +1823,12 @@ onMounted(async () => {
               <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
               <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
             </tr>
-            <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-400 dark:text-slate-500 py-3">No submissions.</td></tr>
+            <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">No submissions.</td></tr>
           </tbody>
         </table>
       </div>
       <div v-if="submissionsTotal" class="flex items-center gap-3 mt-3 text-sm">
-        <span class="text-slate-400 dark:text-slate-500">
+        <span class="text-slate-500 dark:text-slate-400">
           {{ (submissionsPage - 1) * submissionsPageSize + 1 }}–{{ Math.min(submissionsPage * submissionsPageSize, submissionsTotal) }} of {{ submissionsTotal }}
         </span>
         <div class="ml-auto flex gap-2">
@@ -1870,7 +1870,7 @@ onMounted(async () => {
     <section v-show="tab === 'review'">
       <div class="flex items-center gap-2 mb-3">
         <button @click="loadAiReview" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
-        <span class="text-xs text-slate-400 dark:text-slate-500">{{ aiReview?.length ?? 0 }} waiting</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ aiReview?.length ?? 0 }} waiting</span>
       </div>
       <article v-for="row in aiReview" :key="row.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3">
         <header class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1881,7 +1881,7 @@ onMounted(async () => {
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
               by <span class="font-medium text-slate-700 dark:text-slate-200">{{ row.ownerName }}</span>
-              <span class="text-slate-400 dark:text-slate-500"> ({{ row.ownerEmail }})</span>
+              <span class="text-slate-500 dark:text-slate-400"> ({{ row.ownerEmail }})</span>
               · created {{ when(row.createdAt) }}
             </p>
           </div>
@@ -1906,7 +1906,7 @@ onMounted(async () => {
           </span>
           <span v-for="tag in (row.tags || '').split(',').filter(Boolean)" :key="tag"
                 class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">#{{ tag.trim() }}</span>
-          <span v-if="!row.tags" class="text-slate-400 dark:text-slate-500">no tags</span>
+          <span v-if="!row.tags" class="text-slate-500 dark:text-slate-400">no tags</span>
           <span class="text-slate-300 dark:text-slate-600">|</span>
           <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ row.tests.length }} tests</span>
           <span class="rounded px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">👁 {{ row.tests.filter((t) => t.isSample).length }} visible</span>
@@ -1947,14 +1947,14 @@ onMounted(async () => {
           </div>
         </div>
       </article>
-      <p v-if="aiReview && !aiReview.length" class="text-slate-400 dark:text-slate-500 text-sm">Nothing waiting for review.</p>
+      <p v-if="aiReview && !aiReview.length" class="text-slate-500 dark:text-slate-400 text-sm">Nothing waiting for review.</p>
     </section>
 
     <!-- Reports: analytics export + system status -->
     <section v-show="tab === 'reports'" class="space-y-4">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">Analytics export</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           CSV, ready to open in a spreadsheet — also useful as evidence for an impact/grant report.
         </p>
         <div class="flex flex-wrap gap-2">
@@ -1976,7 +1976,7 @@ onMounted(async () => {
                   class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
             📊 Export all as Excel (.xlsx)
           </button>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             One workbook, three sheets — Topics, Users, Weekly engagement.
           </p>
         </div>
@@ -1989,84 +1989,84 @@ onMounted(async () => {
         </div>
         <div v-if="systemStatus" class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Judge sandbox</span>
+            <span class="text-slate-500 dark:text-slate-400">Judge sandbox</span>
             <span :class="systemStatus.bwrapUsable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
               {{ systemStatus.sandboxMode }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Sandbox required (fail closed)</span>
+            <span class="text-slate-500 dark:text-slate-400">Sandbox required (fail closed)</span>
             <span>{{ systemStatus.sandboxRequired ? 'yes' : 'no' }}</span>
           </div>
           <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500 shrink-0">gcc (C)</span>
+            <span class="text-slate-500 dark:text-slate-400 shrink-0">gcc (C)</span>
             <span class="text-right font-mono text-xs">{{ systemStatus.gccVersion }}</span>
           </div>
           <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500 shrink-0">g++ (C++)</span>
+            <span class="text-slate-500 dark:text-slate-400 shrink-0">g++ (C++)</span>
             <span class="text-right font-mono text-xs">{{ systemStatus.gppVersion }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Judge queue backend</span>
+            <span class="text-slate-500 dark:text-slate-400">Judge queue backend</span>
             <span>{{ systemStatus.judgeQueueBackend }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Pending judge jobs</span>
+            <span class="text-slate-500 dark:text-slate-400">Pending judge jobs</span>
             <span>{{ systemStatus.pendingJudgeJobs ?? 'n/a' }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Judge max concurrent</span>
+            <span class="text-slate-500 dark:text-slate-400">Judge max concurrent</span>
             <span>{{ systemStatus.judgeMaxConcurrent }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Judge compile timeout</span>
+            <span class="text-slate-500 dark:text-slate-400">Judge compile timeout</span>
             <span>{{ systemStatus.judgeCompileTimeoutMs }}ms</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Judge queue capacity</span>
+            <span class="text-slate-500 dark:text-slate-400">Judge queue capacity</span>
             <span>{{ systemStatus.judgeQueueCapacity }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Realtime backend</span>
+            <span class="text-slate-500 dark:text-slate-400">Realtime backend</span>
             <span>{{ systemStatus.realtimeBackend }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Redis</span>
+            <span class="text-slate-500 dark:text-slate-400">Redis</span>
             <span v-if="!systemStatus.redisConfigured" class="text-slate-400">not used</span>
             <span v-else :class="systemStatus.redisConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
               {{ systemStatus.redisConnected ? 'connected' : 'disconnected' }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Database</span>
+            <span class="text-slate-500 dark:text-slate-400">Database</span>
             <span :class="systemStatus.databaseOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
               {{ systemStatus.databaseOk ? 'reachable' : 'unreachable' }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">LSP max concurrent sessions</span>
+            <span class="text-slate-500 dark:text-slate-400">LSP max concurrent sessions</span>
             <span>{{ systemStatus.lspMaxConcurrent }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">LSP idle timeout</span>
+            <span class="text-slate-500 dark:text-slate-400">LSP idle timeout</span>
             <span>{{ systemStatus.lspIdleTimeoutSeconds }}s</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">LSP memory limit</span>
+            <span class="text-slate-500 dark:text-slate-400">LSP memory limit</span>
             <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : 'unset' }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">Host (this instance)</span>
+            <span class="text-slate-500 dark:text-slate-400">Host (this instance)</span>
             <span class="font-mono text-xs">{{ systemStatus.hostname }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-400 dark:text-slate-500">sysstat (sar)</span>
+            <span class="text-slate-500 dark:text-slate-400">sysstat (sar)</span>
             <span :class="systemStatus.sysstatInstalled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
               {{ systemStatus.sysstatInstalled ? 'installed' : 'not installed' }}
             </span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-slate-400 dark:text-slate-500">Checked</span>
+            <span class="text-slate-500 dark:text-slate-400">Checked</span>
             <span class="text-[11px] text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
           </div>
         </div>
@@ -2088,15 +2088,15 @@ onMounted(async () => {
               </button>
             </span>
           </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
             Host-local only — a load-balanced or split (web/judge) deployment has more than one
             machine, and this only ever shows whichever one answered this request. For a
             fleet-wide view, use a dedicated stack (e.g. Prometheus + node_exporter + Grafana).
           </p>
-          <p v-if="sysstatErr" class="text-sm text-red-600 dark:text-red-400">{{ sysstatErr }}</p>
+          <p v-if="sysstatErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ sysstatErr }}</p>
           <MiniLineChart v-else-if="sysstatResult?.points?.length"
                          :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
-          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No data for this day.</p>
+          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">No data for this day.</p>
           <div class="flex items-center gap-2 mt-4 mb-2 flex-wrap">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
               {{ sysstatMetric === 'cpu' ? 'CPU' : 'Memory' }} used % — average vs peak
@@ -2111,48 +2111,48 @@ onMounted(async () => {
           </div>
           <MiniLineChart v-if="sysstatDaily?.days?.length" title="Average vs peak %" name="Avg" :points="dailyPoints('avg')"
                          :second="{ name: 'Peak', color: '#ef4444', points: dailyPoints('max') }" />
-          <p v-else class="text-slate-400 dark:text-slate-500 text-sm">No saved data yet.</p>
+          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">No saved data yet.</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Live settings <span class="font-normal text-slate-400 dark:text-slate-500">— live, no restart needed</span>
+            Live settings <span class="font-normal text-slate-500 dark:text-slate-400">— live, no restart needed</span>
           </h3>
           <div class="grid gap-4 md:grid-cols-2">
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">IntelliSense (clangd)</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">IntelliSense (clangd)</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">C/C++ IntelliSense enabled</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Autocomplete, hover and diagnostics in the editor. Off = word-based completion only.</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Autocomplete, hover and diagnostics in the editor. Off = word-based completion only.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspEnabled" class="w-4 h-4" /></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-400 dark:text-slate-500">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-500 dark:text-slate-400">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspShared" class="w-4 h-4" /></span>
               </label>
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Judge &amp; problems</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Judge &amp; problems</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">Submit / run cooldown</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Minimum gap between one user's runs or submissions.</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Minimum gap between one user's runs or submissions.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
-                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">ms</span></span>
+                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">ms</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">Max problems per student</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">In a student's own bank. 0 stops students creating problems.</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">In a student's own bank. 0 stops students creating problems.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
                        class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
@@ -2160,20 +2160,20 @@ onMounted(async () => {
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Statement images</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Statement images</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">Max image upload</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">Larger files are refused; accepted ones are compressed (≤1200 px wide).</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Larger files are refused; accepted ones are compressed (≤1200 px wide).</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">KB</span></span>
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">KB</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">Max images per user</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">0 turns picture uploads off.</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 turns picture uploads off.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
                        class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
@@ -2181,15 +2181,15 @@ onMounted(async () => {
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Notifications</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Notifications</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">Delete read notifications after</span>
-                  <span class="block text-[11px] leading-snug text-slate-400 dark:text-slate-500">0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-400 dark:text-slate-500">days</span></span>
+                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">days</span></span>
               </label>
               </div>
             </section>
@@ -2201,7 +2201,7 @@ onMounted(async () => {
             </button>
             <span v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400">{{ runtimeConfigMsg }}</span>
           </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
             Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
           </p>
         </div>
@@ -2213,7 +2213,7 @@ onMounted(async () => {
         <div v-if="latency" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 flex-wrap mb-2">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
-              Judging time <span class="font-normal text-slate-400 dark:text-slate-500">— submit → verdict, queue wait included</span>
+              Judging time <span class="font-normal text-slate-500 dark:text-slate-400">— submit → verdict, queue wait included</span>
             </h3>
             <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs ml-auto">
               <button v-for="h in [24, 48, 168]" :key="h" @click="setLatencyHours(h)" class="px-2.5 py-1"
@@ -2233,10 +2233,10 @@ onMounted(async () => {
             (oldest {{ Math.round(latency.oldestUnfinishedSeconds / 60) }} min). Judging normally takes under a second, so these jobs were
             most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.
           </p>
-          <p v-if="!latency.buckets.length" class="text-xs text-slate-400 dark:text-slate-500">No judged submissions in this window.</p>
+          <p v-if="!latency.buckets.length" class="text-xs text-slate-500 dark:text-slate-400">No judged submissions in this window.</p>
           <div v-else class="overflow-x-auto">
             <table class="w-full text-xs">
-              <thead class="text-left text-slate-400 dark:text-slate-500">
+              <thead class="text-left text-slate-500 dark:text-slate-400">
                 <tr><th class="py-1 pr-3 font-normal">Hour</th><th class="pr-3 font-normal text-right">Submissions</th>
                     <th class="pr-3 font-normal text-right">Avg</th><th class="pr-3 font-normal text-right">p95</th><th class="font-normal text-right">Max</th></tr>
               </thead>
@@ -2251,7 +2251,7 @@ onMounted(async () => {
               </tbody>
             </table>
           </div>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-2">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
             A high p95 in a busy hour means submissions queued behind each other: raise <code>Judge:MaxConcurrent</code> (default is half the CPUs) or add CPU.
             Amber ≥ 10s, red ≥ 30s.
           </p>
@@ -2276,7 +2276,7 @@ onMounted(async () => {
 
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-1.5">
-          <label v-if="trash[kind].rows?.length" class="flex items-center gap-2 text-[11px] text-slate-400 dark:text-slate-500 px-1">
+          <label v-if="trash[kind].rows?.length" class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 px-1">
             <input type="checkbox" :checked="trash[kind].selected.size === trash[kind].rows.length"
                    @change="selectAllTrash(kind, $event.target.checked)" /> Select all
           </label>
@@ -2293,14 +2293,14 @@ onMounted(async () => {
               <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
             </div>
           </div>
-          <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-400 dark:text-slate-500 text-xs px-1">Empty.</p>
+          <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-500 dark:text-slate-400 text-xs px-1">Empty.</p>
         </div>
 
         <!-- desktop: table -->
         <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <th class="font-normal py-1 pr-3 w-6">
                   <input type="checkbox" :checked="!!trash[kind].rows?.length && trash[kind].selected.size === trash[kind].rows.length"
                          @change="selectAllTrash(kind, $event.target.checked)" />
@@ -2319,12 +2319,12 @@ onMounted(async () => {
                   <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
                 </td>
               </tr>
-              <tr v-if="trash[kind].rows && !trash[kind].rows.length"><td colspan="5" class="text-slate-400 dark:text-slate-500 py-1.5 text-xs">Empty.</td></tr>
+              <tr v-if="trash[kind].rows && !trash[kind].rows.length"><td colspan="5" class="text-slate-500 dark:text-slate-400 py-1.5 text-xs">Empty.</td></tr>
             </tbody>
           </table>
         </div>
         <div v-if="trash[kind].total > trash[kind].pageSize" class="flex items-center gap-3 mt-1.5 text-xs">
-          <span class="text-slate-400 dark:text-slate-500">
+          <span class="text-slate-500 dark:text-slate-400">
             {{ (trash[kind].page - 1) * trash[kind].pageSize + 1 }}–{{ Math.min(trash[kind].page * trash[kind].pageSize, trash[kind].total) }} of {{ trash[kind].total }}
           </span>
           <div class="ml-auto flex gap-2">
@@ -2335,7 +2335,7 @@ onMounted(async () => {
           </div>
         </div>
       </div>
-      <p v-if="TRASH_KINDS.every(([kind]) => trash[kind].rows === null)" class="text-slate-400 dark:text-slate-500 text-sm">Loading…</p>
+      <p v-if="TRASH_KINDS.every(([kind]) => trash[kind].rows === null)" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
     </section>
 
     <!-- Audit log -->
@@ -2357,14 +2357,14 @@ onMounted(async () => {
           <div class="text-xs">{{ r.actorEmail }}</div>
           <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
         </div>
-        <p v-if="auditRows && !auditRows.length" class="text-slate-400 dark:text-slate-500 text-sm">No activity yet.</p>
+        <p v-if="auditRows && !auditRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No activity yet.</p>
       </div>
 
       <!-- desktop: table -->
       <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Actor</th>
               <th class="font-normal pr-3">Action</th><th class="font-normal pr-3">Target</th>
             </tr>
@@ -2378,12 +2378,12 @@ onMounted(async () => {
               </td>
               <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
             </tr>
-            <tr v-if="auditRows && !auditRows.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No activity yet.</td></tr>
+            <tr v-if="auditRows && !auditRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No activity yet.</td></tr>
           </tbody>
         </table>
       </div>
       <div v-if="auditTotal" class="flex items-center gap-3 mt-3 text-sm">
-        <span class="text-slate-400 dark:text-slate-500">
+        <span class="text-slate-500 dark:text-slate-400">
           {{ (auditPage - 1) * auditPageSize + 1 }}–{{ Math.min(auditPage * auditPageSize, auditTotal) }} of {{ auditTotal }}
         </span>
         <div class="ml-auto flex gap-2">
@@ -2397,7 +2397,7 @@ onMounted(async () => {
 
     <!-- Organizations: multi-tenant (separate universities/institutions) -->
     <section v-show="tab === 'organizations'" class="space-y-5">
-      <p class="text-xs text-slate-400 dark:text-slate-500">
+      <p class="text-xs text-slate-500 dark:text-slate-400">
         Each organization gets its own boards, members, and AI quota — manage members/boards
         for one via <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
         (this page only creates, renames and removes the organization itself).
@@ -2439,14 +2439,14 @@ onMounted(async () => {
             <div class="text-[11px] text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : 'always invites' }}</div>
           </template>
         </div>
-        <p v-if="organizations && !organizations.length" class="text-slate-400 dark:text-slate-500 text-sm">No organizations yet.</p>
+        <p v-if="organizations && !organizations.length" class="text-slate-500 dark:text-slate-400 text-sm">No organizations yet.</p>
       </div>
 
       <!-- desktop: table -->
       <div v-if="tableView === 'table'" class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
-            <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+            <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Slug</th>
               <th class="font-normal pr-3">Auto-accept domains</th><th class="font-normal pr-3">Created</th><th class="font-normal pr-3"></th>
             </tr>
@@ -2477,7 +2477,7 @@ onMounted(async () => {
                 </td>
               </template>
             </tr>
-            <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-400 dark:text-slate-500 py-3">No organizations yet.</td></tr>
+            <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No organizations yet.</td></tr>
           </tbody>
         </table>
       </div>
@@ -2487,7 +2487,7 @@ onMounted(async () => {
     <section v-show="tab === 'lti'" class="space-y-5">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">Tool configuration</h2>
-        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+        <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Give these to whoever registers BeeCoding as an external tool in the LMS. The
           LMS gives back an issuer, a client ID, and its own login/token/JWKS URLs —
           register the platform below with those.
@@ -2499,9 +2499,9 @@ onMounted(async () => {
             ['Public JWKS URL', ltiToolConfig.jwksUrl],
             ['Deep Linking URL', ltiToolConfig.deepLinkingUrl],
           ]" :key="label" class="flex items-center gap-2">
-            <span class="w-40 shrink-0 text-slate-400 dark:text-slate-500">{{ label }}</span>
+            <span class="w-40 shrink-0 text-slate-500 dark:text-slate-400">{{ label }}</span>
             <code class="flex-1 min-w-0 truncate bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">{{ value }}</code>
-            <button @click="copyLtiValue(value)" class="shrink-0 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Copy">⧉</button>
+            <button @click="copyLtiValue(value)" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Copy">⧉</button>
           </div>
           <p v-if="ltiCopyMsg" class="text-emerald-600 dark:text-emerald-400">{{ ltiCopyMsg }}</p>
         </div>
@@ -2526,7 +2526,7 @@ onMounted(async () => {
             <option :value="null">No organization (unaffiliated)</option>
             <option v-for="o in organizations" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500 -mt-1">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 -mt-1">
             Launches through this platform auto-join the organization and auto-assign new boards to it.
           </p>
           <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
@@ -2554,14 +2554,14 @@ onMounted(async () => {
               <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
             </div>
           </div>
-          <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-400 dark:text-slate-500 text-sm">No platforms registered yet.</p>
+          <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-500 dark:text-slate-400 text-sm">No platforms registered yet.</p>
         </div>
 
         <!-- desktop: table -->
         <div v-if="tableView === 'table'" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
-              <tr class="text-xs text-left text-slate-400 dark:text-slate-500 border-b border-slate-200 dark:border-slate-800">
+              <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Issuer</th>
                 <th class="font-normal pr-3">Client ID</th><th class="font-normal pr-3">Organization</th>
                 <th class="font-normal pr-3">Status</th><th class="font-normal pr-3"></th>
@@ -2584,7 +2584,7 @@ onMounted(async () => {
                   <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
                 </td>
               </tr>
-              <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="6" class="text-slate-400 dark:text-slate-500 py-3">No platforms registered yet.</td></tr>
+              <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="6" class="text-slate-500 dark:text-slate-400 py-3">No platforms registered yet.</td></tr>
             </tbody>
           </table>
         </div>

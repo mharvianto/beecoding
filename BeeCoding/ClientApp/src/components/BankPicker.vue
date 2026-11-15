@@ -53,7 +53,7 @@ async function add(item) {
         <button @click="load" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3">Search</button>
       </div>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
 
       <div class="space-y-2 max-h-[55vh] overflow-y-auto">
         <div v-for="b in items" :key="b.id"
@@ -64,7 +64,7 @@ async function add(item) {
               <LevelBadge :level="b.level" />
               <span v-if="b.generatedByAi" class="text-[10px] px-1 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
             </div>
-            <div class="text-[11px] text-slate-400 dark:text-slate-500">
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">
               {{ langLabel(b.allowedLanguages) }} · {{ b.testCount }} tests ({{ b.sampleCount }} sample)
               <span v-if="!b.mine"> · by {{ b.ownerName }}</span>
               <span v-if="b.tags"> · {{ b.tags }}</span>
@@ -75,7 +75,7 @@ async function add(item) {
             {{ busyId === b.id ? "…" : "Add" }}
           </button>
         </div>
-        <p v-if="!items.length" class="text-sm text-slate-400 dark:text-slate-500">Problem bank is empty.</p>
+        <p v-if="!items.length" class="text-sm text-slate-500 dark:text-slate-400">Problem bank is empty.</p>
       </div>
     </div>
   </div>

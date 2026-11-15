@@ -85,18 +85,18 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
                    class="flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm"
                    :class="category === key ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-200 dark:border-slate-700'">
               <input type="radio" :value="key" v-model="category" class="mt-1" />
-              <span><span class="block">{{ label }}</span><span v-if="hint" class="block text-[11px] text-slate-400 dark:text-slate-500">{{ hint }}</span></span>
+              <span><span class="block">{{ label }}</span><span v-if="hint" class="block text-[11px] text-slate-500 dark:text-slate-400">{{ hint }}</span></span>
             </label>
           </div>
           <div>
             <textarea v-model="message" rows="4" maxlength="1000" placeholder="Describe it: which input or line is wrong, and what you expected (at least 10 characters)."
                       class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
-            <div class="text-[11px] text-slate-400 dark:text-slate-500 text-right">{{ message.length }}/1000</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 text-right">{{ message.length }}/1000</div>
           </div>
-          <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+          <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
           <div class="flex gap-2 justify-end">
             <button @click="modal = false" class="text-sm text-slate-500 dark:text-slate-400 px-3 py-2">Cancel</button>
-            <button @click="submit" :disabled="busy || !ready" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+            <button @click="submit" :disabled="busy || !ready" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
               {{ busy ? '…' : 'Send report' }}
             </button>
           </div>
@@ -104,7 +104,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
         <template v-else>
           <h2 class="font-semibold">Thanks for the report</h2>
           <p class="text-sm text-slate-600 dark:text-slate-300">The author has been asked to review it.</p>
-          <div class="flex justify-end"><button @click="modal = false" class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 text-sm font-medium">Close</button></div>
+          <div class="flex justify-end"><button @click="modal = false" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium">Close</button></div>
         </template>
       </div>
     </div>

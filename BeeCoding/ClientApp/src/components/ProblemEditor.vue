@@ -238,7 +238,7 @@ function pickFormula(e) {
         <input v-model="form.title" placeholder="Title" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <div>
           <div class="flex items-center gap-2 text-xs mb-1">
-            <span class="text-slate-400 dark:text-slate-500">Statement (Markdown)</span>
+            <span class="text-slate-500 dark:text-slate-400">Statement (Markdown)</span>
             <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                    :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor">
               {{ imgBusy ? 'Uploading…' : '🖼 Add image' }}
@@ -246,12 +246,12 @@ function pickFormula(e) {
             </label>
             <button type="button" @click="toggleWrite"
                     class="ml-auto px-2 py-0.5 rounded border"
-                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'">✎ Write</button>
+                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'">✎ Write</button>
             <button type="button" @click="togglePreview"
                     class="px-2 py-0.5 rounded border"
-                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-400 dark:text-slate-500'">👁 Preview</button>
+                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'">👁 Preview</button>
           </div>
-          <p v-if="imgError" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
+          <p v-if="imgError" role="alert" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
           <div v-show="showWrite" class="flex flex-wrap items-center gap-1 mb-1 text-xs" role="toolbar" aria-label="Formatting">
             <!-- mousedown.prevent: the box keeps its focus and selection while a button is pressed -->
             <button type="button" @mousedown.prevent @click="wrap('**', '**', 'bold')" class="tb font-bold" title="Bold (Ctrl+B)">B</button>
@@ -281,7 +281,7 @@ function pickFormula(e) {
                 <div class="min-w-0 overflow-x-auto"><MarkdownBlock :text="(f.display ? '$$' : '$') + f.tex + (f.display ? '$$' : '$')" class="[&_p]:!my-0" /></div>
                 <div class="min-w-0">
                   <code class="block font-mono text-[11px] text-slate-600 dark:text-slate-300 break-all">{{ f.tex }}</code>
-                  <span class="text-[11px] text-slate-400 dark:text-slate-500">{{ f.label }} · {{ f.hint }}</span>
+                  <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ f.label }} · {{ f.hint }}</span>
                 </div>
                 <button type="button" @mousedown.prevent @click="insertFormula(f)" class="tb">Insert</button>
               </div>
@@ -296,7 +296,7 @@ function pickFormula(e) {
             <div v-show="showPreview"
                  class="flex-1 min-w-0 h-[19rem] overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/40">
               <MarkdownBlock v-if="form.statementMarkdown.trim()" :text="form.statementMarkdown" />
-              <p v-else class="text-sm text-slate-400 dark:text-slate-500">Nothing to preview yet.</p>
+              <p v-else class="text-sm text-slate-500 dark:text-slate-400">Nothing to preview yet.</p>
             </div>
           </div>
         </div>
@@ -304,7 +304,7 @@ function pickFormula(e) {
           <span class="flex items-center gap-2">Allowed languages
             <label class="flex items-center gap-1"><input type="checkbox" value="c" v-model="allowedLangsArr" /> C</label>
             <label class="flex items-center gap-1"><input type="checkbox" value="cpp" v-model="allowedLangsArr" /> C++</label>
-            <span class="text-[11px] text-slate-400 dark:text-slate-500">none checked = all languages</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">none checked = all languages</span>
           </span>
           <label class="flex items-center gap-1">Level
             <select v-model="form.level" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1">
@@ -331,7 +331,7 @@ function pickFormula(e) {
             <input v-model="form.bannedSymbols" placeholder="e.g. std::sort, qsort, stable_sort"
                    class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
             Comma-separated. <b>Headers</b>: names a submission may not <code>#include</code> (setting any also blocks
             <code>&lt;bits/stdc++.h&gt;</code>). <b>Functions</b>: identifiers it may not use — <code>sort</code> also
             catches <code>std::sort</code>; write <code>std::sort</code> to match only the qualified call. A violation
@@ -344,7 +344,7 @@ function pickFormula(e) {
             <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin"
                    class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <p class="text-[11px] text-slate-400 dark:text-slate-500">
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">
             When set, each test's input is written to this filename in the program's working directory instead of
             being piped to stdin — for problems that require <code>fopen()</code>-style file I/O. Leave blank for
             the normal stdin/stdout behavior.
@@ -379,7 +379,7 @@ function pickFormula(e) {
           </button>
           <button @click="addTest" class="text-xs text-amber-600 ml-auto">+ add test</button>
         </div>
-        <p v-if="canRegenTests" class="text-[11px] text-slate-400 dark:text-slate-500 mb-2">
+        <p v-if="canRegenTests" class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
           Regenerate keeps your statement &amp; samples but replaces the hidden tests with a
           fresh, diverse set. Add extreme tests keeps every existing test and appends a few
           new boundary cases (min/max size, min/max value) at the end.
@@ -389,7 +389,7 @@ function pickFormula(e) {
              class="border rounded-lg p-2 mb-2"
              :class="[dragOver === i && dragFrom !== null && dragFrom !== i ? 'border-amber-400 bg-amber-50/40 dark:bg-amber-500/5' : 'border-slate-200 dark:border-slate-800',
                       dragFrom === i ? 'opacity-50' : '']">
-          <div class="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500 mb-1">
+          <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1">
             <span draggable="true" @dragstart="onDragStart($event, i)" @dragend="onDragEnd"
                   class="cursor-grab active:cursor-grabbing select-none px-1 text-base leading-none" title="Drag to reorder">⠿</span>
             <span>#{{ i + 1 }}</span>
@@ -410,14 +410,14 @@ function pickFormula(e) {
             <button @click="removeTest(i)" class="text-red-500 ml-auto">remove</button>
           </div>
         </div>
-        <p v-if="!form.testCases.length" class="text-sm text-slate-400 dark:text-slate-500">No test cases yet — add one, or generate with AI.</p>
+        <p v-if="!form.testCases.length" class="text-sm text-slate-500 dark:text-slate-400">No test cases yet — add one, or generate with AI.</p>
       </div>
 
       <pre v-if="error" class="mt-4 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-52 overflow-auto border border-red-200 dark:border-red-500/30 rounded-lg p-3">{{ error }}</pre>
 
       <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
         <button @click="save" :disabled="busy"
-                class="bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50">
+                class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50">
           {{ busy ? 'Saving…' : 'Save' }}
         </button>
         <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 px-3">Cancel</button>

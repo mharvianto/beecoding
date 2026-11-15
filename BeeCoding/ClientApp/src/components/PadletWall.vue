@@ -196,7 +196,7 @@ async function toggleHiddenByStudent(post) {
 
 <template>
   <div>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
 
     <!-- problem tabs -->
     <div class="flex gap-1 flex-wrap mb-4">
@@ -231,9 +231,9 @@ async function toggleHiddenByStudent(post) {
           <div class="min-w-0">
             <div class="text-sm font-semibold truncate">
               {{ post.redacted ? 'Hidden' : post.authorName }}
-              <span v-if="post.mine" class="text-xs text-slate-400 dark:text-slate-500 font-normal">· you</span>
+              <span v-if="post.mine" class="text-xs text-slate-500 dark:text-slate-400 font-normal">· you</span>
             </div>
-            <div class="text-[11px] text-slate-400 dark:text-slate-500">
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">
               <span v-if="draftFor(post)" class="text-amber-600 dark:text-amber-400 font-medium">✎ editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
               <span v-else>{{ ago(post.updatedAt) }} ago</span>
             </div>
@@ -242,7 +242,7 @@ async function toggleHiddenByStudent(post) {
                   class="ml-auto text-[10px] px-1.5 py-0.5 rounded border shrink-0"
                   :class="post.hiddenByStudent
                     ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
-                    : 'text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
+                    : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
             {{ post.hiddenByStudent ? '🔒 hidden from peers' : 'visible to peers' }}
           </button>
           <VerdictBadge v-if="!post.redacted && post.verdict !== 'None'" :verdict="post.verdict" small
@@ -250,7 +250,7 @@ async function toggleHiddenByStudent(post) {
           <span v-else-if="draftFor(post)" class="ml-1 text-[10px] bg-amber-200 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200 rounded px-1.5 py-0.5 font-semibold">LIVE</span>
         </div>
 
-        <div v-if="post.redacted" class="px-4 py-4 text-sm text-slate-400 dark:text-slate-500">
+        <div v-if="post.redacted" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
           🔒 This student’s answer is hidden from peers.
         </div>
 
@@ -265,7 +265,7 @@ async function toggleHiddenByStudent(post) {
             </div>
             <p v-else-if="post.note" @click="post.mine && startNote(post)"
                class="text-sm text-slate-700 dark:text-slate-200" :class="{ 'cursor-text': post.mine }">{{ post.note }}</p>
-            <button v-else-if="post.mine" @click="startNote(post)" class="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300">
+            <button v-else-if="post.mine" @click="startNote(post)" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
               + add a note
             </button>
           </div>
@@ -274,13 +274,13 @@ async function toggleHiddenByStudent(post) {
           <pre v-if="previewCode(post)"
                class="mx-4 mt-2 text-[11px] leading-snug rounded-lg p-2 overflow-x-auto max-h-44"
                :class="draftFor(post) ? 'bg-slate-800 text-amber-50 ring-1 ring-amber-400' : 'bg-slate-900 text-slate-100'">{{ previewCode(post) }}</pre>
-          <div class="px-4 mt-1 text-[11px] text-slate-400 dark:text-slate-500">
+          <div class="px-4 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
             <span v-if="post.attempts">{{ post.attempts }} attempt{{ post.attempts === 1 ? '' : 's' }}</span>
             <span v-if="post.runtimeMs"> · {{ post.runtimeMs }}ms · {{ post.memoryKb }}KB</span>
             <span v-if="post.score"> · {{ Math.round(post.score * 100) }}%</span>
           </div>
 
-          <div v-if="!post.postId" class="px-4 pb-3 pt-1 text-[11px] text-slate-400 dark:text-slate-500">watching live · not submitted yet</div>
+          <div v-if="!post.postId" class="px-4 pb-3 pt-1 text-[11px] text-slate-500 dark:text-slate-400">watching live · not submitted yet</div>
 
           <!-- new feedback for the author -->
           <div v-if="post.mine && post.newActivity" class="px-4 mt-2">
@@ -319,7 +319,7 @@ async function toggleHiddenByStudent(post) {
                    :class="{ 'border-l-2 border-amber-500': c.isNew }">
                 <span class="font-semibold">{{ c.authorName }}</span>
                 <span v-if="c.isNew" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">NEW</span>
-                <span class="text-slate-400 dark:text-slate-500"> · {{ ago(c.createdAt) }} ago</span>
+                <span class="text-slate-500 dark:text-slate-400"> · {{ ago(c.createdAt) }} ago</span>
                 <button v-if="c.canDelete" @click="delComment(post, c)"
                         class="text-slate-300 dark:text-slate-600 hover:text-red-500 float-right">×</button>
                 <div class="text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{{ c.body }}</div>
@@ -337,12 +337,12 @@ async function toggleHiddenByStudent(post) {
 
         <div class="px-4 py-1.5 text-right border-t border-slate-100 dark:border-slate-800">
           <button @click="openPost(post)"
-                  class="text-[11px] text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-300">open ↗</button>
+                  class="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">open ↗</button>
         </div>
       </article>
     </div>
 
-    <p v-if="!visiblePosts.length" class="text-slate-400 dark:text-slate-500 text-sm">
+    <p v-if="!visiblePosts.length" class="text-slate-500 dark:text-slate-400 text-sm">
       No posts yet — a card appears here when a student runs their first submission.
     </p>
 

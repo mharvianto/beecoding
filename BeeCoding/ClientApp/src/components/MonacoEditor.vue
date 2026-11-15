@@ -468,7 +468,7 @@ function download() {
                 opacity-30 hover:opacity-100 focus-within:opacity-100"
          :class="{ '!opacity-90': coarse }">
       <button type="button" :class="btnCls" title="Decrease font size (Ctrl -)" @click="applyFont(fontSize - 1)">A&minus;</button>
-      <span class="text-slate-400 dark:text-slate-500 tabular-nums w-4 text-center">{{ fontSize }}</span>
+      <span class="text-slate-500 dark:text-slate-400 tabular-nums w-4 text-center">{{ fontSize }}</span>
       <button type="button" :class="btnCls" title="Increase font size (Ctrl +)" @click="applyFont(fontSize + 1)">A+</button>
       <button v-if="showLspBtn && serverLsp" type="button" :class="btnCls"
               :title="!lspEnabled ? 'C/C++ IntelliSense off — click to enable'

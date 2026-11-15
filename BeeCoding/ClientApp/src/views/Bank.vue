@@ -209,12 +209,12 @@ onBeforeUnmount(() => { pollStopped = true; });
     <p class="text-sm mb-2">
       <RouterLink to="/guide/problems" class="text-amber-600 dark:text-amber-400 hover:underline">📖 Guide to writing problems</RouterLink>
     </p>
-    <p v-if="student" class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+    <p v-if="student" class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Write your own problems here — they stay private to you. When one is ready, send it to an admin to
       publish it in <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>,
       or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published. Solving a problem you wrote yourself earns no XP and does not count toward your streak.
     </p>
-    <p v-else class="text-sm text-slate-400 dark:text-slate-500 mb-4">
+    <p v-else class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Your reusable problem library — write a problem once here, then pull it into any
       <RouterLink to="/boards" class="text-amber-600 dark:text-amber-400 hover:underline">board</RouterLink>
       you own. Mark one public and it also joins the pool everyone solves from in
@@ -241,7 +241,7 @@ onBeforeUnmount(() => { pollStopped = true; });
           <option value="id">Statement: Indonesian</option><option value="en">Statement: English</option>
         </select>
       </div>
-      <p class="text-[11px] text-slate-400 dark:text-slate-500">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400">
         The AI writes the statement + a reference solution; the judge runs that solution against the
         inputs, so the stored expected outputs are the real program output. Saved to your bank as a
         private draft — review it, then {{ student ? 'submit it for review yourself' : 'publish it yourself' }}. This runs in the background — you can leave
@@ -276,7 +276,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       <button @click="load" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
     </div>
 
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
     <p v-if="notice" class="text-sm text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -302,7 +302,7 @@ onBeforeUnmount(() => { pollStopped = true; });
           </div>
         </div>
         <div class="mt-1"><LevelBadge :level="b.level" /></div>
-        <div class="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
           {{ langLabel(b.allowedLanguages) }} · {{ b.testCount }} tests ({{ b.sampleCount }} sample)
           <span v-if="!b.mine"> · by {{ b.ownerName }}</span>
         </div>
@@ -351,7 +351,7 @@ onBeforeUnmount(() => { pollStopped = true; });
           </select>
           <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)"
                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
-          <p v-if="propose.error" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
+          <p v-if="propose.error" role="alert" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
           <div class="flex gap-2">
             <button @click="sendProposal" :disabled="propose.busy || !propose.boardSlug"
                     class="bg-amber-500 text-white rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">Send proposal</button>
@@ -360,7 +360,7 @@ onBeforeUnmount(() => { pollStopped = true; });
         </div>
       </div>
     </div>
-    <p v-if="!items.length" class="text-slate-400 dark:text-slate-500 text-sm">Nothing here yet.</p>
+    <p v-if="!items.length" class="text-slate-500 dark:text-slate-400 text-sm">Nothing here yet.</p>
 
   </div>
 </template>

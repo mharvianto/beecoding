@@ -127,7 +127,7 @@ const showHowItWorks = ref(false);
     <div class="flex items-center gap-2 mb-4">
       <h1 class="text-xl font-bold">Leaderboard</h1>
       <button @click="showHowItWorks = !showHowItWorks"
-              class="text-xs text-slate-400 dark:text-slate-500 hover:text-amber-600 dark:hover:text-amber-400 underline decoration-dotted">
+              class="text-xs text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 underline decoration-dotted">
         How is ranking calculated?
       </button>
     </div>
@@ -173,14 +173,14 @@ const showHowItWorks = ref(false);
     <RecentSolves v-if="tab === 'recent'" :organization-id="scopeIds.organizationId" :board-id="scopeIds.boardId" />
 
     <template v-else>
-    <p v-if="error" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading }">
       <div v-for="r in rows" :key="r.userId"
            class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900"
            :class="{ 'bg-amber-50 dark:bg-amber-500/10': r.me }">
-        <span class="w-8 text-center text-sm text-slate-400 dark:text-slate-500 shrink-0">{{ medal(r.rank) || r.rank }}</span>
+        <span class="w-8 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0">{{ medal(r.rank) || r.rank }}</span>
         <span class="w-9 text-xs font-medium tabular-nums shrink-0"
               :class="r.rankDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : r.rankDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-600'"
               :title="r.rankDelta ? `${r.rankDelta > 0 ? 'Up' : 'Down'} ${Math.abs(r.rankDelta)} since yesterday` : (r.rankDelta === 0 ? 'Unchanged since yesterday' : '')">
@@ -194,11 +194,11 @@ const showHowItWorks = ref(false);
             <span v-if="r.me" class="text-xs text-amber-600 dark:text-amber-400 shrink-0">(you)</span>
             <span v-if="r.role === 'Teacher'" class="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">teacher</span>
           </div>
-          <div class="sm:hidden text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate">
+          <div class="sm:hidden text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
             {{ r.solvedCount }} solved · Lv {{ r.level }}
           </div>
         </div>
-        <div class="hidden sm:flex flex-1 items-center gap-8 text-sm text-slate-400 dark:text-slate-500">
+        <div class="hidden sm:flex flex-1 items-center gap-8 text-sm text-slate-500 dark:text-slate-400">
           <span class="tabular-nums">{{ r.solvedCount }} solved</span>
           <span>Lv {{ r.level }}</span>
         </div>
@@ -214,13 +214,13 @@ const showHowItWorks = ref(false);
           </div>
         </div>
       </div>
-      <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-400 dark:text-slate-500">
+      <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
         No XP earned{{ period === 'all' ? ' yet' : ' in this period' }}.
         <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> some problems.
       </p>
     </div>
     <div v-if="total" class="flex items-center gap-3 mt-3 text-sm">
-      <span class="text-slate-400 dark:text-slate-500">
+      <span class="text-slate-500 dark:text-slate-400">
         {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, total) }} of {{ total }}
       </span>
       <div class="ml-auto flex gap-2">

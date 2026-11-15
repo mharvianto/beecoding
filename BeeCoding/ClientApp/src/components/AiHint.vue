@@ -134,7 +134,7 @@ async function ask(extra = {}) {
     </button>
 
     <div v-if="open" class="p-3 space-y-2">
-      <p class="text-[11px] text-slate-400 dark:text-slate-500">
+      <p class="text-[11px] text-slate-500 dark:text-slate-400">
         <template v-if="liveMode">
           Ask what the teacher's code does, or get help with an error in your own follow-along code.
         </template>
@@ -145,7 +145,7 @@ async function ask(extra = {}) {
       </p>
 
       <div class="flex items-center gap-1 text-xs">
-        <span class="text-slate-400 dark:text-slate-500 mr-1">Reply in:</span>
+        <span class="text-slate-500 dark:text-slate-400 mr-1">Reply in:</span>
         <button v-for="(label, lc) in LANGS" :key="lc" @click="setLang(lc)" type="button"
                 class="px-2 py-0.5 rounded-lg border"
                 :class="lang === lc
@@ -169,7 +169,7 @@ async function ask(extra = {}) {
         </button>
       </div>
 
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div v-if="reply" class="text-sm bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3">
         <p v-if="level > 0 && !liveMode" class="text-[10px] uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-1">
           Hint {{ level }} / 4 · {{ LEVEL_LABEL[level] }}
@@ -177,7 +177,7 @@ async function ask(extra = {}) {
         <MarkdownBlock :text="reply" />
         <span v-if="busy" class="inline-block w-1.5 h-4 bg-violet-400 animate-pulse align-middle ml-0.5"></span>
       </div>
-      <p v-if="level >= 2 && !busy && !liveMode" class="text-[11px] text-slate-400 dark:text-slate-500">
+      <p v-if="level >= 2 && !busy && !liveMode" class="text-[11px] text-slate-500 dark:text-slate-400">
         Ask again for a more detailed hint (the tutor still won't give the full solution).
         <button @click="startOver" class="text-violet-500 dark:text-violet-400 hover:underline ml-1">Start over</button>
       </p>

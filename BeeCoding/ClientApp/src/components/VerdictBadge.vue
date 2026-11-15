@@ -10,7 +10,7 @@ const map = {
   CompileError: ['bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200', 'CE'],
   Queued: ['bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400', '…'],
   Running: ['bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300', 'run'],
-  Hidden: ['bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500', '•'],
+  Hidden: ['bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400', '•'],
   None: ['bg-slate-50 text-slate-300 dark:bg-slate-800 dark:text-slate-600', '–'],
 };
 </script>
