@@ -60,10 +60,11 @@ public class PlagiarismService(AppDbContext db)
         return union == 0 ? 0 : (double)inter / union;
     }
 
-    public async Task<List<PlagiarismPairDto>> ComputeForBoardAsync(int boardId, double minSimilarity = 0.5, int maxResults = 300)
+    /// <summary>With <paramref name="problemId"/> only that problem is compared (smaller, and the pairs the teacher is actually looking at).</summary>
+    public async Task<List<PlagiarismPairDto>> ComputeForBoardAsync(int boardId, int? problemId = null, double minSimilarity = 0.5, int maxResults = 300)
     {
         var subs = await _db.Submissions
-            .Where(s => s.Problem!.BoardId == boardId)
+            .Where(s => s.Problem!.BoardId == boardId && (problemId == null || s.ProblemId == problemId))
             .Select(s => new { s.Id, s.ProblemId, ProblemTitle = s.Problem!.Title, s.UserId, UserName = s.User!.DisplayName, s.Code, s.CreatedAt })
             .ToListAsync();
 

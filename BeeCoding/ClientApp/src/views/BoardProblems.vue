@@ -452,6 +452,10 @@ async function reorderGroupTo(id, target, pos) {
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
                 <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
               </button>
+              <button v-if="isStaff" @click="router.push({ path: `/boards/${slug}/plagiarism`, query: { problem: p.slug } })" class="row-action-btn"
+                      title="Compare students' latest submissions to this problem">
+                <span>🔍</span><span class="max-sm:hidden">Similarity</span>
+              </button>
               <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
                 <span>✏️</span><span class="max-sm:hidden">Edit</span>
               </button>

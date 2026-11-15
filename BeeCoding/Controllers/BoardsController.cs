@@ -298,14 +298,21 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     /// the same problem looks suspiciously similar (see PlagiarismService for the algorithm
     /// and its caveats — this is a spot-check signal, not proof).</summary>
     [HttpGet("{slug}/plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(string slug)
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(string slug, [FromQuery] string? problem = null)
     {
         var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
         if (board is null) return NotFound();
         var membership = board.Members.FirstOrDefault(m => m.UserId == UserId);
         if (!IsAdminUser(_admin) && (membership is null || membership.Role == MembershipRole.Student)) return Forbid();
 
-        return await _plagiarism.ComputeForBoardAsync(board.Id);
+        // Optional: compare one problem only (its slug); an unknown or deleted one is a 404, not "all problems".
+        int? problemId = null;
+        if (!string.IsNullOrWhiteSpace(problem))
+        {
+            problemId = await _db.Problems.Where(p => p.BoardId == board.Id && p.Slug == problem).Select(p => (int?)p.Id).FirstOrDefaultAsync();
+            if (problemId is null) return NotFound();
+        }
+        return await _plagiarism.ComputeForBoardAsync(board.Id, problemId);
     }
 
     /// <summary>Soft-delete (owner or admin). Owner undo is time-boxed to
