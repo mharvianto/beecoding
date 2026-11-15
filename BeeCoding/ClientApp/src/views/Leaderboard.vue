@@ -156,7 +156,7 @@ const showHowItWorks = ref(false);
           {{ o.name }}
         </button>
         <select v-if="boards.length" :value="scope.startsWith('board:') ? scope.slice(6) : ''" @change="setBoardScope"
-                class="rounded-lg px-2 py-1.5 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 text-sm max-w-[10rem] sm:max-w-none">
+                class="rounded-lg px-2 py-1.5 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 text-sm max-w-[10rem] sm:max-w-none" aria-label="This board…">
           <option value="">This board…</option>
           <option v-for="b in boards" :key="b.id" :value="b.slug">{{ b.title }}</option>
         </select>

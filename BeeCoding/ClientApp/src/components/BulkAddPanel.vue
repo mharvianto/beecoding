@@ -99,7 +99,7 @@ async function run() {
       <section class="space-y-2">
         <h3 class="text-sm font-semibold">2 · Problems from the bank <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
         <div class="flex gap-2">
-          <input v-model="q" @keyup.enter="loadBank" placeholder="Search title or tag…"
+          <input v-model="q" @keyup.enter="loadBank" placeholder="Search title or tag…" aria-label="Search title or tag…"
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <button @click="loadBank" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3">Search</button>
         </div>
@@ -116,7 +116,7 @@ async function run() {
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400">{{ picked.size }} selected</p>
         <label v-if="picked.size" class="block text-xs text-slate-500 dark:text-slate-400">Put them in group (optional — created if missing)
-          <input v-model="problemGroup" list="bulk-group-titles" placeholder="leave blank for ungrouped"
+          <input v-model="problemGroup" list="bulk-group-titles" placeholder="leave blank for ungrouped" aria-label="Group"
                  class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <datalist id="bulk-group-titles"><option v-for="t in titles" :key="t" :value="t" /></datalist>
         </label>

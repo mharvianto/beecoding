@@ -115,7 +115,7 @@ async function createAndSelect() {
       <div class="border-t border-slate-200 dark:border-slate-800 pt-4">
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Or create a new board</p>
         <div class="flex gap-2">
-          <input v-model="newTitle" @keyup.enter="createAndSelect" placeholder="Board title"
+          <input v-model="newTitle" @keyup.enter="createAndSelect" placeholder="Board title" aria-label="Board title"
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <button @click="createAndSelect" :disabled="creating || !newTitle.trim()"
                   class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -130,7 +130,7 @@ async function createAndSelect() {
         Students who open this activity go straight to solving this one problem — no board involved.
       </p>
       <div class="flex gap-2 mb-3">
-        <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search problems…"
+        <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search problems…" aria-label="Search problems…"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <select v-model="problemScope" @change="loadProblems"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">

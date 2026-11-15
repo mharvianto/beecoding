@@ -235,7 +235,7 @@ function pickFormula(e) {
       </div>
 
       <div v-show="tab === 'problem'" class="space-y-3">
-        <input v-model="form.title" placeholder="Title" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
+        <input v-model="form.title" placeholder="Title" aria-label="Title" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <div>
           <div class="flex items-center gap-2 text-xs mb-1">
             <span class="text-slate-500 dark:text-slate-400">Statement (Markdown)</span>
@@ -324,11 +324,11 @@ function pickFormula(e) {
 
         <div class="space-y-2">
           <label class="flex items-center gap-1 text-sm">Banned headers
-            <input v-model="form.bannedHeaders" placeholder="e.g. algorithm, numeric"
+            <input v-model="form.bannedHeaders" placeholder="e.g. algorithm, numeric" aria-label="Tags"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label class="flex items-center gap-1 text-sm">Banned functions
-            <input v-model="form.bannedSymbols" placeholder="e.g. std::sort, qsort, stable_sort"
+            <input v-model="form.bannedSymbols" placeholder="e.g. std::sort, qsort, stable_sort" aria-label="Banned names"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -341,7 +341,7 @@ function pickFormula(e) {
 
         <div>
           <label class="flex items-center gap-1 text-sm">Input file (optional)
-            <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin"
+            <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin" aria-label="Input file name"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
@@ -353,7 +353,7 @@ function pickFormula(e) {
 
         <div class="flex gap-3 flex-wrap text-sm items-center">
           <label class="flex items-center gap-1 flex-1 min-w-48">Tags
-            <input v-model="form.tags" placeholder="loop, array, dp"
+            <input v-model="form.tags" placeholder="loop, array, dp" aria-label="loop, array, dp"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <TagSuggest class="w-full" :title="form.title" :statement="form.statementMarkdown" :current="form.tags" @add="addTag" />

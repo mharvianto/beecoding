@@ -42,7 +42,7 @@ async function add(item) {
       </div>
 
       <div class="flex gap-2 mb-3">
-        <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…"
+        <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…" aria-label="Search title or tag…"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <select v-model="scope" @change="load"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">

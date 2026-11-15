@@ -337,7 +337,7 @@ async function deleteAccount(force = false) {
           <h2 class="font-semibold text-sm">Display name</h2>
           <p class="text-xs text-slate-500 dark:text-slate-400">Shown on the board, wall cards and leaderboard.</p>
           <div class="flex gap-2">
-            <input v-model="name" maxlength="40" placeholder="Your name" @keyup.enter="saveName"
+            <input v-model="name" maxlength="40" placeholder="Your name" aria-label="Your name" @keyup.enter="saveName"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
                     class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -365,9 +365,9 @@ async function deleteAccount(force = false) {
             You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.
           </p>
           <div class="space-y-3">
-            <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
+            <input v-model="next" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" autocomplete="new-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next2" type="password" placeholder="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
+            <input v-model="next2" type="password" placeholder="Repeat password" aria-label="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
             <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
@@ -380,11 +380,11 @@ async function deleteAccount(force = false) {
         <section v-else class="space-y-3">
           <h2 class="font-semibold text-sm">Change password</h2>
           <div class="space-y-3">
-            <input v-model="cur" type="password" placeholder="Current password" autocomplete="current-password"
+            <input v-model="cur" type="password" placeholder="Current password" aria-label="Current password" autocomplete="current-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next" type="password" placeholder="New password (min 8 chars)" autocomplete="new-password"
+            <input v-model="next" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" autocomplete="new-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next2" type="password" placeholder="Repeat new password" autocomplete="new-password"
+            <input v-model="next2" type="password" placeholder="Repeat new password" aria-label="Repeat new password" autocomplete="new-password"
                    @keyup.enter="changePassword"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
@@ -420,7 +420,7 @@ async function deleteAccount(force = false) {
           </button>
 
           <template v-else>
-            <input v-model="delPw" type="password" placeholder="Confirm with your password" autocomplete="current-password"
+            <input v-model="delPw" type="password" placeholder="Confirm with your password" aria-label="Confirm with your password" autocomplete="current-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
 
             <div v-if="ownedBoards" class="text-sm bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">

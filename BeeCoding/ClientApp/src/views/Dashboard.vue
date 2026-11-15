@@ -58,7 +58,7 @@ async function join() {
       <div v-if="auth.isTeacher" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">Create a board</h2>
         <form @submit.prevent="createBoard" class="flex gap-2">
-          <input v-model="newTitle" placeholder="Board title" required
+          <input v-model="newTitle" placeholder="Board title" aria-label="Board title" required
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
           <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 font-medium">Create</button>
         </form>
@@ -66,7 +66,7 @@ async function join() {
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">Join a board</h2>
         <form @submit.prevent="join" class="flex gap-2">
-          <input v-model="joinCode" placeholder="Join code" required
+          <input v-model="joinCode" placeholder="Join code" aria-label="Join code" required
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 uppercase" />
           <button class="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg px-4 font-medium">Join</button>
         </form>

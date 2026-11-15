@@ -1174,7 +1174,7 @@ onMounted(async () => {
             Pause AI platform-wide {{ aiSettings.paused ? '(paused — no AI feature works right now)' : '' }}
           </span>
         </label>
-        <input v-model="aiSettings.pausedReason" placeholder="Reason (shown in the audit log only)"
+        <input v-model="aiSettings.pausedReason" placeholder="Reason (shown in the audit log only)" aria-label="Reason (shown in the audit log only)"
                class="w-full mb-3 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <div class="flex flex-wrap gap-4 mb-3 text-sm">
           <label class="flex items-center gap-2">Daily quota · students
@@ -1210,16 +1210,16 @@ onMounted(async () => {
               API key {{ aiProvider.hasApiKey ? `(saved: ${aiProvider.apiKeyPreview})` : '(none saved — using appsettings.json, if any)' }}
             </span>
             <div class="flex gap-2">
-              <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key"
+              <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key" aria-label="Leave blank to keep the saved key"
                      class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
               <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
             </div>
           </label>
-          <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)"
+          <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)" aria-label="Base URL (blank = appsettings.json default)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)"
+          <input v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)" aria-label="Model (blank = appsettings.json default)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)"
+          <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiProviderMsg }}</p>
@@ -1233,7 +1233,7 @@ onMounted(async () => {
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="hintEffect">
         <div class="flex items-center gap-2 mb-1">
           <h2 class="font-semibold text-sm">Are AI hints helping?</h2>
-          <select v-model.number="hintEffectDays" @change="loadHintEffect"
+          <select v-model.number="hintEffectDays" @change="loadHintEffect" aria-label="Time window"
                   class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
             <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
           </select>
@@ -1265,13 +1265,13 @@ onMounted(async () => {
         <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
-            <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings"
+            <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings" aria-label="appsettings"
                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort</span>
             <select v-model="aiExtrasForm.reasoningEffort"
-                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" aria-label="appsettings / don't send">
               <option value="">appsettings / don't send</option>
               <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
             </select>
@@ -1279,7 +1279,7 @@ onMounted(async () => {
         </div>
         <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
           <span class="text-xs text-slate-500 dark:text-slate-400">Review model (AI check + report triage; blank = the generate-problem model)</span>
-          <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b"
+          <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b" aria-label="Model"
                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </label>
         <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
@@ -1287,11 +1287,11 @@ onMounted(async () => {
             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>
             <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
           </div>
-          <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro"
+          <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro" aria-label="Model"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
+          <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)" aria-label="Base URL (blank = same as the main provider)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
@@ -1314,7 +1314,7 @@ onMounted(async () => {
             <div class="text-[11px] text-slate-400 mb-2">{{ row.email }}</div>
             <div class="flex items-center gap-3 flex-wrap text-xs">
               <label class="flex items-center gap-1.5">Quota
-                <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default"
+                <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default" aria-label="role default"
                        class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
               </label>
               <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> Banned</label>
@@ -1340,7 +1340,7 @@ onMounted(async () => {
               <tr v-for="row in aiOverrides" :key="row.userId" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td><div class="font-medium">{{ row.displayName }}</div><div class="text-[11px] text-slate-400">{{ row.email }}</div></td>
                 <td>
-                  <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default"
+                  <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default" aria-label="role default"
                          class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
                 </td>
                 <td><input type="checkbox" v-model="row.banned" /></td>
@@ -1355,11 +1355,11 @@ onMounted(async () => {
         </div>
         <div class="flex flex-wrap items-end gap-2 text-sm">
           <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">User ID
-            <input v-model.number="newOverride.userId" type="number" placeholder="see Users tab"
+            <input v-model.number="newOverride.userId" type="number" placeholder="see Users tab" aria-label="see Users tab"
                    class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
           <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">Daily quota
-            <input v-model.number="newOverride.quota" type="number" min="0" placeholder="role default"
+            <input v-model.number="newOverride.quota" type="number" min="0" placeholder="role default" aria-label="role default"
                    class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
           <label class="flex items-center gap-1.5"><input type="checkbox" v-model="newOverride.banned" /> Banned</label>
@@ -1469,7 +1469,7 @@ onMounted(async () => {
         </div>
       </div>
       <div class="flex gap-2 mb-3 flex-wrap items-center">
-        <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
+        <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…" aria-label="Search name or email…"
                class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchUsers" class="self-stretch text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="recalculateProgress" :disabled="recalcBusy"
@@ -1606,7 +1606,7 @@ onMounted(async () => {
             <option value="Student">Default role: Student</option>
             <option value="Teacher">Default role: Teacher</option>
           </select>
-          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" aria-label="Don't assign to a board">
             <option value="">Don't assign to a board</option>
             <option v-for="b in boards" :key="b.slug" :value="b.slug">Add to: {{ b.title }}</option>
           </select>
@@ -1644,7 +1644,7 @@ onMounted(async () => {
     <!-- Boards (browse all, across every teacher) -->
     <section v-show="tab === 'boards'">
       <div class="flex flex-wrap gap-2 mb-3 items-center">
-        <input v-model="boardQ" @keyup.enter="loadBoards" placeholder="Search title or slug…"
+        <input v-model="boardQ" @keyup.enter="loadBoards" placeholder="Search title or slug…" aria-label="Search title or slug…"
                class="flex-1 min-w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="loadBoards" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-2">Search</button>
         <span class="text-slate-300 dark:text-slate-700">|</span>
@@ -1754,16 +1754,16 @@ onMounted(async () => {
     <!-- Submissions: every submission platform-wide — board (not just ones the admin owns/joined) AND practice -->
     <section v-show="tab === 'submissions'">
       <div class="flex flex-wrap gap-2 mb-3">
-        <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
+        <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…" aria-label="Search student, email, problem, or board…"
                class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <select v-model="submissionSource" @change="searchSubmissions"
-                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Board + Practice">
           <option value="">Board + Practice</option>
           <option value="board">Board only</option>
           <option value="practice">Practice only</option>
         </select>
         <select v-model="submissionVerdict" @change="searchSubmissions"
-                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Any verdict">
           <option value="">Any verdict</option>
           <option value="Accepted">Accepted</option>
           <option value="WrongAnswer">Wrong answer</option>
@@ -1939,7 +1939,7 @@ onMounted(async () => {
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <input v-model="rejectReasonDraft[row.slug]" placeholder="Reason (optional, goes in the audit log)"
+            <input v-model="rejectReasonDraft[row.slug]" placeholder="Reason (optional, goes in the audit log)" aria-label="Reason (optional, goes in the audit log)"
                    class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <button @click="rejectAiReview(row)" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✕ Reject (stays private)
@@ -2341,7 +2341,7 @@ onMounted(async () => {
     <!-- Audit log -->
     <section v-show="tab === 'audit'">
       <div class="flex flex-wrap gap-2 mb-3">
-        <input v-model="auditQ" @keyup.enter="searchAudit" placeholder="Search actor, action, or target…"
+        <input v-model="auditQ" @keyup.enter="searchAudit" placeholder="Search actor, action, or target…" aria-label="Search actor, action, or target…"
                class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchAudit" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="loadAudit" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
@@ -2403,9 +2403,9 @@ onMounted(async () => {
         (this page only creates, renames and removes the organization itself).
       </p>
       <div class="flex flex-col sm:flex-row gap-2">
-        <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)"
+        <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)" aria-label="Name"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)"
+        <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)" aria-label="slug"
                class="sm:w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="createOrganization" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
       </div>
@@ -2415,11 +2415,11 @@ onMounted(async () => {
         <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <template v-if="orgEdit?.id === o.id">
             <div class="space-y-2">
-              <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="Name"
+              <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="Name" aria-label="Name"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-              <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug"
+              <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug" aria-label="slug"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-              <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu"
+              <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu" aria-label="auto-accept email domains"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <div class="flex gap-2">
                 <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">Save</button>
@@ -2458,7 +2458,7 @@ onMounted(async () => {
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
-                <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="univ.ac.id, univ.edu"
+                <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="univ.ac.id, univ.edu" aria-label="univ.ac.id, univ.edu"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td></td>
                 <td class="whitespace-nowrap">
@@ -2515,13 +2515,13 @@ onMounted(async () => {
 
         <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? 'New platform' : 'Edit platform' }}</h3>
-          <input v-model="ltiForm.name" placeholder="Name (e.g. BINUS Moodle)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.clientId" placeholder="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.name" placeholder="Name (e.g. BINUS Moodle)" aria-label="Name" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" aria-label="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.clientId" placeholder="Client ID" aria-label="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" aria-label="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" aria-label="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" aria-label="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" aria-label="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <select v-model="ltiForm.organizationId" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
             <option :value="null">No organization (unaffiliated)</option>
             <option v-for="o in organizations" :key="o.id" :value="o.id">{{ o.name }}</option>

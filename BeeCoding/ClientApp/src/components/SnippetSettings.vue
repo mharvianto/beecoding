@@ -74,13 +74,13 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
     <form @submit.prevent="save" class="space-y-2 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
       <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ editing === null ? 'New snippet' : 'Edit snippet' }}</h3>
       <div class="flex flex-col sm:flex-row gap-2">
-        <input v-model="form.prefix" placeholder="Shortcut, e.g. fastio" maxlength="24" autocapitalize="off" spellcheck="false"
+        <input v-model="form.prefix" placeholder="Shortcut, e.g. fastio" aria-label="Shortcut" maxlength="24" autocapitalize="off" spellcheck="false"
                class="sm:w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono" />
         <select v-model="form.lang" aria-label="Language"
                 class="sm:w-36 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option v-for="l in SNIPPET_LANGS" :key="l.id" :value="l.id">{{ l.label }}</option>
         </select>
-        <input v-model="form.description" placeholder="Description (optional)" maxlength="80"
+        <input v-model="form.description" placeholder="Description (optional)" aria-label="Description (optional)" maxlength="80"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       </div>
       <textarea v-model="form.body" rows="6" spellcheck="false" placeholder="What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through."

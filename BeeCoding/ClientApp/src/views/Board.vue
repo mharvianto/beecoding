@@ -195,7 +195,7 @@ onBeforeUnmount(async () => {
           </button>
         </div>
         <div v-else class="flex items-center gap-2 mt-1">
-          <input v-model="tagsInput" placeholder="e.g. class-2026, semester-1" @keyup.enter="saveTags"
+          <input v-model="tagsInput" placeholder="e.g. class-2026, semester-1" aria-label="Tags" @keyup.enter="saveTags"
                  class="text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 w-64" />
           <button @click="saveTags" class="row-action-btn row-action-btn--success">Save</button>
           <button @click="editingTags = false" class="row-action-btn">Cancel</button>

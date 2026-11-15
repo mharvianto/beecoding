@@ -132,7 +132,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
           </p>
           <p class="text-sm text-slate-600 dark:text-slate-300">2. Enter the 6-digit code it shows to turn it on.</p>
           <div class="flex flex-wrap gap-2">
-            <input v-model="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456"
+            <input v-model="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code"
                    @keyup.enter="enableTotp" :class="[inputCls, 'w-36 tracking-widest text-center']" />
             <button @click="enableTotp" :disabled="busy || !setupCode" :class="primaryBtn">Turn on</button>
             <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
@@ -157,7 +157,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
         <div v-if="emailStep" class="space-y-3">
           <p class="text-sm text-slate-600 dark:text-slate-300">We sent a code to <b>{{ auth.user?.email }}</b>. Enter it to turn this on.</p>
           <div class="flex flex-wrap gap-2">
-            <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456"
+            <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code"
                    @keyup.enter="enableEmail" :class="[inputCls, 'w-36 tracking-widest text-center']" />
             <button @click="enableEmail" :disabled="busy || !emailCode" :class="primaryBtn">Turn on</button>
             <button @click="startEmail" :disabled="busy" class="text-sm text-amber-700 dark:text-amber-400 px-2">Send again</button>
@@ -184,7 +184,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
       <div class="text-sm font-medium">{{ pendingLabel }}</div>
       <p class="text-sm text-slate-500 dark:text-slate-400">Enter your password to confirm.</p>
       <div class="flex flex-wrap gap-2">
-        <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" @keyup.enter="confirmPending" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" @keyup.enter="confirmPending" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
         <button @click="confirmPending" :disabled="busy || !password" :class="primaryBtn">Confirm</button>
         <button @click="pending = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
       </div>

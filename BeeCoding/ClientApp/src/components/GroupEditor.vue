@@ -44,7 +44,7 @@ function save() {
 
       <label class="block text-sm">
         <span class="text-slate-500 dark:text-slate-400">Title</span>
-        <input v-model="title" maxlength="120" autofocus placeholder="e.g. Week 5 — Arrays"
+        <input v-model="title" maxlength="120" autofocus placeholder="e.g. Week 5 — Arrays" aria-label="Group title"
                class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
       </label>
 

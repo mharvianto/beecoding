@@ -79,15 +79,15 @@ onMounted(async () => {
     <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <div class="flex flex-wrap gap-2 mb-3">
-      <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student or problem…"
+      <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student or problem…" aria-label="Search student or problem…"
              class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-model="submissionUserId" @change="searchSubmissions"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="All students">
         <option value="">All students</option>
         <option v-for="st in students" :key="st.userId" :value="st.userId">{{ st.displayName }}</option>
       </select>
       <select v-model="submissionVerdict" @change="searchSubmissions"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Any verdict">
         <option value="">Any verdict</option>
         <option value="Accepted">Accepted</option>
         <option value="WrongAnswer">Wrong answer</option>

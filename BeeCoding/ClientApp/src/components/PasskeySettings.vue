@@ -86,15 +86,15 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
       <div v-if="removing" class="rounded-lg bg-amber-50/60 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/30 p-3 space-y-2">
         <p class="text-sm">Enter your password to remove this passkey.</p>
         <div class="flex flex-wrap gap-2">
-          <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" @keyup.enter="confirmRemove" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+          <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" @keyup.enter="confirmRemove" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
           <button @click="confirmRemove" :disabled="busy || !password" :class="primaryBtn">Remove</button>
           <button @click="removing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
         </div>
       </div>
 
       <div v-if="supported" class="flex flex-wrap gap-2">
-        <input v-model="name" maxlength="80" placeholder="Name, e.g. My phone" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-        <input v-model="addPassword" type="password" autocomplete="current-password" placeholder="Your password" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <input v-model="name" maxlength="80" placeholder="Name, e.g. My phone" aria-label="Name" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <input v-model="addPassword" type="password" autocomplete="current-password" placeholder="Your password" aria-label="Your password" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
         <button @click="add" :disabled="busy || !addPassword" :class="primaryBtn">Add a passkey</button>
       </div>
     </div>

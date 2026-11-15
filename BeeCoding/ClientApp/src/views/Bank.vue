@@ -259,9 +259,9 @@ onBeforeUnmount(() => { pollStopped = true; });
     </div>
 
     <div class="flex gap-2 mb-4 flex-wrap">
-      <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…"
+      <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…" aria-label="Search title or tag…"
              class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <select v-if="!student" v-model="scope" @change="load"
+      <select v-if="!student" v-model="scope" @change="load" aria-label="Which problems to show"
               class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="mine">Mine</option>
         <option value="shared">Shared with me</option>
@@ -269,7 +269,7 @@ onBeforeUnmount(() => { pollStopped = true; });
         <option value="all">All</option>
       </select>
       <select v-model="level" @change="load"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" aria-label="All levels">
         <option value="">All levels</option>
         <option>Easy</option><option>Medium</option><option>Hard</option>
       </select>
@@ -349,7 +349,7 @@ onBeforeUnmount(() => { pollStopped = true; });
             <option value="" disabled>Choose a board…</option>
             <option v-for="bd in boards" :key="bd.slug" :value="bd.slug">{{ bd.title }}</option>
           </select>
-          <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)"
+          <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)" aria-label="Message to the board owner (optional)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           <p v-if="propose.error" role="alert" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
           <div class="flex gap-2">
