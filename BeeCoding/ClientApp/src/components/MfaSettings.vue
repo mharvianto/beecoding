@@ -11,6 +11,7 @@ const busy = ref(false);
 
 const setup = ref(null);           // { secret, uri } while an authenticator app is being set up
 const setupCode = ref('');
+const setupPassword = ref('');   // turning on an authenticator app needs the account password
 const secretCopied = ref(false);
 
 const pending = ref(null);         // { kind: 'totp' | 'codes' } waiting for the password
@@ -39,10 +40,11 @@ const startSetup = () => guarded(async () => {
   setup.value = await api.post('/api/auth/mfa/totp/setup');
   setupCode.value = '';
 });
-const cancelSetup = () => { setup.value = null; setupCode.value = ''; error.value = ''; };
+const cancelSetup = () => { setup.value = null; setupCode.value = ''; setupPassword.value = ''; error.value = ''; };
 const enableTotp = () => guarded(async () => {
-  const r = await api.post('/api/auth/mfa/totp/enable', { code: setupCode.value });
+  const r = await api.post('/api/auth/mfa/totp/enable', { code: setupCode.value, password: setupPassword.value });
   setup.value = null;
+  setupPassword.value = '';
   if (r.recoveryCodes) codes.value = r.recoveryCodes;
   await load();
 });
@@ -130,11 +132,13 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
             <code class="font-mono text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5 select-all break-all">{{ setup.secret }}</code>
             <button @click="copySecret" class="text-xs text-amber-700 dark:text-amber-400 ml-1">{{ secretCopied ? 'copied' : 'copy' }}</button>
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-300">2. Enter the 6-digit code it shows to turn it on.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">2. Enter the 6-digit code it shows, and your password, to turn it on.</p>
           <div class="flex flex-wrap gap-2">
+            <input v-model="setupPassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password"
+                   @keyup.enter="enableTotp" :class="[inputCls, 'w-48']" />
             <input v-model="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code"
                    @keyup.enter="enableTotp" :class="[inputCls, 'w-36 tracking-widest text-center']" />
-            <button @click="enableTotp" :disabled="busy || !setupCode" :class="primaryBtn">Turn on</button>
+            <button @click="enableTotp" :disabled="busy || !setupCode || !setupPassword" :class="primaryBtn">Turn on</button>
             <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
         </div>

@@ -103,4 +103,27 @@ public class HardeningTests
         var (ours, _) = await svc.ResolveResourceLinkAsync(platform, Claims(own.Slug, "rl-own"), lecturer, isInstructor: true);
         Assert.Equal(own.Id, ours!.Id);                                                    // a board of the platform's own organization still binds
     }
+
+    [Fact]
+    public async Task Turning_on_an_authenticator_and_getting_a_google_link_ticket_both_need_the_password()
+    {
+        using var app = new TestApp();
+        var c = app.CreateClient();
+        (await c.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+        (await c.PostAsync("/api/auth/mfa/totp/setup", null)).EnsureSuccessStatusCode();
+
+        var noPw = await c.PostAsJsonAsync("/api/auth/mfa/totp/enable", new { code = "000000" });
+        Assert.Equal(HttpStatusCode.BadRequest, noPw.StatusCode);
+        Assert.Contains("Password is wrong", await noPw.Content.ReadAsStringAsync());              // refused before the code is even looked at
+        var wrongPw = await c.PostAsJsonAsync("/api/auth/mfa/totp/enable", new { code = "000000", password = "nope" });
+        Assert.Contains("Password is wrong", await wrongPw.Content.ReadAsStringAsync());
+        var rightPwWrongCode = await c.PostAsJsonAsync("/api/auth/mfa/totp/enable", new { code = "000000", password = "password" });
+        Assert.DoesNotContain("Password is wrong", await rightPwWrongCode.Content.ReadAsStringAsync());   // now it is the code that fails
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await c.PostAsJsonAsync("/api/auth/google/link-ticket", new { password = "nope" })).StatusCode);
+        var ok = await c.PostAsJsonAsync("/api/auth/google/link-ticket", new { password = "password" });
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        Assert.False(string.IsNullOrEmpty((await ok.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("ticket").GetString()));
+        Assert.Equal(HttpStatusCode.Unauthorized, (await app.CreateClient().PostAsJsonAsync("/api/auth/google/link-ticket", new { password = "password" })).StatusCode);
+    }
 }

@@ -21,6 +21,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     private const string Provider = "google";
     private const string CookieName = "beecoding.google";
     private const string PurposeOAuth = "google-oauth";
+    private const string PurposeLinkReauth = "google-link-reauth";
     private const string PurposePending = "google-pending";
 
     private readonly AppDbContext _db = db;
@@ -50,11 +51,13 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
 
     [HttpGet("start")]
     [AllowAnonymous]
-    public IActionResult Start([FromQuery] string? mode, [FromQuery] string? r)
+    public IActionResult Start([FromQuery] string? mode, [FromQuery] string? r, [FromQuery] string? ticket = null)
     {
         if (!_google.Enabled) return NotFound();
         var link = mode == "link";
         if (link && User.Identity?.IsAuthenticated != true) return ToApp("/login");
+        // Adding a sign-in method needs the password, like removing one (see LinkTicket): a stolen session alone cannot link its own Google account.
+        if (link && _mfa.ReadState(PurposeLinkReauth, UserId, ticket) != "ok") return Fail("Confirm your password first, then connect Google.", "link");
 
         var (verifier, challenge) = GoogleAuthService.NewPkce();
         var st = new OAuthState(GoogleAuthService.RandomToken(), GoogleAuthService.RandomToken(), verifier,
@@ -201,6 +204,21 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
     {
         var link = await _db.ExternalLogins.FirstOrDefaultAsync(x => x.Provider == Provider && x.UserId == UserId);
         return new GoogleStatusDto(link is not null, link?.Email);
+    }
+
+    /// <summary>Step before linking: proves the password and returns a short-lived ticket that <see cref="Start"/> requires in link mode.</summary>
+    [HttpPost("link-ticket")]
+    [Authorize]
+    public async Task<ActionResult<object>> LinkTicket(MfaPasswordDto dto)
+    {
+        var user = await _db.Users.FindAsync(UserId);
+        if (user is null) return Unauthorized();
+        var key = $"google-link:{UserId}";
+        if (!_throttle.TryBegin(ClientIp, key, strict: true))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many attempts. Try again in a few minutes.");
+        if (_pw.Reauth(user, dto.Password) is string err) return BadRequest(err);
+        _throttle.RecordSuccess(ClientIp, key);
+        return new { ticket = _mfa.ProtectState(PurposeLinkReauth, UserId, "ok") };
     }
 
     [HttpPost("unlink")]

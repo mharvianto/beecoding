@@ -21,6 +21,8 @@ public record MfaVerifyDto(string Ticket, string Method, string Code);
 public record MfaTicketDto(string Ticket);
 public record MfaPasswordDto(string Password);
 public record MfaCodeDto(string Code);
+/// <summary>Turning on an authenticator app: the code plus the account password (same proof as removing a factor).</summary>
+public record MfaEnableDto(string Code, string? Password);
 public record PasskeyDto(int Id, string Name, DateTime CreatedAt, DateTime? LastUsedAt);
 public record MfaStatusDto(bool TotpEnabled, bool EmailEnabled, bool EmailAvailable, int RecoveryCodesLeft);
 public record PasskeyStatusDto(bool Available, List<PasskeyDto> Passkeys);

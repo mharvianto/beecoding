@@ -129,12 +129,14 @@ public class MfaController(AppDbContext db, PasswordService pw, MfaService mfa,
     /// <summary>Confirm the setup with a first code. Returns recovery codes when this is the account's first second factor.</summary>
     [HttpPost("totp/enable")]
     [Authorize]
-    public async Task<ActionResult<MfaRecoveryCodesDto>> TotpEnable(MfaCodeDto dto)
+    public async Task<ActionResult<MfaRecoveryCodesDto>> TotpEnable(MfaEnableDto dto)
     {
         var user = await _db.Users.FindAsync(UserId);
         if (user is null) return Unauthorized();
         if (user.TotpEnabledAt != null) return Conflict("An authenticator app is already set up.");
         if (string.IsNullOrEmpty(user.TotpSecret)) return BadRequest("Start the setup again.");
+        // A stolen open session must not be able to enrol its own authenticator (it would lock the owner out): same proof as disabling one.
+        if (_pw.Reauth(user, dto.Password) is string reauthErr) return BadRequest(reauthErr);
         if (!_throttle.TryBegin(ClientIp, ThrottleKey(user.Id), strict: true))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");
         if (!await _mfa.VerifyTotpAsync(user, dto.Code))

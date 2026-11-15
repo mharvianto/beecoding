@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
-import GoogleButton from './GoogleButton.vue';
+import { withBase } from '../lib/base';
 
 const auth = useAuth();
 const route = useRoute();
@@ -11,6 +11,7 @@ const status = ref(null);      // { linked, email }
 const error = ref(route.query.googleError ? String(route.query.googleError) : '');
 const msg = ref(route.query.google === 'linked' ? 'Google account connected.' : '');
 const asking = ref(false);
+const connecting = ref(false);   // asking for the password before the Google round trip
 const password = ref('');
 const busy = ref(false);
 
@@ -28,6 +29,15 @@ async function unlink() {
     status.value = await api.get('/api/auth/google/status');
   } catch (e) { error.value = e.message; } finally { busy.value = false; }
 }
+
+// Adding a sign-in method needs the password, like removing one: the server hands back a short-lived ticket for the redirect.
+async function connect() {
+  error.value = ''; busy.value = true;
+  try {
+    const { ticket } = await api.post('/api/auth/google/link-ticket', { password: password.value });
+    window.location.href = withBase('/api/auth/google/start') + `?mode=link&ticket=${encodeURIComponent(ticket)}`;
+  } catch (e) { error.value = e.message; busy.value = false; }
+}
 </script>
 
 <template>
@@ -41,9 +51,15 @@ async function unlink() {
         <span v-if="status.linked" class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ status.email }}</span>
         <span v-if="status.linked" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">connected</span>
         <button v-if="status.linked && !asking" @click="asking = true; error = ''; msg = ''" class="ml-auto row-action-btn row-action-btn--danger">Disconnect</button>
-        <div v-else-if="!status.linked && auth.config.google" class="ml-auto w-48"><GoogleButton mode="link" label="Connect Google" /></div>
+        <button v-else-if="!status.linked && auth.config.google && !connecting" @click="connecting = true; error = ''; msg = ''" class="ml-auto bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium">Connect Google</button>
       </div>
       <p v-if="!status.linked" class="text-sm text-slate-500 dark:text-slate-400">Connect Google to sign in with one click.</p>
+      <div v-if="connecting" class="flex flex-wrap gap-2">
+        <input v-model="password" type="password" autocomplete="current-password" placeholder="Password to confirm" aria-label="Password to confirm" @keyup.enter="connect"
+               class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+        <button @click="connect" :disabled="busy || !password" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">Continue to Google</button>
+        <button @click="connecting = false; password = ''" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+      </div>
       <div v-if="asking" class="flex flex-wrap gap-2">
         <input v-model="password" type="password" autocomplete="current-password" placeholder="Password to confirm" aria-label="Password to confirm" @keyup.enter="unlink"
                class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
