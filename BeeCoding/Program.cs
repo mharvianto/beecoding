@@ -298,6 +298,7 @@ builder.Services.AddHostedService<NotificationJanitor>();
 builder.Services.AddHostedService<GroupScheduleNotifier>();
 builder.Services.AddHostedService<StatementImageJanitor>();
 builder.Services.AddHostedService<AuditLogJanitor>();
+builder.Services.AddHostedService<BoardOnlyJanitor>();
 builder.Services.AddHostedService<BeeCoding.Services.Similarity.EmbeddingBackfill>();
 
 builder.Services.AddScoped<VisibilityService>();

@@ -924,7 +924,7 @@ public class AdminUiController(
     [HttpGet("problems/export")]
     public async Task<IActionResult> Export()
     {
-        var problems = await _db.BankProblems.Include(b => b.Owner).Include(b => b.TestCases)
+        var problems = await _db.BankProblems.Where(b => !b.BoardOnly).Include(b => b.Owner).Include(b => b.TestCases)
             .OrderBy(b => b.Id).ToListAsync();
 
         var bundle = new AdminProblemBundle(1, DateTime.UtcNow, problems.Select(b => new AdminProblemItem(

@@ -220,4 +220,53 @@ public class BoardProblemBankTests
         (await owner.DeleteAsync($"/api/bank/{slug}/shares/{uid}")).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.NotFound, (await t2.GetAsync($"/api/bank/{slug}")).StatusCode);
     }
+
+    [Fact]
+    public async Task The_janitor_removes_a_board_only_row_once_its_problem_is_purged_but_keeps_one_still_in_use()
+    {
+        using var app = new TestApp();
+        var t = await TeacherAsync(app);
+        var slug = (await t.GetFromJsonAsync<JsonElement>("/api/boards")).EnumerateArray().First().GetProperty("slug").GetString()!;
+        var slugs = new List<string>();
+        foreach (var title in new[] { "Gone", "Kept" })
+            slugs.Add((await (await t.PostAsJsonAsync($"/api/boards/{slug}/problems", Dto(title, "x"))).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!);
+
+        int goneBank, keptBank;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var gone = await db.Problems.FirstAsync(x => x.Slug == slugs[0]);
+            var kept = await db.Problems.FirstAsync(x => x.Slug == slugs[1]);
+            goneBank = gone.BankProblemId!.Value; keptBank = kept.BankProblemId!.Value;
+            kept.DeletedAt = DateTime.UtcNow;                  // soft-deleted can still be restored: its row stays
+            db.Problems.Remove(gone);                          // purged
+            await db.SaveChangesAsync();
+        }
+
+        var janitor = new BeeCoding.Services.BoardOnlyJanitor(app.Services.GetRequiredService<IServiceScopeFactory>(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<BeeCoding.Services.BoardOnlyJanitor>.Instance);
+        Assert.Equal(1, await janitor.SweepAsync(default));
+
+        using var scope2 = app.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(await db2.BankProblems.IgnoreQueryFilters().AnyAsync(b => b.Id == goneBank));
+        Assert.True(await db2.BankProblems.IgnoreQueryFilters().AnyAsync(b => b.Id == keptBank));
+    }
+
+    [Fact]
+    public async Task The_admin_export_leaves_out_board_only_rows()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var t = await TeacherAsync(app);
+            var slug = (await t.GetFromJsonAsync<JsonElement>("/api/boards")).EnumerateArray().First().GetProperty("slug").GetString()!;
+            (await t.PostAsJsonAsync($"/api/boards/{slug}/problems", Dto("Secret exam question", "x"))).EnsureSuccessStatusCode();
+
+            var json = await t.GetStringAsync("/api/admin-ui/problems/export");
+            Assert.DoesNotContain("Secret exam question", json);
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
 }
