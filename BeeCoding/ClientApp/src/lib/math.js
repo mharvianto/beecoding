@@ -36,6 +36,14 @@ export function extractMath(src) {
 
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/** DOMPurify hook: a placeholder that sits inside an attribute value (a formula typed in alt="..." or title="...") must not be swapped for HTML
+ *  afterwards, as the markup's quotes would end the attribute and spill into the tag. The placeholder is dropped, so the attribute is plain text. */
+export function dropPlaceholdersInAttributes(node) {
+  for (const a of [...(node.attributes || [])]) {
+    if (a.value.includes(OPEN) || a.value.includes(CLOSE)) node.setAttribute(a.name, a.value.replaceAll(OPEN, '').replaceAll(CLOSE, ''));
+  }
+}
+
 /** Put the formulas back as plain (escaped) source text: what is shown until KaTeX has loaded. */
 export function restorePlain(html, store) {
   return html.replace(PLACEHOLDER, (_, n) => `<span>${escapeHtml(store[+n]?.tex ?? '')}</span>`);

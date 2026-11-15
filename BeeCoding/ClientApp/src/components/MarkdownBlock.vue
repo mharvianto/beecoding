@@ -3,7 +3,9 @@ import { ref, watch } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { withBase } from '../lib/base';
-import { extractMath, restorePlain, restoreTypeset, loadKatex } from '../lib/math';
+import { extractMath, restorePlain, restoreTypeset, loadKatex, dropPlaceholdersInAttributes } from '../lib/math';
+
+DOMPurify.addHook('afterSanitizeAttributes', dropPlaceholdersInAttributes);
 
 const props = defineProps({ text: String });
 

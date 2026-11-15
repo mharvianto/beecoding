@@ -203,7 +203,9 @@ builder.Services.AddScoped<AiUsageService>();
 builder.Services.AddScoped<AiHintProgressService>();
 
 // --- LTI 1.3 (see Controllers/LtiController.cs) ---
-builder.Services.AddHttpClient("lti", c => c.Timeout = TimeSpan.FromSeconds(15));
+// No redirects (like the AI and Web Push clients): an org admin's platform URL could otherwise 30x the server to an internal address after passing AiUrl's literal-host check.
+builder.Services.AddHttpClient("lti", c => c.Timeout = TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddSingleton<LtiLoginStateStore>();
 builder.Services.AddSingleton<LtiJwksCache>();
 builder.Services.AddSingleton<LtiLaunchValidator>();
