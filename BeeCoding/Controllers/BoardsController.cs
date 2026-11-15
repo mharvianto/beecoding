@@ -298,7 +298,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     /// the same problem looks suspiciously similar (see PlagiarismService for the algorithm
     /// and its caveats — this is a spot-check signal, not proof).</summary>
     [HttpGet("{slug}/plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(string slug, [FromQuery] string? problem = null)
+    public async Task<ActionResult<PlagiarismResultDto>> Plagiarism(string slug, [FromQuery] string? problem = null)
     {
         var board = await _db.Boards.Include(b => b.Members).FirstOrDefaultAsync(b => b.Slug == slug);
         if (board is null) return NotFound();

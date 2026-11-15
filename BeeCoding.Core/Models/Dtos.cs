@@ -257,6 +257,16 @@ public record PlagiarismPairDto(
     int UserBId, string UserBName, int SubmissionBId,
     double Similarity);
 
+/// <summary>Three or more students on one problem linked by similar code (see PlagiarismService), shown as one card instead of a pile of pairs.</summary>
+public record PlagiarismMemberDto(int UserId, string UserName, int SubmissionId);
+public record PlagiarismGroupDto(
+    int ProblemId, string ProblemTitle, List<PlagiarismMemberDto> Members,
+    double MaxSimilarity, double MinSimilarity, double AvgSimilarity,
+    List<PlagiarismPairDto> StrongestPairs);
+
+/// <summary>Groups of three or more, plus the pairs that are not part of any group.</summary>
+public record PlagiarismResultDto(List<PlagiarismGroupDto> Groups, List<PlagiarismPairDto> Pairs);
+
 // ---- Admin: dashboard (overview landing tab) ----
 public record AdminDashboardDto(
     int TotalUsers, int TeacherCount, int StudentCount, int AdminCount,

@@ -443,7 +443,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     /// <summary>Same spot-check signal as the board-level endpoint (see PlagiarismService),
     /// scoped to one board that must belong to this org.</summary>
     [HttpGet("{orgId:int}/plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(int orgId, [FromQuery] int boardId, [FromQuery] int? problemId = null)
+    public async Task<ActionResult<PlagiarismResultDto>> Plagiarism(int orgId, [FromQuery] int boardId, [FromQuery] int? problemId = null)
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
         if (!await _db.Boards.AnyAsync(b => b.Id == boardId && b.OrganizationId == orgId)) return NotFound();

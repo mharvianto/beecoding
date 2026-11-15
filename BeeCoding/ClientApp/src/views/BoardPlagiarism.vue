@@ -13,7 +13,7 @@ const route = useRoute();
 const board = ref(null);
 const problems = ref([]);
 const problem = ref(typeof route.query.problem === 'string' ? route.query.problem : '');   // '' = every problem
-const pairs = ref([]);
+const pairs = ref({ groups: [], pairs: [] });
 const loading = ref(false);
 const error = ref('');
 const viewSubmission = ref(null);
@@ -32,7 +32,7 @@ async function check() {
   error.value = ''; loading.value = true;
   try {
     pairs.value = await api.get(`/api/boards/${props.slug}/plagiarism${problem.value ? `?problem=${encodeURIComponent(problem.value)}` : ''}`);
-  } catch (e) { error.value = e.message; pairs.value = []; }
+  } catch (e) { error.value = e.message; pairs.value = { groups: [], pairs: [] }; }
   finally { loading.value = false; }
 }
 function pick() {
@@ -55,7 +55,7 @@ function pick() {
     </label>
     <p v-if="error" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
-    <PlagiarismTable :pairs="pairs" :loading="loading" @view="viewSubmission = $event" @compare="compareData = $event" />
+    <PlagiarismTable :result="pairs" :loading="loading" @view="viewSubmission = $event" @compare="compareData = $event" />
 
     <SubmissionView v-if="viewSubmission" :submission-id="viewSubmission.id" :author-name="viewSubmission.authorName"
                     @close="viewSubmission = null" />

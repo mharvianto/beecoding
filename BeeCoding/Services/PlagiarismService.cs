@@ -65,8 +65,18 @@ public class PlagiarismService(AppDbContext db)
         _db.Problems.Where(p => p.BoardId == boardId).OrderBy(p => p.Position).ThenBy(p => p.Id)
             .Select(p => new PlagiarismProblemDto(p.Id, p.Title)).ToListAsync();
 
-    /// <summary>With <paramref name="problemId"/> only that problem is compared (smaller, and the pairs the teacher is actually looking at).</summary>
-    public async Task<List<PlagiarismPairDto>> ComputeForBoardAsync(int boardId, int? problemId = null, double minSimilarity = 0.5, int maxResults = 300)
+    /// <summary>Links at or above this similarity join students into one group (see <see cref="ComputeForBoardAsync"/>).</summary>
+    public const double GroupThreshold = 0.65;
+    public const int MinGroupSize = 3;
+    private const int MaxGroups = 100, MaxPairsPerGroup = 20;
+
+    /// <summary>
+    /// With <paramref name="problemId"/> only that problem is compared (smaller, and the pairs the teacher is actually looking at).
+    /// Students on one problem whose code is linked at <see cref="GroupThreshold"/> or more (A~B and B~C put A, B and C together, even if A and C
+    /// are not alike: each group says its lowest similarity) become a group once there are <see cref="MinGroupSize"/> of them; every other pair at
+    /// <paramref name="minSimilarity"/> or more stays a pair. Grouping happens before the pair cap, so a big group is not cut off by it.
+    /// </summary>
+    public async Task<PlagiarismResultDto> ComputeForBoardAsync(int boardId, int? problemId = null, double minSimilarity = 0.5, int maxResults = 300)
     {
         var subs = await _db.Submissions
             .Where(s => s.Problem!.BoardId == boardId && (problemId == null || s.ProblemId == problemId))
@@ -77,26 +87,58 @@ public class PlagiarismService(AppDbContext db)
             .Select(g => g.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).First())
             .Select(s => new { s.Id, s.ProblemId, s.ProblemTitle, s.UserId, s.UserName, Tokens = Tokenize(s.Code) })
             .Where(s => s.Tokens.Count >= MinTokens)
-            .Select(s => new { s.Id, s.ProblemId, s.ProblemTitle, s.UserId, s.UserName, Shingles = Shingles(s.Tokens) })
+            .Select(s => new Entry(s.Id, s.ProblemId, s.ProblemTitle, s.UserId, s.UserName, Shingles(s.Tokens)))
             .ToList();
 
-        var results = new List<PlagiarismPairDto>();
-        foreach (var group in latest.GroupBy(s => s.ProblemId))
+        var groups = new List<PlagiarismGroupDto>();
+        var loose = new List<PlagiarismPairDto>();
+        foreach (var problem in latest.GroupBy(s => s.ProblemId))
         {
-            var entries = group.ToList();
-            for (var i = 0; i < entries.Count; i++)
-                for (var j = i + 1; j < entries.Count; j++)
+            var e = problem.ToList();
+            var score = new double[e.Count, e.Count];
+            var parent = Enumerable.Range(0, e.Count).ToArray();
+            int Find(int x) { while (parent[x] != x) x = parent[x] = parent[parent[x]]; return x; }
+            for (var i = 0; i < e.Count; i++)
+                for (var j = i + 1; j < e.Count; j++)
                 {
-                    var score = Similarity(entries[i].Shingles, entries[j].Shingles);
-                    if (score < minSimilarity) continue;
-                    results.Add(new PlagiarismPairDto(
-                        entries[i].ProblemId, entries[i].ProblemTitle,
-                        entries[i].UserId, entries[i].UserName, entries[i].Id,
-                        entries[j].UserId, entries[j].UserName, entries[j].Id,
-                        score));
+                    score[i, j] = Similarity(e[i].Shingles, e[j].Shingles);
+                    if (score[i, j] >= GroupThreshold) parent[Find(i)] = Find(j);
+                }
+
+            var inGroup = new HashSet<int>();
+            foreach (var comp in Enumerable.Range(0, e.Count).GroupBy(Find).Where(c => c.Count() >= MinGroupSize))
+            {
+                var m = comp.OrderBy(i => e[i].UserName).ToList();
+                var all = new List<(int A, int B, double S)>();
+                for (var x = 0; x < m.Count; x++)
+                    for (var y = x + 1; y < m.Count; y++)
+                        all.Add((m[x], m[y], score[Math.Min(m[x], m[y]), Math.Max(m[x], m[y])]));
+                foreach (var i in m) inGroup.Add(i);
+                groups.Add(new PlagiarismGroupDto(
+                    e[m[0]].ProblemId, e[m[0]].ProblemTitle,
+                    m.Select(i => new PlagiarismMemberDto(e[i].UserId, e[i].UserName, e[i].Id)).ToList(),
+                    all.Max(p => p.S), all.Min(p => p.S), all.Average(p => p.S),
+                    all.OrderByDescending(p => p.S).Take(MaxPairsPerGroup).Select(p => Pair(e[p.A], e[p.B], p.S)).ToList()));
+            }
+
+            // a pair is loose unless both students sit in a group (they may be in different groups, or one outside)
+            var groupOf = groups.Where(g => g.ProblemId == problem.Key).SelectMany(g => g.Members.Select(m => (m.UserId, g))).ToDictionary(x => x.UserId, x => x.g);
+            for (var i = 0; i < e.Count; i++)
+                for (var j = i + 1; j < e.Count; j++)
+                {
+                    if (score[i, j] < minSimilarity) continue;
+                    if (groupOf.TryGetValue(e[i].UserId, out var gi) && groupOf.TryGetValue(e[j].UserId, out var gj) && gi == gj) continue;
+                    loose.Add(Pair(e[i], e[j], score[i, j]));
                 }
         }
 
-        return results.OrderByDescending(r => r.Similarity).Take(maxResults).ToList();
+        return new PlagiarismResultDto(
+            groups.OrderByDescending(g => g.Members.Count).ThenByDescending(g => g.MaxSimilarity).Take(MaxGroups).ToList(),
+            loose.OrderByDescending(r => r.Similarity).Take(maxResults).ToList());
     }
+
+    private sealed record Entry(int Id, int ProblemId, string ProblemTitle, int UserId, string UserName, HashSet<string> Shingles);
+
+    private static PlagiarismPairDto Pair(Entry a, Entry b, double score) =>
+        new(a.ProblemId, a.ProblemTitle, a.UserId, a.UserName, a.Id, b.UserId, b.UserName, b.Id, score);
 }

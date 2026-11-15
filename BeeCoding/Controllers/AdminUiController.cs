@@ -455,7 +455,7 @@ public class AdminUiController(
     /// <summary>Same spot-check signal as the board/org-level endpoints (see
     /// PlagiarismService), scoped to any one board on the platform.</summary>
     [HttpGet("plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism([FromQuery] int boardId, [FromQuery] int? problemId = null)
+    public async Task<ActionResult<PlagiarismResultDto>> Plagiarism([FromQuery] int boardId, [FromQuery] int? problemId = null)
     {
         if (!await _db.Boards.AnyAsync(b => b.Id == boardId)) return NotFound();
         if (problemId is int pid && !await _db.Problems.AnyAsync(p => p.Id == pid && p.BoardId == boardId)) return NotFound();

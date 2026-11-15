@@ -41,14 +41,14 @@ public class PlagiarismTests
         var svc = scope2.ServiceProvider.GetRequiredService<PlagiarismService>();
         var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
         var boardId = (await db2.Boards.FirstAsync(b => b.Slug == boardSlug)).Id;
-        Assert.Equal(2, (await svc.ComputeForBoardAsync(boardId)).Count);                       // both problems
+        Assert.Equal(2, (await svc.ComputeForBoardAsync(boardId)).Pairs.Count);                 // both problems
         var only = await svc.ComputeForBoardAsync(boardId, a);
-        Assert.Single(only);
-        Assert.Equal(a, only[0].ProblemId);
+        Assert.Single(only.Pairs);
+        Assert.Equal(a, only.Pairs[0].ProblemId);
 
         var t = app.CreateClient();
         (await t.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
-        Assert.Single(await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"/api/boards/{boardSlug}/plagiarism?problem={slugA}") ?? []);
+        Assert.Single((await t.GetFromJsonAsync<PlagiarismResultDto>($"/api/boards/{boardSlug}/plagiarism?problem={slugA}"))!.Pairs);
         Assert.Equal(HttpStatusCode.NotFound, (await t.GetAsync($"/api/boards/{boardSlug}/plagiarism?problem=nope")).StatusCode);
     }
 
@@ -89,11 +89,40 @@ public class PlagiarismTests
             {
                 var problems = await t.GetFromJsonAsync<List<PlagiarismProblemDto>>($"{root}/plagiarism/problems?boardId={boardId}") ?? [];
                 Assert.Equal(["A", "B"], problems.Select(p => p.Title));
-                Assert.Equal(2, (await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"{root}/plagiarism?boardId={boardId}"))!.Count);
-                Assert.Single((await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"{root}/plagiarism?boardId={boardId}&problemId={a}"))!);
+                Assert.Equal(2, (await t.GetFromJsonAsync<PlagiarismResultDto>($"{root}/plagiarism?boardId={boardId}"))!.Pairs.Count);
+                Assert.Single((await t.GetFromJsonAsync<PlagiarismResultDto>($"{root}/plagiarism?boardId={boardId}&problemId={a}"))!.Pairs);
                 Assert.Equal(HttpStatusCode.NotFound, (await t.GetAsync($"{root}/plagiarism?boardId={boardId}&problemId={otherBoardProblem}")).StatusCode);   // not this board's problem
             }
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    [Fact]
+    public async Task Three_or_more_alike_students_become_one_group_and_two_stay_a_pair()
+    {
+        using var app = new TestApp();
+        foreach (var n in new[] { "s1", "s2", "s3" })
+            (await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email = $"{n}@test.dev", password = "Passw0rd!x1", displayName = n, role = "Student" })).EnsureSuccessStatusCode();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var board = await db.Boards.FirstAsync(b => b.JoinCode == "DEMO01");
+        var many = new Problem { BoardId = board.Id, Title = "Many", StatementMarkdown = "x" };
+        var two = new Problem { BoardId = board.Id, Title = "Two", StatementMarkdown = "x" };
+        db.Problems.AddRange(many, two);
+        await db.SaveChangesAsync();
+        var users = await db.Users.Where(u => u.Email == "teacher@demo.test" || u.Email.EndsWith("@test.dev")).OrderBy(u => u.Id).ToListAsync();   // 4 people
+        foreach (var u in users) db.Submissions.Add(new Submission { ProblemId = many.Id, UserId = u.Id, Code = Code, Status = SubmissionStatus.Done });
+        foreach (var u in users.Take(2)) db.Submissions.Add(new Submission { ProblemId = two.Id, UserId = u.Id, Code = Code, Status = SubmissionStatus.Done });
+        await db.SaveChangesAsync();
+
+        var r = await scope.ServiceProvider.GetRequiredService<PlagiarismService>().ComputeForBoardAsync(board.Id);
+
+        var g = Assert.Single(r.Groups);
+        Assert.Equal("Many", g.ProblemTitle);
+        Assert.Equal(4, g.Members.Count);
+        Assert.Equal(1.0, g.MinSimilarity);
+        Assert.Equal(6, g.StrongestPairs.Count);                          // 4 students = 6 pairs, shown inside the group
+        var pair = Assert.Single(r.Pairs);                                // not 6 + 1 loose rows
+        Assert.Equal("Two", pair.ProblemTitle);
     }
 }
