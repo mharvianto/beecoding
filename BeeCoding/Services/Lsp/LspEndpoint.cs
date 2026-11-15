@@ -14,6 +14,7 @@ namespace BeeCoding.Services.Lsp;
 /// </summary>
 public class LspEndpoint
 {
+    private static readonly TimeSpan SendTimeout = TimeSpan.FromSeconds(10);
     private const int MaxMessageChars = 1_000_000;   // same cap as a shared-clangd message
     private readonly LspOptions _opt;
     private readonly PlatformRuntimeConfig _runtime;
@@ -86,19 +87,26 @@ public class LspEndpoint
                 return;
             }
 
+            var closed = new CancellationTokenSource();
             var sendLock = new SemaphoreSlim(1, 1);
             async Task ToClientAsync(string json)
             {
                 if (ws.State != WebSocketState.Open) return;
                 var bytes = Encoding.UTF8.GetBytes(json);
-                await sendLock.WaitAsync();
-                try { await ws.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken.None); }
+                // Delivery runs on the language server's read loop (one per process, shared by every student in shared mode): a client that
+                // stops reading must not hold it for ever, so a send that takes longer than this drops that client, not everyone's completions.
+                using var timeout = new CancellationTokenSource(SendTimeout);
+                try
+                {
+                    await sendLock.WaitAsync(timeout.Token);
+                    try { await ws.SendAsync(bytes, WebSocketMessageType.Text, true, timeout.Token); }
+                    finally { sendLock.Release(); }
+                }
+                catch (OperationCanceledException) { ws.Abort(); closed.Cancel(); }
                 catch { /* client gone */ }
-                finally { sendLock.Release(); }
             }
 
             session.MessageReceived += ToClientAsync;
-            var closed = new CancellationTokenSource();
             session.Exited += () => closed.Cancel();
 
             // handshake: tell the client the file URI clangd expects
