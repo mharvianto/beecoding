@@ -161,4 +161,41 @@ public class HardeningTests
         cache.Set(new[] { "https://u;sandbox;@lms.example", "https://lms2.example:8443/path", "ftp://nope.example" });
         Assert.Equal(new[] { "https://lms.example", "https://lms2.example:8443" }, cache.Origins.ToArray());
     }
+
+    [Fact]
+    public async Task An_lti_launch_cannot_give_an_account_an_admin_address()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "future-admin@school.test");   // listed, but nobody has registered it yet
+        try
+        {
+            using var app = new TestApp();
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var svc = scope.ServiceProvider.GetRequiredService<LtiProvisioningService>();
+            var platform = new LtiPlatform { Name = "P", Issuer = "https://lms.example", ClientId = "c", DeploymentIds = "d1", Enabled = true };
+            db.LtiPlatforms.Add(platform); await db.SaveChangesAsync();
+
+            var user = await svc.FindOrCreateUserAsync(platform, new LtiLaunchClaims
+            {
+                MessageType = "LtiResourceLinkRequest", Issuer = platform.Issuer, Subject = "sub-1", DeploymentId = "d1", Email = "Future-Admin@School.test", Name = "Lecturer",
+            });
+            Assert.EndsWith("@lti.invalid", user.Email);
+            var admin = scope.ServiceProvider.GetRequiredService<AdminAccess>();
+            Assert.False(admin.IsAdminEmail(user.Email));
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    [Fact]
+    public void The_clangd_jail_wraps_the_command_in_bubblewrap_and_refuses_to_run_without_it()
+    {
+        var (file, args) = BeeCoding.Services.Lsp.ClangdSession.Jail("/tmp/beecoding-lsp/s_1", "clangd", new List<string> { "--background-index=false" }, bwrap: "/bin/sh");
+        Assert.Equal("/bin/sh", file);
+        Assert.Contains("--unshare-all", args);                                   // no network, no shared namespaces
+        Assert.Contains("--clearenv", args);
+        var bind = args.IndexOf("--bind");
+        Assert.Equal(new[] { "/tmp/beecoding-lsp/s_1", "/tmp/beecoding-lsp/s_1" }, args.Skip(bind + 1).Take(2));   // only the workspace is writable
+        Assert.Equal(new[] { "--", "clangd", "--background-index=false" }, args.Skip(args.IndexOf("--")).ToArray()); // the real command comes last, untouched
+        Assert.Throws<InvalidOperationException>(() => BeeCoding.Services.Lsp.ClangdSession.Jail("/tmp/x", "clangd", new List<string>(), bwrap: "/no/such/bwrap"));
+    }
 }

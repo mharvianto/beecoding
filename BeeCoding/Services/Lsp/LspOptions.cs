@@ -7,6 +7,12 @@ public class LspOptions
 
     public string ClangdPath { get; set; } = "clangd";
 
+    /// <summary>Run each clangd inside bubblewrap (no network, read-only /usr, only its own workspace writable), like the judge. Off by default
+    /// so an existing install keeps working; turn it on where bwrap works (<c>Judge:RequireSandbox</c> hosts). Without it clangd runs as the app's
+    /// OS user and a <c>#include "/some/file"</c> in a student's code can make it read any file that user can read. With it on and no
+    /// <c>/usr/bin/bwrap</c>, the language server refuses to start instead of running unjailed. clangd must live under /usr.</summary>
+    public bool Sandbox { get; set; }
+
     /// <summary>Max concurrent clangd sessions.</summary>
     public int MaxConcurrent { get; set; } = 4;
 

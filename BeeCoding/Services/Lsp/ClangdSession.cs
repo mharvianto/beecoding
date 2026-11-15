@@ -75,6 +75,8 @@ public sealed class ClangdSession : ILspSession
             file = "/usr/bin/prlimit";
         }
 
+        if (opt.Sandbox) (file, args) = Jail(dir, file, args);
+
         var psi = new ProcessStartInfo(file)
         {
             WorkingDirectory = dir,
@@ -95,6 +97,23 @@ public sealed class ClangdSession : ILspSession
         proc.BeginErrorReadLine();
         _ = session.ReadLoopAsync(log);
         return session;
+    }
+
+    /// <summary>The same command run under bubblewrap: no network or other namespaces, read-only /usr, a small tmpfs /tmp, and only the session's
+    /// workspace directory writable (mounted at the same path so clangd's file URIs still line up).</summary>
+    internal static (string File, List<string> Args) Jail(string dir, string file, List<string> args, string bwrap = "/usr/bin/bwrap")
+    {
+        if (!File.Exists(bwrap)) throw new InvalidOperationException("Lsp:Sandbox is on but bubblewrap (" + bwrap + ") is not installed: refusing to run clangd unjailed.");
+        var jail = new List<string>
+        {
+            "--unshare-all", "--die-with-parent", "--new-session", "--clearenv",
+            "--setenv", "PATH", "/usr/bin:/bin", "--setenv", "HOME", "/tmp",
+            "--ro-bind", "/usr", "/usr", "--size", "268435456", "--tmpfs", "/tmp", "--proc", "/proc", "--dev", "/dev",
+            "--symlink", "usr/lib", "/lib", "--symlink", "usr/lib64", "/lib64", "--symlink", "usr/bin", "/bin", "--symlink", "usr/sbin", "/sbin",
+            "--bind", dir, dir, "--chdir", dir, "--", file,
+        };
+        jail.AddRange(args);
+        return (bwrap, jail);
     }
 
     public async Task SendAsync(string json, CancellationToken ct = default)

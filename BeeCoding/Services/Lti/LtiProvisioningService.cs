@@ -10,8 +10,9 @@ namespace BeeCoding.Services.Lti;
 /// placement points at — a whole board, or a single Practice/bank problem — and make
 /// sure the user is a member with the right role when it's a board.
 /// </summary>
-public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardService boards)
+public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardService boards, AdminAccess admin)
 {
+    private readonly AdminAccess _admin = admin;
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
     private readonly BoardService _boards = boards;
@@ -33,7 +34,8 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         // A taken email falls back to the synthesized one, i.e. a separate account.
         var synthetic = $"lti-{platform.Id}-{claims.Subject}@lti.invalid";
         var email = string.IsNullOrWhiteSpace(claims.Email) ? synthetic : claims.Email!.Trim().ToLowerInvariant();
-        if (email != synthetic && await _db.Users.AnyAsync(u => u.Email == email)) email = synthetic;
+        // An LMS-asserted address never becomes an admin address: admin follows the email string, so an unregistered Admin:Emails entry must not be claimable from a launch.
+        if (email != synthetic && (_admin.IsAdminEmail(email) || await _db.Users.AnyAsync(u => u.Email == email))) email = synthetic;
 
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (user is null)
@@ -100,7 +102,7 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         {
             var real = claims.Email!.Trim().ToLowerInvariant();
             var taken = await _db.Users.AnyAsync(u => u.Id != user.Id && u.Email == real);
-            if (!taken)
+            if (!taken && !_admin.IsAdminEmail(real))
             {
                 user.Email = real;
                 changed = true;
