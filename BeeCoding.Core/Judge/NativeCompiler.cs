@@ -45,7 +45,7 @@ public class NativeCompiler(NativeToolchain tc, ILogger<NativeCompiler> log)
             var b = new StringBuilder();
             b.Append("--unshare-all --die-with-parent --new-session --clearenv ");
             b.Append("--setenv PATH /usr/bin:/bin --setenv TMPDIR /tmp ");
-            b.Append("--ro-bind /usr /usr --tmpfs /tmp --proc /proc --dev /dev ");
+            b.Append("--ro-bind /usr /usr --size 134217728 --tmpfs /tmp --proc /proc --dev /dev ");
             b.Append("--symlink usr/lib /lib --symlink usr/lib64 /lib64 ");
             b.Append("--symlink usr/bin /bin --symlink usr/sbin /sbin ");
             b.Append($"--bind \"{workDir}\" \"{workDir}\" --chdir \"{workDir}\" ");

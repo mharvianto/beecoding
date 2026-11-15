@@ -126,4 +126,39 @@ public class HardeningTests
         Assert.False(string.IsNullOrEmpty((await ok.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("ticket").GetString()));
         Assert.Equal(HttpStatusCode.Unauthorized, (await app.CreateClient().PostAsJsonAsync("/api/auth/google/link-ticket", new { password = "password" })).StatusCode);
     }
+
+    [Fact]
+    public async Task Admin_csv_neutralises_formulas_and_login_refuses_a_huge_email_before_remembering_it()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            (await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email = "formula@test.dev", password = "Passw0rd!x1", displayName = "=1+1", role = "Student" })).EnsureSuccessStatusCode();
+            var admin = app.CreateClient();
+            (await admin.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+            var csv = await admin.GetStringAsync("/api/admin-ui/analytics/users.csv");
+            Assert.Contains("'=1+1", csv);
+            Assert.DoesNotContain(",=1+1", csv);
+            Assert.DoesNotContain("\n=1+1", csv);
+
+            var big = new string('a', 300_000) + "@x.dev";
+            Assert.Equal(HttpStatusCode.Unauthorized, (await app.CreateClient().PostAsJsonAsync("/api/auth/login", new { email = big, password = "x" })).StatusCode);
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    [Fact]
+    public void The_google_return_path_refuses_control_characters_and_the_lti_origin_drops_userinfo()
+    {
+        var safe = typeof(BeeCoding.Controllers.GoogleController).GetMethod("SafeReturn", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        string Safe(string r) => (string)safe.Invoke(null, new object?[] { r })!;
+        Assert.Equal("/boards/abc", Safe("/boards/abc"));
+        Assert.Equal("/boards", Safe("/\t/evil.example"));      // a tab would make this //evil.example for a browser
+        Assert.Equal("/boards", Safe("//evil.example"));
+
+        var cache = new BeeCoding.Services.LtiPlatformOriginsCache();
+        cache.Set(new[] { "https://u;sandbox;@lms.example", "https://lms2.example:8443/path", "ftp://nope.example" });
+        Assert.Equal(new[] { "https://lms.example", "https://lms2.example:8443" }, cache.Origins.ToArray());
+    }
 }

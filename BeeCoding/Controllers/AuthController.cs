@@ -88,6 +88,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         var email = (dto.Email ?? "").Trim().ToLowerInvariant();
         var ip = ClientIp;
 
+        if (email.Length > 256) return Unauthorized("Wrong email or password.");   // the throttle remembers this string: never a megabyte of it
         // Counted up front (a success clears it): see LoginThrottle.TryBegin.
         if (!_throttle.TryBegin(ip, email))
             return StatusCode(StatusCodes.Status429TooManyRequests, "Too many failed attempts. Try again in a few minutes.");

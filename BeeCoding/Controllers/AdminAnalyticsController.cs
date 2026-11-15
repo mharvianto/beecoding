@@ -252,6 +252,8 @@ public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig run
     private static string CsvEscape(string? s)
     {
         s ??= "";
+        // A cell a spreadsheet would read as a formula (=, +, -, @, tab, CR first) gets a leading quote; plain numbers stay numbers.
+        if (s.Length > 0 && "=+-@\t\r".Contains(s[0]) && !System.Text.RegularExpressions.Regex.IsMatch(s, @"^[+-]?\d+(\.\d+)?$")) s = "'" + s;
         return s.Contains(',') || s.Contains('"') || s.Contains('\n') ? $"\"{s.Replace("\"", "\"\"")}\"" : s;
     }
 

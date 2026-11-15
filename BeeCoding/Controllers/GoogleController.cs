@@ -40,7 +40,7 @@ public class GoogleController(AppDbContext db, GoogleAuthService google, MfaServ
 
     // app-relative path only — never an absolute or protocol-relative URL
     private static string SafeReturn(string? r) =>
-        !string.IsNullOrEmpty(r) && r[0] == '/' && !r.StartsWith("//") && !r.Contains('\\') && r.Length < 300 ? r : "/boards";
+        !string.IsNullOrEmpty(r) && r[0] == '/' && !r.StartsWith("//") && !r.Contains('\\') && r.Length < 300 && !r.Any(char.IsControl) ? r : "/boards";
 
     private IActionResult ToApp(string path) => Redirect(Request.PathBase + path);
 

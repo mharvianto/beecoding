@@ -45,7 +45,7 @@ public class NativeSandbox(NativeToolchain tc, ILogger<NativeSandbox> log)
             var b = new StringBuilder();
             b.Append("--unshare-all --die-with-parent --new-session --clearenv ");
             b.Append("--setenv PATH /usr/bin:/bin ");
-            b.Append("--ro-bind /usr /usr --tmpfs /tmp --proc /proc --dev /dev ");
+            b.Append("--ro-bind /usr /usr --size 134217728 --tmpfs /tmp --proc /proc --dev /dev ");
             b.Append("--symlink usr/lib /lib --symlink usr/lib64 /lib64 ");
             b.Append("--symlink usr/bin /bin --symlink usr/sbin /sbin ");
             // The runner binary lives in WorkRoot (outside workDir) — bind it in too.

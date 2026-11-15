@@ -415,6 +415,8 @@ using (var scope = app.Services.CreateScope())
     // Admin is decided by the email in the cookie, so a configured admin address with no account can be claimed by whoever registers it first.
     var adminAccess = scope.ServiceProvider.GetRequiredService<AdminAccess>();
     var registered = (await db.Users.Select(u => u.Email).ToListAsync()).Select(e => e.ToLowerInvariant()).ToHashSet();
+    if (!string.IsNullOrWhiteSpace(app.Configuration["Email:Host"]) && string.IsNullOrWhiteSpace(app.Configuration["App:PublicUrl"]))
+        app.Logger.LogWarning("Email is configured but App:PublicUrl is not: password-reset and verification links are built from the request's Host header. Set App:PublicUrl.");
     foreach (var unregistered in adminAccess.ConfiguredEmails().Where(e => !registered.Contains(e)))
         app.Logger.LogWarning("Admin:Emails lists {Email} but no account exists for it: register it yourself now, anyone who registers it first becomes platform admin.", unregistered);
 

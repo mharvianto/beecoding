@@ -157,6 +157,8 @@ public class StatementImageService : IDisposable
         }
     }
 
+    private const int MaxPictures = 20;   // a 50,000-character statement can name one picture a thousand times; past this the alt text is drawn instead
+
     /// <summary>A paragraph is drawn as text, except that each <c>![](/api/images/id)</c> in it is drawn as a picture of its own.</summary>
     private static void ParagraphWithImages(Gfx g, ParagraphBlock p, float x, IReadOnlyDictionary<string, byte[]> images)
     {
@@ -169,9 +171,10 @@ public class StatementImageService : IDisposable
         }
         foreach (var node in p.Inline ?? Enumerable.Empty<Inline>())
         {
-            if (node is LinkInline { IsImage: true } link && ImageBytes(link, images) is { } bytes)
+            if (node is LinkInline { IsImage: true } link && g.Pictures < MaxPictures && ImageBytes(link, images) is { } bytes)
             {
                 Flush();
+                g.Pictures++;
                 DrawPicture(g, bytes, x);
             }
             else pending.Add(node);   // text, or an image we cannot show: its alt text is drawn instead
@@ -261,6 +264,7 @@ public class StatementImageService : IDisposable
         SKPaint text, SKPaint muted, SKPaint codeBg, SKPaint rule)
     {
         public readonly SKCanvas Canvas = canvas;
+        public int Pictures;   // decoded so far in this render: each one costs a full bitmap decode
         private readonly Theme _t = t;
         private readonly SKFont _reg = reg, _bold = bold, _mono = mono, _monoSmall = monoSmall;
         private readonly SKPaint _text = text, _muted = muted, _codeBg = codeBg, _rule = rule;

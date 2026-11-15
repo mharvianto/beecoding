@@ -28,5 +28,7 @@ public class LtiPlatformOriginsCache
     }
 
     private static string? TryOrigin(string issuer) =>
-        Uri.TryCreate(issuer, UriKind.Absolute, out var uri) ? uri.GetLeftPart(UriPartial.Authority) : null;
+        Uri.TryCreate(issuer, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+            ? $"{uri.Scheme}://{uri.IdnHost}{(uri.IsDefaultPort ? "" : ":" + uri.Port)}"   // not GetLeftPart(Authority): that keeps user:info@, and the value goes into a CSP header
+            : null;
 }
