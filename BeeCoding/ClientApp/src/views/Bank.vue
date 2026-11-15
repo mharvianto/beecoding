@@ -24,7 +24,7 @@ const error = ref('');
 // Search, scope and level live in the URL so a filtered bank survives refresh and can be shared.
 const url = useUrlQuery({
   q: { ref: q, def: '' },
-  scope: { ref: scope, def: 'mine', allowed: ['mine', 'public', 'all'] },
+  scope: { ref: scope, def: 'mine', allowed: ['mine', 'shared', 'public', 'all'] },
   level: { ref: level, def: '', allowed: ['Easy', 'Medium', 'Hard'] },
 }, { onExternalChange: () => load() });
 url.read();
@@ -264,7 +264,8 @@ onBeforeUnmount(() => { pollStopped = true; });
       <select v-if="!student" v-model="scope" @change="load"
               class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="mine">Mine</option>
-        <option value="public">Shared by others</option>
+        <option value="shared">Shared with me</option>
+        <option value="public">Public from others</option>
         <option value="all">All</option>
       </select>
       <select v-model="level" @change="load"

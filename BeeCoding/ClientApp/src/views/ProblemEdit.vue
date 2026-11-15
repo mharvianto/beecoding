@@ -6,6 +6,7 @@ import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import ProblemEditor from '../components/ProblemEditor.vue';
+import BankShare from '../components/BankShare.vue';
 
 const undoToast = useUndoToast();
 const confirmDialog = useConfirmDialog();
@@ -165,5 +166,6 @@ onMounted(async () => {
       :add-extreme-busy="addExtremeBusy"
       @dirty="dirty = $event" @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"
       @add-extreme-tests="addExtremeTests" />
+    <BankShare v-if="loaded && !isBoard && auth.isTeacher && editSlug && problem?.mine" :slug="editSlug" />
   </div>
 </template>

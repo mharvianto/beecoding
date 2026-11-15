@@ -361,6 +361,31 @@ namespace BeeCoding.Migrations
                     b.ToTable("BankProblemEmbeddings");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.BankProblemShare", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("BankProblemId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("BankProblemShares");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.BankSubmission", b =>
                 {
                     b.Property<int>("Id")
@@ -1871,6 +1896,25 @@ namespace BeeCoding.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.BankProblemShare", b =>
+                {
+                    b.HasOne("BeeCoding.Models.BankProblem", "BankProblem")
+                        .WithMany()
+                        .HasForeignKey("BankProblemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BeeCoding.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BankProblem");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.BankSubmission", b =>

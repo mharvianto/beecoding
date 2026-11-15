@@ -1013,6 +1013,22 @@ public class AiHintEvent
     public DateTime At { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>A teacher the owner of a private bank problem lets read it and copy it to their own boards. Read-only: only the owner
+/// edits, deletes or publishes it. Teachers only (see BankController.AddShare); a copy already made stays with the recipient.</summary>
+public class BankProblemShare
+{
+    public int Id { get; set; }
+
+    public int BankProblemId { get; set; }
+    public BankProblem? BankProblem { get; set; }
+
+    /// <summary>The teacher it is shared with.</summary>
+    public int UserId { get; set; }
+    public User? User { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>
 /// Trail of moderation actions (soft-delete, restore, permanent purge) for the admin panel.
 /// Actor/target are denormalized (email, label) so the row still reads sensibly after the

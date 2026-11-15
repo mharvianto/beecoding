@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
     public DbSet<AiHintEvent> AiHintEvents => Set<AiHintEvent>();
+    public DbSet<BankProblemShare> BankProblemShares => Set<BankProblemShare>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<PlatformRuntimeSettings> PlatformRuntimeSettings => Set<PlatformRuntimeSettings>();
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
@@ -217,6 +218,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         b.Entity<AiHintProgress>().HasIndex(x => new { x.UserId, x.ProblemKey }).IsUnique();
         b.Entity<AiHintEvent>().HasIndex(x => x.At);
+        b.Entity<BankProblemShare>().HasIndex(x => new { x.BankProblemId, x.UserId }).IsUnique();
+        b.Entity<BankProblemShare>().HasIndex(x => x.UserId);
         b.Entity<AiHintProgress>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

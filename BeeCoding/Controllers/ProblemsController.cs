@@ -264,7 +264,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
             .Where(x => x.BoardId == boardId!.Value && x.SourceBankProblemId != null && !x.Hidden).ToListAsync();   // a hidden copy is not in use: hiding the old one after a draft clears its notice
         var sourceIds = copies.Select(x => x.SourceBankProblemId!.Value).Distinct().ToList();
         // A BoardOnly row is written through on every edit, so it can never be ahead; a deleted bank problem is filtered out and skipped.
-        var banks = await _db.BankProblems.Include(b => b.TestCases).Where(b => sourceIds.Contains(b.Id) && !b.BoardOnly).ToDictionaryAsync(b => b.Id);
+        var banks = await _db.BankProblems.Include(b => b.TestCases).Where(b => sourceIds.Contains(b.Id) && !b.BoardOnly).Where(CanReadBank()).ToDictionaryAsync(b => b.Id);
         var behind = copies.Where(c => banks.TryGetValue(c.SourceBankProblemId!.Value, out var b)
             && BoardBulkService.GradedContent(c) != BoardBulkService.GradedContent(b)).ToList();
         var behindIds = behind.Select(c => c.Id).ToList();
@@ -285,7 +285,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var p = await _db.Problems.Include(x => x.TestCases)
             .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
         if (p?.SourceBankProblemId is not int srcId) return NotFound();
-        var bank = await _db.BankProblems.Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Id == srcId && !b.BoardOnly);
+        var bank = await _db.BankProblems.Include(b => b.TestCases).Where(CanReadBank()).FirstOrDefaultAsync(b => b.Id == srcId && !b.BoardOnly);
         if (bank is null) return NotFound();
 
         if (await _db.Submissions.AnyAsync(s => s.ProblemId == p.Id))
@@ -309,6 +309,14 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         await _db.SaveChangesAsync();
         await _notifier.ProblemChangedAsync(boardId!.Value);
         return Mapping.ToOwnerDto(p);
+    }
+
+    /// <summary>What this teacher may read in the bank: their own, public ones, and ones shared with them. A copy only keeps getting
+    /// updates from a problem they can still read (a revoked share stops them).</summary>
+    private System.Linq.Expressions.Expression<Func<BankProblem, bool>> CanReadBank()
+    {
+        var me = UserId;
+        return b => b.IsPublic || b.OwnerId == me || _db.BankProblemShares.Any(x => x.BankProblemId == b.Id && x.UserId == me);
     }
 
     /// <summary>The board problem's content of record: a private bank row. If this fails the problem simply has no link yet; the startup backfill adds it.</summary>

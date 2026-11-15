@@ -177,4 +177,47 @@ public class BoardProblemBankTests
         var after = (await t.GetFromJsonAsync<JsonElement>($"/api/boards/{slug}/problems/bank-updates")).EnumerateArray().Select(x => x.GetProperty("slug").GetString()).ToList();
         Assert.Equal([used], after);
     }
+
+    [Fact]
+    public async Task A_private_bank_problem_can_be_shared_read_only_with_a_teacher_and_unshared()
+    {
+        using var app = new TestApp();
+        var owner = await TeacherAsync(app);
+        var made = await owner.PostAsJsonAsync("/api/bank", new UpsertProblemDto("Mine", "secret", "", 1000, 32768, 0, "", "Easy",
+            [new UpsertTestCaseDto(null, "1\n", "1\n", true, 1, 0), new UpsertTestCaseDto(null, "2\n", "2\n", false, 1, 1)]));
+        made.EnsureSuccessStatusCode();
+        var slug = (await made.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // a second teacher (registered, then promoted in the database) and a student
+        foreach (var (email, role) in new[] { ("t2@test.dev", "Student"), ("kid@test.dev", "Student") })
+            (await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email, password = "Passw0rd!x1", displayName = email, role })).EnsureSuccessStatusCode();
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            (await db.Users.FirstAsync(u => u.Email == "t2@test.dev")).Role = UserRole.Teacher;
+            await db.SaveChangesAsync();
+        }
+        var t2 = app.CreateClient();
+        (await t2.PostAsJsonAsync("/api/auth/login", new { email = "t2@test.dev", password = "Passw0rd!x1" })).EnsureSuccessStatusCode();
+
+        Assert.Equal(HttpStatusCode.NotFound, (await t2.GetAsync($"/api/bank/{slug}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await owner.PostAsJsonAsync($"/api/bank/{slug}/shares", new { email = "kid@test.dev" })).StatusCode);    // students cannot receive
+        Assert.Equal(HttpStatusCode.BadRequest, (await owner.PostAsJsonAsync($"/api/bank/{slug}/shares", new { email = "teacher@demo.test" })).StatusCode);
+        (await owner.PostAsJsonAsync($"/api/bank/{slug}/shares", new { email = "T2@test.dev" })).EnsureSuccessStatusCode();
+        (await owner.PostAsJsonAsync($"/api/bank/{slug}/shares", new { email = "t2@test.dev" })).EnsureSuccessStatusCode();                              // repeating is harmless
+        Assert.Single((await owner.GetFromJsonAsync<JsonElement>($"/api/bank/{slug}/shares")).EnumerateArray());
+
+        var seen = await t2.GetFromJsonAsync<JsonElement>($"/api/bank/{slug}");
+        Assert.False(seen.GetProperty("mine").GetBoolean());
+        Assert.Single(seen.GetProperty("testCases").EnumerateArray());                                                                                  // samples only
+        var shared = await t2.GetFromJsonAsync<JsonElement>("/api/bank?scope=shared");
+        Assert.Single(shared.EnumerateArray());
+        Assert.Equal(HttpStatusCode.Forbidden, (await t2.PutAsJsonAsync($"/api/bank/{slug}", new UpsertProblemDto("x", "y", "", 1000, 32768, 0, "", "Easy", null))).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await t2.GetAsync($"/api/bank/{slug}/shares")).StatusCode);                                             // only the owner manages shares
+
+        var uid = (await owner.GetFromJsonAsync<JsonElement>($"/api/bank/{slug}/shares")).EnumerateArray().First().GetProperty("userId").GetInt32();
+        (await owner.DeleteAsync($"/api/bank/{slug}/shares/{uid}")).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.NotFound, (await t2.GetAsync($"/api/bank/{slug}")).StatusCode);
+    }
 }

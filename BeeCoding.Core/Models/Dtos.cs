@@ -93,6 +93,8 @@ public record UpsertProblemDto(
 public record UpdateProblemVisibilityDto(bool Hidden);
 /// <summary>A board problem whose bank source has changed since it was copied. Locked = students already submitted, so an update makes a new version.</summary>
 public record BankUpdateDto(string Slug, bool Locked);
+public record BankShareDto(int UserId, string DisplayName, string Email);
+public record AddBankShareDto(string Email);
 public record ReorderProblemsDto(List<string> Order);   // problem slugs, board's new top-to-bottom order
 
 /// <summary>Per-problem submission aggregate for the staff Problems page — computed

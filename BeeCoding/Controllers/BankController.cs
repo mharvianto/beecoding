@@ -37,7 +37,9 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     // lists the public ones to them).
     private IQueryable<BankProblem> Readable() => IsStudent
         ? _db.BankProblems.Where(b => b.OwnerId == UserId && !b.BoardOnly)
-        : _db.BankProblems.Where(b => (b.OwnerId == UserId || b.IsPublic) && !b.BoardOnly);
+        : _db.BankProblems.Where(b => (b.OwnerId == UserId || b.IsPublic || SharedWithMe.Any(x => x.BankProblemId == b.Id)) && !b.BoardOnly);
+
+    private IQueryable<BankProblemShare> SharedWithMe => _db.BankProblemShares.Where(x => x.UserId == UserId);
 
     /// <summary>
     /// The public problems (plus the caller's own pending ones) closest to one of the caller's problems, so an author can spot a
@@ -64,7 +66,8 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         var query = (scope ?? "all").ToLowerInvariant() switch
         {
             "mine" => _db.BankProblems.Where(b => b.OwnerId == UserId && !b.BoardOnly),
-            "public" => _db.BankProblems.Where(b => !IsStudent && b.IsPublic && b.OwnerId != UserId),
+            "public" => _db.BankProblems.Where(b => !IsStudent && b.IsPublic && b.OwnerId != UserId && !b.BoardOnly),
+            "shared" => _db.BankProblems.Where(b => !IsStudent && !b.BoardOnly && b.OwnerId != UserId && SharedWithMe.Any(x => x.BankProblemId == b.Id)),
             _ => Readable(),
         };
 
@@ -333,6 +336,54 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         await _notifier.ProblemChangedAsync(board.Id);
 
         return Mapping.ToOwnerDto(p);
+    }
+
+    private const int MaxSharesPerProblem = 50;
+
+    /// <summary>The owner's own, shareable problem (teachers only; a BoardOnly row is not part of the bank).</summary>
+    private Task<BankProblem?> ShareableAsync(string slug) =>
+        _db.BankProblems.FirstOrDefaultAsync(x => x.Slug == slug && x.OwnerId == UserId && !x.BoardOnly);
+
+    [Authorize(Roles = "Teacher")]
+    [HttpGet("api/bank/{slug}/shares")]
+    public async Task<ActionResult<List<BankShareDto>>> Shares(string slug)
+    {
+        var b = await ShareableAsync(slug);
+        if (b is null) return NotFound();
+        return await _db.BankProblemShares.Where(x => x.BankProblemId == b.Id).OrderBy(x => x.User!.DisplayName)
+            .Select(x => new BankShareDto(x.UserId, x.User!.DisplayName, x.User.Email)).ToListAsync();
+    }
+
+    /// <summary>Let another teacher read the problem and copy it to their boards. Not a publish: no review, no practice, no edit rights.</summary>
+    [Authorize(Roles = "Teacher")]
+    [HttpPost("api/bank/{slug}/shares")]
+    public async Task<ActionResult<BankShareDto>> AddShare(string slug, AddBankShareDto dto)
+    {
+        var b = await ShareableAsync(slug);
+        if (b is null) return NotFound();
+        var email = (dto.Email ?? "").Trim().ToLowerInvariant();
+        var who = await _db.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email && u.Role == UserRole.Teacher);
+        if (who is null) return NotFound("No teacher account has that email.");
+        if (who.Id == UserId) return BadRequest("This is your own problem.");
+        if (await _db.BankProblemShares.CountAsync(x => x.BankProblemId == b.Id) >= MaxSharesPerProblem)
+            return Conflict($"A problem can be shared with up to {MaxSharesPerProblem} teachers.");
+        if (!await _db.BankProblemShares.AnyAsync(x => x.BankProblemId == b.Id && x.UserId == who.Id))
+        {
+            _db.BankProblemShares.Add(new BankProblemShare { BankProblemId = b.Id, UserId = who.Id });
+            await _db.SaveChangesAsync();
+        }
+        return new BankShareDto(who.Id, who.DisplayName, who.Email);
+    }
+
+    /// <summary>Stop sharing. A copy the teacher already made on a board stays there, but can no longer be updated from this problem.</summary>
+    [Authorize(Roles = "Teacher")]
+    [HttpDelete("api/bank/{slug}/shares/{userId:int}")]
+    public async Task<IActionResult> RemoveShare(string slug, int userId)
+    {
+        var b = await ShareableAsync(slug);
+        if (b is null) return NotFound();
+        await _db.BankProblemShares.Where(x => x.BankProblemId == b.Id && x.UserId == userId).ExecuteDeleteAsync();
+        return NoContent();
     }
 
     /// <summary>Save an existing board problem into the caller's bank.</summary>

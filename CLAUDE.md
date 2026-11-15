@@ -129,6 +129,13 @@ with its own bank row (the editor offers it on that 409). A copy that fell behin
 "Update from bank" on the board's problem list (owner only): `POST .../{slug}/update-from-bank` replaces it in place, or, once students have submitted, adds the bank version as a hidden draft.
 Not built: moving the content columns out of `Problem` (the bell/push does not announce a bank change either).
 
+### Sharing a private bank problem with teachers
+
+`BankProblemShare` (owner → one teacher, by email, `BankController.AddShare`, panel `BankShare.vue` on the bank problem's edit page, max 50): the teacher reads it
+(`Readable()`, tab "Shared with me", hidden tests are still shown only as samples to a non-owner) and can copy it to their own boards. Read-only: every write path
+checks `OwnerId`. Students cannot receive one, and there is no bell/email on sharing. Stopping a share removes access; a board copy already made stays, but
+`bank-updates` / `update-from-bank` only follow a source the teacher can still read (`ProblemsController.CanReadBank`). Copying copies all tests, as for a public problem.
+
 ### Problem groups (folders/sessions)
 
 `ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and
