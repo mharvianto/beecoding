@@ -296,6 +296,12 @@ public class Problem : IHasSlug
     /// <summary>Provenance when this problem was copied in from the bank.</summary>
     public int? SourceBankProblemId { get; set; }
 
+    /// <summary>The bank problem that holds this problem's content of record (the bank is the one place problems
+    /// live). Equals <see cref="SourceBankProblemId"/> when copied in from the bank; for a problem made on the board
+    /// it is a private <see cref="BankProblem.BoardOnly"/> row. Separate from the source on purpose:
+    /// <c>ProgressService</c> keys XP on the source, and giving old problems a source would re-award XP.</summary>
+    public int? BankProblemId { get; set; }
+
     /// <summary>Soft-delete marker — excluded from all normal queries via a global query
     /// filter (see AppDbContext). Restorable within <c>SoftDelete.UndoWindow</c>.</summary>
     public DateTime? DeletedAt { get; set; }
@@ -362,6 +368,10 @@ public class BankProblem : IHasSlug
 
     /// <summary>Other teachers may browse and copy it (hidden tests are never sent to them).</summary>
     public bool IsPublic { get; set; }
+
+    /// <summary>Content of record for a problem made on a board: private, kept out of the teacher's bank list until
+    /// they use "Save to bank" (which just clears this). Board edits are written through to it while it is set.</summary>
+    public bool BoardOnly { get; set; }
 
     /// <summary>Why a reviewer sent the problem back (practice review queue); cleared on resubmit.</summary>
     [MaxLength(300)]

@@ -71,7 +71,7 @@ public class AdminUiController(
 
         var totalBoards = await _db.Boards.CountAsync();
         var totalProblems = await _db.Problems.CountAsync();
-        var totalBankProblems = await _db.BankProblems.CountAsync();
+        var totalBankProblems = await _db.BankProblems.CountAsync(b => !b.BoardOnly);
 
         var totalSubmissions = await _db.Submissions.CountAsync() + await _db.BankSubmissions.CountAsync();
         var acceptedSubmissions = await _db.Submissions.CountAsync(s => s.Verdict == Verdict.Accepted)
@@ -523,7 +523,7 @@ public class AdminUiController(
     [HttpGet("bank")]
     public async Task<ActionResult<List<BankSummaryDto>>> Bank([FromQuery] string? q)
     {
-        var query = _db.BankProblems.AsQueryable();
+        var query = _db.BankProblems.Where(b => !b.BoardOnly);
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();

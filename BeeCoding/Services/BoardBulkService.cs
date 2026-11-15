@@ -96,6 +96,7 @@ public class BoardBulkService(AppDbContext db, IBoardNotifier notifier)
             MemoryLimitKb = bank.MemoryLimitKb,
             Position = position,
             SourceBankProblemId = bank.Id,
+            BankProblemId = bank.Id,
         };
         foreach (var t in bank.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id))
             p.TestCases.Add(new TestCase
@@ -116,4 +117,43 @@ public class BoardBulkService(AppDbContext db, IBoardNotifier notifier)
             if (GroupAccess.Validate(g) is { } bad) return $"Group '{g.Title}': {bad}";
         return null;
     }
+
+    /// <summary>A private bank row holding a board problem's content (see <see cref="BankProblem.BoardOnly"/>).</summary>
+    public static BankProblem BankFromProblem(Problem p, int ownerId)
+    {
+        var b = new BankProblem { OwnerId = ownerId, BoardOnly = true };
+        CopyContent(p, b);
+        return b;
+    }
+
+    /// <summary>Overwrite a bank row's content and tests with the board problem's. <paramref name="b"/> must have its tests loaded.</summary>
+    public static void CopyContent(Problem p, BankProblem b)
+    {
+        b.Title = p.Title;
+        b.StatementMarkdown = p.StatementMarkdown;
+        b.AllowedLanguages = p.AllowedLanguages;
+        b.Tags = p.Tags;
+        b.Level = p.Level;
+        b.GeneratedByAi = p.GeneratedByAi;
+        b.BannedHeaders = p.BannedHeaders;
+        b.BannedSymbols = p.BannedSymbols;
+        b.InputFileName = p.InputFileName;
+        b.TimeLimitMs = p.TimeLimitMs;
+        b.MemoryLimitKb = p.MemoryLimitKb;
+        b.UpdatedAt = DateTime.UtcNow;
+        b.TestCases.Clear();
+        foreach (var t in p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id))
+            b.TestCases.Add(new BankTestCase { Stdin = t.Stdin, ExpectedStdout = t.ExpectedStdout, IsSample = t.IsSample, Points = t.Points, Position = t.Position });
+    }
+
+    /// <summary>
+    /// Content that decides a verdict: statement, tests, limits, languages, banned lists, input file. Title, tags and level are not in it
+    /// (a typo in the title does not change what a student's submission was judged against). Used to lock a problem once it has submissions.
+    /// </summary>
+    public static string GradedContent(Problem p, IEnumerable<TestCase>? tests = null) => string.Join("\u001f", new[]
+    {
+        p.StatementMarkdown, p.AllowedLanguages, p.BannedHeaders ?? "", p.BannedSymbols ?? "", p.InputFileName ?? "",
+        p.TimeLimitMs.ToString(), p.MemoryLimitKb.ToString(),
+    }.Concat((tests ?? p.TestCases).OrderBy(t => t.Position).ThenBy(t => t.Id)
+        .Select(t => $"{t.Stdin}\u001e{t.ExpectedStdout}\u001e{t.IsSample}\u001e{t.Points}\u001e{t.Position}")));
 }

@@ -167,6 +167,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         Apply(p, dto);
         _db.Problems.Add(p);
         await _db.SaveChangesAsync();
+        await AttachBankRowAsync(p);
         await _notifier.ProblemChangedAsync(boardId.Value);
         await _notifications.ProblemPublishedAsync(p);
 
@@ -191,20 +192,85 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var existingIds = p.TestCases.Select(t => t.Id).ToHashSet();
         var wasHidden = p.Hidden;
 
+        var gradedBefore = BoardBulkService.GradedContent(p);
+
         Apply(p, dto);
 
+        var removed = new List<TestCase>();
         if (dto.TestCases is not null)
         {
             var keepIds = dto.TestCases.Where(t => t.Id is > 0).Select(t => t.Id!.Value).ToHashSet();
-            _db.TestCases.RemoveRange(p.TestCases.Where(t => existingIds.Contains(t.Id) && !keepIds.Contains(t.Id)));
+            removed = p.TestCases.Where(t => existingIds.Contains(t.Id) && !keepIds.Contains(t.Id)).ToList();
         }
 
+        // Once a student has submitted, what the judge compares against must not change under them; a new version is the way.
+        if (BoardBulkService.GradedContent(p, p.TestCases.Except(removed)) != gradedBefore
+            && await _db.Submissions.AnyAsync(s => s.ProblemId == p.Id))
+        {
+            _db.ChangeTracker.Clear();
+            return Conflict("Students have already submitted to this problem, so its statement, tests and limits are locked. Create a new version instead.");
+        }
+
+        _db.TestCases.RemoveRange(removed);
         await _db.SaveChangesAsync();
+        await SyncBankRowAsync(p);
         await _notifier.ProblemChangedAsync(boardId!.Value);
         if (wasHidden && !p.Hidden) await _notifications.ProblemPublishedAsync(p);
 
         var fresh = await _db.Problems.Include(x => x.TestCases).FirstAsync(x => x.Id == p.Id);
         return Mapping.ToOwnerDto(fresh);
+    }
+
+    /// <summary>
+    /// A copy of the problem to edit once the original is locked: a hidden draft in the same place (its own bank row, same XP source),
+    /// so nothing half-edited reaches students. The original is left as it is; hide it once the new one is published.
+    /// </summary>
+    [HttpPost("{problemSlug}/new-version")]
+    public async Task<ActionResult<ProblemDto>> NewVersion(string slug, string problemSlug)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var old = await _db.Problems.Include(x => x.TestCases)
+            .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
+        if (old is null) return NotFound();
+
+        var copy = new Problem
+        {
+            BoardId = old.BoardId, GroupId = old.GroupId, Position = old.Position, Hidden = true,
+            Title = old.Title + " (new version)",
+            StatementMarkdown = old.StatementMarkdown, AllowedLanguages = old.AllowedLanguages, Tags = old.Tags, Level = old.Level,
+            GeneratedByAi = old.GeneratedByAi, BannedHeaders = old.BannedHeaders, BannedSymbols = old.BannedSymbols,
+            InputFileName = old.InputFileName, TimeLimitMs = old.TimeLimitMs, MemoryLimitKb = old.MemoryLimitKb,
+            SourceBankProblemId = old.SourceBankProblemId,
+        };
+        foreach (var t in old.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id))
+            copy.TestCases.Add(new TestCase { Stdin = t.Stdin, ExpectedStdout = t.ExpectedStdout, IsSample = t.IsSample, Points = t.Points, Position = t.Position });
+        _db.Problems.Add(copy);
+        await _db.SaveChangesAsync();
+        await AttachBankRowAsync(copy);
+        await _notifier.ProblemChangedAsync(boardId!.Value);
+        return Mapping.ToOwnerDto(copy);
+    }
+
+    /// <summary>The board problem's content of record: a private bank row. If this fails the problem simply has no link yet; the startup backfill adds it.</summary>
+    private async Task AttachBankRowAsync(Problem p)
+    {
+        var bank = BoardBulkService.BankFromProblem(p, UserId);
+        _db.BankProblems.Add(bank);
+        await _db.SaveChangesAsync();
+        p.BankProblemId = bank.Id;
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Write an edit through to the bank row while that row exists only for this board (a bank problem the teacher shares keeps its own text).</summary>
+    private async Task SyncBankRowAsync(Problem p)
+    {
+        if (p.BankProblemId is not int id) return;
+        var bank = await _db.BankProblems.Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Id == id && b.BoardOnly);
+        if (bank is null) return;
+        BoardBulkService.CopyContent(p, bank);
+        await _db.SaveChangesAsync();
     }
 
     /// <summary>Soft-delete (owner or admin). Owner undo is time-boxed to

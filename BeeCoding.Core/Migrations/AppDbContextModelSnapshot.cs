@@ -270,6 +270,9 @@ namespace BeeCoding.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("BoardOnly")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -1222,6 +1225,9 @@ namespace BeeCoding.Migrations
                         .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("BankProblemId")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("BannedHeaders")
                         .HasMaxLength(300)

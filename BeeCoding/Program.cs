@@ -359,6 +359,35 @@ using (var scope = app.Services.CreateScope())
     if (sluglessProblems.Count > 0 || sluglessBank.Count > 0)
         await db.SaveChangesAsync();   // AppDbContext.SaveChangesAsync assigns the slugs
 
+    // The bank is the one place problems live: give every board problem its content-of-record bank row. A problem copied in from the
+    // bank already has one (its source); the others get a private BoardOnly row owned by the board's owner. Safe to repeat.
+    try
+    {
+        while (true)
+        {
+            var batch = await db.Problems.IgnoreQueryFilters().Include(p => p.TestCases)
+                .Where(p => p.BankProblemId == null).OrderBy(p => p.Id).Take(200).ToListAsync();
+            if (batch.Count == 0) break;
+            var created = new List<(BeeCoding.Models.Problem P, BeeCoding.Models.BankProblem B)>();
+            foreach (var p in batch)
+            {
+                if (p.SourceBankProblemId is int src && await db.BankProblems.IgnoreQueryFilters().AnyAsync(b => b.Id == src))
+                { p.BankProblemId = src; continue; }
+                var ownerId = await db.Boards.IgnoreQueryFilters().Where(b => b.Id == p.BoardId).Select(b => b.OwnerId).FirstAsync();
+                var bank = BeeCoding.Services.BoardBulkService.BankFromProblem(p, ownerId);
+                db.BankProblems.Add(bank);
+                created.Add((p, bank));
+            }
+            await db.SaveChangesAsync();
+            foreach (var (p, bank) in created) p.BankProblemId = bank.Id;
+            await db.SaveChangesAsync();
+        }
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogWarning(ex, "Could not link board problems to bank rows; they stay unlinked until the next start");
+    }
+
     // Backfill wall posts for submissions made before the wall existed.
     var missing = await db.Submissions
         .Select(s => new { s.UserId, s.ProblemId })

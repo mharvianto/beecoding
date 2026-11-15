@@ -36,8 +36,8 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     // Students see their own problems only — the shared bank is a teacher feature (practice already
     // lists the public ones to them).
     private IQueryable<BankProblem> Readable() => IsStudent
-        ? _db.BankProblems.Where(b => b.OwnerId == UserId)
-        : _db.BankProblems.Where(b => b.OwnerId == UserId || b.IsPublic);
+        ? _db.BankProblems.Where(b => b.OwnerId == UserId && !b.BoardOnly)
+        : _db.BankProblems.Where(b => (b.OwnerId == UserId || b.IsPublic) && !b.BoardOnly);
 
     /// <summary>
     /// The public problems (plus the caller's own pending ones) closest to one of the caller's problems, so an author can spot a
@@ -63,7 +63,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     {
         var query = (scope ?? "all").ToLowerInvariant() switch
         {
-            "mine" => _db.BankProblems.Where(b => b.OwnerId == UserId),
+            "mine" => _db.BankProblems.Where(b => b.OwnerId == UserId && !b.BoardOnly),
             "public" => _db.BankProblems.Where(b => !IsStudent && b.IsPublic && b.OwnerId != UserId),
             _ => Readable(),
         };
@@ -347,6 +347,20 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         var p = await _db.Problems.Include(x => x.TestCases)
             .FirstOrDefaultAsync(x => x.Id == problemId && x.BoardId == board.Id);
         if (p is null) return NotFound();
+
+        // A problem made on the board already has its private bank row: "Save to bank" just shows it in the bank.
+        if (p.BankProblemId is int bid)
+        {
+            var held = await _db.BankProblems.Include(x => x.Owner).Include(x => x.TestCases)
+                .FirstOrDefaultAsync(x => x.Id == bid && x.BoardOnly && x.OwnerId == UserId);
+            if (held is not null)
+            {
+                BoardBulkService.CopyContent(p, held);
+                held.BoardOnly = false;
+                await _db.SaveChangesAsync();
+                return Mapping.ToDto(held, UserId);
+            }
+        }
 
         var b = new BankProblem
         {
