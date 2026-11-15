@@ -14,6 +14,7 @@ namespace BeeCoding.Services.Lsp;
 /// </summary>
 public class LspEndpoint
 {
+    private const int MaxMessageChars = 1_000_000;   // same cap as a shared-clangd message
     private readonly LspOptions _opt;
     private readonly PlatformRuntimeConfig _runtime;
     private readonly ILogger<LspEndpoint> _log;
@@ -122,6 +123,11 @@ public class LspEndpoint
 
                 if (res.MessageType == WebSocketMessageType.Close) break;
                 sb.Append(Encoding.UTF8.GetString(buf, 0, res.Count));
+                if (sb.Length > MaxMessageChars)   // checked per frame: a message that never ends would otherwise grow without bound
+                {
+                    await ws.CloseAsync(WebSocketCloseStatus.MessageTooBig, "message too large", CancellationToken.None);
+                    break;
+                }
                 if (!res.EndOfMessage) continue;
 
                 var msg = sb.ToString();

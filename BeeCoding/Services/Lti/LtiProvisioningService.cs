@@ -110,6 +110,9 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         if (changed) await _db.SaveChangesAsync();
     }
 
+    private Task<bool> OwnerLinkedAsync(int ownerId, int platformId) =>
+        _db.LtiUserLinks.AnyAsync(l => l.LtiPlatformId == platformId && l.UserId == ownerId);
+
     /// <summary>What a resource-link placement points at — exactly one of the two is
     /// ever set. Both null only for a first-ever launch of a placement by a
     /// non-instructor (nothing to auto-create yet), or a Deep-Linking hint pointing at
@@ -142,6 +145,8 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         {
             var problem = await _db.BankProblems.FirstOrDefaultAsync(b => b.Slug == practiceSlug);
             if (problem is null) return (null, null);   // the linked problem was since deleted
+            // The hint is only a hint: a private problem is bound only when its owner is one of this platform's own users (the Deep Linking picker).
+            if (!problem.IsPublic && !await OwnerLinkedAsync(problem.OwnerId, platform.Id)) return (null, null);
             await BindLinkAsync(link, platform, claims, boardId: null, bankProblemId: problem.Id);
             return (null, problem);
         }
@@ -150,6 +155,13 @@ public class LtiProvisioningService(AppDbContext db, PasswordService pw, BoardSe
         Board? board = boardSlug is not null
             ? await _db.Boards.FirstOrDefaultAsync(b => b.Slug == boardSlug)
             : null;
+        // Same rule for a board: this platform may bind only a board of its own organization, one owned by one of its own users,
+        // or one the launcher already belongs to. Otherwise the signed hint could name any board whose slug is known.
+        if (board is not null
+            && !(board.OrganizationId is not null && board.OrganizationId == platform.OrganizationId)
+            && !await OwnerLinkedAsync(board.OwnerId, platform.Id)
+            && !await _db.BoardMemberships.AnyAsync(m => m.BoardId == board.Id && m.UserId == user.Id))
+            board = null;
 
         if (board is null)
         {

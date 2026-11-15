@@ -12,9 +12,11 @@ namespace BeeCoding.Controllers;
 [Route("api/boards")]
 public class BoardsController(AppDbContext db, BoardService boards, VisibilityService vis,
     IBoardNotifier notifier, AdminAccess admin, AuditLog audit, OrgResolver orgs, OrgAccess orgAccess,
-    PlagiarismService plagiarism) : ApiControllerBase
+    PlagiarismService plagiarism, LoginThrottle throttle) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
+    private readonly LoginThrottle _throttle = throttle;
+    private string ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
     private readonly BoardService _boards = boards;
     private readonly VisibilityService _vis = vis;
     private readonly IBoardNotifier _notifier = notifier;
@@ -88,12 +90,17 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     public async Task<ActionResult<BoardDto>> Join(JoinBoardDto dto)
     {
         var code = (dto.Code ?? "").Trim().ToUpperInvariant();
+        // The code is a capability (about 30 bits): count the guess up front, a hit clears it (see LoginThrottle.TryBegin).
+        var throttleKey = $"join:{UserId}";
+        if (!_throttle.TryBegin(ClientIp, throttleKey, strict: true))
+            return StatusCode(StatusCodes.Status429TooManyRequests, "Too many wrong codes. Wait a few minutes and try again.");
         var board = await _db.Boards
             .Include(b => b.Members)
             .Include(b => b.Problems)
             .Include(b => b.Organization)
             .FirstOrDefaultAsync(b => b.JoinCode == code);
         if (board is null) return NotFound("No board with that code.");
+        _throttle.RecordSuccess(ClientIp, throttleKey);
 
         var existing = board.Members.FirstOrDefault(m => m.UserId == UserId);
         if (existing is not null) return ToDto(board, existing.Role);
