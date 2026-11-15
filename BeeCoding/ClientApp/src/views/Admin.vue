@@ -1220,7 +1220,7 @@ onMounted(async () => {
         <div class="flex items-center gap-2 mb-1">
           <h2 class="font-semibold text-sm">Are AI hints helping?</h2>
           <select v-model.number="hintEffectDays" @change="loadHintEffect"
-                  class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs bg-transparent">
+                  class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
             <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
           </select>
         </div>
