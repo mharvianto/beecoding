@@ -189,7 +189,7 @@ onBeforeUnmount(async () => {
         <h1 class="text-xl font-bold">{{ board.title }}</h1>
         <div v-if="!editingTags" class="flex flex-wrap items-center gap-1 mt-1">
           <span v-for="t in tagList" :key="t"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
           <button v-if="board.isOwner || auth.user?.isAdmin" @click="startEditTags" class="row-action-btn">
             {{ tagList.length ? '✏️ Edit tags' : '+ Add tags' }}
           </button>

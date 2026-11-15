@@ -53,7 +53,7 @@ async function submit() {
 <template>
   <div class="max-w-sm mx-auto mt-20 px-4 relative">
     <div class="absolute right-4 -top-10"><ThemeToggle /></div>
-    <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-6">Create your account</h1>
+    <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-6">Create your account</h1>
     <template v-if="googleOn && !google">
       <GoogleButton label="Sign up with Google" :return-to="route.query.r ? String(route.query.r) : ''" />
       <div class="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 my-4">
@@ -97,11 +97,11 @@ async function submit() {
     </form>
     <p class="text-xs text-slate-500 dark:text-slate-400 mt-3">
       By creating an account you agree to the
-      <RouterLink to="/terms" class="text-amber-600 dark:text-amber-400">Terms &amp; Agreement</RouterLink>
-      and <RouterLink to="/privacy" class="text-amber-600 dark:text-amber-400">Privacy Policy</RouterLink>.
+      <RouterLink to="/terms" class="text-amber-700 dark:text-amber-400">Terms &amp; Agreement</RouterLink>
+      and <RouterLink to="/privacy" class="text-amber-700 dark:text-amber-400">Privacy Policy</RouterLink>.
     </p>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-      Have an account? <RouterLink :to="{ path: '/login', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-600 dark:text-amber-400">Sign in</RouterLink>
+      Have an account? <RouterLink :to="{ path: '/login', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-700 dark:text-amber-400">Sign in</RouterLink>
     </p>
   </div>
 </template>

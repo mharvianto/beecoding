@@ -40,7 +40,7 @@ async function go(n) {
             :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
             title="Notifications" aria-label="Notifications">
       🔔
-      <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-slate-900 text-[10px] font-bold leading-4 text-center">
+      <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-slate-900 text-[11px] font-bold leading-4 text-center">
         {{ notif.unread > 9 ? '9+' : notif.unread }}
       </span>
     </button>
@@ -50,7 +50,7 @@ async function go(n) {
         <div class="flex items-center justify-between px-3 py-2 border-b border-slate-100 dark:border-slate-800">
           <span class="text-sm font-semibold">Notifications</span>
           <span class="flex items-center gap-3">
-            <button v-if="notif.unread" @click="notif.markAllRead()" class="text-xs text-amber-600 dark:text-amber-400 hover:underline">Mark all read</button>
+            <button v-if="notif.unread" @click="notif.markAllRead()" class="text-xs text-amber-700 dark:text-amber-400 hover:underline">Mark all read</button>
             <button v-if="notif.items.some((n) => n.read)" @click="notif.clearRead()" class="text-xs text-slate-500 dark:text-slate-400 hover:underline">Clear read</button>
           </span>
         </div>
@@ -67,7 +67,7 @@ async function go(n) {
                     class="shrink-0 self-start text-slate-300 hover:text-rose-500 dark:text-slate-600 dark:hover:text-rose-400 leading-none px-1">✕</button>
           </div>
           <button v-if="notif.items.length < notif.total" @click="notif.loadMore()"
-                  class="w-full px-3 py-2 text-xs text-amber-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+                  class="w-full px-3 py-2 text-xs text-amber-700 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800">
             Load more<template v-if="hiddenUnread > 0"> — {{ hiddenUnread }} more unread</template>
           </button>
           <p v-if="!notif.items.length" class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400">

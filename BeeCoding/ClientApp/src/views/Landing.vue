@@ -73,7 +73,7 @@ const faqs = [
   <div class="landing min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
     <header class="sticky top-0 z-30 backdrop-blur bg-slate-50/80 dark:bg-slate-950/80 border-b border-transparent">
       <div class="max-w-6xl w-full mx-auto px-4 h-14 flex items-center justify-between">
-        <span class="font-bold text-lg text-amber-600 dark:text-amber-400">🐝 BeeCoding</span>
+        <span class="font-bold text-lg text-amber-700 dark:text-amber-400">🐝 BeeCoding</span>
         <div class="flex items-center gap-3 text-sm">
           <ThemeToggle />
           <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Sign in</RouterLink>
@@ -146,10 +146,10 @@ const faqs = [
                 <div v-for="[i, name, verdict, tone] in mockCards" :key="name"
                      class="rounded-lg border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 px-2 py-1.5">
                   <div class="flex items-center gap-1.5">
-                    <span class="w-5 h-5 rounded-full text-white text-[10px] font-bold grid place-items-center" :class="avatar[tone]">{{ i }}</span>
+                    <span class="w-5 h-5 rounded-full text-white text-[11px] font-bold grid place-items-center" :class="avatar[tone]">{{ i }}</span>
                     <span class="text-xs font-medium truncate">{{ name }}</span>
                   </div>
-                  <span class="mt-1 inline-block text-[10px] font-semibold rounded px-1.5 py-0.5" :class="badge[tone]">{{ verdict }}</span>
+                  <span class="mt-1 inline-block text-[11px] font-semibold rounded px-1.5 py-0.5" :class="badge[tone]">{{ verdict }}</span>
                 </div>
               </div>
             </div>

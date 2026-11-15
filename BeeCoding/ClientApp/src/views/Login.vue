@@ -155,8 +155,8 @@ function backToPassword(clearError = true) {
 <template>
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
-    <div class="max-w-sm w-full">
-      <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
+    <div class="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6">
+      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">{{ challenge ? 'Two-step verification' : linkInfo ? 'Connect Google' : 'Sign in to your account' }}</p>
       <p v-if="justReset" class="mb-3 text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-2">
         Your password was changed. Sign in with the new one.
@@ -179,7 +179,7 @@ function backToPassword(clearError = true) {
             <p class="text-sm text-slate-600 dark:text-slate-300">Enter the code we sent to <b>{{ challenge.emailHint }}</b>. It expires in 10 minutes.</p>
             <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code" required autofocus
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
-            <button type="button" @click="sendEmailCode" :disabled="busy || resendIn > 0" class="text-sm text-amber-600 dark:text-amber-400 disabled:text-slate-400 disabled:dark:text-slate-500">
+            <button type="button" @click="sendEmailCode" :disabled="busy || resendIn > 0" class="text-sm text-amber-700 dark:text-amber-400 disabled:text-slate-400 disabled:dark:text-slate-500">
               {{ resendIn > 0 ? `Send again in ${resendIn}s` : 'Send a new code' }}
             </button>
           </template>
@@ -194,7 +194,7 @@ function backToPassword(clearError = true) {
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Verify' }}
         </button>
-        <div class="text-sm flex flex-col gap-1.5 text-amber-600 dark:text-amber-400">
+        <div class="text-sm flex flex-col gap-1.5 text-amber-700 dark:text-amber-400">
           <template v-for="m in challenge.methods" :key="m">
             <button v-if="m !== mfaMode" type="button" @click="switchMode(m)" class="text-left">{{ MODE_LABEL[m] }}</button>
           </template>
@@ -238,10 +238,10 @@ function backToPassword(clearError = true) {
         <GoogleButton v-if="googleOn" :return-to="route.query.r ? String(route.query.r) : ''" />
       </div>
       <p v-if="canReset && !challenge && !linkInfo" class="text-sm mt-3">
-        <RouterLink to="/forgot-password" class="text-amber-600 dark:text-amber-400">Forgot your password?</RouterLink>
+        <RouterLink to="/forgot-password" class="text-amber-700 dark:text-amber-400">Forgot your password?</RouterLink>
       </p>
       <p v-if="!challenge && !linkInfo" class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-        No account? <RouterLink :to="{ path: '/register', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-600 dark:text-amber-400">Register</RouterLink>
+        No account? <RouterLink :to="{ path: '/register', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-700 dark:text-amber-400">Register</RouterLink>
       </p>
     </div>
   </div>

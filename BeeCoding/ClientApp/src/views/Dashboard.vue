@@ -48,10 +48,10 @@ async function join() {
       A board is shared with a class via a join code — for a class you're not in yet, ask the
       teacher for their code.
       <template v-if="auth.isTeacher">Building a personal problem library instead? See
-        <RouterLink to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">Problem bank</RouterLink>.
+        <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">Problem bank</RouterLink>.
       </template>
       Just want to solve something for XP right now? Try
-      <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>.
     </p>
 
     <div class="grid sm:grid-cols-2 gap-4 mb-8">
@@ -92,7 +92,7 @@ async function join() {
         </div>
         <div v-if="b.tags" class="flex flex-wrap gap-1 mt-1.5">
           <span v-for="t in b.tags.split(',')" :key="t"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         </div>
         <div class="text-sm text-slate-500 dark:text-slate-400 mt-2 flex gap-4">
           <span>{{ b.problemCount }} problem{{ b.problemCount === 1 ? '' : 's' }}</span>
@@ -113,12 +113,12 @@ async function join() {
       <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
         <template v-if="auth.isTeacher">
           Create one above to start a class, or
-          <RouterLink to="/bank" class="text-amber-600 dark:text-amber-400 hover:underline">build a problem bank</RouterLink>
+          <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">build a problem bank</RouterLink>
           first so you have problems ready to add.
         </template>
         <template v-else>
           Ask your teacher for a join code, or
-          <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">start practicing for XP</RouterLink>
+          <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">start practicing for XP</RouterLink>
           on your own in the meantime.
         </template>
       </p>

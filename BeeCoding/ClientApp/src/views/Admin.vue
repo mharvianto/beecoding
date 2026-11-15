@@ -904,7 +904,7 @@ function setLatencyHours(h) {
 }
 const hourLabel = (d) => new Date(d.endsWith('Z') ? d : d + 'Z')
   .toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-const latencyTone = (s) => (s >= 30 ? 'text-rose-600 dark:text-rose-400 font-medium' : s >= 10 ? 'text-amber-600 dark:text-amber-400' : '');
+const latencyTone = (s) => (s >= 30 ? 'text-rose-600 dark:text-rose-400 font-medium' : s >= 10 ? 'text-amber-700 dark:text-amber-400' : '');
 
 // ---- sysstat (sar) CPU/memory history — this one instance's own host only ----
 const sysstatMetric = ref('cpu');   // 'cpu' | 'mem'
@@ -1393,9 +1393,9 @@ onMounted(async () => {
             <div class="font-medium text-sm">{{ r.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
             <div class="text-xs grid grid-cols-3 gap-2 tabular-nums">
-              <div><div class="text-[10px] text-slate-400">Today</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
-              <div><div class="text-[10px] text-slate-400">Month</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
-              <div><div class="text-[10px] text-slate-400">All time</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
+              <div><div class="text-[11px] text-slate-400">Today</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-400">Month</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-400">All time</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
             </div>
           </div>
           <p v-if="aiRows && !aiRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage yet.</p>
@@ -1449,7 +1449,7 @@ onMounted(async () => {
           <label v-for="g in MFA_GROUPS" :key="g.key" class="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" :checked="mfaPolicy[g.key]" :disabled="mfaPolicyBusy" @click.prevent="toggleMfaPolicy(g)" class="accent-amber-500 w-4 h-4" />
             <span>{{ g.label }}</span>
-            <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'"
+            <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'"
                   :title="mfaPolicy[g.without] + ' without two-step verification'">· {{ mfaPolicy[g.without] }} without</span>
           </label>
         </div>
@@ -1464,7 +1464,7 @@ onMounted(async () => {
           </button>
           <button v-if="c.miss" @click="setUserFilter(c.miss)" :aria-pressed="userFilter === c.miss"
                   class="px-2 py-1 tabular-nums border-l border-slate-200 dark:border-slate-800"
-                  :class="userFilter === c.miss ? 'bg-amber-500 text-slate-900' : 'text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  :class="userFilter === c.miss ? 'bg-amber-500 text-slate-900' : 'text-amber-700 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
                   :title="`Show only users ${c.missLabel}`">{{ userStats.users - userStats[c.stat] }} {{ c.missLabel }}</button>
         </div>
       </div>
@@ -1990,7 +1990,7 @@ onMounted(async () => {
         <div v-if="systemStatus" class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
             <span class="text-slate-500 dark:text-slate-400">Judge sandbox</span>
-            <span :class="systemStatus.bwrapUsable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'">
+            <span :class="systemStatus.bwrapUsable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
               {{ systemStatus.sandboxMode }}
             </span>
           </div>

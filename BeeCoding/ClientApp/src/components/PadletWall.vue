@@ -203,7 +203,7 @@ async function toggleHiddenByStudent(post) {
       <button v-for="p in wall.problems" :key="p.id" @click="activeProblem = p.id"
               class="px-3 py-1.5 rounded-full text-sm border transition"
               :class="activeProblem === p.id
-                ? 'bg-amber-500 text-slate-900 border-amber-500'
+                ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
         <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
         <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card">🔔</span>
@@ -234,12 +234,12 @@ async function toggleHiddenByStudent(post) {
               <span v-if="post.mine" class="text-xs text-slate-500 dark:text-slate-400 font-normal">· you</span>
             </div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400">
-              <span v-if="draftFor(post)" class="text-amber-600 dark:text-amber-400 font-medium">✎ editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
+              <span v-if="draftFor(post)" class="text-amber-700 dark:text-amber-400 font-medium">✎ editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
               <span v-else>{{ ago(post.updatedAt) }} ago</span>
             </div>
           </div>
           <button v-if="post.mine && post.postId" @click="toggleHiddenByStudent(post)"
-                  class="ml-auto text-[10px] px-1.5 py-0.5 rounded border shrink-0"
+                  class="ml-auto text-[11px] px-1.5 py-0.5 rounded border shrink-0"
                   :class="post.hiddenByStudent
                     ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                     : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
@@ -247,7 +247,7 @@ async function toggleHiddenByStudent(post) {
           </button>
           <VerdictBadge v-if="!post.redacted && post.verdict !== 'None'" :verdict="post.verdict" small
                         :class="post.mine && post.postId ? 'ml-1' : 'ml-auto'" />
-          <span v-else-if="draftFor(post)" class="ml-1 text-[10px] bg-amber-200 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200 rounded px-1.5 py-0.5 font-semibold">LIVE</span>
+          <span v-else-if="draftFor(post)" class="ml-1 text-[11px] bg-amber-200 text-amber-800 dark:bg-amber-500/25 dark:text-amber-200 rounded px-1.5 py-0.5 font-semibold">LIVE</span>
         </div>
 
         <div v-if="post.redacted" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
@@ -261,7 +261,7 @@ async function toggleHiddenByStudent(post) {
               <input v-model="noteDraft[post.postId]" @keyup.enter="saveNote(post)"
                      placeholder="Add a note…" maxlength="500"
                      class="flex-1 text-sm border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
-              <button @click="saveNote(post)" class="text-xs text-amber-600 dark:text-amber-400 px-1">save</button>
+              <button @click="saveNote(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">save</button>
             </div>
             <p v-else-if="post.note" @click="post.mine && startNote(post)"
                class="text-sm text-slate-700 dark:text-slate-200" :class="{ 'cursor-text': post.mine }">{{ post.note }}</p>
@@ -299,7 +299,7 @@ async function toggleHiddenByStudent(post) {
                       ? 'bg-amber-100 border-amber-300 dark:bg-amber-500/20 dark:border-amber-500/40'
                       : 'bg-white/70 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700 hover:border-slate-300'">
               {{ e }}<span v-if="reactionCount(post, e)" class="ml-1 text-slate-500 dark:text-slate-400">{{ reactionCount(post, e).count }}</span><span
-                v-if="reactionCount(post, e)?.new" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">+{{ reactionCount(post, e).new }}</span>
+                v-if="reactionCount(post, e)?.new" class="ml-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">+{{ reactionCount(post, e).new }}</span>
             </button>
           </div>
 
@@ -312,13 +312,13 @@ async function toggleHiddenByStudent(post) {
             <div v-if="openComments[post.postId]" class="mt-2 space-y-1.5">
               <div :id="'comments-' + post.postId" class="max-h-56 overflow-y-auto space-y-1.5 pr-1">
               <button v-if="hiddenComments(post) > 0" @click="loadEarlier(post)"
-                      class="w-full text-[11px] text-amber-600 dark:text-amber-400 hover:underline py-0.5">
+                      class="w-full text-[11px] text-amber-700 dark:text-amber-400 hover:underline py-0.5">
                 Load earlier comments ({{ hiddenComments(post) }} more)
               </button>
               <div v-for="c in visibleComments(post)" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1"
                    :class="{ 'border-l-2 border-amber-500': c.isNew }">
                 <span class="font-semibold">{{ c.authorName }}</span>
-                <span v-if="c.isNew" class="ml-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400">NEW</span>
+                <span v-if="c.isNew" class="ml-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">NEW</span>
                 <span class="text-slate-500 dark:text-slate-400"> · {{ ago(c.createdAt) }} ago</span>
                 <button v-if="c.canDelete" @click="delComment(post, c)"
                         class="text-slate-300 dark:text-slate-600 hover:text-red-500 float-right">×</button>
@@ -329,7 +329,7 @@ async function toggleHiddenByStudent(post) {
                 <input v-model="commentDraft[post.postId]" @keyup.enter="addComment(post)"
                        placeholder="Write a comment…"
                        class="flex-1 text-xs border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
-                <button @click="addComment(post)" class="text-xs text-amber-600 dark:text-amber-400 px-1">send</button>
+                <button @click="addComment(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">send</button>
               </div>
             </div>
           </div>

@@ -26,7 +26,7 @@ watch(() => toast.deadline, (d) => {
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Lv {{ toast.level }} · {{ toast.xp }} XP · {{ progress.toNext }} to Lv {{ toast.level + 1 }}
         </div>
-        <div class="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium">
+        <div class="text-xs text-amber-700 dark:text-amber-400 mt-1.5 font-medium">
           🔥 {{ toast.solvedToday }} solved today
         </div>
       </div>

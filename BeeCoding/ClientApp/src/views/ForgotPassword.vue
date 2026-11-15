@@ -33,7 +33,7 @@ async function submit() {
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
     <div class="max-w-sm w-full">
-      <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
+      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Reset your password</p>
 
       <div v-if="sent" class="text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-3">
@@ -52,7 +52,7 @@ async function submit() {
         </button>
       </form>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-        <RouterLink to="/login" class="text-amber-600 dark:text-amber-400">&larr; Back to sign in</RouterLink>
+        <RouterLink to="/login" class="text-amber-700 dark:text-amber-400">&larr; Back to sign in</RouterLink>
       </p>
     </div>
   </div>

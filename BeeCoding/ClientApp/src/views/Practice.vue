@@ -183,7 +183,7 @@ onMounted(() => {
     <div v-if="guide.recommended.length" class="mb-5">
       <div class="flex items-center gap-2 mb-2">
         <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Recommended for you</h2>
-        <span v-if="guide.source === 'ai'" class="text-[10px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-picked</span>
+        <span v-if="guide.source === 'ai'" class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-picked</span>
         <span class="ml-auto"></span>
         <button v-if="guide.aiAvailable && guide.source !== 'ai'" @click="loadGuide(true)" :disabled="aiBusy"
                 class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
@@ -201,7 +201,7 @@ onMounted(() => {
             <LevelBadge :level="r.level" />
           </div>
           <span class="text-[11px] text-amber-700 dark:text-amber-400">{{ r.reason }}</span>
-          <span v-if="r.tags" class="text-[10px] text-slate-500 dark:text-slate-400 truncate">{{ r.tags }}</span>
+          <span v-if="r.tags" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ r.tags }}</span>
         </RouterLink>
       </div>
     </div>
@@ -211,7 +211,7 @@ onMounted(() => {
       <div class="flex items-center justify-between mb-2">
         <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Your topics</h2>
         <button v-if="guide.topics.length > 6" @click="showAllTopics = !showAllTopics"
-                class="text-xs text-amber-600 dark:text-amber-400">
+                class="text-xs text-amber-700 dark:text-amber-400">
           {{ showAllTopics ? 'Show less' : `Show all (${guide.topics.length})` }}
         </button>
       </div>
@@ -274,8 +274,8 @@ onMounted(() => {
         </span>
         <div class="flex-1 min-w-0">
           <span class="text-sm font-medium truncate block">{{ p.title }}</span>
-          <span v-if="p.tags" class="md:hidden text-[10px] text-slate-500 dark:text-slate-400 truncate block">{{ p.tags }}</span>
-          <span class="sm:hidden text-[10px] text-slate-500 dark:text-slate-400 truncate block">
+          <span v-if="p.tags" class="md:hidden text-[11px] text-slate-500 dark:text-slate-400 truncate block">{{ p.tags }}</span>
+          <span class="sm:hidden text-[11px] text-slate-500 dark:text-slate-400 truncate block">
             {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
             <span v-if="p.likes" :class="p.liked ? 'text-rose-500' : ''"> · ♥ {{ p.likes }}</span>
           </span>

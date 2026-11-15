@@ -88,7 +88,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
               :class="status === s ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-600 dark:border-slate-600' : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'">
         {{ s }}<span v-if="s === 'Open' && data" class="ml-1 text-xs opacity-80">({{ data.openTotal }})</span>
       </button>
-      <button v-if="bankProblemId || problemId" @click="clearProblem" class="ml-2 text-xs text-amber-600 dark:text-amber-400">✕ Showing one problem · show all</button>
+      <button v-if="bankProblemId || problemId" @click="clearProblem" class="ml-2 text-xs text-amber-700 dark:text-amber-400">✕ Showing one problem · show all</button>
     </div>
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
@@ -101,7 +101,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
         <div class="flex items-center gap-2 flex-wrap">
           <RouterLink v-if="link(r)" :to="link(r)" class="font-medium text-sm hover:underline">{{ r.problemTitle }}</RouterLink>
           <span v-else class="font-medium text-sm">{{ r.problemTitle }}</span>
-          <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ r.kind === 'practice' ? 'Practice' : 'Board' }}</span>
+          <span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ r.kind === 'practice' ? 'Practice' : 'Board' }}</span>
           <span class="text-[11px] px-1.5 py-0.5 rounded-full" :class="CATEGORY[r.category][1]">{{ CATEGORY[r.category][0] }}</span>
           <span class="text-[11px] px-1.5 py-0.5 rounded-full ml-auto" :class="STATUS_STYLE[r.status]">{{ r.status }}</span>
         </div>

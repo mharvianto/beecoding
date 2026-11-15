@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
           </svg>
         </button>
 
-        <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-600 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
+        <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-700 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
 
         <!-- primary nav: burger-toggled dropdown on mobile, inline row after the logo on ≥md -->
         <nav :class="mobileNavOpen ? 'flex' : 'hidden'"
@@ -144,7 +144,7 @@ onBeforeUnmount(() => {
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
           <RouterLink to="/leaderboard" v-if="progress.ready"
                       class="hidden md:flex items-center gap-2" :title="`Your XP: ${progress.xp} · ${progress.toNext} XP to Lv ${progress.level + 1}`">
-            <span class="text-xs font-semibold text-amber-600 dark:text-amber-400">Lv {{ progress.level }}</span>
+            <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">Lv {{ progress.level }}</span>
             <span class="hidden xl:block w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
             </span>

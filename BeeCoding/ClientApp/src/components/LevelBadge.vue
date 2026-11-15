@@ -8,6 +8,6 @@ const map = {
 </script>
 
 <template>
-  <span v-if="level" class="inline-block text-[10px] font-semibold px-1.5 py-0.5 rounded"
+  <span v-if="level" class="inline-block text-[11px] font-semibold px-1.5 py-0.5 rounded"
         :class="map[level] || map.Medium">{{ level }}</span>
 </template>

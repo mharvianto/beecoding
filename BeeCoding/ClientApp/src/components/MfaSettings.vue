@@ -128,7 +128,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
           <p class="text-sm text-slate-600 dark:text-slate-300">
             Can't scan? Enter this key by hand:
             <code class="font-mono text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5 select-all break-all">{{ setup.secret }}</code>
-            <button @click="copySecret" class="text-xs text-amber-600 dark:text-amber-400 ml-1">{{ secretCopied ? 'copied' : 'copy' }}</button>
+            <button @click="copySecret" class="text-xs text-amber-700 dark:text-amber-400 ml-1">{{ secretCopied ? 'copied' : 'copy' }}</button>
           </p>
           <p class="text-sm text-slate-600 dark:text-slate-300">2. Enter the 6-digit code it shows to turn it on.</p>
           <div class="flex flex-wrap gap-2">
@@ -160,7 +160,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
             <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456"
                    @keyup.enter="enableEmail" :class="[inputCls, 'w-36 tracking-widest text-center']" />
             <button @click="enableEmail" :disabled="busy || !emailCode" :class="primaryBtn">Turn on</button>
-            <button @click="startEmail" :disabled="busy" class="text-sm text-amber-600 dark:text-amber-400 px-2">Send again</button>
+            <button @click="startEmail" :disabled="busy" class="text-sm text-amber-700 dark:text-amber-400 px-2">Send again</button>
             <button @click="cancelEmail" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
         </div>

@@ -53,7 +53,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <!-- narrow screens: who and when on top, the whole problem title below (it wraps instead of being cut to a few letters) -->
         <div class="sm:hidden">
           <div class="flex items-baseline gap-2">
-            <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span></span>
+            <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> (you)</span></span>
             <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
           </div>
           <div class="flex items-start gap-2 mt-0.5">
@@ -64,7 +64,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <!-- wider screens: one row -->
         <div class="hidden sm:flex items-center gap-3">
           <span class="text-sm font-medium truncate w-56 shrink-0">
-            {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-600 dark:text-amber-400"> (you)</span>
+            {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> (you)</span>
           </span>
           <span class="text-xs text-slate-500 dark:text-slate-400 shrink-0">solved</span>
           <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>

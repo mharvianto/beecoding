@@ -227,9 +227,9 @@ onBeforeUnmount(async () => {
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
-        <span v-if="problem.solved" class="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">✓ solved</span>
+        <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">✓ solved</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
-              class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         <span v-if="problem.isPublic" class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
@@ -255,7 +255,7 @@ onBeforeUnmount(async () => {
       </div>
 
 
-      <p class="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
+      <p class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
         🔒 Protected problem — served as an encrypted image watermarked with your identity.
       </p>
       <ContentGuard :active="true" :watermark="''">

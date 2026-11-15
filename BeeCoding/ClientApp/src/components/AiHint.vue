@@ -171,7 +171,7 @@ async function ask(extra = {}) {
 
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div v-if="reply" class="text-sm bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3">
-        <p v-if="level > 0 && !liveMode" class="text-[10px] uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-1">
+        <p v-if="level > 0 && !liveMode" class="text-[11px] uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-1">
           Hint {{ level }} / 4 · {{ LEVEL_LABEL[level] }}
         </p>
         <MarkdownBlock :text="reply" />

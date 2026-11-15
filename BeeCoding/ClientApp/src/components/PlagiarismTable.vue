@@ -9,7 +9,7 @@ const emit = defineEmits(['view', 'compare']);
 
 function tier(score) {
   if (score >= 0.85) return 'text-rose-600 dark:text-rose-400 font-semibold';
-  if (score >= 0.65) return 'text-amber-600 dark:text-amber-400 font-semibold';
+  if (score >= 0.65) return 'text-amber-700 dark:text-amber-400 font-semibold';
   return 'text-slate-500 dark:text-slate-400';
 }
 const pct = (v) => `${Math.round(v * 100)}%`;

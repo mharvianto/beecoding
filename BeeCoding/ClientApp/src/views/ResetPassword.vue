@@ -45,13 +45,13 @@ async function submit() {
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
     <div class="max-w-sm w-full">
-      <h1 class="text-2xl font-bold text-amber-600 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
+      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Choose a new password</p>
 
       <p v-if="checking" class="text-sm text-slate-500 dark:text-slate-400">Checking your link…</p>
       <div v-else-if="invalid" class="space-y-3">
         <p class="text-sm bg-rose-50 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300 rounded-lg px-3 py-3">{{ invalid }}</p>
-        <RouterLink to="/forgot-password" class="inline-block text-sm text-amber-600 dark:text-amber-400">Request a new link</RouterLink>
+        <RouterLink to="/forgot-password" class="inline-block text-sm text-amber-700 dark:text-amber-400">Request a new link</RouterLink>
       </div>
       <form v-else @submit.prevent="submit" class="space-y-3">
         <input v-model="password" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" required minlength="8" autofocus autocomplete="new-password"
@@ -65,7 +65,7 @@ async function submit() {
         </button>
       </form>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-        <RouterLink to="/login" class="text-amber-600 dark:text-amber-400">&larr; Back to sign in</RouterLink>
+        <RouterLink to="/login" class="text-amber-700 dark:text-amber-400">&larr; Back to sign in</RouterLink>
       </p>
     </div>
   </div>

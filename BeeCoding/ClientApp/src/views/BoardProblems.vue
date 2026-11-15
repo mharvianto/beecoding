@@ -389,9 +389,9 @@ async function reorderGroupTo(id, target, pos) {
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
-            <span v-if="sec.group.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
-            <span v-if="sec.group.examMode" class="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">🔒 exam</span>
-            <span v-if="stateLabel(sec.group)" class="text-[10px] px-1.5 py-0.5 rounded"
+            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
+            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">🔒 exam</span>
+            <span v-if="stateLabel(sec.group)" class="text-[11px] px-1.5 py-0.5 rounded"
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'">{{ stateLabel(sec.group) }}</span>
@@ -422,12 +422,12 @@ async function reorderGroupTo(id, target, pos) {
                 <div class="font-medium flex items-center gap-2 flex-wrap">
                   {{ p.title }}
                   <LevelBadge :level="p.level" />
-                  <span v-if="p.hidden" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
+                  <span v-if="p.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
                   <RouterLink v-if="isStaff && openReports[p.id]" :to="`/reports/problems?problem=${p.id}`"
-                              class="text-[10px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
+                              class="text-[11px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
                               :title="`${openReports[p.id]} open report(s) — click to review`">🚩 {{ openReports[p.id] }}</RouterLink>
                   <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
-                        class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                        class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">
                   {{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB

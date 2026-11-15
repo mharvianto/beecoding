@@ -29,7 +29,7 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
       ]" :key="label" class="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2">
         <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ label }}</div>
         <div class="text-lg font-semibold leading-tight">{{ value }}</div>
-        <div v-if="hint" class="text-[10px] text-slate-500 dark:text-slate-400">{{ hint }}</div>
+        <div v-if="hint" class="text-[11px] text-slate-500 dark:text-slate-400">{{ hint }}</div>
       </div>
     </div>
 
@@ -51,7 +51,7 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
               <div v-if="u.displayName" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ u.email }}</div>
             </td>
             <td class="py-1.5 pr-3 text-right tabular-nums"
-                :class="usage.limitPerUser > 0 && u.images >= usage.limitPerUser * 0.9 ? 'text-amber-600 dark:text-amber-400 font-medium' : ''">{{ u.images }}</td>
+                :class="usage.limitPerUser > 0 && u.images >= usage.limitPerUser * 0.9 ? 'text-amber-700 dark:text-amber-400 font-medium' : ''">{{ u.images }}</td>
             <td class="py-1.5 pr-3">
               <div class="flex items-center gap-2">
                 <div class="flex-1 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">

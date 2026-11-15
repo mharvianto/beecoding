@@ -207,18 +207,18 @@ onBeforeUnmount(() => { pollStopped = true; });
       </div>
     </div>
     <p class="text-sm mb-2">
-      <RouterLink to="/guide/problems" class="text-amber-600 dark:text-amber-400 hover:underline">📖 Guide to writing problems</RouterLink>
+      <RouterLink to="/guide/problems" class="text-amber-700 dark:text-amber-400 hover:underline">📖 Guide to writing problems</RouterLink>
     </p>
     <p v-if="student" class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Write your own problems here — they stay private to you. When one is ready, send it to an admin to
-      publish it in <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>,
+      publish it in <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>,
       or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published. Solving a problem you wrote yourself earns no XP and does not count toward your streak.
     </p>
     <p v-else class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Your reusable problem library — write a problem once here, then pull it into any
-      <RouterLink to="/boards" class="text-amber-600 dark:text-amber-400 hover:underline">board</RouterLink>
+      <RouterLink to="/boards" class="text-amber-700 dark:text-amber-400 hover:underline">board</RouterLink>
       you own. Mark one public and it also joins the pool everyone solves from in
-      <RouterLink to="/practice" class="text-amber-600 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>.
     </p>
 
     <div v-if="genOpen" class="mb-4 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-500/5">
@@ -286,17 +286,17 @@ onBeforeUnmount(() => { pollStopped = true; });
           <h3 class="font-semibold text-sm">{{ b.title }}</h3>
           <div class="flex items-center gap-1 shrink-0">
             <RouterLink v-if="openReports[b.id]" :to="`/reports/problems?bank=${b.id}`" @click.stop
-                        class="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
+                        class="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
                         :title="`${openReports[b.id]} open report(s) — click to review`">🚩 {{ openReports[b.id] }}</RouterLink>
-            <span v-if="b.generatedByAi" class="text-[10px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
-            <span v-if="b.pendingReview" class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
+            <span v-if="b.generatedByAi" class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
+            <span v-if="b.pendingReview" class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   title="An admin reviews AI-generated problems before they're shared with other teachers">
               ⏳ pending review
             </span>
-            <span v-else-if="b.isPublic && student" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+            <span v-else-if="b.isPublic && student" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
               live in Practice
             </span>
-            <span v-else-if="b.isPublic" class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+            <span v-else-if="b.isPublic" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
               shared
             </span>
           </div>
@@ -308,7 +308,7 @@ onBeforeUnmount(() => { pollStopped = true; });
         </div>
         <div v-if="b.tags" class="flex flex-wrap gap-1 mt-2">
           <span v-for="t in b.tags.split(',')" :key="t"
-                class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
             {{ t }}
           </span>
         </div>
@@ -336,7 +336,7 @@ onBeforeUnmount(() => { pollStopped = true; });
         <ul v-if="proposalsBySlug[b.slug]?.length" class="mt-2 space-y-1">
           <li v-for="r in proposalsBySlug[b.slug]" :key="r.id" class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
             <span>💡 {{ r.boardTitle }}:</span>
-            <span :class="{ 'text-amber-600 dark:text-amber-400': r.status === 'Pending', 'text-emerald-600 dark:text-emerald-400': r.status === 'Approved', 'text-rose-600 dark:text-rose-400': r.status === 'Rejected' }">
+            <span :class="{ 'text-amber-700 dark:text-amber-400': r.status === 'Pending', 'text-emerald-600 dark:text-emerald-400': r.status === 'Approved', 'text-rose-600 dark:text-rose-400': r.status === 'Rejected' }">
               {{ { Pending: 'waiting', Approved: 'approved', Rejected: 'declined', Withdrawn: 'withdrawn' }[r.status] }}
             </span>
             <span v-if="r.reviewNote">— “{{ r.reviewNote }}”</span>

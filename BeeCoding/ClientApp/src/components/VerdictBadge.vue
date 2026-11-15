@@ -17,7 +17,7 @@ const map = {
 
 <template>
   <span class="inline-flex items-center justify-center rounded font-semibold"
-        :class="[map[verdict]?.[0] || map.None[0], small ? 'text-[10px] px-1.5 py-0.5 min-w-[34px]' : 'text-xs px-2 py-1']">
+        :class="[map[verdict]?.[0] || map.None[0], small ? 'text-[11px] px-1.5 py-0.5 min-w-[34px]' : 'text-xs px-2 py-1']">
     {{ map[verdict]?.[1] || verdict }}
   </span>
 </template>

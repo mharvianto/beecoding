@@ -25,7 +25,7 @@ const canEmail = (k) => s.value.emailAvailable && s.value.emailVerified && k.ema
       Choose the kinds of notification you get in the bell (and as desktop or push notifications).
       <template v-if="s.emailAvailable">Email is optional and sent only for kinds you also keep in the bell.</template>
     </p>
-    <p v-if="s.emailAvailable && !s.emailVerified" class="text-xs text-amber-600 dark:text-amber-400">Verify your email address to receive these by email.</p>
+    <p v-if="s.emailAvailable && !s.emailVerified" class="text-xs text-amber-700 dark:text-amber-400">Verify your email address to receive these by email.</p>
     <div class="rounded-xl border border-slate-200 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
       <div class="flex items-center gap-3 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
         <span class="flex-1">Kind</span><span class="w-12 text-center">Bell</span><span v-if="s.emailAvailable" class="w-12 text-center">Email</span>

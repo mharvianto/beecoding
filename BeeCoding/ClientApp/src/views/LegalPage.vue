@@ -8,7 +8,7 @@ defineProps({ title: String, updated: String });
 <template>
   <div class="min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
     <header class="max-w-3xl w-full mx-auto px-4 h-14 flex items-center justify-between">
-      <RouterLink to="/" class="font-bold text-lg text-amber-600 dark:text-amber-400">🐝 BeeCoding</RouterLink>
+      <RouterLink to="/" class="font-bold text-lg text-amber-700 dark:text-amber-400">🐝 BeeCoding</RouterLink>
       <span class="flex items-center gap-3"><DocLangToggle /><ThemeToggle /></span>
     </header>
 
@@ -23,7 +23,7 @@ defineProps({ title: String, updated: String });
       </article>
 
       <p class="mt-10 text-sm">
-        <RouterLink to="/" class="text-amber-600 dark:text-amber-400">&larr; {{ docLang === 'id' ? 'Kembali ke beranda' : 'Back to home' }}</RouterLink>
+        <RouterLink to="/" class="text-amber-700 dark:text-amber-400">&larr; {{ docLang === 'id' ? 'Kembali ke beranda' : 'Back to home' }}</RouterLink>
       </p>
     </main>
   </div>
