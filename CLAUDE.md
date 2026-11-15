@@ -125,7 +125,9 @@ bank list, admin bank list/count and everything public; "Save to bank" just clea
 `SourceBankProblemId` stays the XP key source (`ProgressService`), deliberately separate: setting it on old problems would re-award XP.
 Once a problem has any `Submission`, `ProblemsController.Update` refuses (409) changes to graded content (statement, tests, limits, languages,
 banned lists, input file: `BoardBulkService.GradedContent`); title/tags/level/position stay editable. `POST .../new-version` copies it as a hidden draft
-with its own bank row (the editor offers it on that 409). Not built: a "newer version in the bank" notice for copies, and moving the content columns out of `Problem`.
+with its own bank row (the editor offers it on that 409). A copy that fell behind its bank problem (graded content compared, `BoardBulkService.GradedContent`, visible copies only) is listed by `GET .../problems/bank-updates` and shown as
+"Update from bank" on the board's problem list (owner only): `POST .../{slug}/update-from-bank` replaces it in place, or, once students have submitted, adds the bank version as a hidden draft.
+Not built: moving the content columns out of `Problem` (the bell/push does not announce a bank change either).
 
 ### Problem groups (folders/sessions)
 

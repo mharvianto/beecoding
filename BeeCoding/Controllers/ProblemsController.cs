@@ -253,6 +253,64 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         return Mapping.ToOwnerDto(copy);
     }
 
+    /// <summary>Which copies on this board have fallen behind the bank problem they came from (owner only; tests, limits and statement compared).</summary>
+    [HttpGet("bank-updates")]
+    public async Task<ActionResult<List<BankUpdateDto>>> BankUpdates(string slug)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var copies = await _db.Problems.Include(x => x.TestCases)
+            .Where(x => x.BoardId == boardId!.Value && x.SourceBankProblemId != null && !x.Hidden).ToListAsync();   // a hidden copy is not in use: hiding the old one after a draft clears its notice
+        var sourceIds = copies.Select(x => x.SourceBankProblemId!.Value).Distinct().ToList();
+        // A BoardOnly row is written through on every edit, so it can never be ahead; a deleted bank problem is filtered out and skipped.
+        var banks = await _db.BankProblems.Include(b => b.TestCases).Where(b => sourceIds.Contains(b.Id) && !b.BoardOnly).ToDictionaryAsync(b => b.Id);
+        var behind = copies.Where(c => banks.TryGetValue(c.SourceBankProblemId!.Value, out var b)
+            && BoardBulkService.GradedContent(c) != BoardBulkService.GradedContent(b)).ToList();
+        var behindIds = behind.Select(c => c.Id).ToList();
+        var locked = (await _db.Submissions.Where(s => behindIds.Contains(s.ProblemId)).Select(s => s.ProblemId).Distinct().ToListAsync()).ToHashSet();
+        return behind.Select(c => new BankUpdateDto(c.Slug, locked.Contains(c.Id))).ToList();
+    }
+
+    /// <summary>
+    /// Bring a copy up to date with its bank problem. Not yet submitted to: its content is replaced in place. Already submitted to: the bank
+    /// version becomes a new hidden draft next to it (same rule as a locked edit), so what students were graded against stays as it was.
+    /// </summary>
+    [HttpPost("{problemSlug}/update-from-bank")]
+    public async Task<ActionResult<ProblemDto>> UpdateFromBank(string slug, string problemSlug)
+    {
+        var (boardId, err) = await RequireOwnerAsync(slug);
+        if (err is not null) return err;
+
+        var p = await _db.Problems.Include(x => x.TestCases)
+            .FirstOrDefaultAsync(x => x.Slug == problemSlug && x.BoardId == boardId!.Value);
+        if (p?.SourceBankProblemId is not int srcId) return NotFound();
+        var bank = await _db.BankProblems.Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Id == srcId && !b.BoardOnly);
+        if (bank is null) return NotFound();
+
+        if (await _db.Submissions.AnyAsync(s => s.ProblemId == p.Id))
+        {
+            var copy = BoardBulkService.ProblemFromBank(bank, p.BoardId, p.Position);
+            copy.GroupId = p.GroupId;
+            copy.Hidden = true;
+            copy.Title = bank.Title + " (updated)";
+            _db.Problems.Add(copy);
+            await _db.SaveChangesAsync();
+            await _notifier.ProblemChangedAsync(boardId!.Value);
+            return Mapping.ToOwnerDto(copy);
+        }
+
+        _db.TestCases.RemoveRange(p.TestCases.ToList());
+        var fresh = BoardBulkService.ProblemFromBank(bank, p.BoardId, p.Position);
+        p.Title = fresh.Title; p.StatementMarkdown = fresh.StatementMarkdown; p.AllowedLanguages = fresh.AllowedLanguages;
+        p.Tags = fresh.Tags; p.Level = fresh.Level; p.BannedHeaders = fresh.BannedHeaders; p.BannedSymbols = fresh.BannedSymbols;
+        p.InputFileName = fresh.InputFileName; p.TimeLimitMs = fresh.TimeLimitMs; p.MemoryLimitKb = fresh.MemoryLimitKb;
+        foreach (var t in fresh.TestCases) p.TestCases.Add(t);
+        await _db.SaveChangesAsync();
+        await _notifier.ProblemChangedAsync(boardId!.Value);
+        return Mapping.ToOwnerDto(p);
+    }
+
     /// <summary>The board problem's content of record: a private bank row. If this fails the problem simply has no link yet; the startup backfill adds it.</summary>
     private async Task AttachBankRowAsync(Problem p)
     {

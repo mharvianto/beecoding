@@ -150,10 +150,16 @@ public class BoardBulkService(AppDbContext db, IBoardNotifier notifier)
     /// Content that decides a verdict: statement, tests, limits, languages, banned lists, input file. Title, tags and level are not in it
     /// (a typo in the title does not change what a student's submission was judged against). Used to lock a problem once it has submissions.
     /// </summary>
-    public static string GradedContent(Problem p, IEnumerable<TestCase>? tests = null) => string.Join("\u001f", new[]
-    {
-        p.StatementMarkdown, p.AllowedLanguages, p.BannedHeaders ?? "", p.BannedSymbols ?? "", p.InputFileName ?? "",
-        p.TimeLimitMs.ToString(), p.MemoryLimitKb.ToString(),
-    }.Concat((tests ?? p.TestCases).OrderBy(t => t.Position).ThenBy(t => t.Id)
-        .Select(t => $"{t.Stdin}\u001e{t.ExpectedStdout}\u001e{t.IsSample}\u001e{t.Points}\u001e{t.Position}")));
+    public static string GradedContent(Problem p, IEnumerable<TestCase>? tests = null) => Graded(
+        p.StatementMarkdown, p.AllowedLanguages, p.BannedHeaders, p.BannedSymbols, p.InputFileName, p.TimeLimitMs, p.MemoryLimitKb,
+        (tests ?? p.TestCases).OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position)));
+
+    public static string GradedContent(BankProblem b) => Graded(
+        b.StatementMarkdown, b.AllowedLanguages, b.BannedHeaders, b.BannedSymbols, b.InputFileName, b.TimeLimitMs, b.MemoryLimitKb,
+        b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position)));
+
+    private static string Graded(string statement, string langs, string? bannedHeaders, string? bannedSymbols, string? inputFile, int ms, int kb,
+        IEnumerable<(string Stdin, string Expected, bool Sample, int Points, int Position)> tests) =>
+        string.Join("\u001f", new[] { statement, langs, bannedHeaders ?? "", bannedSymbols ?? "", inputFile ?? "", ms.ToString(), kb.ToString() }
+            .Concat(tests.Select(t => $"{t.Stdin}\u001e{t.Expected}\u001e{t.Sample}\u001e{t.Points}\u001e{t.Position}")));
 }

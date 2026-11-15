@@ -91,6 +91,8 @@ public record UpsertProblemDto(
     string? InputFileName = null);        // set => stdin is written to this file instead of piped
 
 public record UpdateProblemVisibilityDto(bool Hidden);
+/// <summary>A board problem whose bank source has changed since it was copied. Locked = students already submitted, so an update makes a new version.</summary>
+public record BankUpdateDto(string Slug, bool Locked);
 public record ReorderProblemsDto(List<string> Order);   // problem slugs, board's new top-to-bottom order
 
 /// <summary>Per-problem submission aggregate for the staff Problems page — computed

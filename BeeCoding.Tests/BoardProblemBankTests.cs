@@ -121,4 +121,60 @@ public class BoardProblemBankTests
             foreach (var f in new[] { path, path + "-wal", path + "-shm" }) try { File.Delete(f); } catch { }
         }
     }
+
+    [Fact]
+    public async Task A_copy_that_fell_behind_its_bank_problem_is_listed_and_updated_in_place_or_as_a_hidden_draft_once_submitted_to()
+    {
+        using var app = new TestApp();
+        var t = await TeacherAsync(app);
+        var slug = (await t.GetFromJsonAsync<JsonElement>("/api/boards")).EnumerateArray().First().GetProperty("slug").GetString()!;
+        int bankId;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var owner = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+            var b = new BankProblem { OwnerId = owner.Id, Title = "Bank sum", StatementMarkdown = "v1" };
+            b.TestCases.Add(new BankTestCase { Stdin = "1\n", ExpectedStdout = "1\n", Points = 1 });
+            db.BankProblems.Add(b);
+            await db.SaveChangesAsync();
+            bankId = b.Id;
+        }
+        string Slug(HttpResponseMessage r) => r.Content.ReadFromJsonAsync<JsonElement>().Result.GetProperty("slug").GetString()!;
+        var plain = Slug(await t.PostAsync($"/api/bank/{bankId}/copy-to/{slug}", null));
+        var used = Slug(await t.PostAsync($"/api/bank/{bankId}/copy-to/{slug}", null));
+        Assert.Empty((await t.GetFromJsonAsync<JsonElement>($"/api/boards/{slug}/problems/bank-updates")).EnumerateArray());
+
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var b = await db.BankProblems.Include(x => x.TestCases).FirstAsync(x => x.Id == bankId);
+            b.StatementMarkdown = "v2";
+            b.TestCases.Single().ExpectedStdout = "2\n";
+            var p = await db.Problems.FirstAsync(x => x.Slug == used);
+            db.Submissions.Add(new Submission { ProblemId = p.Id, UserId = b.OwnerId, Code = "x" });
+            await db.SaveChangesAsync();
+        }
+
+        var behind = (await t.GetFromJsonAsync<JsonElement>($"/api/boards/{slug}/problems/bank-updates")).EnumerateArray().ToList();
+        Assert.Equal(2, behind.Count);
+        Assert.False(behind.Single(x => x.GetProperty("slug").GetString() == plain).GetProperty("locked").GetBoolean());
+        Assert.True(behind.Single(x => x.GetProperty("slug").GetString() == used).GetProperty("locked").GetBoolean());
+
+        (await t.PostAsync($"/api/boards/{slug}/problems/{plain}/update-from-bank", null)).EnsureSuccessStatusCode();
+        var draft = Slug(await t.PostAsync($"/api/boards/{slug}/problems/{used}/update-from-bank", null));
+
+        using var scope2 = app.Services.CreateScope();
+        var db2 = scope2.ServiceProvider.GetRequiredService<AppDbContext>();
+        var updated = await db2.Problems.Include(x => x.TestCases).FirstAsync(x => x.Slug == plain);
+        Assert.Equal("v2", updated.StatementMarkdown);
+        Assert.Equal("2\n", updated.TestCases.Single().ExpectedStdout);
+        var untouched = await db2.Problems.FirstAsync(x => x.Slug == used);
+        Assert.Equal("v1", untouched.StatementMarkdown);
+        var newDraft = await db2.Problems.Include(x => x.TestCases).FirstAsync(x => x.Slug == draft);
+        Assert.True(newDraft.Hidden);
+        Assert.Equal("v2", newDraft.StatementMarkdown);
+        // only the still-behind, already-submitted original is listed now
+        var after = (await t.GetFromJsonAsync<JsonElement>($"/api/boards/{slug}/problems/bank-updates")).EnumerateArray().Select(x => x.GetProperty("slug").GetString()).ToList();
+        Assert.Equal([used], after);
+    }
 }

@@ -25,6 +25,28 @@ const picking = ref(false);
 
 const isStaff = computed(() => board.value && board.value.role !== 'Student');
 
+// Copies behind the bank problem they came from (owner only): slug -> locked (students already submitted).
+const bankUpdates = ref({});
+async function loadBankUpdates() {
+  try {
+    const rows = await api.get(`/api/boards/${props.slug}/problems/bank-updates`);
+    bankUpdates.value = Object.fromEntries(rows.map((r) => [r.slug, r.locked]));
+  } catch { bankUpdates.value = {}; }
+}
+async function updateFromBank(p) {
+  const locked = bankUpdates.value[p.slug];
+  const ok = await confirmDialog.ask(locked
+    ? `Students have already submitted to “${p.title}”, so it is left as it is. The bank's current version is added as a new hidden draft next to it — publish it, then hide this one.`
+    : `Replace “${p.title}” with the bank's current statement, tests and limits? Any edits you made to this copy are lost.`,
+  { confirmLabel: locked ? 'Create draft' : 'Update' });
+  if (!ok) return;
+  error.value = '';
+  try {
+    await api.post(`/api/boards/${props.slug}/problems/${p.slug}/update-from-bank`);
+    await Promise.all([loadAll(), loadBankUpdates()]);
+  } catch (e) { error.value = e.message; }
+}
+
 async function loadAll() {
   board.value = await api.get(`/api/boards/${props.slug}`);
   [problems.value, groups.value] = await Promise.all([
@@ -86,7 +108,7 @@ async function rejectProposal() {
 onMounted(async () => {
   try { await loadAll(); } catch (e) { error.value = e.message; }
   if (isStaff.value) loadOpenReports();
-  if (board.value?.isOwner) loadProposals();
+  if (board.value?.isOwner) { loadProposals(); loadBankUpdates(); }
 });
 
 const filtered = computed(() => {
@@ -423,6 +445,10 @@ async function reorderGroupTo(id, target, pos) {
             <option value="">Ungrouped</option>
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.title }}</option>
           </select>
+          <button v-if="bankUpdates[p.slug] !== undefined" @click="updateFromBank(p)" class="row-action-btn row-action-btn--accent"
+                  title="The bank problem this was copied from has changed since">
+                <span>🔄</span><span class="max-sm:hidden">Update from bank</span>
+              </button>
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
                 <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
               </button>
