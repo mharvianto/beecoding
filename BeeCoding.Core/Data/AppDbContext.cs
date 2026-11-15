@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SolveRecord> SolveRecords => Set<SolveRecord>();
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
+    public DbSet<AiHintEvent> AiHintEvents => Set<AiHintEvent>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<PlatformRuntimeSettings> PlatformRuntimeSettings => Set<PlatformRuntimeSettings>();
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
@@ -215,6 +216,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
         b.Entity<AiHintProgress>().HasIndex(x => new { x.UserId, x.ProblemKey }).IsUnique();
+        b.Entity<AiHintEvent>().HasIndex(x => x.At);
         b.Entity<AiHintProgress>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

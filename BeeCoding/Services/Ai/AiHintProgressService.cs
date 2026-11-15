@@ -50,6 +50,7 @@ public class AiHintProgressService(AppDbContext db)
             row.Count += 1;
             row.LastCodeHash = codeHash;
             row.UpdatedAt = now;
+            _db.AiHintEvents.Add(new AiHintEvent { UserId = userId, ProblemKey = problemKey, Level = Math.Clamp(row.Count, 1, MaxLevel), At = now });
 
             try
             {

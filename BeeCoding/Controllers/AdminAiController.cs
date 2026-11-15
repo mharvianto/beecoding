@@ -57,6 +57,31 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         return new AdminAiUsagePageDto(pageRows, all.Count, page, pageSize);
     }
 
+    // ---- Are hints helping? ------------------------------------------------------
+    [HttpGet("ai-hint-effect")]
+    public async Task<ActionResult<AiHintEffect.Result>> HintEffect([FromQuery] int days = 30)
+    {
+        days = Math.Clamp(days, 1, 365);
+        var since = DateTime.UtcNow.AddDays(-days);
+        var hints = await _db.AiHintEvents.Where(h => h.At >= since && (h.ProblemKey.StartsWith("board:") || h.ProblemKey.StartsWith("bank:")))
+            .Select(h => new HintEvt(h.UserId, h.ProblemKey, h.At, h.Level)).ToListAsync();
+        if (hints.Count == 0) return AiHintEffect.Compute(hints, []);
+
+        var users = hints.Select(h => h.UserId).Distinct().ToList();
+        // Submissions of everyone who asked, plus non-askers on the same problems for the baseline.
+        var boardIds = hints.Where(h => h.Key.StartsWith("board:")).Select(h => int.Parse(h.Key[6..])).Distinct().ToList();
+        var bankIds = hints.Where(h => h.Key.StartsWith("bank:")).Select(h => int.Parse(h.Key[5..])).Distinct().ToList();
+        var subs = new List<SubEvt>();
+        // Before the window too: an Accepted from before the first hint must be seen to leave that pair out.
+        subs.AddRange((await _db.Submissions.Where(s => boardIds.Contains(s.ProblemId) && s.Status == SubmissionStatus.Done)
+            .Select(s => new { s.UserId, s.ProblemId, s.CreatedAt, s.Verdict }).ToListAsync())
+            .Select(s => new SubEvt(s.UserId, $"board:{s.ProblemId}", s.CreatedAt, s.Verdict == Verdict.Accepted)));
+        subs.AddRange((await _db.BankSubmissions.Where(s => bankIds.Contains(s.BankProblemId) && s.Status == SubmissionStatus.Done)
+            .Select(s => new { s.UserId, s.BankProblemId, s.CreatedAt, s.Verdict }).ToListAsync())
+            .Select(s => new SubEvt(s.UserId, $"bank:{s.BankProblemId}", s.CreatedAt, s.Verdict == Verdict.Accepted)));
+        return AiHintEffect.Compute(hints, subs);
+    }
+
     // ---- AI kill-switch, quotas, per-user overrides -------------------------
     [HttpGet("ai-settings")]
     public async Task<ActionResult<AiGlobalSettingsDto>> GetAiSettings()

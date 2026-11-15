@@ -215,6 +215,7 @@ async function loadAiProvider() {
   try {
     aiProvider.value = await api.get('/api/admin-ui/ai-provider');
     loadAiExtras();
+    loadHintEffect();
     aiProviderForm.value = { apiKey: '', baseUrl: aiProvider.value.baseUrl || '', model: aiProvider.value.model || '', generateModel: aiProvider.value.generateModel || '' };
   } catch (e) { err.value = e.message; }
 }
@@ -242,6 +243,13 @@ function fillAiExtras(x) {
 async function loadAiExtras() {
   try { fillAiExtras(await api.get('/api/admin-ui/ai-provider/extras')); } catch (e) { err.value = e.message; }
 }
+// ---- Are AI hints helping? ----
+const hintEffect = ref(null);
+const hintEffectDays = ref(30);
+async function loadHintEffect() {
+  try { hintEffect.value = await api.get(`/api/admin-ui/ai-hint-effect?days=${hintEffectDays.value}`); } catch (e) { err.value = e.message; }
+}
+const pct = (v) => (v == null ? '–' : `${v}%`);
 function addAiFallback() { aiExtrasForm.value.fallbacks.push({ id: null, apiKey: '', keyPreview: null, baseUrl: '', model: '' }); }
 async function saveAiExtras() {
   err.value = ''; aiExtrasSaving.value = true; aiExtrasMsg.value = '';
@@ -1205,6 +1213,31 @@ onMounted(async () => {
                 class="mt-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
           {{ aiProviderSaving ? 'Saving…' : 'Save' }}
         </button>
+      </div>
+
+      <!-- Are hints helping? -->
+      <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="hintEffect">
+        <div class="flex items-center gap-2 mb-1">
+          <h2 class="font-semibold text-sm">Are AI hints helping?</h2>
+          <select v-model.number="hintEffectDays" @change="loadHintEffect"
+                  class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs bg-transparent">
+            <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
+          </select>
+        </div>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+          Per student and problem that asked for a hint (hints are logged from the release that added this, with no text).
+          Pairs already solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is
+          not a fair comparison — trust the speed numbers more.
+        </p>
+        <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">No hints logged in this period yet.</p>
+        <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+          <div><dt class="text-xs text-slate-500">Student–problem pairs</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.students }} students)</span></dd></div>
+          <div><dt class="text-xs text-slate-500">Solved after a hint</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Solved within 30 min</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Median time to solve</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+          <div><dt class="text-xs text-slate-500">Deep hints (level 3+), never solved</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+          <div><dt class="text-xs text-slate-500">No hint, same problems: solved</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+        </dl>
       </div>
 
       <!-- Tuning + backup providers -->

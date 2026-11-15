@@ -988,6 +988,21 @@ public class AiHintProgress
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>One AI hint asked: who, on which problem, at which level, when. No text. Feeds the Admin "are hints
+/// helping" numbers; <see cref="AiHintProgress"/> only keeps the latest state and cannot answer that.</summary>
+public class AiHintEvent
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+
+    /// <summary>"bank:{id}" or "board:{id}".</summary>
+    [MaxLength(40)]
+    public string ProblemKey { get; set; } = "";
+
+    public int Level { get; set; }
+    public DateTime At { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>
 /// Trail of moderation actions (soft-delete, restore, permanent purge) for the admin panel.
 /// Actor/target are denormalized (email, label) so the row still reads sensibly after the
