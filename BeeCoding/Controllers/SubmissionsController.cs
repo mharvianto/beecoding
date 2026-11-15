@@ -80,7 +80,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     [HttpGet("api/problems/{problemId:int}/submissions")]
     public async Task<ActionResult<IEnumerable<SubmissionDto>>> ListForProblem(int problemId)
     {
-        var problem = await _db.Problems.FirstOrDefaultAsync(p => p.Id == problemId);
+        var problem = await _db.Problems.Include(p => p.Group).FirstOrDefaultAsync(p => p.Id == problemId);
         if (problem is null) return NotFound();
 
         var board = await _db.Boards.Include(b => b.Members).ThenInclude(m => m.User)
@@ -90,6 +90,8 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         bool isAdmin = IsAdminUser(_admin);
         if (viewer is null && !isAdmin) return Forbid();
         bool staff = viewer is not null ? _vis.IsStaff(viewer.Role) : isAdmin;
+        // Same rule as the statement and submit paths: ids are sequential, so a hidden or not-yet-open problem must not be probed.
+        if (!staff && !GroupAccess.StudentVisible(problem, DateTime.UtcNow)) return NotFound();
         bool exam = await GroupAccess.ExamModeAsync(_db, board, problemId);
 
         // shortcut: newest 1000 only — each row carries the code (up to 200 KB), and a busy board would load all of it per page
@@ -110,6 +112,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
                 continue;
             }
             if (!membersById.TryGetValue(s.UserId, out var author)) continue;
+            if (!staff && _vis.IsStaff(author.Role)) continue;   // a student never reads a teacher's code (reference solutions), as the grid and wall never list staff
             if (!_vis.CanSeePeerRow(UserId, staff, exam, author)) continue;
             bool full = _vis.CanSeePeerSubmission(UserId, staff, exam, author, s);
             result.Add(Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff));
@@ -120,7 +123,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     [HttpGet("api/submissions/{id:int}")]
     public async Task<ActionResult<SubmissionDto>> Get(int id)
     {
-        var s = await _db.Submissions.Include(x => x.Problem).Include(x => x.User)
+        var s = await _db.Submissions.Include(x => x.Problem).ThenInclude(p => p!.Group).Include(x => x.User)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (s is null) return NotFound();
 
@@ -165,8 +168,10 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (viewer is null && !IsAdminUser(_admin) && !orgManages) return Forbid();
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
+        if (!staff && s.Problem is not null && !GroupAccess.StudentVisible(s.Problem, DateTime.UtcNow)) return NotFound();
         bool exam = await GroupAccess.ExamModeAsync(_db, board, s.ProblemId);
         if (author is null || !_vis.CanSeePeerRow(UserId, staff, exam, author)) return Forbid();
+        if (!staff && _vis.IsStaff(author.Role)) return Forbid();
         bool full = _vis.CanSeePeerSubmission(UserId, staff, exam, author, s);
         return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff, previousSubmissionId: previousId, nextSubmissionId: nextId);
     }
