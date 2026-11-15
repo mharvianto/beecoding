@@ -77,7 +77,7 @@ const faqs = [
         <div class="flex items-center gap-3 text-sm">
           <ThemeToggle />
           <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Sign in</RouterLink>
-          <RouterLink to="/register" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1.5 font-medium">
+          <RouterLink to="/register" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1.5 font-medium">
             Get started
           </RouterLink>
         </div>
@@ -104,7 +104,7 @@ const faqs = [
             </p>
             <div class="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3">
               <RouterLink to="/register"
-                          class="bg-amber-700 hover:bg-amber-800 text-white rounded-xl px-6 py-3 font-semibold shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5">
+                          class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl px-6 py-3 font-semibold shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5">
                 Create an account
               </RouterLink>
               <RouterLink to="/login"
@@ -162,7 +162,7 @@ const faqs = [
         <h2 class="text-2xl sm:text-3xl font-bold text-center">From problem to progress in three steps</h2>
         <div class="mt-10 grid gap-6 md:grid-cols-3">
           <div v-for="[n, title, body] in steps" :key="n" class="relative rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span class="w-9 h-9 rounded-full bg-amber-700 text-white font-bold grid place-items-center shadow-md shadow-amber-500/30">{{ n }}</span>
+            <span class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 font-bold grid place-items-center shadow-md shadow-amber-500/30">{{ n }}</span>
             <h3 class="mt-4 text-lg font-semibold">{{ title }}</h3>
             <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ body }}</p>
           </div>

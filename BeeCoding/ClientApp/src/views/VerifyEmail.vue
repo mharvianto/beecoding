@@ -60,7 +60,7 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
 
       <div v-if="state === 'ready'" class="space-y-3">
         <p class="text-sm text-slate-600 dark:text-slate-300">Press the button to confirm your email address.</p>
-        <button @click="confirm" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium">Confirm my email</button>
+        <button @click="confirm" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium">Confirm my email</button>
       </div>
 
       <p v-else-if="state === 'checking'" class="text-sm text-slate-500 dark:text-slate-400">Checking your link…</p>
@@ -69,7 +69,7 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
         <p class="text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-3">
           Thanks — your email address is confirmed.
         </p>
-        <RouterLink :to="auth.user ? '/boards' : '/login'" class="inline-block bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium">
+        <RouterLink :to="auth.user ? '/boards' : '/login'" class="inline-block bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium">
           {{ auth.user ? 'Continue' : 'Sign in' }}
         </RouterLink>
       </div>
@@ -80,7 +80,7 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
           <template v-if="auth.user">Request a new link below.</template>
           <template v-else>Sign in and request a new link from the banner at the top.</template>
         </p>
-        <button v-if="auth.user" @click="resend" :disabled="busy" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+        <button v-if="auth.user" @click="resend" :disabled="busy" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
           {{ sent ? 'Sent ✓' : busy ? '…' : 'Resend email' }}
         </button>
         <RouterLink v-else to="/login" class="inline-block text-sm text-amber-600 dark:text-amber-400">Go to sign in</RouterLink>
@@ -93,7 +93,7 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
         </p>
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <div class="flex flex-wrap gap-2">
-          <button @click="resend" :disabled="busy || sent" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+          <button @click="resend" :disabled="busy || sent" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
             {{ sent ? 'Sent ✓' : busy ? '…' : 'Resend email' }}
           </button>
           <button @click="refresh" class="border border-slate-300 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-medium">I've confirmed it</button>

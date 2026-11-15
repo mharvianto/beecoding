@@ -92,7 +92,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <div class="flex items-center gap-2">
         <button type="submit" :disabled="atLimit"
-                class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
           {{ editing === null ? 'Add snippet' : 'Save changes' }}
         </button>
         <button v-if="editing !== null" type="button" @click="cancel" class="row-action-btn">Cancel</button>

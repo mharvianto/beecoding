@@ -44,7 +44,7 @@ async function leave(o) {
         You can leave at any time.
       </p>
       <div class="flex gap-2">
-        <button @click="accept(i)" :disabled="busy" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Join</button>
+        <button @click="accept(i)" :disabled="busy" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Join</button>
         <button @click="decline(i)" :disabled="busy" class="text-sm text-slate-500 dark:text-slate-400 px-2">Decline</button>
       </div>
     </div>

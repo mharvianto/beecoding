@@ -47,7 +47,7 @@ async function unlink() {
       <div v-if="asking" class="flex flex-wrap gap-2">
         <input v-model="password" type="password" autocomplete="current-password" placeholder="Password to confirm" @keyup.enter="unlink"
                class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="unlink" :disabled="busy || !password" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">Disconnect</button>
+        <button @click="unlink" :disabled="busy || !password" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">Disconnect</button>
         <button @click="asking = false; password = ''" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
       </div>
     </div>

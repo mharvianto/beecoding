@@ -164,7 +164,7 @@ const showHowItWorks = ref(false);
       <div v-if="tab === 'ranking'" class="flex gap-1.5 text-sm sm:ml-auto">
         <button v-for="p in periods" :key="p[0]" @click="setPeriod(p[0])"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
-                :class="period === p[0] ? 'bg-amber-700 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
+                :class="period === p[0] ? 'bg-amber-500 text-slate-900' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
           {{ p[1] }}
         </button>
       </div>

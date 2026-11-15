@@ -91,7 +91,7 @@ async function submit() {
       <TurnstileWidget v-if="!google" ref="turnstile" action="register" v-model:token="human" />
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <button :disabled="busy || (!google && !!auth.config.turnstileSiteKey && !human)"
-              class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+              class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
         {{ busy ? '…' : 'Register' }}
       </button>
     </form>

@@ -451,14 +451,14 @@ function ago(ts) {
       <div class="h-full overflow-y-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-2">
         <div class="flex gap-2 items-center">
           <button @click="run" :disabled="running || runCooldown > 0"
-                  class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                  class="border border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
           </button>
           <button @click="submit" :disabled="submitting || submitCooldown > 0 || (problem.closed && !isStaff)"
-                  class="bg-amber-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50">
             {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
           </button>
-          <span v-if="langs.length > 1" class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+          <span v-if="langs.length > 1" class="ml-3 inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="l in langs" :key="l" @click="setLang(l)"
                     class="px-2.5 py-1"
                     :class="solveLang === l

@@ -116,7 +116,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
           <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is."
                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
           <div class="flex gap-2">
-            <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>
+            <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>
             <button @click="reviewing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
           </div>
         </div>

@@ -327,7 +327,7 @@ onBeforeUnmount(async () => {
     <RouterLink :to="`/boards/${board.slug}/problems`"
                 class="my-4 flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 hover:border-amber-400 dark:hover:border-amber-500">
       <span class="text-sm font-medium">📋 Problems ({{ problems.length }})
-        <span v-if="pendingProposals > 0" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-700 text-white"
+        <span v-if="pendingProposals > 0" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-900"
               :title="`${pendingProposals} proposed problem(s) waiting for you`">💡 {{ pendingProposals }}</span>
       </span>
       <span class="text-slate-500 dark:text-slate-400 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
@@ -338,9 +338,9 @@ onBeforeUnmount(async () => {
       <h2 class="font-semibold text-slate-600 dark:text-slate-300 text-sm">Live progress</h2>
       <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
         <button @click="setView('wall')" class="px-3 py-1"
-                :class="view === 'wall' ? 'bg-amber-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400'">Wall</button>
+                :class="view === 'wall' ? 'bg-amber-500 text-slate-900' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400'">Wall</button>
         <button @click="setView('grid')" class="px-3 py-1 border-l border-slate-300 dark:border-slate-700"
-                :class="view === 'grid' ? 'bg-amber-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400'">Grid</button>
+                :class="view === 'grid' ? 'bg-amber-500 text-slate-900' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400'">Grid</button>
       </div>
     </div>
 

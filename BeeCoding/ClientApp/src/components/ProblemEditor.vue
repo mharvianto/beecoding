@@ -417,7 +417,7 @@ function pickFormula(e) {
 
       <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
         <button @click="save" :disabled="busy"
-                class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 font-medium disabled:opacity-50">
+                class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 font-medium disabled:opacity-50">
           {{ busy ? 'Saving…' : 'Save' }}
         </button>
         <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 px-3">Cancel</button>

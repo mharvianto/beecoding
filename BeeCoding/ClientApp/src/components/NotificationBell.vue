@@ -40,7 +40,7 @@ async function go(n) {
             :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
             title="Notifications" aria-label="Notifications">
       🔔
-      <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-700 text-white text-[10px] font-bold leading-4 text-center">
+      <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-slate-900 text-[10px] font-bold leading-4 text-center">
         {{ notif.unread > 9 ? '9+' : notif.unread }}
       </span>
     </button>

@@ -465,7 +465,7 @@ function download() {
       Paste disabled — Exam mode
     </div>
     <div class="absolute top-1 right-4 z-10 flex items-center gap-1 text-[11px] font-mono transition-opacity
-                opacity-30 hover:opacity-100 focus-within:opacity-100"
+                rounded-md px-1 py-0.5 bg-white/85 dark:bg-slate-900/85 opacity-70 hover:opacity-100 focus-within:opacity-100"
          :class="{ '!opacity-90': coarse }">
       <button type="button" :class="btnCls" title="Decrease font size (Ctrl -)" @click="applyFont(fontSize - 1)">A&minus;</button>
       <span class="text-slate-500 dark:text-slate-400 tabular-nums w-4 text-center">{{ fontSize }}</span>

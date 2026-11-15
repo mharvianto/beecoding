@@ -255,7 +255,7 @@ onBeforeUnmount(async () => {
         <button v-if="isStaff" @click="toggleLecturing"
                 class="text-xs px-2.5 py-1 rounded-lg font-medium"
                 :class="lecturingOn
-                  ? 'bg-amber-700 text-white'
+                  ? 'bg-amber-500 text-slate-900'
                   : 'border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'">
           {{ lecturingOn ? 'Stop broadcasting' : 'Start broadcasting' }}
         </button>

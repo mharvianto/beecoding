@@ -29,6 +29,8 @@ const notifications = useNotifications();
 const undoToast = useUndoToast();
 const router = useRouter();
 const route = useRoute();
+// The two-step-verification nudge stays out of the way while someone is solving a problem or using the playground.
+const quietRoute = computed(() => /\/problems\/[^/]+$/.test(route.path) || route.path.startsWith('/practice/') || route.path.startsWith('/playground'));
 
 const mobileNavOpen = ref(false);
 watch(() => route.path, () => { mobileNavOpen.value = false; });
@@ -156,7 +158,7 @@ onBeforeUnmount(() => {
     <MfaRequiredBanner v-if="auth.mustSetupMfa" />
     <VerifyEmailBanner v-else-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
     <OrgInviteBanner v-else-if="auth.user?.pendingOrgInvites > 0 && !route.path.startsWith('/account/profile')" />
-    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !auth.user.mfaOfferSnoozed && !route.path.startsWith('/account/security')" />
+    <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !auth.user.mfaOfferSnoozed && !route.path.startsWith('/account/security') && !quietRoute" />
     <!-- one nudge at a time: this one waits until the two-step offer is answered or not applicable -->
     <NotificationOfferBanner v-else-if="auth.user && !route.path.startsWith('/account')" />
     <main class="flex-1 min-h-0 flex flex-col">

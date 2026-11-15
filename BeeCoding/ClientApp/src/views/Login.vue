@@ -191,7 +191,7 @@ function backToPassword(clearError = true) {
         </template>
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button v-if="mfaMode !== 'email' || emailSent" :disabled="busy || !mfaCode"
-                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Verify' }}
         </button>
         <div class="text-sm flex flex-col gap-1.5 text-amber-600 dark:text-amber-400">
@@ -210,7 +210,7 @@ function backToPassword(clearError = true) {
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy || !password"
-                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Connect and sign in' }}
         </button>
         <button type="button" @click="linkInfo = null; password = ''; error = ''" class="text-sm text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
@@ -223,7 +223,7 @@ function backToPassword(clearError = true) {
         <TurnstileWidget ref="turnstile" action="login" v-model:token="human" />
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
-                class="w-full bg-amber-700 hover:bg-amber-800 text-white rounded-lg py-2 font-medium disabled:opacity-50">
+                class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
           {{ busy ? '…' : 'Sign in' }}
         </button>
       </form>

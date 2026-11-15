@@ -118,7 +118,7 @@ async function createAndSelect() {
           <input v-model="newTitle" @keyup.enter="createAndSelect" placeholder="Board title"
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <button @click="createAndSelect" :disabled="creating || !newTitle.trim()"
-                  class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
             {{ creating ? 'Creating…' : 'Create' }}
           </button>
         </div>

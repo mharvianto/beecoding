@@ -60,7 +60,7 @@ async function join() {
         <form @submit.prevent="createBoard" class="flex gap-2">
           <input v-model="newTitle" placeholder="Board title" required
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
-          <button class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 font-medium">Create</button>
+          <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 font-medium">Create</button>
         </form>
       </div>
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">

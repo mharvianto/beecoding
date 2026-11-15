@@ -651,7 +651,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             <option value="Member">Member</option>
             <option value="Admin">Admin</option>
           </select>
-          <button @click="addMember" class="text-sm bg-amber-700 text-white rounded-lg px-4 font-medium">Add</button>
+          <button @click="addMember" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 font-medium">Add</button>
         </div>
         <p v-if="notice" class="text-xs text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
 
@@ -774,7 +774,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3"
                     class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
           <button @click="bulkCreateBoards" :disabled="bulkBoardBusy || !bulkBoardOwnerEmail.trim() || !bulkBoardTitles.trim()"
-                  class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ bulkBoardBusy ? 'Creating…' : 'Create boards' }}
           </button>
           <div v-if="bulkBoardResult" class="mt-2 text-xs space-y-1">
@@ -795,7 +795,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           </label>
           <template v-if="selectedBoards.size">
             <span>{{ selectedBoards.size }} selected</span>
-            <button @click="bulkAdding = true" class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-3 py-1 text-xs font-medium">
+            <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1 text-xs font-medium">
               ➕ Add groups / problems
             </button>
           </template>
@@ -1012,7 +1012,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                    class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <button @click="saveAiSettings" :disabled="aiSaving"
-                  class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ aiSaving ? 'Saving…' : 'Save' }}
           </button>
         </template>
@@ -1041,7 +1041,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ aiProviderMsg }}</p>
             <button @click="saveAiProvider" :disabled="aiProviderSaving"
-                    class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                    class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
               {{ aiProviderSaving ? 'Saving…' : 'Save' }}
             </button>
           </template>
@@ -1084,7 +1084,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
           <div>
             <button @click="saveAiExtras" :disabled="aiExtrasSaving"
-                    class="mt-3 bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                    class="mt-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
               {{ aiExtrasSaving ? 'Saving…' : 'Save' }}
             </button>
           </div>
@@ -1118,7 +1118,7 @@ onMounted(() => { url.read(); loadOrgs(); });
         <div>
           <div class="flex items-center gap-2 mb-2">
             <h2 class="font-semibold text-sm">Registered platforms</h2>
-            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-700 text-white rounded-lg px-3 py-1 font-medium">+ Add platform</button>
+            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">+ Add platform</button>
           </div>
 
           <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
@@ -1135,7 +1135,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </p>
             <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
             <div class="flex gap-2 pt-1">
-              <button @click="saveLtiPlatform" class="bg-amber-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
+              <button @click="saveLtiPlatform" class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
               <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">Cancel</button>
             </div>
           </div>
