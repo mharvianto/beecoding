@@ -90,12 +90,13 @@ const sortedStudents = computed(() => {
       </thead>
       <tbody>
         <tr v-for="s in sortedStudents" :key="s.userId" class="border-t border-slate-100 dark:border-slate-800">
-          <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-nowrap">
+          <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-normal sm:whitespace-nowrap">
             <span :class="{ 'font-semibold': s.userId === currentUserId }">{{ s.displayName }}</span>
             <span v-if="s.userId === currentUserId" class="text-xs text-slate-500 dark:text-slate-400"> (you)</span>
             <span v-if="isStaff && needsHelp(s.userId)" class="ml-2 text-[11px] px-1.5 py-0.5 rounded border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
                   title="Asked the AI tutor for 3+ hints in a row on a problem that is not solved yet">may need help</span>
             <button v-if="isStaff" @click="emit('toggle-hide', s)"
+                    :aria-label="s.hiddenByTeacher ? 'Hidden from peers. Click to show.' : 'Visible to peers. Click to hide.'"
                     class="ml-2 text-[11px] px-1.5 py-0.5 rounded border"
                     :class="s.hiddenByTeacher
                       ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
