@@ -260,7 +260,7 @@ async function toggleHiddenByStudent(post) {
             <div v-if="noteDraft[post.postId] !== undefined" class="flex gap-1">
               <input v-model="noteDraft[post.postId]" @keyup.enter="saveNote(post)"
                      placeholder="Add a note…" maxlength="500"
-                     class="flex-1 text-sm border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
+                     class="flex-1 text-sm border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
               <button @click="saveNote(post)" class="text-xs text-amber-600 dark:text-amber-400 px-1">save</button>
             </div>
             <p v-else-if="post.note" @click="post.mine && startNote(post)"
@@ -328,7 +328,7 @@ async function toggleHiddenByStudent(post) {
               <div class="flex gap-1">
                 <input v-model="commentDraft[post.postId]" @keyup.enter="addComment(post)"
                        placeholder="Write a comment…"
-                       class="flex-1 text-xs border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
+                       class="flex-1 text-xs border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
                 <button @click="addComment(post)" class="text-xs text-amber-600 dark:text-amber-400 px-1">send</button>
               </div>
             </div>

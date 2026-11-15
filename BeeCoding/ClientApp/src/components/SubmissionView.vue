@@ -42,7 +42,7 @@ function goTo(id) {
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
+  <div role="dialog" aria-modal="true" aria-label="Submission" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
       <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center justify-between gap-2 px-4 pt-3">
@@ -54,7 +54,7 @@ function goTo(id) {
             <button v-if="sub?.nextSubmissionId" @click="goTo(sub.nextSubmissionId)"
                     class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Newer attempt by the same author">▶</button>
           </div>
-          <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close">✕</button>
+          <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close" aria-label="Close">✕</button>
         </div>
         <div v-if="sub" class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
           <span v-if="sub.status === 'Done'">{{ sub.runtimeMs }}ms · {{ sub.memoryKb }}KB · {{ Math.round(sub.score * 100) }}%</span>

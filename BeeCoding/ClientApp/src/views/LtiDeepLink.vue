@@ -116,7 +116,7 @@ async function createAndSelect() {
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Or create a new board</p>
         <div class="flex gap-2">
           <input v-model="newTitle" @keyup.enter="createAndSelect" placeholder="Board title"
-                 class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+                 class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <button @click="createAndSelect" :disabled="creating || !newTitle.trim()"
                   class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
             {{ creating ? 'Creating…' : 'Create' }}
@@ -131,9 +131,9 @@ async function createAndSelect() {
       </p>
       <div class="flex gap-2 mb-3">
         <input v-model="problemQ" @keyup.enter="loadProblems" placeholder="Search problems…"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <select v-model="problemScope" @change="loadProblems"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
           <option value="mine">Mine</option>
           <option value="public">Shared by others</option>
           <option value="all">All</option>

@@ -75,7 +75,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
   </span>
 
   <Teleport to="body">
-    <div v-if="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" @click.self="modal = false" @keydown.esc="modal = false">
+    <div v-if="modal" role="dialog" aria-modal="true" aria-label="Report a problem" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" @click.self="modal = false" @keydown.esc="modal = false">
       <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 max-h-[90vh] overflow-y-auto" role="dialog" aria-label="Report a problem">
         <template v-if="!sent">
           <h2 class="font-semibold">Report a problem</h2>
@@ -90,7 +90,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
           </div>
           <div>
             <textarea v-model="message" rows="4" maxlength="1000" placeholder="Describe it: which input or line is wrong, and what you expected (at least 10 characters)."
-                      class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
+                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 text-right">{{ message.length }}/1000</div>
           </div>
           <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>

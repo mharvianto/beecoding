@@ -337,7 +337,7 @@ async function reorderGroupTo(id, target, pos) {
           </div>
           <div v-if="rejecting && rejecting.id === p.id" class="mt-2 flex gap-2 flex-wrap">
             <input v-model="rejecting.reason" maxlength="300" placeholder="Reason (optional, the student sees it)"
-                   class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+                   class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
             <button @click="rejectProposal" :disabled="proposalBusy" class="bg-rose-600 text-white rounded-lg px-3 py-1 text-sm">Decline</button>
             <button @click="rejecting = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
           </div>
@@ -362,7 +362,7 @@ async function reorderGroupTo(id, target, pos) {
     </section>
 
     <input v-model="q" type="search" placeholder="Search by title or tag..."
-           class="w-full text-sm border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 mb-3" />
+           class="w-full text-sm border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 mb-3" />
     <p v-if="q && filtered.length !== problems.length" class="text-xs text-slate-500 dark:text-slate-400 mb-2">
       {{ filtered.length }} of {{ problems.length }} problems
     </p>
@@ -441,7 +441,7 @@ async function reorderGroupTo(id, target, pos) {
             </div>
             <div class="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0">
               <select v-if="isStaff && groups.length" :value="p.groupId ?? ''" @change="moveProblem(p, $event.target.value === '' ? null : Number($event.target.value))"
-                  title="Move to group" class="text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem] min-w-0">
+                  title="Move to group" class="text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem] min-w-0">
             <option value="">Ungrouped</option>
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.title }}</option>
           </select>

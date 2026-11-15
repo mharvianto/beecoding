@@ -43,7 +43,7 @@ async function submit() {
       <form v-else @submit.prevent="submit" class="space-y-3">
         <p class="text-sm text-slate-500 dark:text-slate-400">Enter your account email and we'll send you a link to choose a new password.</p>
         <input v-model="email" type="email" placeholder="Email" aria-label="Email" required autofocus
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+               class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <TurnstileWidget ref="turnstile" action="forgot-password" v-model:token="human" />
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
         <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"

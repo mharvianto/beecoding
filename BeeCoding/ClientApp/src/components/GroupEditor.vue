@@ -37,7 +37,7 @@ function save() {
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @keydown.esc="emit('cancel')" @click.self="emit('cancel')">
+  <div role="dialog" aria-modal="true" aria-label="Edit group" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @keydown.esc="emit('cancel')" @click.self="emit('cancel')">
     <form @submit.prevent="save"
           class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-md p-5 shadow-lg space-y-3">
       <h2 class="font-semibold">{{ group ? 'Edit group' : 'New group' }}</h2>
@@ -45,19 +45,19 @@ function save() {
       <label class="block text-sm">
         <span class="text-slate-500 dark:text-slate-400">Title</span>
         <input v-model="title" maxlength="120" autofocus placeholder="e.g. Week 5 — Arrays"
-               class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+               class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
       </label>
 
       <div class="grid grid-cols-2 gap-3">
         <label class="block text-sm">
           <span class="text-slate-500 dark:text-slate-400">Opens (optional)</span>
           <input v-model="opensAt" type="datetime-local"
-                 class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm" />
+                 class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm" />
         </label>
         <label class="block text-sm">
           <span class="text-slate-500 dark:text-slate-400">Closes (optional)</span>
           <input v-model="closesAt" type="datetime-local"
-                 class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm" />
+                 class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm" />
         </label>
       </div>
       <p class="text-xs text-slate-500 dark:text-slate-400">

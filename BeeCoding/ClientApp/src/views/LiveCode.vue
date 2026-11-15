@@ -314,7 +314,7 @@ onBeforeUnmount(async () => {
         </span>
                     </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
-                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
+                              class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
                     <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
@@ -342,14 +342,14 @@ onBeforeUnmount(async () => {
               <span class="font-semibold">👀 Student code</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ studentList.length }} live</span>
               <select v-if="studentList.length" v-model="selectedUid"
-                      class="ml-auto text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">
+                      class="ml-auto text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">
                 <option v-for="s in studentList" :key="s.uid" :value="s.uid">
                   {{ s.authorName }} · {{ ago(s.updatedAt) }} ago
                 </option>
               </select>
               <button @click="toggleStudentsPanel" title="Hide this panel"
                       class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                      :class="{ 'ml-auto': !studentList.length }">✕</button>
+                      :class="{ 'ml-auto': !studentList.length }" aria-label="Close">✕</button>
             </div>
             <MonacoEditor v-if="selectedStudent" :model-value="selectedStudent.code"
                           :language="liveLang" :read-only="true" class="flex-1 min-h-0" />
@@ -431,7 +431,7 @@ onBeforeUnmount(async () => {
         </span>
                     </div>
                     <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
-                              class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
+                              class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
                     <label class="text-xs text-slate-500 dark:text-slate-400">output</label>

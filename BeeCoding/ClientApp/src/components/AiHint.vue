@@ -157,7 +157,7 @@ async function ask(extra = {}) {
 
       <textarea v-model="question" rows="2"
                 :placeholder="liveMode ? 'Optional: ask something specific (e.g. “what does line 12 do?”)' : 'Optional: ask something specific (e.g. “why does test 3 fail?”)'"
-                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-xs"></textarea>
+                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-xs"></textarea>
       <div class="flex flex-wrap gap-2">
         <button @click="ask()" :disabled="busy || (!code && !liveMode)"
                 class="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">

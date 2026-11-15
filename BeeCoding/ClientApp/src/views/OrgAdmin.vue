@@ -617,7 +617,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <div class="flex items-center gap-2 mb-1">
             <h3 class="font-semibold text-sm">Are AI hints helping?</h3>
             <select v-model.number="hintEffectDays" @change="loadHintEffect"
-                    class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
+                    class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
               <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
             </select>
           </div>
@@ -646,8 +646,8 @@ onMounted(() => { url.read(); loadOrgs(); });
       <section v-show="tab === 'members'">
         <div class="flex flex-wrap gap-2 mb-3">
           <input v-model="newMemberEmail" @keyup.enter="addMember" placeholder="Email of an existing BeeCoding account"
-                 class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-          <select v-model="newMemberRole" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+                 class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+          <select v-model="newMemberRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
             <option value="Member">Member</option>
             <option value="Admin">Admin</option>
           </select>
@@ -715,7 +715,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </div>
             <div class="flex items-center gap-2 mt-2">
               <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
-                      class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+                      class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                 <option value="Member">Member</option>
                 <option value="Admin">Admin</option>
               </select>
@@ -739,7 +739,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <td><div class="font-medium">{{ m.displayName }}</div><div class="text-[11px] text-slate-400">{{ m.email }}</div></td>
                 <td>
                   <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
-                          class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+                          class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                     <option value="Member">Member</option>
                     <option value="Admin">Admin</option>
                   </select>
@@ -770,9 +770,9 @@ onMounted(() => { url.read(); loadOrgs(); });
             Teacher account and be a member of this org (or have an email on one of its domains) — invite them on the Members tab first.
           </p>
           <input v-model="bulkBoardOwnerEmail" placeholder="Owner's email (existing Teacher account)"
-                 class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                 class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3"
-                    class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
+                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
           <button @click="bulkCreateBoards" :disabled="bulkBoardBusy || !bulkBoardOwnerEmail.trim() || !bulkBoardTitles.trim()"
                   class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ bulkBoardBusy ? 'Creating…' : 'Create boards' }}
@@ -815,7 +815,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </div>
             <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1 mt-1.5">
               <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" @keyup.enter="saveBoardTags(b)"
-                     class="flex-1 text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                     class="flex-1 text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
               <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
               <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
             </div>
@@ -852,7 +852,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <td class="min-w-48">
                   <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1">
                     <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" @keyup.enter="saveBoardTags(b)"
-                           class="flex-1 text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                           class="flex-1 text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
                     <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
                     <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
                   </div>
@@ -873,15 +873,15 @@ onMounted(() => { url.read(); loadOrgs(); });
       <section v-show="tab === 'submissions'">
         <div class="flex flex-wrap items-center gap-2 mb-3">
           <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
-                 class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+                 class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <select v-model="submissionSource" @change="searchSubmissions"
-                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
             <option value="">Board + Practice</option>
             <option value="board">Board only</option>
             <option value="practice">Practice only</option>
           </select>
           <select v-model="submissionVerdict" @change="searchSubmissions"
-                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
             <option value="">Any verdict</option>
             <option value="Accepted">Accepted</option>
             <option value="WrongAnswer">Wrong answer</option>
@@ -970,12 +970,12 @@ onMounted(() => { url.read(); loadOrgs(); });
       <section v-show="tab === 'plagiarism'">
         <div class="flex items-center gap-2 mb-3">
           <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
-                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
             <option :value="null">Pick a board…</option>
             <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
           </select>
         <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
           <option :value="null">All problems</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
@@ -1002,14 +1002,14 @@ onMounted(() => { url.read(); loadOrgs(); });
             <input type="checkbox" v-model="aiSettings.paused" /> Pause AI for this organization
           </label>
           <input v-if="aiSettings.paused" v-model="aiSettings.pausedReason" placeholder="Reason (shown to users)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <label class="flex items-center gap-2 text-sm">Daily quota — students
             <input v-model.number="aiSettings.dailyQuotaStudent" type="number" min="0"
-                   class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label class="flex items-center gap-2 text-sm">Daily quota — teachers
             <input v-model.number="aiSettings.dailyQuotaTeacher" type="number" min="0"
-                   class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <button @click="saveAiSettings" :disabled="aiSaving"
                   class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
@@ -1029,16 +1029,16 @@ onMounted(() => { url.read(); loadOrgs(); });
               </span>
               <div class="flex gap-2">
                 <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key"
-                       class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                       class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
                 <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
               </div>
             </label>
             <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = platform default)"
-                   class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                   class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <input v-model="aiProviderForm.model" placeholder="Model (blank = platform default)"
-                   class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                   class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)"
-                   class="w-full mb-2 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                   class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ aiProviderMsg }}</p>
             <button @click="saveAiProvider" :disabled="aiProviderSaving"
                     class="bg-amber-700 hover:bg-amber-800 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
@@ -1057,12 +1057,12 @@ onMounted(() => { url.read(); loadOrgs(); });
             <label class="flex flex-col gap-1">
               <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
               <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="default"
-                     class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                     class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             </label>
             <label class="flex flex-col gap-1">
               <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort (only if your model supports it)</span>
               <select v-model="aiExtrasForm.reasoningEffort"
-                      class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
                 <option value="">default / don't send</option>
                 <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
               </select>
@@ -1074,11 +1074,11 @@ onMounted(() => { url.read(); loadOrgs(); });
               <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
             </div>
             <input v-model="f.model" placeholder="Model"
-                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
-                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
-                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </div>
           <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
           <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
@@ -1123,13 +1123,13 @@ onMounted(() => { url.read(); loadOrgs(); });
 
           <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? 'New platform' : 'Edit platform' }}</h3>
-            <input v-model="ltiForm.name" placeholder="Name (e.g. Moodle)" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.clientId" placeholder="Client ID" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.name" placeholder="Name (e.g. Moodle)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.clientId" placeholder="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             <p class="text-[11px] text-slate-500 dark:text-slate-400">
               Launches through this platform auto-join this organization and auto-assign new boards to it.
             </p>

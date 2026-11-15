@@ -31,7 +31,7 @@ function dismiss() { visible.value = false; }
         <button @click="expanded = !expanded" class="text-left flex-1 hover:underline">
           ✨ Animasi dikurangi sesuai pengaturan perangkatmu
         </button>
-        <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss">✕</button>
+        <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss" aria-label="Dismiss">✕</button>
       </div>
       <div v-if="expanded" class="mt-2 pt-2 border-t border-slate-600 dark:border-slate-500 text-xs text-slate-300 dark:text-slate-200 space-y-1">
         <p><strong>Windows 11:</strong> Settings → Accessibility → Visual effects → aktifkan "Animation effects"</p>

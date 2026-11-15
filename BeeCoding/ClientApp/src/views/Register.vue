@@ -65,12 +65,12 @@ async function submit() {
     </p>
     <form @submit.prevent="submit" class="space-y-3">
       <input v-model="form.displayName" placeholder="Display name" aria-label="Display name" required
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+             class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
       <template v-if="!google">
         <input v-model="form.email" type="email" placeholder="Email" aria-label="Email" required
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+               class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <input v-model="form.password" type="password" placeholder="Password (min 8 chars)" aria-label="Password (min 8 chars)" required
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+               class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
       </template>
       <div class="flex gap-2">
         <label class="flex-1 border rounded-lg px-3 py-2 cursor-pointer text-sm"
@@ -87,7 +87,7 @@ async function submit() {
         </label>
       </div>
       <input v-if="form.role === 'Teacher'" v-model="form.teacherCode" placeholder="Teacher invite code" aria-label="Teacher invite code"
-             class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+             class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
       <TurnstileWidget v-if="!google" ref="turnstile" action="register" v-model:token="human" />
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
       <button :disabled="busy || (!google && !!auth.config.turnstileSiteKey && !human)"

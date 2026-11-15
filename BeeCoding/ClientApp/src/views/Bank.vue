@@ -225,19 +225,19 @@ onBeforeUnmount(() => { pollStopped = true; });
       <p class="text-sm font-semibold text-violet-700 dark:text-violet-300">✨ Generate a problem from an idea</p>
       <textarea v-model="gen.idea" rows="3"
                 placeholder="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'"
-                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
+                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
       <div class="flex flex-wrap gap-2 text-sm">
-        <select v-model="gen.level" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select v-model="gen.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option>Easy</option><option>Medium</option><option>Hard</option>
         </select>
-        <select v-model="gen.language" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select v-model="gen.language" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option value="cpp">C++</option><option value="c">C</option>
         </select>
         <label class="flex items-center gap-1">tests
           <input v-model.number="gen.count" type="number" min="3" max="15"
-                 class="w-14 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1" />
+                 class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1" />
         </label>
-        <select v-model="gen.lang" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select v-model="gen.lang" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option value="id">Statement: Indonesian</option><option value="en">Statement: English</option>
         </select>
       </div>
@@ -260,16 +260,16 @@ onBeforeUnmount(() => { pollStopped = true; });
 
     <div class="flex gap-2 mb-4 flex-wrap">
       <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…"
-             class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+             class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-if="!student" v-model="scope" @change="load"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="mine">Mine</option>
         <option value="shared">Shared with me</option>
         <option value="public">Public from others</option>
         <option value="all">All</option>
       </select>
       <select v-model="level" @change="load"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="">All levels</option>
         <option>Easy</option><option>Medium</option><option>Hard</option>
       </select>
@@ -345,12 +345,12 @@ onBeforeUnmount(() => { pollStopped = true; });
         </ul>
         <div v-if="propose && propose.slug === b.slug" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
           <select v-model="propose.boardSlug"
-                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
             <option value="" disabled>Choose a board…</option>
             <option v-for="bd in boards" :key="bd.slug" :value="bd.slug">{{ bd.title }}</option>
           </select>
           <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           <p v-if="propose.error" role="alert" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
           <div class="flex gap-2">
             <button @click="sendProposal" :disabled="propose.busy || !propose.boardSlug"

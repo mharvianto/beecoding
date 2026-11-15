@@ -75,16 +75,16 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
       <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ editing === null ? 'New snippet' : 'Edit snippet' }}</h3>
       <div class="flex flex-col sm:flex-row gap-2">
         <input v-model="form.prefix" placeholder="Shortcut, e.g. fastio" maxlength="24" autocapitalize="off" spellcheck="false"
-               class="sm:w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono" />
+               class="sm:w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono" />
         <select v-model="form.lang" aria-label="Language"
-                class="sm:w-36 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="sm:w-36 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option v-for="l in SNIPPET_LANGS" :key="l.id" :value="l.id">{{ l.label }}</option>
         </select>
         <input v-model="form.description" placeholder="Description (optional)" maxlength="80"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       </div>
       <textarea v-model="form.body" rows="6" spellcheck="false" placeholder="What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through."
-                class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono"></textarea>
+                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono"></textarea>
       <p class="text-[11px] text-slate-500 dark:text-slate-400">
         <code>$1</code>, <code>$2</code>… are tab stops, <code>${1:text}</code> is a stop with default text, <code>$0</code> is the final cursor
         position. Write <code>\$</code> for a literal dollar sign.

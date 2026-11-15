@@ -196,7 +196,7 @@ onBeforeUnmount(async () => {
         </div>
         <div v-else class="flex items-center gap-2 mt-1">
           <input v-model="tagsInput" placeholder="e.g. class-2026, semester-1" @keyup.enter="saveTags"
-                 class="text-xs border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 w-64" />
+                 class="text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 w-64" />
           <button @click="saveTags" class="row-action-btn row-action-btn--success">Save</button>
           <button @click="editingTags = false" class="row-action-btn">Cancel</button>
         </div>
@@ -215,7 +215,7 @@ onBeforeUnmount(async () => {
     <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm">{{ error }}</p>
 
     <!-- Join QR: centered modal, with the code large enough to read from the back of a room -->
-    <div v-if="isStaff && showQr" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+    <div v-if="isStaff && showQr" role="dialog" aria-modal="true" aria-label="Join code QR" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
          @click.self="showQr = false">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-sm p-6 shadow-lg text-center relative">
         <button @click="showQr = false" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" aria-label="Close">✕</button>

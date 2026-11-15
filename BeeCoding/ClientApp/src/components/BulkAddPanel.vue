@@ -68,24 +68,24 @@ async function run() {
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
+  <div role="dialog" aria-modal="true" aria-label="Add several boards" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-2xl p-5 my-8 space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="font-bold text-lg">Bulk add to {{ slugs.length }} board{{ slugs.length === 1 ? '' : 's' }}</h2>
-        <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
+        <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" aria-label="Close">✕</button>
       </div>
 
       <!-- groups -->
       <section class="space-y-2">
         <h3 class="text-sm font-semibold">1 · Groups <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
         <textarea v-model="groupTitles" rows="3" placeholder="One group title per line&#10;Week 1&#10;Week 2"
-                  class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
+                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
         <div class="grid grid-cols-2 gap-3">
           <label class="block text-xs text-slate-500 dark:text-slate-400">Opens
-            <input v-model="opensAt" type="datetime-local" class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+            <input v-model="opensAt" type="datetime-local" class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           </label>
           <label class="block text-xs text-slate-500 dark:text-slate-400">Closes
-            <input v-model="closesAt" type="datetime-local" class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
+            <input v-model="closesAt" type="datetime-local" class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           </label>
         </div>
         <div class="flex gap-4 text-sm">
@@ -100,7 +100,7 @@ async function run() {
         <h3 class="text-sm font-semibold">2 · Problems from the bank <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
         <div class="flex gap-2">
           <input v-model="q" @keyup.enter="loadBank" placeholder="Search title or tag…"
-                 class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                 class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <button @click="loadBank" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3">Search</button>
         </div>
         <p v-if="bankError" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ bankError }}</p>
@@ -117,7 +117,7 @@ async function run() {
         <p class="text-xs text-slate-500 dark:text-slate-400">{{ picked.size }} selected</p>
         <label v-if="picked.size" class="block text-xs text-slate-500 dark:text-slate-400">Put them in group (optional — created if missing)
           <input v-model="problemGroup" list="bulk-group-titles" placeholder="leave blank for ungrouped"
-                 class="mt-1 w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                 class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <datalist id="bulk-group-titles"><option v-for="t in titles" :key="t" :value="t" /></datalist>
         </label>
       </section>

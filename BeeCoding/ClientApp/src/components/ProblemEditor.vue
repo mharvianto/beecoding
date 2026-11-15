@@ -235,7 +235,7 @@ function pickFormula(e) {
       </div>
 
       <div v-show="tab === 'problem'" class="space-y-3">
-        <input v-model="form.title" placeholder="Title" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2" />
+        <input v-model="form.title" placeholder="Title" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <div>
           <div class="flex items-center gap-2 text-xs mb-1">
             <span class="text-slate-500 dark:text-slate-400">Statement (Markdown)</span>
@@ -292,7 +292,7 @@ function pickFormula(e) {
                       @keydown.ctrl.b.prevent="wrap('**', '**', 'bold')" @keydown.meta.b.prevent="wrap('**', '**', 'bold')"
                       @keydown.ctrl.i.prevent="wrap('*', '*', 'italic')" @keydown.meta.i.prevent="wrap('*', '*', 'italic')"
                       @keydown.ctrl.m.prevent="inlineFormula" @keydown.meta.m.prevent="inlineFormula"
-                      class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
+                      class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 font-mono text-sm"></textarea>
             <div v-show="showPreview"
                  class="flex-1 min-w-0 h-[19rem] overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/40">
               <MarkdownBlock v-if="form.statementMarkdown.trim()" :text="form.statementMarkdown" />
@@ -307,29 +307,29 @@ function pickFormula(e) {
             <span class="text-[11px] text-slate-500 dark:text-slate-400">none checked = all languages</span>
           </span>
           <label class="flex items-center gap-1">Level
-            <select v-model="form.level" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1">
+            <select v-model="form.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1">
               <option>Easy</option><option>Medium</option><option>Hard</option>
             </select>
           </label>
           <label class="flex items-center gap-1">Time (ms)
-            <input v-model.number="form.timeLimitMs" type="number" class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+            <input v-model.number="form.timeLimitMs" type="number" class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label class="flex items-center gap-1">Memory (KB)
-            <input v-model.number="form.memoryLimitKb" type="number" class="w-28 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+            <input v-model.number="form.memoryLimitKb" type="number" class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label v-if="!showBankFields" class="flex items-center gap-1">Position
-            <input v-model.number="form.position" type="number" class="w-16 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+            <input v-model.number="form.position" type="number" class="w-16 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
         </div>
 
         <div class="space-y-2">
           <label class="flex items-center gap-1 text-sm">Banned headers
             <input v-model="form.bannedHeaders" placeholder="e.g. algorithm, numeric"
-                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label class="flex items-center gap-1 text-sm">Banned functions
             <input v-model="form.bannedSymbols" placeholder="e.g. std::sort, qsort, stable_sort"
-                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
             Comma-separated. <b>Headers</b>: names a submission may not <code>#include</code> (setting any also blocks
@@ -342,7 +342,7 @@ function pickFormula(e) {
         <div>
           <label class="flex items-center gap-1 text-sm">Input file (optional)
             <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin"
-                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
             When set, each test's input is written to this filename in the program's working directory instead of
@@ -354,7 +354,7 @@ function pickFormula(e) {
         <div class="flex gap-3 flex-wrap text-sm items-center">
           <label class="flex items-center gap-1 flex-1 min-w-48">Tags
             <input v-model="form.tags" placeholder="loop, array, dp"
-                   class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <TagSuggest class="w-full" :title="form.title" :statement="form.statementMarkdown" :current="form.tags" @add="addTag" />
           <label v-if="showBankFields && !studentMode" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
@@ -400,13 +400,13 @@ function pickFormula(e) {
           </div>
           <div class="grid grid-cols-2 gap-2">
             <textarea v-model="t.stdin" placeholder="stdin" rows="2"
-                      class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
+                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
             <textarea v-model="t.expectedStdout" placeholder="expected stdout" rows="2"
-                      class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
+                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
           </div>
           <div class="flex items-center gap-3 text-xs mt-1">
             <label class="flex items-center gap-1"><input type="checkbox" v-model="t.isSample" /> sample (visible to students)</label>
-            <label class="flex items-center gap-1">points <input v-model.number="t.points" type="number" class="w-14 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1" /></label>
+            <label class="flex items-center gap-1">points <input v-model.number="t.points" type="number" class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1" /></label>
             <button @click="removeTest(i)" class="text-red-500 ml-auto">remove</button>
           </div>
         </div>

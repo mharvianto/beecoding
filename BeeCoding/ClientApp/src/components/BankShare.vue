@@ -39,7 +39,7 @@ onMounted(load);
       </p>
       <div class="flex gap-2">
         <input v-model="email" @keyup.enter="add" type="email" placeholder="teacher@school.example"
-               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+               class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <button @click="add" :disabled="busy || !email.trim()"
                 class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Share</button>
       </div>

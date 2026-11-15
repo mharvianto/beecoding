@@ -98,6 +98,8 @@ let conn = null;
 
 const mine = computed(() => submissions.value.filter((s) => s.mine));
 const latestMine = computed(() => mine.value[0]);
+// Read out by screen readers (the verdict arrives asynchronously over SignalR).
+const verdictAnnouncement = computed(() => !latestMine.value ? '' : latestMine.value.status === 'Done' ? `Verdict: ${latestMine.value.verdict}` : 'Judging your submission');
 
 // lecturing mode
 const isStaff = computed(() => board.value?.role === 'Owner' || board.value?.role === 'Teacher');
@@ -323,6 +325,7 @@ function ago(ts) {
     <template #a>
     <!-- Left: statement + submissions -->
     <div class="h-full overflow-y-auto p-5 border-r border-slate-200 dark:border-slate-800">
+      <p class="sr-only" role="status">{{ verdictAnnouncement }}</p>
       <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
@@ -350,7 +353,7 @@ function ago(ts) {
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
         <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
         <button @click="useTemplate" class="underline hover:no-underline">Use the template instead</button>
-        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss">✕</button>
+        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss" aria-label="Dismiss">✕</button>
       </div>
 
       <p v-if="protectOn" class="text-[11px] text-amber-600 dark:text-amber-400 mb-2">
@@ -480,7 +483,7 @@ function ago(ts) {
           <div>
             <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
-                      class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
+                      class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
             <label class="text-xs text-slate-500 dark:text-slate-400">output</label>

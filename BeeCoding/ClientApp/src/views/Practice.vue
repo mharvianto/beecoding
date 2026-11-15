@@ -230,21 +230,21 @@ onMounted(() => {
 
     <div class="flex gap-2 mb-4 flex-wrap">
       <input v-model="q" @keyup.enter="search" placeholder="Search title or tag…"
-             class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+             class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-model="level" @change="search"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="">All levels</option>
         <option>Easy</option><option>Medium</option><option>Hard</option>
       </select>
       <select v-model="status" @change="search"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="">All statuses</option>
         <option value="unsolved">Unsolved</option>
         <option value="attempted">Attempted</option>
         <option value="solved">Solved</option>
       </select>
       <select v-model="sort" @change="search"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 text-sm">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
         <option value="">Sort: default</option>
         <option value="likes">Most liked</option>
         <option value="submissions">Most submissions</option>

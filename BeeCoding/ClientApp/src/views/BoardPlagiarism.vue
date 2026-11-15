@@ -48,7 +48,7 @@ function pick() {
     <label class="flex items-center gap-2 text-sm mb-3">
       <span class="text-slate-500 dark:text-slate-400">Problem</span>
       <select v-model="problem" @change="pick"
-              class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-xs">
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-xs">
         <option value="">All problems</option>
         <option v-for="p in problems" :key="p.slug" :value="p.slug">{{ p.title }}</option>
       </select>

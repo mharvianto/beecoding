@@ -1175,15 +1175,15 @@ onMounted(async () => {
           </span>
         </label>
         <input v-model="aiSettings.pausedReason" placeholder="Reason (shown in the audit log only)"
-               class="w-full mb-3 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+               class="w-full mb-3 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <div class="flex flex-wrap gap-4 mb-3 text-sm">
           <label class="flex items-center gap-2">Daily quota · students
             <input v-model.number="aiSettings.dailyQuotaStudent" type="number" min="0"
-                   class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <label class="flex items-center gap-2">Daily quota · teachers
             <input v-model.number="aiSettings.dailyQuotaTeacher" type="number" min="0"
-                   class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1" />
+                   class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
         </div>
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
@@ -1211,16 +1211,16 @@ onMounted(async () => {
             </span>
             <div class="flex gap-2">
               <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key"
-                     class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                     class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
               <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
             </div>
           </label>
           <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiProviderMsg }}</p>
         <button @click="saveAiProvider" :disabled="aiProviderSaving"
@@ -1234,7 +1234,7 @@ onMounted(async () => {
         <div class="flex items-center gap-2 mb-1">
           <h2 class="font-semibold text-sm">Are AI hints helping?</h2>
           <select v-model.number="hintEffectDays" @change="loadHintEffect"
-                  class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
+                  class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
             <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
           </select>
         </div>
@@ -1266,12 +1266,12 @@ onMounted(async () => {
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
             <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings"
-                   class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </label>
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort</span>
             <select v-model="aiExtrasForm.reasoningEffort"
-                    class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
               <option value="">appsettings / don't send</option>
               <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
             </select>
@@ -1280,7 +1280,7 @@ onMounted(async () => {
         <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
           <span class="text-xs text-slate-500 dark:text-slate-400">Review model (AI check + report triage; blank = the generate-problem model)</span>
           <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b"
-                 class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </label>
         <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
           <div class="flex items-center gap-2">
@@ -1288,11 +1288,11 @@ onMounted(async () => {
             <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
           </div>
           <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
-                 class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
         <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
@@ -1315,7 +1315,7 @@ onMounted(async () => {
             <div class="flex items-center gap-3 flex-wrap text-xs">
               <label class="flex items-center gap-1.5">Quota
                 <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default"
-                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
+                       class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
               </label>
               <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> Banned</label>
             </div>
@@ -1341,7 +1341,7 @@ onMounted(async () => {
                 <td><div class="font-medium">{{ row.displayName }}</div><div class="text-[11px] text-slate-400">{{ row.email }}</div></td>
                 <td>
                   <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default"
-                         class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
+                         class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
                 </td>
                 <td><input type="checkbox" v-model="row.banned" /></td>
                 <td class="whitespace-nowrap">
@@ -1356,11 +1356,11 @@ onMounted(async () => {
         <div class="flex flex-wrap items-end gap-2 text-sm">
           <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">User ID
             <input v-model.number="newOverride.userId" type="number" placeholder="see Users tab"
-                   class="w-28 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+                   class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
           <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">Daily quota
             <input v-model.number="newOverride.quota" type="number" min="0" placeholder="role default"
-                   class="w-28 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+                   class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
           <label class="flex items-center gap-1.5"><input type="checkbox" v-model="newOverride.banned" /> Banned</label>
           <button @click="addOverride" :disabled="!newOverride.userId"
@@ -1383,7 +1383,7 @@ onMounted(async () => {
           <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
             <label for="ai-sort">Sort by</label>
             <select id="ai-sort" :value="aiSort" @change="aiSort = $event.target.value; aiDir = firstDir(aiSort, false); aiPage = 1; loadAi()"
-                    class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1.5 py-1">
+                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1.5 py-1">
               <option v-for="[k, l] in AI_SORTS" :key="k" :value="k">{{ l }}</option>
             </select>
             <button type="button" @click="aiDir = aiDir === 'asc' ? 'desc' : 'asc'; aiPage = 1; loadAi()" class="row-action-btn"
@@ -1470,7 +1470,7 @@ onMounted(async () => {
       </div>
       <div class="flex gap-2 mb-3 flex-wrap items-center">
         <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…"
-               class="flex-1 min-w-[10rem] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchUsers" class="self-stretch text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="recalculateProgress" :disabled="recalcBusy"
                 class="row-action-btn row-action-btn--accent shrink-0 disabled:opacity-50"
@@ -1492,7 +1492,7 @@ onMounted(async () => {
         <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
           <label for="users-sort">Sort by</label>
           <select id="users-sort" :value="usersSort" @change="usersSort = $event.target.value; usersDir = firstDir(usersSort, true); usersPage = 1; loadUsers()"
-                  class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1.5 py-1">
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1.5 py-1">
             <option v-for="[k, l] in USER_SORTS" :key="k" :value="k">{{ l }}</option>
           </select>
           <button type="button" @click="usersDir = usersDir === 'asc' ? 'desc' : 'asc'; usersPage = 1; loadUsers()" class="row-action-btn"
@@ -1516,7 +1516,7 @@ onMounted(async () => {
           </div>
           <div class="flex items-center gap-2 flex-wrap mt-2">
             <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
-                    class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+                    class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
               <option value="Student">Student</option>
               <option value="Teacher">Teacher</option>
             </select>
@@ -1558,7 +1558,7 @@ onMounted(async () => {
               <td><div class="font-medium">{{ u.displayName }}</div><div class="text-[11px] text-slate-400">{{ u.email }}</div></td>
               <td>
                 <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
-                        class="text-[11px] border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-1 py-0.5">
+                        class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                   <option value="Student">Student</option>
                   <option value="Teacher">Teacher</option>
                 </select>
@@ -1602,11 +1602,11 @@ onMounted(async () => {
           board below). A missing password is auto-generated and shown once — copy it down.
         </p>
         <div class="flex flex-wrap gap-2 mb-2 text-sm">
-          <select v-model="importDefaultRole" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+          <select v-model="importDefaultRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
             <option value="Student">Default role: Student</option>
             <option value="Teacher">Default role: Teacher</option>
           </select>
-          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
             <option value="">Don't assign to a board</option>
             <option v-for="b in boards" :key="b.slug" :value="b.slug">Add to: {{ b.title }}</option>
           </select>
@@ -1645,11 +1645,11 @@ onMounted(async () => {
     <section v-show="tab === 'boards'">
       <div class="flex flex-wrap gap-2 mb-3 items-center">
         <input v-model="boardQ" @keyup.enter="loadBoards" placeholder="Search title or slug…"
-               class="flex-1 min-w-40 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 min-w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="loadBoards" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-2">Search</button>
         <span class="text-slate-300 dark:text-slate-700">|</span>
         <label class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">Select boards created before
-          <input type="date" v-model="archiveBeforeDate" class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
+          <input type="date" v-model="archiveBeforeDate" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
         </label>
         <button @click="selectBoardsBeforeDate" class="row-action-btn">select</button>
       </div>
@@ -1755,15 +1755,15 @@ onMounted(async () => {
     <section v-show="tab === 'submissions'">
       <div class="flex flex-wrap gap-2 mb-3">
         <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…"
-               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <select v-model="submissionSource" @change="searchSubmissions"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option value="">Board + Practice</option>
           <option value="board">Board only</option>
           <option value="practice">Practice only</option>
         </select>
         <select v-model="submissionVerdict" @change="searchSubmissions"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option value="">Any verdict</option>
           <option value="Accepted">Accepted</option>
           <option value="WrongAnswer">Wrong answer</option>
@@ -1847,12 +1847,12 @@ onMounted(async () => {
     <section v-show="tab === 'plagiarism'">
       <div class="flex items-center gap-2 mb-3">
         <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option :value="null">Pick a board…</option>
           <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
         </select>
         <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
-                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
           <option :value="null">All problems</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
@@ -1940,7 +1940,7 @@ onMounted(async () => {
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <input v-model="rejectReasonDraft[row.slug]" placeholder="Reason (optional, goes in the audit log)"
-                   class="flex-1 min-w-48 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                   class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <button @click="rejectAiReview(row)" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✕ Reject (stays private)
             </button>
@@ -2076,7 +2076,7 @@ onMounted(async () => {
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
               CPU / memory — {{ sysstatDaysAgo ? sysstatDaysAgo + ' day(s) ago' : 'today' }}, host <span class="font-mono">{{ sysstatResult?.hostname }}</span> only
             </h3>
-            <select v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
+            <select v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
               <option :value="0">Today</option>
               <option v-for="d in 30" :key="d" :value="d">{{ d }} day(s) ago</option>
             </select>
@@ -2147,7 +2147,7 @@ onMounted(async () => {
                   <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Minimum gap between one user's runs or submissions.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
-                       class="w-24 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">ms</span></span>
+                       class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">ms</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
@@ -2155,7 +2155,7 @@ onMounted(async () => {
                   <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">In a student's own bank. 0 stops students creating problems.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
+                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
               </label>
               </div>
             </section>
@@ -2168,7 +2168,7 @@ onMounted(async () => {
                   <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Larger files are refused; accepted ones are compressed (≤1200 px wide).</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">KB</span></span>
+                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">KB</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
@@ -2176,7 +2176,7 @@ onMounted(async () => {
                   <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 turns picture uploads off.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
+                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
               </label>
               </div>
             </section>
@@ -2189,7 +2189,7 @@ onMounted(async () => {
                   <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
-                       class="w-20 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">days</span></span>
+                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">days</span></span>
               </label>
               </div>
             </section>
@@ -2342,7 +2342,7 @@ onMounted(async () => {
     <section v-show="tab === 'audit'">
       <div class="flex flex-wrap gap-2 mb-3">
         <input v-model="auditQ" @keyup.enter="searchAudit" placeholder="Search actor, action, or target…"
-               class="flex-1 min-w-0 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="searchAudit" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
         <button @click="loadAudit" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
       </div>
@@ -2404,9 +2404,9 @@ onMounted(async () => {
       </p>
       <div class="flex flex-col sm:flex-row gap-2">
         <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)"
-               class="flex-1 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)"
-               class="sm:w-40 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+               class="sm:w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <button @click="createOrganization" class="text-sm bg-amber-500 text-white rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
       </div>
 
@@ -2416,11 +2416,11 @@ onMounted(async () => {
           <template v-if="orgEdit?.id === o.id">
             <div class="space-y-2">
               <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="Name"
-                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug"
-                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu"
-                     class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
+                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <div class="flex gap-2">
                 <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">Save</button>
                 <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
@@ -2455,11 +2455,11 @@ onMounted(async () => {
             <tr v-for="o in organizations" :key="o.id" class="border-b border-slate-100 dark:border-slate-800/60">
               <template v-if="orgEdit?.id === o.id">
                 <td><input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
-                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                           class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
-                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                           class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="univ.ac.id, univ.edu"
-                           class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
+                           class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td></td>
                 <td class="whitespace-nowrap">
                   <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium mr-1">Save</button>
@@ -2515,14 +2515,14 @@ onMounted(async () => {
 
         <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? 'New platform' : 'Edit platform' }}</h3>
-          <input v-model="ltiForm.name" placeholder="Name (e.g. BINUS Moodle)" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.clientId" placeholder="Client ID" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <select v-model="ltiForm.organizationId" class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+          <input v-model="ltiForm.name" placeholder="Name (e.g. BINUS Moodle)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.clientId" placeholder="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <select v-model="ltiForm.organizationId" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
             <option :value="null">No organization (unaffiliated)</option>
             <option v-for="o in organizations" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
@@ -2591,7 +2591,7 @@ onMounted(async () => {
       </div>
     </section>
       <!-- one-off password-reset link -->
-    <div v-if="resetLink" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
+    <div v-if="resetLink" role="dialog" aria-modal="true" aria-label="Password reset link" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-lg p-5 shadow-lg space-y-3">
         <h2 class="font-semibold">Reset link for {{ resetLink.user.displayName }}</h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -2600,7 +2600,7 @@ onMounted(async () => {
           Anyone with the link can set a new password — share it privately.
         </p>
         <input :value="resetLink.url" readonly @focus="$event.target.select()"
-               class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono" />
+               class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono" />
         <div class="flex justify-end gap-2">
           <button @click="resetLink = null" class="px-3 py-1.5 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Close</button>
           <button @click="copyResetLink" class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-amber-500 hover:bg-amber-600">

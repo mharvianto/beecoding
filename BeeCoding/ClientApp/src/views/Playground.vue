@@ -138,7 +138,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
         </span>
                 </div>
                 <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
-                          class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
+                          class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
               </div>
               <div>
                 <label class="text-xs text-slate-500 dark:text-slate-400">output</label>

@@ -251,7 +251,7 @@ onBeforeUnmount(async () => {
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
         <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
         <button @click="useTemplate" class="underline hover:no-underline">Use the template instead</button>
-        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss">✕</button>
+        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss" aria-label="Dismiss">✕</button>
       </div>
 
 
@@ -329,7 +329,7 @@ onBeforeUnmount(async () => {
           <div>
             <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
-                      class="w-full h-20 resize-y border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
+                      class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
             <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
