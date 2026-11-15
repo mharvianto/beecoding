@@ -59,16 +59,18 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     private int _tier;
 
     // Admin → AI (database) first, appsettings Ai:* when the admin left it blank.
-    private int MaxTokens => _providerRuntime.Extras.MaxTokens ?? _opt.MaxTokens;
-    private string? ReasoningEffortSetting => _providerRuntime.Extras.ReasoningEffort ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
+    // An organization with its own key runs its own model: the platform's tuning (made for the platform's model, where e.g. an unknown
+    // reasoning_effort is a 400) must not follow it there, so it keeps the appsettings defaults.
+    private bool OrgOwnsKey => _organizationId is int id && !string.IsNullOrWhiteSpace(_providerRuntime.Org(id)?.ApiKey);
+    private int MaxTokens => (OrgOwnsKey ? null : _providerRuntime.Extras.MaxTokens) ?? _opt.MaxTokens;
+    private string? ReasoningEffortSetting => (OrgOwnsKey ? null : _providerRuntime.Extras.ReasoningEffort) ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
 
     private List<AiFallback> Fallbacks() =>
         (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.Model)).ToList();
 
     /// <summary>How many providers may be tried: the main one plus the backups, but only the main one for an organization
     /// that brought its own key.</summary>
-    private int TierCount() =>
-        _organizationId is int id && !string.IsNullOrWhiteSpace(_providerRuntime.Org(id)?.ApiKey) ? 1 : 1 + Fallbacks().Count;
+    private int TierCount() => OrgOwnsKey ? 1 : 1 + Fallbacks().Count;
 
     /// <summary>Effective() for the provider this call is on right now.</summary>
     private (string ApiKey, string BaseUrl, string Model, string? GenerateModel) EffectiveNow()
@@ -109,7 +111,7 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     private string? GenModel => EffectiveNow().GenerateModel;
 
     /// <summary>Model for the admin AI check and report triage: Admin's review model, else the generate model. A backup provider uses its own.</summary>
-    private string? ReviewModel => _tier > 0 ? null : _providerRuntime.Extras.ReviewModel ?? GenModel;
+    private string? ReviewModel => _tier > 0 ? null : (OrgOwnsKey ? null : _providerRuntime.Extras.ReviewModel) ?? GenModel;
 
     private const string SystemBase = """
 You are a patient programming tutor on a C/C++ learning platform. Your ONLY goal is to help

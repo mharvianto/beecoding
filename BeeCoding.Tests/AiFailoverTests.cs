@@ -130,4 +130,25 @@ public class AiFailoverTests
         Assert.Contains("\"model\":\"review-model\"", bodies[0]);
         Assert.Contains(bodies, b => b.Contains("\"model\":\"hint-model\""));   // the hint kept its own model (later bodies are the backup tier)
     }
+
+    [Fact]
+    public async Task The_platform_tuning_does_not_follow_an_organization_that_brought_its_own_key()
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetExtras(1234, "low", []);
+        rt.SetOrg(1, "org-key", null, null, null);
+        var bodies = new List<string>();
+        var h = new Route(r => { bodies.Add(r.Content!.ReadAsStringAsync().Result); return Json("ok"); });
+
+        var plain = Svc(h, rt);
+        await plain.HintAsync(Ctx, "id", 1, default);
+        var org = Svc(h, rt);
+        org.UseOrganization(1);
+        await org.HintAsync(Ctx, "id", 1, default);
+
+        Assert.Contains("\"reasoning_effort\":\"low\"", bodies[0]);   // the platform's own calls still get it
+        Assert.Contains("\"max_tokens\":1234", bodies[0]);
+        Assert.DoesNotContain("reasoning_effort", bodies[1]);
+        Assert.DoesNotContain("\"max_tokens\":1234", bodies[1]);
+    }
 }

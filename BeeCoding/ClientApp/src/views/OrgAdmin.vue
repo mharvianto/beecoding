@@ -40,6 +40,9 @@ const engagementGranularity = ref(localStorage.getItem(ENGAGEMENT_GRANULARITY_KE
 const engagementStats = ref(null);
 const aiGranularity = ref(localStorage.getItem(AI_GRANULARITY_KEY) || 'week');                    // 'day' | 'week' — AiUsage has no finer data than a day
 const aiEngagementStats = ref(null);
+const hintEffect = ref(null);
+const hintEffectDays = ref(30);
+const pct = (v) => (v == null ? '–' : `${v}%`);
 const members = ref(null);
 const invites = ref([]);              // offers waiting for the user to accept
 const emailDomains = ref('');         // this org's auto-accept domains (comma separated)
@@ -89,7 +92,7 @@ async function loadOrgs() {
 
 function selectOrg(id) {
   orgId.value = id;
-  summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null;
+  summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null; hintEffect.value = null;
   members.value = null; invites.value = []; notice.value = ''; boards.value = null; aiSettings.value = null; aiProvider.value = null; imageUsage.value = null;
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
   const org = orgs.value?.find((o) => o.id === id);
@@ -154,12 +157,12 @@ async function loadDashboard() {
     ]);
     dashboard.value = d;
     topicStats.value = topics;
-    await Promise.all([loadEngagement(), loadAiEngagement()]);
+    await Promise.all([loadEngagement(), loadAiEngagement(), loadHintEffect()]);
   } catch (e) { err.value = e.message; }
 }
 
 function periodsFor(granularity) {
-  return granularity === 'hour' ? 24 : granularity === 'day' ? 30 : 12;
+  return granularity === 'hour' ? 168 : granularity === 'day' ? 90 : 12;   // the server's own caps for hour/day, same as the platform dashboard
 }
 async function loadEngagement() {
   if (!orgId.value) return;
@@ -173,6 +176,11 @@ function setEngagementGranularity(g) {
   engagementGranularity.value = g;
   try { localStorage.setItem(ENGAGEMENT_GRANULARITY_KEY, g); } catch { /* ignore */ }
   loadEngagement();
+}
+
+async function loadHintEffect() {
+  if (!orgId.value) return;
+  try { hintEffect.value = await api.get(`/api/org-admin/${orgId.value}/dashboard/hint-effect?days=${hintEffectDays.value}`); } catch (e) { err.value = e.message; }
 }
 
 async function loadAiEngagement() {
@@ -560,6 +568,29 @@ onMounted(() => { url.read(); loadOrgs(); });
             <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
           </div>
           <p v-else-if="aiEngagementStats" class="text-slate-400 dark:text-slate-500 text-sm">No AI usage in this window yet.</p>
+        </div>
+
+        <div v-if="hintEffect">
+          <div class="flex items-center gap-2 mb-1">
+            <h3 class="font-semibold text-sm">Are AI hints helping?</h3>
+            <select v-model.number="hintEffectDays" @change="loadHintEffect"
+                    class="ml-auto border border-slate-300 dark:border-slate-700 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
+              <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
+            </select>
+          </div>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mb-2">
+            Per student and problem on this organization's boards that asked for a hint (no hint text is kept). Pairs solved before the first hint are left out.
+            Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.
+          </p>
+          <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">No hints on this organization's boards in this period yet.</p>
+          <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <div><dt class="text-xs text-slate-500">Student–problem pairs</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.students }} students)</span></dd></div>
+            <div><dt class="text-xs text-slate-500">Solved after a hint</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500">Solved within 30 min</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500">Median time to solve</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+            <div><dt class="text-xs text-slate-500">Deep hints (level 3+), never solved</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+            <div><dt class="text-xs text-slate-500">No hint, same problems: solved</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+          </dl>
         </div>
 
         <div v-if="topicStats">

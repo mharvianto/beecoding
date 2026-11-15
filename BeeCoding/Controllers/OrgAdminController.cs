@@ -126,6 +126,14 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 
+    /// <summary>Are AI hints helping, for this org's board problems only (see <see cref="AiHintEffect"/>).</summary>
+    [HttpGet("{orgId:int}/dashboard/hint-effect")]
+    public async Task<ActionResult<AiHintEffect.Result>> DashboardHintEffect(int orgId, [FromQuery] int days = 30)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        return await AiHintEffect.LoadAsync(_db, DateTime.UtcNow.AddDays(-Math.Clamp(days, 1, 365)), orgId);
+    }
+
     /// <summary>Top tags by attempts, scoped to this org's board problems only.</summary>
     [HttpGet("{orgId:int}/dashboard/topics")]
     public async Task<ActionResult<List<AdminTopicStatDto>>> DashboardTopics(int orgId, [FromQuery] int take = 8)

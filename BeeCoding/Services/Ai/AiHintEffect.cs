@@ -1,3 +1,7 @@
+using BeeCoding.Data;
+using BeeCoding.Models;
+using Microsoft.EntityFrameworkCore;
+
 namespace BeeCoding.Services.Ai;
 
 public record HintEvt(int UserId, string Key, DateTime At, int Level);
@@ -52,5 +56,34 @@ public static class AiHintEffect
         return new Result(hintPairs.Count, hintPairs.Select(p => p.UserId).Distinct().Count(),
             Pct(solved, hintPairs.Count), Pct(soon, hintPairs.Count), median, deepStuck,
             baseline.Count, Pct(baseline.Count(g => g.Any(s => s.Accepted)), baseline.Count));
+    }
+
+    /// <summary>
+    /// Read the hint log and submissions for a window and compute. With <paramref name="organizationId"/> only that organization's board
+    /// problems count (practice problems belong to a user, not an organization, so they are left out).
+    /// </summary>
+    public static async Task<Result> LoadAsync(AppDbContext db, DateTime since, int? organizationId = null)
+    {
+        HashSet<string>? orgKeys = null;
+        if (organizationId is int org)
+            orgKeys = (await db.Problems.Where(p => p.Board!.OrganizationId == org).Select(p => p.Id).ToListAsync()).Select(id => $"board:{id}").ToHashSet();
+
+        var all = await db.AiHintEvents.Where(h => h.At >= since && (h.ProblemKey.StartsWith("board:") || (orgKeys == null && h.ProblemKey.StartsWith("bank:"))))
+            .Select(h => new HintEvt(h.UserId, h.ProblemKey, h.At, h.Level)).ToListAsync();
+        var hints = orgKeys is null ? all : all.Where(h => orgKeys.Contains(h.Key)).ToList();
+        if (hints.Count == 0) return Compute(hints, []);
+
+        var boardIds = hints.Where(h => h.Key.StartsWith("board:")).Select(h => int.Parse(h.Key[6..])).Distinct().ToList();
+        var bankIds = hints.Where(h => h.Key.StartsWith("bank:")).Select(h => int.Parse(h.Key[5..])).Distinct().ToList();
+        var subs = new List<SubEvt>();
+        // Before the window too: an Accepted from before the first hint must be seen to leave that pair out.
+        subs.AddRange((await db.Submissions.Where(s => boardIds.Contains(s.ProblemId) && s.Status == SubmissionStatus.Done)
+            .Select(s => new { s.UserId, s.ProblemId, s.CreatedAt, s.Verdict }).ToListAsync())
+            .Select(s => new SubEvt(s.UserId, $"board:{s.ProblemId}", s.CreatedAt, s.Verdict == Verdict.Accepted)));
+        if (bankIds.Count > 0)
+            subs.AddRange((await db.BankSubmissions.Where(s => bankIds.Contains(s.BankProblemId) && s.Status == SubmissionStatus.Done)
+                .Select(s => new { s.UserId, s.BankProblemId, s.CreatedAt, s.Verdict }).ToListAsync())
+                .Select(s => new SubEvt(s.UserId, $"bank:{s.BankProblemId}", s.CreatedAt, s.Verdict == Verdict.Accepted)));
+        return Compute(hints, subs);
     }
 }
