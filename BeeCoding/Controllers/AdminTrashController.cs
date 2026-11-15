@@ -21,10 +21,11 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize(Policy = "Admin")]
 [Route("api/admin-ui")]
-public class AdminTrashController(AppDbContext db, AuditLog audit) : ApiControllerBase
+public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess admin) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly AuditLog _audit = audit;
+    private readonly AdminAccess _admin = admin;
 
     // ---- trash: browse + restore/purge soft-deleted rows ---------------------
     /// <summary>One trash category at a time, paginated — kind is "users" | "boards" |
@@ -171,6 +172,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit) : ApiControll
                         if (user.DeletedAt is null) { errors.Add($"{user.Email}: delete it first"); continue; }
                         if (await _db.Boards.IgnoreQueryFilters().AnyAsync(b => b.OwnerId == uid))
                         { errors.Add($"{user.Email}: still owns board(s)"); continue; }
+                        if (_admin.IsAdminEmail(user.Email)) { errors.Add($"{user.Email}: admin address, revoke admin first"); continue; }
                         _db.Users.Remove(user);
                         await _db.SaveChangesAsync();
                         await _audit.RecordAsync(UserId, ActorEmail, "purge", "User", uid, $"{user.Email} (bulk)");
@@ -215,6 +217,8 @@ public class AdminTrashController(AppDbContext db, AuditLog audit) : ApiControll
         if (user.DeletedAt is null) return BadRequest("Delete it first — purge only removes trashed rows.");
         if (await _db.Boards.IgnoreQueryFilters().AnyAsync(b => b.OwnerId == id))
             return Conflict("This user still owns board(s) — delete/purge those first.");
+        if (_admin.IsAdminEmail(user.Email))
+            return Conflict("This is an admin address — purging it would let anyone register it and become admin. Revoke admin first.");
 
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();

@@ -282,6 +282,9 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         if (user is null) return Unauthorized();
         if (_pw.Reauth(user, dto.Password) is string reauthErr)
             return BadRequest(reauthErr);
+        // Admin status follows the email string, so deleting the row would hand the address to whoever registers it next.
+        if (IsAdmin(user.Email))
+            return Conflict("This is a platform admin account. Ask another admin to revoke its admin access (and remove it from Admin:Emails) before deleting it.");
 
         // Board.OwnerId is Restrict — a teacher's boards must go first (they carry other
         // people's submissions/posts, so require an explicit opt-in).

@@ -345,7 +345,10 @@ using (var scope = app.Services.CreateScope())
         db.Entry(await db.LtiToolKeys.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.PrivateKeyPem).IsModified = true;
     await db.SaveChangesAsync();
 
-    await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<PasswordService>());
+    // The demo teacher (teacher@demo.test / password, documented in README) is for development only; a production database
+    // must not start with a Teacher account whose password is public. Opt in elsewhere with Seed:Demo=true.
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Seed:Demo"))
+        await DbSeeder.SeedAsync(db, scope.ServiceProvider.GetRequiredService<PasswordService>());
     await DbSeeder.SeedBankAsync(db);
 
     // Backfill public slugs for boards created before slugs existed.
@@ -406,6 +409,12 @@ using (var scope = app.Services.CreateScope())
     // the admin panel, so the "Admin" policy doesn't need a DB hit on every request.
     var dbAdminEmails = await db.Users.Where(u => u.IsAdmin).Select(u => u.Email).ToListAsync();
     scope.ServiceProvider.GetRequiredService<AdminAccess>().SetDbAdmins(dbAdminEmails);
+
+    // Admin is decided by the email in the cookie, so a configured admin address with no account can be claimed by whoever registers it first.
+    var adminAccess = scope.ServiceProvider.GetRequiredService<AdminAccess>();
+    var registered = (await db.Users.Select(u => u.Email).ToListAsync()).Select(e => e.ToLowerInvariant()).ToHashSet();
+    foreach (var unregistered in adminAccess.ConfiguredEmails().Where(e => !registered.Contains(e)))
+        app.Logger.LogWarning("Admin:Emails lists {Email} but no account exists for it: register it yourself now, anyone who registers it first becomes platform admin.", unregistered);
 
     // Same for the AI pause/quota settings + per-user overrides (see AiRuntimeSettings).
     var aiSettings = await db.AiSettings.FindAsync(1);
