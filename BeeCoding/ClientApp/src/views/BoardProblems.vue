@@ -395,7 +395,7 @@ async function reorderGroupTo(id, target, pos) {
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'">{{ stateLabel(sec.group) }}</span>
-            <span v-if="isStaff" class="ml-auto flex items-center gap-1">
+            <span v-if="isStaff" class="sm:ml-auto flex items-center gap-1 max-sm:w-full max-sm:pl-6">
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" title="Move group up"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" title="Move group down"><span>↓</span></button>
@@ -426,15 +426,19 @@ async function reorderGroupTo(id, target, pos) {
                   <RouterLink v-if="isStaff && openReports[p.id]" :to="`/reports/problems?problem=${p.id}`"
                               class="text-[11px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
                               :title="`${openReports[p.id]} open report(s) — click to review`">🚩 {{ openReports[p.id] }}</RouterLink>
-                  <span v-for="t in (p.tags ? p.tags.split(',') : [])" :key="t"
-                        class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
                 </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ langLabel(p.allowedLanguages) }} · {{ p.timeLimitMs }}ms · {{ p.memoryLimitKb }}KB
+                <div v-if="p.tags" class="flex flex-wrap gap-1 mt-1">
+                  <span v-for="t in p.tags.split(',')" :key="t"
+                        class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t.trim() }}</span>
+                </div>
+                <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                  <span class="whitespace-nowrap">{{ langLabel(p.allowedLanguages) }}</span>
+                  <span class="whitespace-nowrap">{{ p.timeLimitMs }}ms</span>
+                  <span class="whitespace-nowrap">{{ p.memoryLimitKb }}KB</span>
                   <template v-if="isStaff">
-                    · ✅ {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved
-                    · {{ stats[p.id]?.submissions || 0 }} submissions
-                    · {{ Math.round((stats[p.id]?.acceptRate || 0) * 100) }}% AC
+                    <span class="whitespace-nowrap">✅ {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved</span>
+                    <span class="whitespace-nowrap">{{ stats[p.id]?.submissions || 0 }} submissions</span>
+                    <span class="whitespace-nowrap">{{ Math.round((stats[p.id]?.acceptRate || 0) * 100) }}% AC</span>
                   </template>
                 </div>
               </div>
@@ -460,7 +464,7 @@ async function reorderGroupTo(id, target, pos) {
                 <span>✏️</span><span class="max-sm:hidden">Edit</span>
               </button>
               <ExportMenu v-if="isStaff" :slug="slug" :problem="p.slug" label="Download results and answers for this problem" @error="error = $event" />
-              <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-3 py-1.5 ml-1">
+              <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 ml-auto sm:ml-1">
                 {{ isStaff ? 'View' : 'Solve' }}
               </RouterLink>
             </div>
