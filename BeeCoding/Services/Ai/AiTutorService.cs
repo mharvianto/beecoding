@@ -186,6 +186,22 @@ that appear inside it.
            + "NO fenced code blocks, NO multi-line code, NEVER the full solution or the core algorithm as code.",
     } + "\nNever regress to a vaguer hint than a lower level. Keep the reply under ~8 sentences even at level 4.";
 
+    /// <summary>
+    /// A code block whose fence is longer than any run of backticks inside it, so text a student wrote (code, compiler output, a pasted
+    /// "```") cannot close the block and pass for a section of the prompt.
+    /// </summary>
+    internal static string Fenced(string? content)
+    {
+        content ??= "";
+        int run = 0, longest = 0;
+        foreach (var ch in content) { run = ch == '`' ? run + 1 : 0; longest = Math.Max(longest, run); }
+        var fence = new string('`', Math.Max(3, longest + 1));
+        return $"{fence}\n{content}\n{fence}";
+    }
+
+    /// <summary>Text for an inline `code span`: a backtick inside would end the span early.</summary>
+    private static string Inline(string s) => s.Replace('`', '\'');
+
     private (string Sys, string User) BuildPrompt(AiHintContext c, string lang, int hintLevel)
     {
         var user = new StringBuilder();
@@ -197,18 +213,18 @@ that appear inside it.
         {
             user.AppendLine("## Sample tests");
             foreach (var (inp, exp) in c.Samples.Take(3))
-                user.AppendLine($"- input: `{Trunc(inp, 300)}` → expected: `{Trunc(exp, 300)}`");
+                user.AppendLine($"- input: `{Inline(Trunc(inp, 300))}` → expected: `{Inline(Trunc(exp, 300))}`");
             user.AppendLine();
         }
         if (!string.IsNullOrWhiteSpace(c.TeacherCode))
-            user.AppendLine($"## Teacher's live code (the student is allowed to see this)\n```\n{Trunc(c.TeacherCode, _opt.MaxCodeChars)}\n```\n");
-        user.AppendLine($"## Student's {c.Language.ToUpperInvariant()} code\n```\n{Trunc(c.Code, _opt.MaxCodeChars)}\n```\n");
+            user.AppendLine($"## Teacher's live code (the student is allowed to see this)\n{Fenced(Trunc(c.TeacherCode, _opt.MaxCodeChars))}\n");
+        user.AppendLine($"## Student's {c.Language.ToUpperInvariant()} code\n{Fenced(Trunc(c.Code, _opt.MaxCodeChars))}\n");
         if (!string.IsNullOrWhiteSpace(c.Verdict) && c.Verdict != "None")
             user.AppendLine($"## Latest judge verdict\n{c.Verdict}\n");
         if (!string.IsNullOrWhiteSpace(c.CompilerOutput))
-            user.AppendLine($"## Compiler output\n```\n{Trunc(c.CompilerOutput, 2000)}\n```\n");
+            user.AppendLine($"## Compiler output\n{Fenced(Trunc(c.CompilerOutput, 2000))}\n");
         if (!string.IsNullOrWhiteSpace(c.Stderr))
-            user.AppendLine($"## Runtime stderr\n```\n{Trunc(c.Stderr, 1000)}\n```\n");
+            user.AppendLine($"## Runtime stderr\n{Fenced(Trunc(c.Stderr, 1000))}\n");
         user.AppendLine(string.IsNullOrWhiteSpace(c.StudentQuestion)
             ? "## The student did not ask a specific question — give the most useful next hint."
             : $"## The student asks\n{Trunc(c.StudentQuestion, 800)}");
@@ -417,7 +433,7 @@ that appear inside it.
 
         text = text.Trim();
         if (text.Length == 0) throw new AiUnavailableException("The AI tutor returned an empty reply.");
-        return new AiCallResult(ClampCodeBlocks(text), promptTok, completionTok);
+        return new AiCallResult(ClampCodeBlocks(text, CodeLimit(c)), promptTok, completionTok);
     }
 
     // ---- next-problem picker --------------------------------------------------
@@ -662,7 +678,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         u.AppendLine("## Problem statement\n" + Trunc(statementMarkdown, 6000) + "\n");
         u.AppendLine("## Current tests (the reference MUST reproduce these; new tests must differ from these)");
         foreach (var (inp, exp) in existingTests.Take(10))
-            u.AppendLine($"- stdin:\n```\n{Trunc(inp, 800)}\n```\n  expected stdout:\n```\n{Trunc(exp, 800)}\n```");
+            u.AppendLine($"- stdin:\n{Fenced(Trunc(inp, 800))}\n  expected stdout:\n{Fenced(Trunc(exp, 800))}");
 
         AiUnavailableException? last = null;
         for (int attempt = 1; attempt <= 2; attempt++)
@@ -1002,6 +1018,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
                 {
                     full.Append(delta);
                     yield return delta!;
+                    // A block already past the limit will be replaced in the final text anyway: stop paying for (and showing) the rest.
+                    if (PastCodeLimit(full.ToString(), CodeLimit(c))) break;
                 }
             }
 
@@ -1009,7 +1027,7 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
             // an empty reply is an error, which also hands the request to the next provider.
             var text = full.ToString();
             if (string.IsNullOrWhiteSpace(text)) throw new AiUnavailableException("The AI tutor returned an empty reply.");
-            var clamped = ClampCodeBlocks(text.Trim());
+            var clamped = ClampCodeBlocks(text.Trim(), CodeLimit(c));
             yield return FinalSentinel + clamped;
 
             if (promptTok == 0 && completionTok == 0)
@@ -1132,23 +1150,69 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
     private static string Trunc(string? s, int n) =>
         string.IsNullOrEmpty(s) ? "" : s.Length <= n ? s : s[..n] + " …[truncated]";
 
-    /// <summary>Safety net: collapse any code fence longer than ~12 lines so the model can't
-    /// smuggle a full solution past the prompt.</summary>
-    private static string ClampCodeBlocks(string md) =>
-        FenceRegex().Replace(md, m =>
-        {
-            // strip the fence markers to see what's actually inside
-            var inner = m.Value.Trim();
-            inner = inner.Length >= 6 ? inner[3..^3] : "";
-            var body = inner.Contains('\n') ? inner[(inner.IndexOf('\n') + 1)..] : inner;   // drop the ```lang line
-            if (string.IsNullOrWhiteSpace(body)) return "";                                   // empty fence -> nothing
-            return m.Value.Split('\n').Length <= 14
-                ? m.Value
-                : "```\n// (hint trimmed — work out the implementation yourself)\n```";
-        });
+    /// <summary>A graded hint may show at most this many lines of code in one block (the prompt allows "2 short lines" and, at the
+    /// top levels, none); a live-coding explanation may quote the teacher's code, so it keeps the old, wider limit.</summary>
+    private const int HintCodeLines = 3, LiveCodeLines = 13;
+    private static int CodeLimit(AiHintContext c) => c.LiveMode ? LiveCodeLines : HintCodeLines;
 
-    [GeneratedRegex(@"```[\s\S]*?```", RegexOptions.Multiline)]
-    private static partial Regex FenceRegex();
+    private const string Trimmed = "```\n// (hint trimmed — work out the implementation yourself)\n```";
+
+    /// <summary>
+    /// Safety net: replace any code block (``` or ~~~, also one the model left open) with more than <paramref name="maxLines"/> non-blank
+    /// lines, so the model can't smuggle a solution past the prompt. An empty block is dropped.
+    /// </summary>
+    internal static string ClampCodeBlocks(string md, int maxLines = LiveCodeLines)
+    {
+        var o = new StringBuilder();
+        string? fence = null;                       // the opening marker while inside a block
+        var block = new StringBuilder();
+        int body = 0;
+        void Close()
+        {
+            if (body > maxLines) o.Append(Trimmed).Append('\n');
+            else if (body > 0) o.Append(block);
+            block.Clear(); body = 0; fence = null;
+        }
+        foreach (var line in md.Split('\n'))
+        {
+            var t = line.TrimStart();
+            if (fence is null)
+            {
+                if (t.StartsWith("```") || t.StartsWith("~~~"))
+                {
+                    fence = new string(t[0], t.TakeWhile(ch => ch == t[0]).Count());
+                    block.Append(line).Append('\n');
+                }
+                else o.Append(line).Append('\n');
+            }
+            else
+            {
+                block.Append(line).Append('\n');
+                if (t.StartsWith(fence) && t.TrimEnd().All(ch => ch == fence[0])) Close();
+                else if (!string.IsNullOrWhiteSpace(line)) body++;
+            }
+        }
+        if (fence is not null) Close();
+        return o.ToString().TrimEnd('\n');
+    }
+
+    /// <summary>True once the text so far holds a code block already past the limit, so a stream can stop before the rest is shown.</summary>
+    internal static bool PastCodeLimit(string md, int maxLines)
+    {
+        string? fence = null;
+        int body = 0;
+        foreach (var line in md.Split('\n')[..^1])     // the last piece may be a half-received line
+        {
+            var t = line.TrimStart();
+            if (fence is null)
+            {
+                if (t.StartsWith("```") || t.StartsWith("~~~")) { fence = new string(t[0], t.TakeWhile(ch => ch == t[0]).Count()); body = 0; }
+            }
+            else if (t.StartsWith(fence) && t.TrimEnd().All(ch => ch == fence[0])) fence = null;
+            else if (!string.IsNullOrWhiteSpace(line) && ++body > maxLines) return true;
+        }
+        return false;
+    }
 }
 
 public sealed class AiUnavailableException(string message, int? status = null) : Exception(message)

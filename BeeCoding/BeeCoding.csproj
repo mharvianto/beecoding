@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="BeeCoding.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Remove="ClientApp/**" />
     <Content Remove="ClientApp/**" />
     <None Remove="ClientApp/**" />

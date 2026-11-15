@@ -201,6 +201,14 @@ Admin → System; the test-count and pending caps are constants in `BankControll
   `proposal-update`, `practice-review`; board-less like reports).
 - Authors can open and submit to their own problem before it is public (`PracticeController.Playable()`: public or owned; the list and guide stay public-only, and `StatementController` allows the owner too). Nobody earns XP/streak for solving a problem they authored (`GradeResultConsumer.ApplyPracticeAsync`).
 
+### AI hint guards (prompt injection)
+
+The hint has no tools: its reply is only displayed (DOMPurify + CSP `img-src 'self' data: blob:`), and hints see sample tests only. Student text in the prompt
+(code, compiler output, stderr, teacher code) is wrapped by `AiTutorService.Fenced`, a fence longer than any backtick run inside, so it cannot pose as a prompt section.
+Output guard: `ClampCodeBlocks` replaces a code block (``` or ~~~, also one left open) with more than `HintCodeLines` (3) non-blank lines in a graded hint (`LiveCodeLines` 13 in live mode);
+while streaming, `PastCodeLimit` stops the model as soon as a block passes the limit and the final text replaces what was shown. The "never write the solution" rule is still the model's to keep
+for code without a fence or for prose that spells out the algorithm: measure it with `scripts/ai-injection-check.py` against the running app.
+
 ### AI review aids (admin only)
 
 `AiController` `check-problem/bank/{id}` and `triage-report/{id}` (UI: `AiCheckPanel.vue` in Admin → Problem review and on
