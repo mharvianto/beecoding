@@ -443,12 +443,22 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
     /// <summary>Same spot-check signal as the board-level endpoint (see PlagiarismService),
     /// scoped to one board that must belong to this org.</summary>
     [HttpGet("{orgId:int}/plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(int orgId, [FromQuery] int boardId)
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism(int orgId, [FromQuery] int boardId, [FromQuery] int? problemId = null)
     {
         if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
         if (!await _db.Boards.AnyAsync(b => b.Id == boardId && b.OrganizationId == orgId)) return NotFound();
+        if (problemId is int pid && !await _db.Problems.AnyAsync(p => p.Id == pid && p.BoardId == boardId)) return NotFound();
 
-        return await _plagiarism.ComputeForBoardAsync(boardId);
+        return await _plagiarism.ComputeForBoardAsync(boardId, problemId);
+    }
+
+    /// <summary>The problems of one of this org's boards, to compare a single one.</summary>
+    [HttpGet("{orgId:int}/plagiarism/problems")]
+    public async Task<ActionResult<List<PlagiarismProblemDto>>> PlagiarismProblems(int orgId, [FromQuery] int boardId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        if (!await _db.Boards.AnyAsync(b => b.Id == boardId && b.OrganizationId == orgId)) return NotFound();
+        return await _plagiarism.ProblemsOfBoardAsync(boardId);
     }
 
     /// <summary>Bank problems an org admin may copy into the org's boards: public ones only. A member's private problems stay

@@ -60,6 +60,11 @@ public class PlagiarismService(AppDbContext db)
         return union == 0 ? 0 : (double)inter / union;
     }
 
+    /// <summary>The problems of a board in the order students see them, for the "compare one problem" pickers.</summary>
+    public Task<List<PlagiarismProblemDto>> ProblemsOfBoardAsync(int boardId) =>
+        _db.Problems.Where(p => p.BoardId == boardId).OrderBy(p => p.Position).ThenBy(p => p.Id)
+            .Select(p => new PlagiarismProblemDto(p.Id, p.Title)).ToListAsync();
+
     /// <summary>With <paramref name="problemId"/> only that problem is compared (smaller, and the pairs the teacher is actually looking at).</summary>
     public async Task<List<PlagiarismPairDto>> ComputeForBoardAsync(int boardId, int? problemId = null, double minSimilarity = 0.5, int maxResults = 300)
     {

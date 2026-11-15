@@ -250,6 +250,7 @@ public record AdminSubmissionRow(int Id, DateTime CreatedAt, string Verdict, dou
 
 /// <summary>One flagged pair from PlagiarismService — a heuristic similarity signal, not
 /// proof of copying (see its class doc for the caveats).</summary>
+public record PlagiarismProblemDto(int Id, string Title);
 public record PlagiarismPairDto(
     int ProblemId, string ProblemTitle,
     int UserAId, string UserAName, int SubmissionAId,

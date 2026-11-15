@@ -51,4 +51,49 @@ public class PlagiarismTests
         Assert.Single(await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"/api/boards/{boardSlug}/plagiarism?problem={slugA}") ?? []);
         Assert.Equal(HttpStatusCode.NotFound, (await t.GetAsync($"/api/boards/{boardSlug}/plagiarism?problem=nope")).StatusCode);
     }
+
+    [Fact]
+    public async Task Platform_admin_and_org_admin_can_list_a_boards_problems_and_compare_one()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");   // a platform admin may manage every organization
+        try
+        {
+            using var app = new TestApp();
+            (await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email = "kid@test.dev", password = "Passw0rd!x1", displayName = "Kid", role = "Student" })).EnsureSuccessStatusCode();
+            int orgId, boardId, a, otherBoardProblem;
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var owner = await db.Users.FirstAsync(u => u.Email == "teacher@demo.test");
+                var org = new Organization { Name = "O", Slug = "o-plag" };
+                db.Organizations.Add(org);
+                await db.SaveChangesAsync();
+                var board = new Board { Title = "In org", OwnerId = owner.Id, OrganizationId = org.Id, JoinCode = "ORGPLG" };
+                db.Boards.Add(board);
+                await db.SaveChangesAsync();
+                var pa = new Problem { BoardId = board.Id, Title = "A", StatementMarkdown = "x", Position = 0 };
+                var pb = new Problem { BoardId = board.Id, Title = "B", StatementMarkdown = "x", Position = 1 };
+                var foreign = new Problem { BoardId = (await db.Boards.FirstAsync(b => b.JoinCode == "DEMO01")).Id, Title = "Elsewhere", StatementMarkdown = "x" };
+                db.Problems.AddRange(pa, pb, foreign);
+                await db.SaveChangesAsync();
+                foreach (var p in new[] { pa, pb })
+                    foreach (var u in await db.Users.Where(u => u.Email == "teacher@demo.test" || u.Email == "kid@test.dev").ToListAsync())
+                        db.Submissions.Add(new Submission { ProblemId = p.Id, UserId = u.Id, Code = Code, Status = SubmissionStatus.Done });
+                await db.SaveChangesAsync();
+                orgId = org.Id; boardId = board.Id; a = pa.Id; otherBoardProblem = foreign.Id;
+            }
+            var t = app.CreateClient();
+            (await t.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+
+            foreach (var root in new[] { "/api/admin-ui", $"/api/org-admin/{orgId}" })
+            {
+                var problems = await t.GetFromJsonAsync<List<PlagiarismProblemDto>>($"{root}/plagiarism/problems?boardId={boardId}") ?? [];
+                Assert.Equal(["A", "B"], problems.Select(p => p.Title));
+                Assert.Equal(2, (await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"{root}/plagiarism?boardId={boardId}"))!.Count);
+                Assert.Single((await t.GetFromJsonAsync<List<PlagiarismPairDto>>($"{root}/plagiarism?boardId={boardId}&problemId={a}"))!);
+                Assert.Equal(HttpStatusCode.NotFound, (await t.GetAsync($"{root}/plagiarism?boardId={boardId}&problemId={otherBoardProblem}")).StatusCode);   // not this board's problem
+            }
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
 }

@@ -49,6 +49,8 @@ const emailDomains = ref('');         // this org's auto-accept domains (comma s
 const notice = ref('');
 const boards = ref(null);
 const plagiarismBoardId = ref(null);
+const plagiarismProblemId = ref(null);   // null = every problem on the board
+const plagiarismProblems = ref([]);
 const plagiarismPairs = ref([]);
 const plagiarismLoading = ref(false);
 const plagiarismViewSubmission = ref(null);
@@ -162,7 +164,7 @@ function loadTab(id, force = false) {
   }
   else if (id === 'plagiarism') {
     if (!boards.value) loadBoards();
-    if (plagiarismBoardId.value) loadPlagiarism();   // ?board= from a shared link
+    if (plagiarismBoardId.value) { loadPlagiarismProblems(); loadPlagiarism(); }   // ?board=&problem= from a shared link
   }
   else if (id === 'ai') {
     if (!aiSettings.value) loadAiSettings();
@@ -307,12 +309,24 @@ async function loadBoards() {
   try { boards.value = await api.get(`/api/org-admin/${orgId.value}/boards`); } catch (e) { err.value = e.message; }
 }
 
+async function loadPlagiarismProblems() {
+  plagiarismProblems.value = [];
+  if (!plagiarismBoardId.value) return;
+  try { plagiarismProblems.value = await api.get(`/api/org-admin/${orgId.value}/plagiarism/problems?boardId=${plagiarismBoardId.value}`); }
+  catch (e) { err.value = e.message; }
+}
+// A different board has different problems: start over on "all problems".
+async function pickPlagiarismBoard() {
+  plagiarismProblemId.value = null;
+  await loadPlagiarismProblems();
+  loadPlagiarism();
+}
 async function loadPlagiarism() {
   url.write();
   if (!plagiarismBoardId.value) { plagiarismPairs.value = []; return; }
   err.value = ''; plagiarismLoading.value = true;
   try {
-    plagiarismPairs.value = await api.get(`/api/org-admin/${orgId.value}/plagiarism?boardId=${plagiarismBoardId.value}`);
+    plagiarismPairs.value = await api.get(`/api/org-admin/${orgId.value}/plagiarism?boardId=${plagiarismBoardId.value}${plagiarismProblemId.value ? `&problemId=${plagiarismProblemId.value}` : ''}`);
   } catch (e) { err.value = e.message; }
   finally { plagiarismLoading.value = false; }
 }
@@ -468,7 +482,7 @@ const url = useUrlQuery(() => {
       userId: { ref: submissionUserId, def: null, int: true },
       page: { ref: submissionsPage, def: 1, int: true },
     };
-    case 'plagiarism': return { board: { ref: plagiarismBoardId, def: null, int: true } };
+    case 'plagiarism': return { board: { ref: plagiarismBoardId, def: null, int: true }, problem: { ref: plagiarismProblemId, def: null, int: true } };
     default: return {};
   }
 }, {
@@ -955,11 +969,16 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- Plagiarism -->
       <section v-show="tab === 'plagiarism'">
         <div class="flex items-center gap-2 mb-3">
-          <select v-model="plagiarismBoardId" @change="loadPlagiarism"
+          <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
                   class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
             <option :value="null">Pick a board…</option>
             <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
           </select>
+        <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
+                class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
+          <option :value="null">All problems</option>
+          <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
+        </select>
         </div>
         <PlagiarismTable :pairs="plagiarismPairs" :loading="plagiarismLoading" @view="plagiarismViewSubmission = $event"
                          @compare="plagiarismCompareData = $event" />

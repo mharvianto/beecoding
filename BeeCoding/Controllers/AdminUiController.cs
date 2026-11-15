@@ -455,10 +455,19 @@ public class AdminUiController(
     /// <summary>Same spot-check signal as the board/org-level endpoints (see
     /// PlagiarismService), scoped to any one board on the platform.</summary>
     [HttpGet("plagiarism")]
-    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism([FromQuery] int boardId)
+    public async Task<ActionResult<List<PlagiarismPairDto>>> Plagiarism([FromQuery] int boardId, [FromQuery] int? problemId = null)
     {
         if (!await _db.Boards.AnyAsync(b => b.Id == boardId)) return NotFound();
-        return await _plagiarism.ComputeForBoardAsync(boardId);
+        if (problemId is int pid && !await _db.Problems.AnyAsync(p => p.Id == pid && p.BoardId == boardId)) return NotFound();
+        return await _plagiarism.ComputeForBoardAsync(boardId, problemId);
+    }
+
+    /// <summary>The problems of one board, to compare a single one.</summary>
+    [HttpGet("plagiarism/problems")]
+    public async Task<ActionResult<List<PlagiarismProblemDto>>> PlagiarismProblems([FromQuery] int boardId)
+    {
+        if (!await _db.Boards.AnyAsync(b => b.Id == boardId)) return NotFound();
+        return await _plagiarism.ProblemsOfBoardAsync(boardId);
     }
 
     /// <summary>Bulk-archive (soft-delete) boards, e.g. "everything from last semester" —
