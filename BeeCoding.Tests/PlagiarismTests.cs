@@ -125,4 +125,33 @@ public class PlagiarismTests
         var pair = Assert.Single(r.Pairs);                                // not 6 + 1 loose rows
         Assert.Equal("Two", pair.ProblemTitle);
     }
+
+    [Fact]
+    public async Task A_chain_A_like_B_and_B_like_C_is_one_group_whose_lowest_score_is_the_weak_link()
+    {
+        // 40 numbered lines; B changes 5 of A's, C changes 5 more of B's: A~B and B~C pass 0.65, A~C does not.
+        static string Prog(int from, int to) =>
+            "int main(){" + string.Concat(Enumerable.Range(1, 40).Select(k => $"a={(k >= from && k <= to ? k + 100 : k)};")) + "return 0;}";
+        using var app = new TestApp();
+        foreach (var n in new[] { "s1", "s2" })
+            (await app.CreateClient().PostAsJsonAsync("/api/auth/register", new { email = $"{n}@test.dev", password = "Passw0rd!x1", displayName = n, role = "Student" })).EnsureSuccessStatusCode();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var board = await db.Boards.FirstAsync(b => b.JoinCode == "DEMO01");
+        var p = new Problem { BoardId = board.Id, Title = "Chain", StatementMarkdown = "x" };
+        db.Problems.Add(p);
+        await db.SaveChangesAsync();
+        var users = await db.Users.Where(u => u.Email == "teacher@demo.test" || u.Email.EndsWith("@test.dev")).OrderBy(u => u.Id).Take(3).ToListAsync();
+        var codes = new[] { Prog(0, 0), Prog(1, 5), Prog(1, 10) };
+        for (var i = 0; i < 3; i++) db.Submissions.Add(new Submission { ProblemId = p.Id, UserId = users[i].Id, Code = codes[i], Status = SubmissionStatus.Done });
+        await db.SaveChangesAsync();
+
+        var r = await scope.ServiceProvider.GetRequiredService<PlagiarismService>().ComputeForBoardAsync(board.Id);
+
+        var g = Assert.Single(r.Groups);
+        Assert.Equal(3, g.Members.Count);
+        Assert.True(g.MinSimilarity < PlagiarismService.GroupThreshold, $"min {g.MinSimilarity}");
+        Assert.True(g.MaxSimilarity >= PlagiarismService.GroupThreshold, $"max {g.MaxSimilarity}");
+        Assert.Empty(r.Pairs);
+    }
 }

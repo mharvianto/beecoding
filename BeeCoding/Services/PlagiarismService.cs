@@ -78,8 +78,14 @@ public class PlagiarismService(AppDbContext db)
     /// </summary>
     public async Task<PlagiarismResultDto> ComputeForBoardAsync(int boardId, int? problemId = null, double minSimilarity = 0.5, int maxResults = 300)
     {
-        var subs = await _db.Submissions
+        // newest attempt per (problem, student) picked in SQL, so only that code is loaded, not every attempt
+        var latestIds = await _db.Submissions
             .Where(s => s.Problem!.BoardId == boardId && (problemId == null || s.ProblemId == problemId))
+            .GroupBy(s => new { s.ProblemId, s.UserId })
+            .Select(g => g.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Select(s => s.Id).First())
+            .ToListAsync();
+        var subs = await _db.Submissions
+            .Where(s => latestIds.Contains(s.Id))
             .Select(s => new { s.Id, s.ProblemId, ProblemTitle = s.Problem!.Title, s.UserId, UserName = s.User!.DisplayName, s.Code, s.CreatedAt })
             .ToListAsync();
 
