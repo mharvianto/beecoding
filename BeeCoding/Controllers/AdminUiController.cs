@@ -965,7 +965,7 @@ public class AdminUiController(
                 if (owner is null) { errors.Add($"{title}: no teacher account to own it"); continue; }
 
                 var existing = await _db.BankProblems.Include(b => b.TestCases)
-                    .FirstOrDefaultAsync(b => b.OwnerId == owner.Id && b.Title == title);
+                    .FirstOrDefaultAsync(b => b.OwnerId == owner.Id && b.Title == title && !b.BoardOnly);
                 if (existing is not null && !replaceExisting) { skipped++; continue; }
 
                 var b = existing ?? new BankProblem { OwnerId = owner.Id, CreatedAt = DateTime.UtcNow };

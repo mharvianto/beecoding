@@ -269,4 +269,45 @@ public class BoardProblemBankTests
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
     }
+
+    [Fact]
+    public async Task Import_and_the_scripted_ingest_never_touch_a_board_only_row_and_the_scripted_list_hides_it()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        Environment.SetEnvironmentVariable("Admin__Token", "test-token-0123456789abcdef0123456789");
+        try
+        {
+            using var app = new TestApp();
+            var t = await TeacherAsync(app);
+            var slug = (await t.GetFromJsonAsync<JsonElement>("/api/boards")).EnumerateArray().First().GetProperty("slug").GetString()!;
+            var pSlug = (await (await t.PostAsJsonAsync($"/api/boards/{slug}/problems", Dto("Sum", "Original text"))).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+            var test = new[] { new { stdin = "1\n", expectedStdout = "1\n", isSample = false, points = 1 } };
+            var imp = await t.PostAsJsonAsync("/api/admin-ui/problems/import", new
+            {
+                version = 1, exportedAt = DateTime.UtcNow,
+                problems = new[] { new { ownerEmail = "teacher@demo.test", title = "Sum", statementMarkdown = "Imported", allowedLanguages = "c,cpp", level = "Easy", tags = "", timeLimitMs = 1000, memoryLimitKb = 32768, isPublic = true, generatedByAi = false,
+                    tests = new[] { new { stdin = "1\n", expectedStdout = "1\n", isSample = false, points = 1, position = 0 } } } },
+            });
+            imp.EnsureSuccessStatusCode();
+
+            var anon = app.CreateClient();
+            anon.DefaultRequestHeaders.Add("X-Admin-Token", "test-token-0123456789abcdef0123456789");
+            (await anon.PostAsJsonAsync("/api/admin/bank-problems", new { problems = new[] { new { title = "Sum", statementMarkdown = "Ingested", isPublic = true, tests = test } } })).EnsureSuccessStatusCode();
+
+            var listed = await anon.GetStringAsync("/api/admin/bank-problems");
+
+            using var scope = app.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var p = await db.Problems.FirstAsync(x => x.Slug == pSlug);
+            var own = await db.BankProblems.FirstAsync(b => b.Id == p.BankProblemId);
+            Assert.True(own.BoardOnly);
+            Assert.False(own.IsPublic);
+            Assert.Equal("Original text", own.StatementMarkdown);
+            Assert.Equal(1, await db.BankProblems.CountAsync(b => !b.BoardOnly && b.Title == "Sum" && b.StatementMarkdown == "Ingested"));
+            Assert.DoesNotContain("Original text", listed);
+            Assert.Equal(HttpStatusCode.NotFound, (await anon.DeleteAsync($"/api/admin/bank-problems/{own.Id}")).StatusCode);
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); Environment.SetEnvironmentVariable("Admin__Token", null); }
+    }
 }

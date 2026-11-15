@@ -74,7 +74,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
     {
         if (Gate() is { } fail) return fail;
         var owner = await ResolveOwnerAsync(null);
-        return Ok(new { ok = true, defaultOwner = owner?.Email, bankCount = await _db.BankProblems.CountAsync() });
+        return Ok(new { ok = true, defaultOwner = owner?.Email, bankCount = await _db.BankProblems.CountAsync(b => !b.BoardOnly) });
     }
 
     /// <summary>List every bank problem (all owners), newest first.</summary>
@@ -82,7 +82,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
     public async Task<ActionResult<IEnumerable<AdminBankRow>>> List()
     {
         if (Gate() is { } fail) return fail;
-        var rows = await _db.BankProblems.Include(b => b.TestCases)
+        var rows = await _db.BankProblems.Where(b => !b.BoardOnly).Include(b => b.TestCases)
             .OrderByDescending(b => b.UpdatedAt).ToListAsync();
         return rows.Select(Row).ToList();
     }
@@ -115,7 +115,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
                 { errors.Add($"{title}: needs at least one scoring (non-sample, points>0) test"); continue; }
 
                 var existing = await _db.BankProblems.Include(b => b.TestCases)
-                    .FirstOrDefaultAsync(b => b.OwnerId == owner.Id && b.Title == title);
+                    .FirstOrDefaultAsync(b => b.OwnerId == owner.Id && b.Title == title && !b.BoardOnly);
 
                 if (existing is not null && !replace)
                 { errors.Add($"{title}: already exists (replaceExisting=false)"); continue; }
@@ -151,6 +151,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
             }
             catch (Exception ex)
             {
+                _db.ChangeTracker.Clear();   // a failed row would otherwise be retried (and fail) with every later save
                 errors.Add($"{(title.Length == 0 ? "(untitled)" : title)}: {ex.Message}");
             }
         }
@@ -163,7 +164,7 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
     public async Task<IActionResult> Delete(int id)
     {
         if (Gate() is { } fail) return fail;
-        var b = await _db.BankProblems.FirstOrDefaultAsync(x => x.Id == id);
+        var b = await _db.BankProblems.FirstOrDefaultAsync(x => x.Id == id && !x.BoardOnly);
         if (b is null) return NotFound();
         _db.BankProblems.Remove(b);
         await _db.SaveChangesAsync();
