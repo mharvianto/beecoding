@@ -1,10 +1,13 @@
 using System.Net;
 using System.Text;
+using BeeCoding.Models;
 using BeeCoding.Services.Ai;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace BeeCoding.Tests;
 
+[Collection("app")]
 public class AiFailoverTests
 {
     private sealed class Route(Func<HttpRequestMessage, HttpResponseMessage> f) : HttpMessageHandler
@@ -150,5 +153,48 @@ public class AiFailoverTests
         Assert.Contains("\"max_tokens\":1234", bodies[0]);
         Assert.DoesNotContain("reasoning_effort", bodies[1]);
         Assert.DoesNotContain("\"max_tokens\":1234", bodies[1]);
+    }
+
+    [Fact]
+    public async Task An_organization_with_its_own_key_uses_its_own_tuning_and_backups_and_never_the_platforms()
+    {
+        var rt = new AiProviderRuntime();
+        rt.SetExtras(1234, "low", [new AiFallback { ApiKey = "p", BaseUrl = "https://platform-backup.example/v1", Model = "pm" }]);
+        rt.SetOrg(1, "org-key", "https://org-main.example/v1", "om", null);
+        rt.SetOrgExtras(1, 777, "high", [new AiFallback { ApiKey = "", BaseUrl = "", Model = "org-backup-model" }]);   // blank key and URL = the org's own main provider
+        var bodies = new List<string>();
+        var h = new Route(r =>
+        {
+            bodies.Add(r.Content!.ReadAsStringAsync().Result);
+            return bodies.Count == 1 ? Status(HttpStatusCode.BadGateway) : Json("ok");
+        });
+        var s = Svc(h, rt);
+        s.UseOrganization(1);
+
+        await s.HintAsync(Ctx, "id", 1, default);
+
+        Assert.Equal(["org-main.example", "org-main.example"], h.Hosts);            // never platform-backup.example
+        Assert.All(bodies, b => Assert.Contains("\"reasoning_effort\":\"high\"", b));
+        Assert.All(bodies, b => Assert.Contains("\"max_tokens\":777", b));
+        Assert.Contains("\"model\":\"org-backup-model\"", bodies[1]);
+    }
+
+    [Fact]
+    public async Task An_organization_may_not_save_a_backup_on_a_private_or_plain_http_address_but_the_platform_may()
+    {
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BeeCoding.Data.AppDbContext>();
+        var org = new BeeCoding.Models.Organization { Name = "O", Slug = "o-x" };
+        db.Organizations.Add(org);
+        await db.SaveChangesAsync();
+        AiExtrasUpdateDto Dto(string url) => new(500, null, null, [new AiFallbackEditDto(null, "k", url, "m")]);
+
+        Assert.NotNull((await BeeCoding.Controllers.AdminAiController.ApplyExtrasAsync(db, org.Id, Dto("http://10.0.0.5/v1"))).Error);
+        Assert.NotNull((await BeeCoding.Controllers.AdminAiController.ApplyExtrasAsync(db, org.Id, Dto("http://models.example/v1"))).Error);
+        var ok = await BeeCoding.Controllers.AdminAiController.ApplyExtrasAsync(db, org.Id, Dto("https://models.example/v1"));
+        Assert.Null(ok.Error);
+        Assert.Null(ok.Row!.ReviewModel);
+        Assert.Null((await BeeCoding.Controllers.AdminAiController.ApplyExtrasAsync(db, null, Dto("http://localhost:8000/v1"))).Error);
     }
 }

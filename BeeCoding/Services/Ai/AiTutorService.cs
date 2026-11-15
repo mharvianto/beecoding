@@ -60,17 +60,20 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
 
     // Admin → AI (database) first, appsettings Ai:* when the admin left it blank.
     // An organization with its own key runs its own model: the platform's tuning (made for the platform's model, where e.g. an unknown
-    // reasoning_effort is a 400) must not follow it there, so it keeps the appsettings defaults.
+    // reasoning_effort is a 400) must not follow it there. It uses its own tuning and backups, else the appsettings defaults.
     private bool OrgOwnsKey => _organizationId is int id && !string.IsNullOrWhiteSpace(_providerRuntime.Org(id)?.ApiKey);
-    private int MaxTokens => (OrgOwnsKey ? null : _providerRuntime.Extras.MaxTokens) ?? _opt.MaxTokens;
-    private string? ReasoningEffortSetting => (OrgOwnsKey ? null : _providerRuntime.Extras.ReasoningEffort) ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
+    private AiProviderRuntime.PlatformExtras? OrgExtras => OrgOwnsKey ? _providerRuntime.OrgExtras(_organizationId!.Value) : null;
+    private int MaxTokens => (OrgOwnsKey ? OrgExtras?.MaxTokens : _providerRuntime.Extras.MaxTokens) ?? _opt.MaxTokens;
+    private string? ReasoningEffortSetting => (OrgOwnsKey ? OrgExtras?.ReasoningEffort : _providerRuntime.Extras.ReasoningEffort) ?? (string.IsNullOrWhiteSpace(_opt.ReasoningEffort) ? null : _opt.ReasoningEffort.Trim());
 
-    private List<AiFallback> Fallbacks() =>
-        (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.Model)).ToList();
+    /// <summary>The backups for this call: an organization with its own key gets only its own (a blank key or URL means its main provider's;
+    /// a URL is re-checked like the main one), never the platform's.</summary>
+    private List<AiFallback> Fallbacks() => OrgOwnsKey
+        ? (OrgExtras?.Fallbacks ?? []).Where(f => !string.IsNullOrWhiteSpace(f.Model) && AiUrl.Validate(f.BaseUrl, strict: true) is null).ToList()
+        : (_providerRuntime.Extras.Fallbacks is { Count: > 0 } set ? set : _opt.Fallbacks).Where(f => !string.IsNullOrWhiteSpace(f.Model)).ToList();
 
-    /// <summary>How many providers may be tried: the main one plus the backups, but only the main one for an organization
-    /// that brought its own key.</summary>
-    private int TierCount() => OrgOwnsKey ? 1 : 1 + Fallbacks().Count;
+    /// <summary>How many providers may be tried: the main one plus the backups that apply to this call.</summary>
+    private int TierCount() => 1 + Fallbacks().Count;
 
     /// <summary>Effective() for the provider this call is on right now.</summary>
     private (string ApiKey, string BaseUrl, string Model, string? GenerateModel) EffectiveNow()
@@ -78,7 +81,7 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
         if (_tier <= 0) return Effective();
         var f = Fallbacks()[_tier - 1];
         // a backup with no key of its own bills the same account as the main provider
-        return (string.IsNullOrWhiteSpace(f.ApiKey) ? Effective().ApiKey : f.ApiKey, string.IsNullOrWhiteSpace(f.BaseUrl) ? _opt.BaseUrl : f.BaseUrl, f.Model, null);
+        return (string.IsNullOrWhiteSpace(f.ApiKey) ? Effective().ApiKey : f.ApiKey, string.IsNullOrWhiteSpace(f.BaseUrl) ? (OrgOwnsKey ? Effective().BaseUrl : _opt.BaseUrl) : f.BaseUrl, f.Model, null);
     }
 
     /// <summary>Runs <paramref name="call"/> on the main provider, then on each backup while it fails in a way another

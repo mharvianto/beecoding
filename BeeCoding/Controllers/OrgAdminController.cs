@@ -622,6 +622,28 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         return new AiProviderConfigDto(!string.IsNullOrEmpty(row.ApiKey), ApiKeyPreview(row.ApiKey), row.BaseUrl, row.Model, row.GenerateModel);
     }
 
+    [HttpGet("{orgId:int}/ai-provider/extras")]
+    public async Task<ActionResult<AiExtrasDto>> GetAiExtras(int orgId)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        return AdminAiController.ExtrasDto(await _db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == orgId));
+    }
+
+    /// <summary>This organization's own output token cap, reasoning effort and backup providers. They apply only while the organization
+    /// has its own API key above; the platform's settings never reach it, and its backups never reach the platform.</summary>
+    [HttpPut("{orgId:int}/ai-provider/extras")]
+    public async Task<ActionResult<AiExtrasDto>> SetAiExtras(int orgId, AiExtrasUpdateDto dto)
+    {
+        if (!await _access.CanManageAsync(UserId, ActorEmail, orgId)) return Forbid();
+        var (error, row, next) = await AdminAiController.ApplyExtrasAsync(_db, orgId, dto);
+        if (error is not null) return BadRequest(error);
+
+        _aiProviderRuntime.SetOrgExtras(orgId, row!.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList());
+        await _audit.RecordAsync(UserId, ActorEmail, "org-ai-extras-set", "Organization", orgId,
+            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
+        return AdminAiController.ExtrasDto(row);
+    }
+
     [HttpDelete("{orgId:int}/ai-provider/api-key")]
     public async Task<IActionResult> ClearAiProviderKey(int orgId)
     {

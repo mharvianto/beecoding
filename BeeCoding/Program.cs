@@ -436,9 +436,11 @@ using (var scope = app.Services.CreateScope())
         providerRuntime.SetExtras(platformProvider.MaxTokens, platformProvider.ReasoningEffort, BeeCoding.Controllers.AdminAiController.ParseFallbacks(platformProvider.Fallbacks).Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList(), platformProvider.ReviewModel);
     }
     var orgProviders = await db.AiProviderConfigs.Where(x => x.OrganizationId != null)
-        .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel })
+        .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel, x.MaxTokens, x.ReasoningEffort, x.Fallbacks })
         .ToListAsync();
     providerRuntime.SetOrgs(orgProviders.Select(x => (x.OrganizationId, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel)));
+    providerRuntime.SetOrgsExtras(orgProviders.Select(x => (x.OrganizationId, x.MaxTokens, x.ReasoningEffort,
+        BeeCoding.Controllers.AdminAiController.ParseFallbacks(x.Fallbacks).Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList())));
 
     // Same warm-up for which origins the CSP should let frame this app (see
     // LtiPlatformOriginsCache) — every enabled LTI platform's issuer.

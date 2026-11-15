@@ -55,5 +55,13 @@ public class AiProviderRuntime
     public void SetExtras(int? maxTokens, string? reasoningEffort, List<AiFallback> fallbacks, string? reviewModel = null) =>
         _extras = new PlatformExtras(maxTokens, Norm(reasoningEffort), fallbacks, Norm(reviewModel));
 
+    // An organization's own tuning and backups, used only while that organization brings its own key (see AiTutorService.OrgOwnsKey).
+    private volatile Dictionary<int, PlatformExtras> _orgExtras = new();
+    public PlatformExtras? OrgExtras(int organizationId) => _orgExtras.GetValueOrDefault(organizationId);
+    public void SetOrgExtras(int organizationId, int? maxTokens, string? reasoningEffort, List<AiFallback> fallbacks) =>
+        _orgExtras = new Dictionary<int, PlatformExtras>(_orgExtras) { [organizationId] = new PlatformExtras(maxTokens, Norm(reasoningEffort), fallbacks) };
+    public void SetOrgsExtras(IEnumerable<(int OrganizationId, int? MaxTokens, string? ReasoningEffort, List<AiFallback> Fallbacks)> rows) =>
+        _orgExtras = rows.ToDictionary(r => r.OrganizationId, r => new PlatformExtras(r.MaxTokens, Norm(r.ReasoningEffort), r.Fallbacks));
+
     public Config? Org(int organizationId) => _orgs.TryGetValue(organizationId, out var c) && !c.IsEmpty ? c : null;
 }

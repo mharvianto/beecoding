@@ -59,6 +59,35 @@ const aiProvider = ref(null);
 const aiProviderForm = ref({ apiKey: '', baseUrl: '', model: '', generateModel: '' });
 const aiProviderSaving = ref(false);
 const aiProviderMsg = ref('');
+// This organization's own tuning + backup providers (used only while it has its own API key).
+const aiExtras = ref(null);
+const aiExtrasForm = ref({ maxTokens: '', reasoningEffort: '', fallbacks: [] });
+const aiExtrasSaving = ref(false);
+const aiExtrasMsg = ref('');
+function fillAiExtras(x) {
+  aiExtras.value = x;
+  aiExtrasForm.value = {
+    maxTokens: x.maxTokens ?? '', reasoningEffort: x.reasoningEffort || '',
+    fallbacks: x.fallbacks.map((f) => ({ id: f.id, apiKey: '', keyPreview: f.keyPreview, baseUrl: f.baseUrl || '', model: f.model })),
+  };
+}
+async function loadAiExtras() {
+  try { fillAiExtras(await api.get(`/api/org-admin/${orgId.value}/ai-provider/extras`)); } catch (e) { err.value = e.message; }
+}
+function addAiFallback() { aiExtrasForm.value.fallbacks.push({ id: null, apiKey: '', keyPreview: null, baseUrl: '', model: '' }); }
+async function saveAiExtras() {
+  err.value = ''; aiExtrasSaving.value = true; aiExtrasMsg.value = '';
+  try {
+    const f = aiExtrasForm.value;
+    fillAiExtras(await api.put(`/api/org-admin/${orgId.value}/ai-provider/extras`, {
+      maxTokens: f.maxTokens === '' || f.maxTokens === null ? null : Number(f.maxTokens),
+      reasoningEffort: f.reasoningEffort || null,
+      fallbacks: f.fallbacks.map((x) => ({ id: x.id, apiKey: x.apiKey, baseUrl: x.baseUrl, model: x.model })),
+    }));
+    aiExtrasMsg.value = 'Saved.';
+  } catch (e) { err.value = e.message; }
+  finally { aiExtrasSaving.value = false; }
+}
 
 const newMemberEmail = ref('');
 const newMemberRole = ref('Member');
@@ -93,7 +122,7 @@ async function loadOrgs() {
 function selectOrg(id) {
   orgId.value = id;
   summary.value = null; dashboard.value = null; engagementStats.value = null; aiEngagementStats.value = null; topicStats.value = null; hintEffect.value = null;
-  members.value = null; invites.value = []; notice.value = ''; boards.value = null; aiSettings.value = null; aiProvider.value = null; imageUsage.value = null;
+  members.value = null; invites.value = []; notice.value = ''; boards.value = null; aiSettings.value = null; aiProvider.value = null; aiExtras.value = null; imageUsage.value = null;
   ltiPlatforms.value = null; ltiToolConfig.value = null; ltiEditing.value = null;
   const org = orgs.value?.find((o) => o.id === id);
   if (org && (route.params.slug !== org.slug || route.params.tab !== tab.value))
@@ -137,7 +166,7 @@ function loadTab(id, force = false) {
   }
   else if (id === 'ai') {
     if (!aiSettings.value) loadAiSettings();
-    if (!aiProvider.value) loadAiProvider();
+    if (!aiProvider.value) { loadAiProvider(); loadAiExtras(); }
   } else if (id === 'lti') {
     if (!ltiPlatforms.value) loadLtiPlatforms();
     if (!ltiToolConfig.value) loadLtiToolConfig();
@@ -997,6 +1026,49 @@ onMounted(() => { url.read(); loadOrgs(); });
               {{ aiProviderSaving ? 'Saving…' : 'Save' }}
             </button>
           </template>
+        </div>
+        <div v-if="aiExtras" class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-4">
+          <h3 class="font-semibold text-sm mb-1">Tuning and backup providers</h3>
+          <p class="text-xs text-slate-400 dark:text-slate-500 mb-3">
+            Used only while this organization has its own API key above — the platform's settings and backups never apply to you, and yours never apply to anyone else.
+            Backups are tried in order when your provider fails (timeout, 429, 5xx, 401/403, empty reply; not for a 400/422). A backup with a blank key or URL
+            uses the same account and address as your main provider. Backup URLs must be public https addresses.
+          </p>
+          <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
+            <label class="flex flex-col gap-1">
+              <span class="text-xs text-slate-400 dark:text-slate-500">Max tokens per hint (100–16000)</span>
+              <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="default"
+                     class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            </label>
+            <label class="flex flex-col gap-1">
+              <span class="text-xs text-slate-400 dark:text-slate-500">Reasoning effort (only if your model supports it)</span>
+              <select v-model="aiExtrasForm.reasoningEffort"
+                      class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+                <option value="">default / don't send</option>
+                <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+              </select>
+            </label>
+          </div>
+          <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>
+              <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
+            </div>
+            <input v-model="f.model" placeholder="Model"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)"
+                   class="w-full border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          </div>
+          <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
+          <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
+          <div>
+            <button @click="saveAiExtras" :disabled="aiExtrasSaving"
+                    class="mt-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+              {{ aiExtrasSaving ? 'Saving…' : 'Save' }}
+            </button>
+          </div>
         </div>
       </section>
 
