@@ -23,7 +23,7 @@ namespace BeeCoding.Controllers;
 [Route("api/org-admin")]
 public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audit, AiRuntimeSettings aiRuntime, AiProviderRuntime aiProviderRuntime, LtiPlatformOriginsCache ltiOrigins, BoardService boards, PlagiarismService plagiarism, BoardBulkService bulk, PlatformRuntimeConfig runtimeConfig, NotificationService notifications) : ApiControllerBase
 {
-    private async Task<string> MyNameAsync() => await db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "An administrator";
+    private async Task<string> MyNameAsync() => await _db.Users.Where(u => u.Id == UserId).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "An administrator";
     private readonly BoardBulkService _bulk = bulk;
     private readonly AppDbContext _db = db;
     private readonly OrgAccess _access = access;

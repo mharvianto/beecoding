@@ -204,6 +204,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         }
 
         // Once a student has submitted, what the judge compares against must not change under them; a new version is the way.
+        // One transaction from the check to the bank copy: both rows land together, and a submission that sneaks in after the
+        // check makes the write fail (SQLite snapshot) instead of being graded against changed tests.
+        await using var tx = await _db.Database.BeginTransactionAsync();
         if (BoardBulkService.GradedContent(p, p.TestCases.Except(removed)) != gradedBefore
             && await _db.Submissions.AnyAsync(s => s.ProblemId == p.Id))
         {
@@ -214,6 +217,7 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         _db.TestCases.RemoveRange(removed);
         await _db.SaveChangesAsync();
         await SyncBankRowAsync(p);
+        await tx.CommitAsync();
         await _notifier.ProblemChangedAsync(boardId!.Value);
         if (wasHidden && !p.Hidden) await _notifications.ProblemPublishedAsync(p);
 
