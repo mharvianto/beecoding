@@ -46,6 +46,22 @@ export const router = createRouter({
   routes,
 });
 
+// After a deploy the hashed files an open tab still points at are gone: the lazy import of the next page fails and the click does
+// nothing until a manual refresh. Reload onto the page it wanted instead (the new index.html knows the new files). The guard
+// (once per 30 s) stops a reload loop when a file is really missing; with storage blocked we leave it to a manual refresh.
+const STALE_CHUNK = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed|Unable to preload/i;
+function reloadOnce(href) {
+  try {
+    const last = Number(sessionStorage.getItem('beecoding.staleReload') || 0);
+    if (Date.now() - last < 30_000) return;
+    sessionStorage.setItem('beecoding.staleReload', String(Date.now()));
+  } catch { return; }
+  window.location.assign(href);
+}
+router.onError((err, to) => {
+  if (STALE_CHUNK.test(String(err?.message || err))) reloadOnce(router.resolve(to.fullPath).href);
+});
+
 router.beforeEach(async (to) => {
   const auth = useAuth();
   if (!auth.ready) await auth.fetchMe();
