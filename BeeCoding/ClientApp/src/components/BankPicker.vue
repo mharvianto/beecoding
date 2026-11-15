@@ -71,7 +71,7 @@ async function add(item) {
             </div>
           </div>
           <button @click="add(b)" :disabled="busyId === b.id"
-                  class="text-sm bg-amber-500 text-white rounded-lg px-3 py-1 disabled:opacity-50 shrink-0">
+                  class="text-sm bg-amber-700 text-white rounded-lg px-3 py-1 disabled:opacity-50 shrink-0">
             {{ busyId === b.id ? "…" : "Add" }}
           </button>
         </div>

@@ -162,7 +162,7 @@ const faqs = [
         <h2 class="text-2xl sm:text-3xl font-bold text-center">From problem to progress in three steps</h2>
         <div class="mt-10 grid gap-6 md:grid-cols-3">
           <div v-for="[n, title, body] in steps" :key="n" class="relative rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-            <span class="w-9 h-9 rounded-full bg-amber-500 text-white font-bold grid place-items-center shadow-md shadow-amber-500/30">{{ n }}</span>
+            <span class="w-9 h-9 rounded-full bg-amber-700 text-white font-bold grid place-items-center shadow-md shadow-amber-500/30">{{ n }}</span>
             <h3 class="mt-4 text-lg font-semibold">{{ title }}</h3>
             <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ body }}</p>
           </div>

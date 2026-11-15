@@ -294,7 +294,7 @@ async function reorderGroupTo(id, target, pos) {
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           📚 From bank
         </button>
-        <button @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
+        <button @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-700 text-white">
           + Add problem
         </button>
       </div>
@@ -304,7 +304,7 @@ async function reorderGroupTo(id, target, pos) {
     <section v-if="board?.isOwner && proposals.length"
              class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">
       <h2 class="text-sm font-semibold mb-2">💡 Proposed problems
-        <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-white">{{ pendingProposals.length }}</span>
+        <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-700 text-white">{{ pendingProposals.length }}</span>
       </h2>
       <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
         Approving adds the problem to this board <b>hidden</b>, with all of its tests — unhide it when you want students to see it.

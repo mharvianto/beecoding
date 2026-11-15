@@ -1464,7 +1464,7 @@ onMounted(async () => {
           </button>
           <button v-if="c.miss" @click="setUserFilter(c.miss)" :aria-pressed="userFilter === c.miss"
                   class="px-2 py-1 tabular-nums border-l border-slate-200 dark:border-slate-800"
-                  :class="userFilter === c.miss ? 'bg-amber-500 text-white' : 'text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
+                  :class="userFilter === c.miss ? 'bg-amber-700 text-white' : 'text-amber-600 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
                   :title="`Show only users ${c.missLabel}`">{{ userStats.users - userStats[c.stat] }} {{ c.missLabel }}</button>
         </div>
       </div>
@@ -2407,7 +2407,7 @@ onMounted(async () => {
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)"
                class="sm:w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="createOrganization" class="text-sm bg-amber-500 text-white rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
+        <button @click="createOrganization" class="text-sm bg-amber-700 text-white rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
       </div>
 
       <!-- mobile: cards -->
@@ -2422,7 +2422,7 @@ onMounted(async () => {
               <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <div class="flex gap-2">
-                <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">Save</button>
+                <button @click="saveOrgEdit" class="text-xs bg-amber-700 text-white rounded-lg px-3 py-1 font-medium">Save</button>
                 <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
               </div>
             </div>
@@ -2462,7 +2462,7 @@ onMounted(async () => {
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td></td>
                 <td class="whitespace-nowrap">
-                  <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium mr-1">Save</button>
+                  <button @click="saveOrgEdit" class="text-xs bg-amber-700 text-white rounded-lg px-3 py-1 font-medium mr-1">Save</button>
                   <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
                 </td>
               </template>
@@ -2510,7 +2510,7 @@ onMounted(async () => {
       <div>
         <div class="flex items-center gap-2 mb-2">
           <h2 class="font-semibold text-sm">Registered platforms</h2>
-          <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">+ Add platform</button>
+          <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-700 text-white rounded-lg px-3 py-1 font-medium">+ Add platform</button>
         </div>
 
         <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
@@ -2531,7 +2531,7 @@ onMounted(async () => {
           </p>
           <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
           <div class="flex gap-2 pt-1">
-            <button @click="saveLtiPlatform" class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
+            <button @click="saveLtiPlatform" class="bg-amber-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
             <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">Cancel</button>
           </div>
         </div>

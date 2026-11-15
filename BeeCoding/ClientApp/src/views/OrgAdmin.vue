@@ -651,7 +651,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             <option value="Member">Member</option>
             <option value="Admin">Admin</option>
           </select>
-          <button @click="addMember" class="text-sm bg-amber-500 text-white rounded-lg px-4 font-medium">Add</button>
+          <button @click="addMember" class="text-sm bg-amber-700 text-white rounded-lg px-4 font-medium">Add</button>
         </div>
         <p v-if="notice" class="text-xs text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
 
@@ -1118,7 +1118,7 @@ onMounted(() => { url.read(); loadOrgs(); });
         <div>
           <div class="flex items-center gap-2 mb-2">
             <h2 class="font-semibold text-sm">Registered platforms</h2>
-            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-white rounded-lg px-3 py-1 font-medium">+ Add platform</button>
+            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-700 text-white rounded-lg px-3 py-1 font-medium">+ Add platform</button>
           </div>
 
           <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
@@ -1135,7 +1135,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </p>
             <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
             <div class="flex gap-2 pt-1">
-              <button @click="saveLtiPlatform" class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
+              <button @click="saveLtiPlatform" class="bg-amber-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
               <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">Cancel</button>
             </div>
           </div>

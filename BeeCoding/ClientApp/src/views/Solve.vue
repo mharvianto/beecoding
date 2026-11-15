@@ -455,7 +455,7 @@ function ago(ts) {
             {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
           </button>
           <button @click="submit" :disabled="submitting || submitCooldown > 0 || (problem.closed && !isStaff)"
-                  class="bg-amber-500 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+                  class="bg-amber-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
             {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
           </button>
           <span v-if="langs.length > 1" class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
@@ -481,8 +481,8 @@ function ago(ts) {
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
-            <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+            <label for="stdin-input" class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
+            <textarea id="stdin-input" v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>

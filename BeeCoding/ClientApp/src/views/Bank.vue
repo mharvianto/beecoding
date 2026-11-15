@@ -201,7 +201,7 @@ onBeforeUnmount(() => { pollStopped = true; });
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300">
           ✨ Generate with AI
         </button>
-        <RouterLink to="/bank/new" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-white">
+        <RouterLink to="/bank/new" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-700 text-white">
           + New problem
         </RouterLink>
       </div>
@@ -354,7 +354,7 @@ onBeforeUnmount(() => { pollStopped = true; });
           <p v-if="propose.error" role="alert" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
           <div class="flex gap-2">
             <button @click="sendProposal" :disabled="propose.busy || !propose.boardSlug"
-                    class="bg-amber-500 text-white rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">Send proposal</button>
+                    class="bg-amber-700 text-white rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">Send proposal</button>
             <button @click="propose = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
           </div>
         </div>

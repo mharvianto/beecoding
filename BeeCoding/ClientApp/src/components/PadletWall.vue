@@ -203,7 +203,7 @@ async function toggleHiddenByStudent(post) {
       <button v-for="p in wall.problems" :key="p.id" @click="activeProblem = p.id"
               class="px-3 py-1.5 rounded-full text-sm border transition"
               :class="activeProblem === p.id
-                ? 'bg-amber-500 text-white border-amber-500'
+                ? 'bg-amber-700 text-white border-amber-500'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
         <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
         <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card">🔔</span>
@@ -285,7 +285,7 @@ async function toggleHiddenByStudent(post) {
           <!-- new feedback for the author -->
           <div v-if="post.mine && post.newActivity" class="px-4 mt-2">
             <button @click="acknowledge(post)"
-                    class="text-xs font-medium rounded-full px-2.5 py-0.5 bg-amber-500 text-white hover:bg-amber-600"
+                    class="text-xs font-medium rounded-full px-2.5 py-0.5 bg-amber-700 text-white hover:bg-amber-600"
                     title="Show the new feedback and mark it as seen">
               🔔 {{ post.newActivity }} new — mark as seen
             </button>
