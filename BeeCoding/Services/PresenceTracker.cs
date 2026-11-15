@@ -11,6 +11,8 @@ public interface IPresenceTracker
     /// <summary>Removes the connection; returns the board it was on, or null if unknown.</summary>
     ValueTask<int?> RemoveAsync(string connectionId);
     ValueTask<IReadOnlyList<PresenceUser>> ForBoardAsync(int boardId);
+    /// <summary>Every live connection of this user on this board (a user can have several tabs).</summary>
+    ValueTask<IReadOnlyList<string>> ConnectionsOfAsync(int boardId, int userId);
 }
 
 /// <summary>Per-process implementation.</summary>
@@ -28,6 +30,9 @@ public sealed class InMemoryPresenceTracker : IPresenceTracker
 
     public ValueTask<int?> RemoveAsync(string connectionId) =>
         ValueTask.FromResult(_byConnection.TryRemove(connectionId, out var e) ? e.BoardId : (int?)null);
+
+    public ValueTask<IReadOnlyList<string>> ConnectionsOfAsync(int boardId, int userId) =>
+        ValueTask.FromResult<IReadOnlyList<string>>(_byConnection.Where(kv => kv.Value.BoardId == boardId && kv.Value.UserId == userId).Select(kv => kv.Key).ToList());
 
     public ValueTask<IReadOnlyList<PresenceUser>> ForBoardAsync(int boardId) =>
         ValueTask.FromResult<IReadOnlyList<PresenceUser>>(_byConnection.Values

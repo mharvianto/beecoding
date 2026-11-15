@@ -5,9 +5,10 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace BeeCoding.Services;
 
-public class BoardNotifier(IHubContext<BoardHub> hub) : IBoardNotifier
+public class BoardNotifier(IHubContext<BoardHub> hub, IPresenceTracker presence) : IBoardNotifier
 {
     private readonly IHubContext<BoardHub> _hub = hub;
+    private readonly IPresenceTracker _presence = presence;
 
     public Task ProgressChangedAsync(int boardId, int problemId, int authorUserId) =>
         _hub.Clients.Group(BoardHub.BoardGroup(boardId))
@@ -43,8 +44,18 @@ public class BoardNotifier(IHubContext<BoardHub> hub) : IBoardNotifier
         _hub.Clients.User(userId.ToString())
             .SendAsync("submissionProgress", new { kind, submissionId, current, total });
 
-    public Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle) =>
-        _hub.Clients.User(userId.ToString()).SendAsync("memberRemoved", new { boardId, boardSlug, boardTitle });
+    public async Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle)
+    {
+        // A hub group is joined once, at JoinBoard: take the removed member's open tabs out of the board's groups now, or they would keep
+        // receiving the lecture buffer and peers' drafts until they close the tab.
+        foreach (var conn in await _presence.ConnectionsOfAsync(boardId, userId))
+        {
+            await _hub.Groups.RemoveFromGroupAsync(conn, BoardHub.BoardGroup(boardId));
+            await _hub.Groups.RemoveFromGroupAsync(conn, BoardHub.StaffGroup(boardId));
+            await _presence.RemoveAsync(conn);
+        }
+        await _hub.Clients.User(userId.ToString()).SendAsync("memberRemoved", new { boardId, boardSlug, boardTitle });
+    }
 
     public Task NotificationAsync(int userId, NotificationDto item, int unread) =>
         _hub.Clients.User(userId.ToString()).SendAsync("notification", new { item, unread });

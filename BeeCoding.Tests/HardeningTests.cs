@@ -198,4 +198,45 @@ public class HardeningTests
         Assert.Equal(new[] { "--", "clangd", "--background-index=false" }, args.Skip(args.IndexOf("--")).ToArray()); // the real command comes last, untouched
         Assert.Throws<InvalidOperationException>(() => BeeCoding.Services.Lsp.ClangdSession.Jail("/tmp/x", "clangd", new List<string>(), bwrap: "/no/such/bwrap"));
     }
+
+    [Fact]
+    public async Task A_removed_student_is_taken_out_of_the_board_groups_and_stops_receiving_its_broadcasts()
+    {
+        using var app = new TestApp();
+        var kid = app.CreateClient();
+        var reg = await kid.PostAsJsonAsync("/api/auth/register", new { email = "leaver@test.dev", password = "Passw0rd!x1", displayName = "Leaver", role = "Student" });
+        reg.EnsureSuccessStatusCode();
+        (await kid.PostAsJsonAsync("/api/boards/join", new { code = "DEMO01" })).EnsureSuccessStatusCode();
+        var cookie = string.Join("; ", reg.Headers.GetValues("Set-Cookie").Select(c => c.Split(';')[0]));
+        int boardId, kidId; string slug;
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var board = await db.Boards.FirstAsync(b => b.JoinCode == "DEMO01");
+            boardId = board.Id; slug = board.Slug;
+            kidId = (await db.Users.FirstAsync(u => u.Email == "leaver@test.dev")).Id;
+        }
+        var wsc = app.Server.CreateWebSocketClient();
+        wsc.ConfigureRequest = r => r.Headers["Cookie"] = cookie;
+        using var ws = await wsc.ConnectAsync(new Uri("ws://localhost/hubs/board"), CancellationToken.None);
+        const char Sep = '\u001e';
+        async Task Send(string json) => await ws.SendAsync(Encoding.UTF8.GetBytes(json + Sep), WebSocketMessageType.Text, true, CancellationToken.None);
+        async Task<string> ReadFor(TimeSpan span, string? stopAt = null)
+        {
+            var seen = new StringBuilder(); var buf = new byte[16 * 1024]; using var cts = new CancellationTokenSource(span);
+            try { while (stopAt is null || !seen.ToString().Contains(stopAt)) { var r = await ws.ReceiveAsync(buf, cts.Token); seen.Append(Encoding.UTF8.GetString(buf, 0, r.Count)); } }
+            catch (OperationCanceledException) { }
+            return seen.ToString();
+        }
+        await Send("{\"protocol\":\"json\",\"version\":1}"); await ReadFor(TimeSpan.FromSeconds(10), "{}");
+        await Send("{\"type\":1,\"invocationId\":\"1\",\"target\":\"JoinBoard\",\"arguments\":[" + boardId + "]}"); await ReadFor(TimeSpan.FromSeconds(10), "\"invocationId\":\"1\"");
+
+        var owner = app.CreateClient();
+        (await owner.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+        Assert.Equal(HttpStatusCode.NoContent, (await owner.DeleteAsync($"/api/boards/{slug}/members/{kidId}")).StatusCode);
+
+        var after = await ReadFor(TimeSpan.FromSeconds(3));
+        Assert.Contains("memberRemoved", after);                // addressed to the user, not to the group: still delivered
+        Assert.DoesNotContain("progressChanged", after);        // a broadcast to the board group, sent right after: no longer reaches them
+    }
 }

@@ -121,6 +121,12 @@ public sealed class RedisPresenceTracker(IConnectionMultiplexer mux, Microsoft.E
         return boardId;
     }
 
+    public async ValueTask<IReadOnlyList<string>> ConnectionsOfAsync(int boardId, int userId)
+    {
+        var all = await _db.HashGetAllAsync(BoardKey(boardId));
+        return all.Where(e => RedisJson.De<Slot>(e.Value) is { } s && s.UserId == userId).Select(e => (string)e.Name!).ToList();
+    }
+
     public async ValueTask<IReadOnlyList<PresenceUser>> ForBoardAsync(int boardId)
     {
         var vals = await _db.HashValuesAsync(BoardKey(boardId));
