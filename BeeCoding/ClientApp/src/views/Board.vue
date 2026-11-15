@@ -184,7 +184,7 @@ onBeforeUnmount(async () => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <div class="flex items-center justify-between mb-1">
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 mb-1">
       <div>
         <h1 class="text-xl font-bold">{{ board.title }}</h1>
         <div v-if="!editingTags" class="flex flex-wrap items-center gap-1 mt-1">
@@ -201,7 +201,7 @@ onBeforeUnmount(async () => {
           <button @click="editingTags = false" class="row-action-btn">Cancel</button>
         </div>
       </div>
-      <div class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-3">
+      <div class="text-sm text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap">
         <span v-if="presence.length">🟢 {{ presence.length }} online</span>
         <span v-if="isStaff" class="flex items-center gap-2">
           Join code: <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ board.joinCode }}</span>
