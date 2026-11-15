@@ -314,7 +314,7 @@ onMounted(() => {
     experimentalEditContext: hasEditContext,
     // on touch devices the font-size/LSP overlay is always visible (no hover to
     // reveal it), so give line 1 room to clear it instead of sitting underneath.
-    padding: coarse ? { top: 26 } : undefined,
+    padding: coarse ? { top: 40 } : undefined,   // room for the 32 px touch buttons of the toolbar above
     ...(coarse ? {
       wordWrap: 'on',
       autoClosingBrackets: 'never',

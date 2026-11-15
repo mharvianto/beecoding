@@ -76,3 +76,9 @@ select:not([multiple]):not([size]) {
 .dark select:not([multiple]):not([size]) {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2394a3b8' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 8 5 5 5-5'/%3E%3C/svg%3E");
 }
+
+/* Touch screens: buttons are at least 32 px tall (WCAG 2.2 asks for 24 px; thumbs need more). Inline links in text are untouched. */
+@media (pointer: coarse) {
+  button { min-height: 2rem; }
+  .row-action-btn { min-width: 2rem; }
+}
