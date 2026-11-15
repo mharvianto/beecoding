@@ -82,3 +82,14 @@ select:not([multiple]):not([size]) {
   button { min-height: 2rem; }
   .row-action-btn { min-width: 2rem; }
 }
+
+/* File pickers: the native one ignores the theme; make its text and button match the other controls. */
+input[type="file"] {
+  @apply text-sm text-slate-600 dark:text-slate-300;
+}
+input[type="file"]::file-selector-button {
+  @apply mr-3 px-3 py-1.5 rounded-lg border border-slate-400 bg-white text-slate-700 text-sm font-medium cursor-pointer hover:bg-slate-100;
+}
+.dark input[type="file"]::file-selector-button {   /* the dark: variant does not reach this pseudo-element */
+  @apply border-slate-500 bg-slate-800 text-slate-200 hover:bg-slate-700;
+}

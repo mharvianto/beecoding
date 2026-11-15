@@ -980,7 +980,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
         </div>
-        <PlagiarismTable :result="plagiarismPairs" :loading="plagiarismLoading" @view="plagiarismViewSubmission = $event"
+        <PlagiarismTable :result="plagiarismPairs" :loading="plagiarismLoading" :idle="!plagiarismBoardId" @view="plagiarismViewSubmission = $event"
                          @compare="plagiarismCompareData = $event" />
         <SubmissionView v-if="plagiarismViewSubmission" :submission-id="plagiarismViewSubmission.id"
                         :author-name="plagiarismViewSubmission.authorName" @close="plagiarismViewSubmission = null" />

@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 const props = defineProps({
   result: { type: Object, default: () => ({ groups: [], pairs: [] }) },
   loading: { type: Boolean, default: false },
+  idle: { type: Boolean, default: false },   // no board chosen yet: say so instead of "nothing found"
 });
 const emit = defineEmits(['view', 'compare']);
 
@@ -39,6 +40,7 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
       figure: a low one means some members are only linked through another). Short/boilerplate submissions and pairs below 50% are left out.
     </p>
     <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">Loading…</div>
+    <div v-else-if="idle" class="text-sm text-slate-500 dark:text-slate-400">Pick a board above to compare its students' code.</div>
     <div v-else-if="!sections.length" class="text-sm text-slate-500 dark:text-slate-400">No similar pairs found.</div>
     <div v-else class="space-y-5">
       <section v-for="s in sections" :key="s.id">

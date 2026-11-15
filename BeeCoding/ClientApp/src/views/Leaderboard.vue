@@ -182,7 +182,7 @@ const showHowItWorks = ref(false);
            :class="{ 'bg-amber-50 dark:bg-amber-500/10': r.me }">
         <span class="w-8 text-center text-sm text-slate-500 dark:text-slate-400 shrink-0">{{ medal(r.rank) || r.rank }}</span>
         <span class="w-9 text-xs font-medium tabular-nums shrink-0"
-              :class="r.rankDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : r.rankDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-600'"
+              :class="[r.rankDelta ? '' : 'hidden sm:block', r.rankDelta > 0 ? 'text-emerald-600 dark:text-emerald-400' : r.rankDelta < 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-300 dark:text-slate-600']"
               :title="r.rankDelta ? `${r.rankDelta > 0 ? 'Up' : 'Down'} ${Math.abs(r.rankDelta)} since yesterday` : (r.rankDelta === 0 ? 'Unchanged since yesterday' : '')">
           <template v-if="r.rankDelta > 0">▲{{ r.rankDelta }}</template>
           <template v-else-if="r.rankDelta < 0">▼{{ -r.rankDelta }}</template>

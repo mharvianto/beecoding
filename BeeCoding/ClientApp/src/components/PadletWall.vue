@@ -337,7 +337,7 @@ async function toggleHiddenByStudent(post) {
 
         <div class="px-4 py-1.5 text-right border-t border-slate-100 dark:border-slate-800">
           <button @click="openPost(post)"
-                  class="text-[11px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300">open ↗</button>
+                  class="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">open ↗</button>
         </div>
       </article>
     </div>
