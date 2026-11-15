@@ -117,6 +117,16 @@ builders — don't duplicate a visibility check elsewhere. A **hidden problem**
 student-facing list/wall/progress-grid and 404s on direct access/submit for non-staff,
 independent of the peer-visibility rules above.
 
+### Board problems live in the bank
+
+Every board `Problem` has a bank row of record, `Problem.BankProblemId`: the source for one copied in from the bank, otherwise a private
+`BankProblem.BoardOnly` row (created with the problem; `Program.cs` backfills old ones at startup, safe to repeat). BoardOnly rows are out of the
+bank list, admin bank list/count and everything public; "Save to bank" just clears the flag. Board edits are written through to a BoardOnly row only.
+`SourceBankProblemId` stays the XP key source (`ProgressService`), deliberately separate: setting it on old problems would re-award XP.
+Once a problem has any `Submission`, `ProblemsController.Update` refuses (409) changes to graded content (statement, tests, limits, languages,
+banned lists, input file: `BoardBulkService.GradedContent`); title/tags/level/position stay editable. `POST .../new-version` copies it as a hidden draft
+with its own bank row (the editor offers it on that 409). Not built: a "newer version in the bank" notice for copies, and moving the content columns out of `Problem`.
+
 ### Problem groups (folders/sessions)
 
 `ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and

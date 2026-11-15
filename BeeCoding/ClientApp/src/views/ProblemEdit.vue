@@ -54,7 +54,19 @@ async function save(form) {
     else await api.post(apiBase.value, body);
     dirty.value = false;
     router.push(listPath.value);
-  } catch (e) { error.value = e.message; }
+  } catch (e) {
+    // Locked after the first submission: offer to put these edits on a new (hidden) version instead of losing them.
+    if (e.status === 409 && isBoard.value && editSlug.value
+        && await confirmDialog.ask(`${e.message}\n\nSave your changes as a new version? It is created as a hidden draft; the current problem is left as it is.`, { confirmLabel: 'Create new version' })) {
+      try {
+        const body = { ...(form.value ?? form) };
+        const v2 = await api.post(`${apiBase.value}/${editSlug.value}/new-version`);
+        await api.put(`${apiBase.value}/${v2.slug}`, body);
+        dirty.value = false;
+        router.push(listPath.value);
+      } catch (e2) { error.value = e2.message; }
+    } else error.value = e.message;
+  }
   finally { busy.value = false; }
 }
 
