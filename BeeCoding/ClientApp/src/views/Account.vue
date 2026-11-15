@@ -191,9 +191,9 @@ async function deleteAccount(force = false) {
     <div class="grid md:grid-cols-[13rem_minmax(0,1fr)] gap-x-10 gap-y-6 items-start">
       <!-- section menu: a sticky side column on desktop, scrollable tabs on mobile -->
       <nav aria-label="Account sections"
-           class="flex md:flex-col gap-1 overflow-x-auto md:overflow-visible md:sticky md:top-4 -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0 border-b md:border-b-0 border-slate-200 dark:border-slate-800">
+           class="flex flex-wrap md:flex-col md:flex-nowrap gap-1 md:sticky md:top-4 -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0 border-b md:border-b-0 border-slate-200 dark:border-slate-800">
         <RouterLink v-for="item in sections" :key="item.key" :to="item.to"
-                    class="shrink-0 flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors"
+                    class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors"
                     :class="section === item.key
                       ? (item.key === 'danger' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 font-medium' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium')
                       : (item.key === 'danger' ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800')">

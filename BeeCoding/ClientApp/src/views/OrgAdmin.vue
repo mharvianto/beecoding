@@ -616,7 +616,7 @@ onMounted(() => { url.read(); loadOrgs(); });
         <div v-if="hintEffect">
           <div class="flex items-center gap-2 mb-1">
             <h3 class="font-semibold text-sm">Are AI hints helping?</h3>
-            <select v-model.number="hintEffectDays" @change="loadHintEffect"
+            <select v-model.number="hintEffectDays" @change="loadHintEffect" aria-label="Time window"
                     class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
               <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
             </select>
@@ -647,7 +647,7 @@ onMounted(() => { url.read(); loadOrgs(); });
         <div class="flex flex-wrap gap-2 mb-3">
           <input v-model="newMemberEmail" @keyup.enter="addMember" placeholder="Email of an existing BeeCoding account" aria-label="Email of an existing BeeCoding account"
                  class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-          <select v-model="newMemberRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
+          <select v-model="newMemberRole" aria-label="Role" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
             <option value="Member">Member</option>
             <option value="Admin">Admin</option>
           </select>
@@ -686,7 +686,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             Member). Only existing BeeCoding accounts can be added — have others register first. Accounts outside this
             organization's domains are invited, not added.
           </p>
-          <input type="file" accept="text/csv,.csv" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
+          <input type="file" accept="text/csv,.csv" aria-label="CSV file of members" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
           <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">Importing…</p>
           <div v-if="memberImportResult" class="mt-2 text-xs space-y-1">
             <p class="text-emerald-600 dark:text-emerald-400">
@@ -771,7 +771,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           </p>
           <input v-model="bulkBoardOwnerEmail" placeholder="Owner's email (existing Teacher account)" aria-label="Owner's email (existing Teacher account)"
                  class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-          <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3"
+          <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3" aria-label="Session 1&#10;Session 2&#10;Session 3"
                     class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
           <button @click="bulkCreateBoards" :disabled="bulkBoardBusy || !bulkBoardOwnerEmail.trim() || !bulkBoardTitles.trim()"
                   class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
@@ -1033,11 +1033,14 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
               </div>
             </label>
-            <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = platform default)" aria-label="Base URL (blank = platform default)"
+            <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Base URL</label>
+            <input id="ai-base-url" v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = platform default)" aria-label="Base URL (blank = platform default)"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-            <input v-model="aiProviderForm.model" placeholder="Model (blank = platform default)" aria-label="Model (blank = platform default)"
+            <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model</label>
+            <input id="ai-model" v-model="aiProviderForm.model" placeholder="Model (blank = platform default)" aria-label="Model (blank = platform default)"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-            <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
+            <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model for generating problems</label>
+            <input id="ai-generate-model" v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ aiProviderMsg }}</p>
             <button @click="saveAiProvider" :disabled="aiProviderSaving"

@@ -224,7 +224,7 @@ onBeforeUnmount(() => { pollStopped = true; });
     <div v-if="genOpen" class="mb-4 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-500/5">
       <p class="text-sm font-semibold text-violet-700 dark:text-violet-300">✨ Generate a problem from an idea</p>
       <textarea v-model="gen.idea" rows="3"
-                placeholder="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'"
+                placeholder="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'" aria-label="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'"
                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
       <div class="flex flex-wrap gap-2 text-sm">
         <select v-model="gen.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">

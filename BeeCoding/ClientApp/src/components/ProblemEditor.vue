@@ -242,7 +242,7 @@ function pickFormula(e) {
             <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                    :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor">
               {{ imgBusy ? 'Uploading…' : '🖼 Add image' }}
-              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" @change="addImage" />
+              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Choose an image" class="hidden" @change="addImage" />
             </label>
             <button type="button" @click="toggleWrite"
                     class="ml-auto px-2 py-0.5 rounded border"
@@ -288,7 +288,7 @@ function pickFormula(e) {
             </div>
           </div>
           <div class="flex flex-col md:flex-row gap-2">
-            <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" rows="12"
+            <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" aria-label="Statement (Markdown)" rows="12"
                       @keydown.ctrl.b.prevent="wrap('**', '**', 'bold')" @keydown.meta.b.prevent="wrap('**', '**', 'bold')"
                       @keydown.ctrl.i.prevent="wrap('*', '*', 'italic')" @keydown.meta.i.prevent="wrap('*', '*', 'italic')"
                       @keydown.ctrl.m.prevent="inlineFormula" @keydown.meta.m.prevent="inlineFormula"
@@ -399,9 +399,9 @@ function pickFormula(e) {
                     class="px-1.5 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30">▼</button>
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <textarea v-model="t.stdin" placeholder="stdin" rows="2"
+            <textarea v-model="t.stdin" placeholder="stdin" aria-label="stdin" rows="2"
                       class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
-            <textarea v-model="t.expectedStdout" placeholder="expected stdout" rows="2"
+            <textarea v-model="t.expectedStdout" placeholder="expected stdout" aria-label="expected stdout" rows="2"
                       class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
           </div>
           <div class="flex items-center gap-3 text-xs mt-1">

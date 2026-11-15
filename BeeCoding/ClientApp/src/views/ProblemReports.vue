@@ -113,7 +113,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
         <p v-if="r.note && reviewing?.id !== r.id" class="text-xs bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-slate-600 dark:text-slate-300">📝 {{ r.note }}</p>
 
         <div v-if="reviewing?.id === r.id" class="space-y-2">
-          <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is."
+          <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is." aria-label="Optional note: what you changed, or why it's fine as is."
                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
           <div class="flex gap-2">
             <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>

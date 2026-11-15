@@ -78,7 +78,7 @@ async function run() {
       <!-- groups -->
       <section class="space-y-2">
         <h3 class="text-sm font-semibold">1 · Groups <span class="font-normal text-slate-500 dark:text-slate-400">(optional)</span></h3>
-        <textarea v-model="groupTitles" rows="3" placeholder="One group title per line&#10;Week 1&#10;Week 2"
+        <textarea v-model="groupTitles" rows="3" placeholder="One group title per line&#10;Week 1&#10;Week 2" aria-label="One group title per line&#10;Week 1&#10;Week 2"
                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
         <div class="grid grid-cols-2 gap-3">
           <label class="block text-xs text-slate-500 dark:text-slate-400">Opens

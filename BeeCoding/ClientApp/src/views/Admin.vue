@@ -1215,11 +1215,14 @@ onMounted(async () => {
               <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
             </div>
           </label>
-          <input v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)" aria-label="Base URL (blank = appsettings.json default)"
+          <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Base URL</label>
+          <input id="ai-base-url" v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)" aria-label="Base URL (blank = appsettings.json default)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)" aria-label="Model (blank = appsettings.json default)"
+          <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model</label>
+          <input id="ai-model" v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)" aria-label="Model (blank = appsettings.json default)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
+          <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model for generating problems</label>
+          <input id="ai-generate-model" v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiProviderMsg }}</p>
@@ -1611,7 +1614,7 @@ onMounted(async () => {
             <option v-for="b in boards" :key="b.slug" :value="b.slug">Add to: {{ b.title }}</option>
           </select>
         </div>
-        <input type="file" accept="text/csv,.csv" @change="importUsersCsv" :disabled="importingUsers" class="text-sm" />
+        <input type="file" accept="text/csv,.csv" aria-label="CSV file of users" @change="importUsersCsv" :disabled="importingUsers" class="text-sm" />
         <p v-if="importingUsers" class="text-xs text-slate-400 mt-2">Importing…</p>
         <div v-if="userImportResult" class="mt-3 text-sm">
           <p class="text-emerald-600 dark:text-emerald-400">
@@ -1737,7 +1740,7 @@ onMounted(async () => {
         <label class="flex items-center gap-2 text-xs mb-2">
           <input type="checkbox" v-model="replaceExisting" /> Replace existing (overwrite a problem with the same owner + title)
         </label>
-        <input type="file" accept="application/json,.json" @change="importProblems" :disabled="importing"
+        <input type="file" accept="application/json,.json" aria-label="problems.json file" @change="importProblems" :disabled="importing"
                class="text-sm" />
         <p v-if="importing" class="text-xs text-slate-400 mt-2">Importing…</p>
         <div v-if="importResult" class="mt-3 text-sm">

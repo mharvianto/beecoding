@@ -89,7 +89,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
             </label>
           </div>
           <div>
-            <textarea v-model="message" rows="4" maxlength="1000" placeholder="Describe it: which input or line is wrong, and what you expected (at least 10 characters)."
+            <textarea v-model="message" rows="4" maxlength="1000" placeholder="Describe it: which input or line is wrong, and what you expected (at least 10 characters)." aria-label="Describe it: which input or line is wrong, and what you expected (at least 10 characters)."
                       class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 text-right">{{ message.length }}/1000</div>
           </div>
