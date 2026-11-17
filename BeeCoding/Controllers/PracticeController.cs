@@ -55,12 +55,12 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Tags, $"%{n}%"));
+            query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(b.Tags.ToLower(), $"%{n}%".ToLower()));
         }
         if (!string.IsNullOrWhiteSpace(tag))
         {
             var t = tag.Trim().ToLowerInvariant();
-            query = query.Where(b => EF.Functions.Like(b.Tags, $"%{t}%"));
+            query = query.Where(b => EF.Functions.Like(b.Tags.ToLower(), $"%{t}%".ToLower()));
         }
         if (Enum.TryParse<ProblemLevel>(level, ignoreCase: true, out var lvl))
             query = query.Where(b => b.Level == lvl);

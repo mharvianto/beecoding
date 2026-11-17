@@ -197,10 +197,10 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             var boardQuery = _db.Submissions.Where(s => s.Problem!.Board!.OrganizationId == orgId);
             if (userId is int uid0) boardQuery = boardQuery.Where(s => s.UserId == uid0);
             if (n is not null)
-                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                    || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
-                    || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.User!.DisplayName.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.Problem!.Title.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.Problem!.Board!.Title.ToLower(), $"%{n}%".ToLower()));
             if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
             total += await boardQuery.CountAsync();
             rows.AddRange(await boardQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
@@ -217,9 +217,9 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             var bankQuery = _db.BankSubmissions.Where(s => memberIds.Contains(s.UserId));
             if (userId is int uid1) bankQuery = bankQuery.Where(s => s.UserId == uid1);
             if (n is not null)
-                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                    || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
+                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.User!.DisplayName.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.BankProblem!.Title.ToLower(), $"%{n}%".ToLower()));
             if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
             total += await bankQuery.CountAsync();
             rows.AddRange(await bankQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
@@ -473,7 +473,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Tags, $"%{n}%"));
+            query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(b.Tags.ToLower(), $"%{n}%".ToLower()));
         }
         var rows = await query.Include(b => b.Owner).Include(b => b.TestCases)
             .OrderByDescending(b => b.UpdatedAt).Take(100).ToListAsync();

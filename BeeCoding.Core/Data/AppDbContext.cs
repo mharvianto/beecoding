@@ -50,6 +50,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<OrganizationMembership> OrganizationMemberships => Set<OrganizationMembership>();
     public DbSet<OrganizationInvite> OrganizationInvites => Set<OrganizationInvite>();
 
+    // Postgres folds unquoted names to lower case, so a filtered index must quote the column there; SQLite keeps the bare text (the migrations' snapshot).
+
+    private string NotNull(string column) => Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL" ? $"\"{column}\" IS NOT NULL" : $"{column} IS NOT NULL";
+
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<User>().HasIndex(u => u.Email).IsUnique();
@@ -127,8 +132,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<StatementImage>().HasKey(x => x.Id);
         b.Entity<StatementImage>().HasIndex(x => x.OwnerId);
-        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique().HasFilter("BankProblemId IS NOT NULL");
-        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.ProblemId }).IsUnique().HasFilter("ProblemId IS NOT NULL");
+        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique().HasFilter(NotNull("BankProblemId"));
+        b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.ProblemId }).IsUnique().HasFilter(NotNull("ProblemId"));
         b.Entity<ProblemLike>().HasIndex(x => x.BankProblemId);
         b.Entity<ProblemLike>().HasIndex(x => x.ProblemId);
         b.Entity<ProblemLike>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
@@ -277,12 +282,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         // Id=1 is always the platform-wide default (OrganizationId == null); every other
         // row is one organization's own override.
-        b.Entity<AiSettings>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter("OrganizationId IS NOT NULL");
+        b.Entity<AiSettings>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter(NotNull("OrganizationId"));
         b.Entity<AiSettings>()
             .HasOne(x => x.Organization).WithMany()
             .HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Cascade);
 
-        b.Entity<AiProviderConfig>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter("OrganizationId IS NOT NULL");
+        b.Entity<AiProviderConfig>().HasIndex(x => x.OrganizationId).IsUnique().HasFilter(NotNull("OrganizationId"));
         b.Entity<AiProviderConfig>()
             .HasOne(x => x.Organization).WithMany()
             .HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Cascade);

@@ -179,7 +179,7 @@ public class AdminUiController(
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(u => EF.Functions.Like(u.Email, $"%{n}%") || EF.Functions.Like(u.DisplayName, $"%{n}%"));
+            query = query.Where(u => EF.Functions.Like(u.Email.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(u.DisplayName.ToLower(), $"%{n}%".ToLower()));
         }
 
         var total = await query.CountAsync();
@@ -444,7 +444,7 @@ public class AdminUiController(
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Slug, $"%{n}%"));
+            query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(b.Slug.ToLower(), $"%{n}%".ToLower()));
         }
         var boards = await query.OrderByDescending(b => b.CreatedAt).Take(500).ToListAsync();
         return boards.Select(b => new AdminBoardRow(
@@ -536,7 +536,7 @@ public class AdminUiController(
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%") || EF.Functions.Like(b.Tags, $"%{n}%"));
+            query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(b.Tags.ToLower(), $"%{n}%".ToLower()));
         }
         var rows = await query.Include(b => b.Owner).Include(b => b.TestCases)
             .OrderByDescending(b => b.UpdatedAt).Take(100).ToListAsync();
@@ -848,8 +848,8 @@ public class AdminUiController(
         if (!string.IsNullOrWhiteSpace(q))
         {
             var n = q.Trim();
-            query = query.Where(x => EF.Functions.Like(x.ActorEmail, $"%{n}%") || EF.Functions.Like(x.TargetLabel, $"%{n}%")
-                || EF.Functions.Like(x.Action, $"%{n}%") || EF.Functions.Like(x.TargetType, $"%{n}%"));
+            query = query.Where(x => EF.Functions.Like(x.ActorEmail.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(x.TargetLabel.ToLower(), $"%{n}%".ToLower())
+                || EF.Functions.Like(x.Action.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(x.TargetType.ToLower(), $"%{n}%".ToLower()));
         }
 
         var total = await query.CountAsync();
@@ -883,10 +883,10 @@ public class AdminUiController(
         {
             var boardQuery = _db.Submissions.Where(s => s.Problem != null && s.Problem.Board != null);
             if (n is not null)
-                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                    || EF.Functions.Like(s.Problem!.Title, $"%{n}%")
-                    || EF.Functions.Like(s.Problem!.Board!.Title, $"%{n}%"));
+                boardQuery = boardQuery.Where(s => EF.Functions.Like(s.User!.Email.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.User!.DisplayName.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.Problem!.Title.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.Problem!.Board!.Title.ToLower(), $"%{n}%".ToLower()));
             if (v is Verdict bv) boardQuery = boardQuery.Where(s => s.Verdict == bv);
             total += await boardQuery.CountAsync();
             rows.AddRange(await boardQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)
@@ -901,9 +901,9 @@ public class AdminUiController(
         {
             var bankQuery = _db.BankSubmissions.Where(s => s.BankProblem != null);
             if (n is not null)
-                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                    || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                    || EF.Functions.Like(s.BankProblem!.Title, $"%{n}%"));
+                bankQuery = bankQuery.Where(s => EF.Functions.Like(s.User!.Email.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.User!.DisplayName.ToLower(), $"%{n}%".ToLower())
+                    || EF.Functions.Like(s.BankProblem!.Title.ToLower(), $"%{n}%".ToLower()));
             if (v is Verdict pv) bankQuery = bankQuery.Where(s => s.Verdict == pv);
             total += await bankQuery.CountAsync();
             rows.AddRange(await bankQuery.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Take(take)

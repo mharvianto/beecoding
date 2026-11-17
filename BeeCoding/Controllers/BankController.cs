@@ -74,13 +74,13 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         if (!string.IsNullOrWhiteSpace(q))
         {
             var needle = q.Trim();
-            query = query.Where(b => EF.Functions.Like(b.Title, $"%{needle}%")
-                                  || EF.Functions.Like(b.Tags, $"%{needle}%"));
+            query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{needle}%".ToLower())
+                                  || EF.Functions.Like(b.Tags.ToLower(), $"%{needle}%".ToLower()));
         }
         if (!string.IsNullOrWhiteSpace(tag))
         {
             var t = tag.Trim().ToLowerInvariant();
-            query = query.Where(b => EF.Functions.Like(b.Tags, $"%{t}%"));
+            query = query.Where(b => EF.Functions.Like(b.Tags.ToLower(), $"%{t}%".ToLower()));
         }
         if (Enum.TryParse<ProblemLevel>(level, ignoreCase: true, out var lvl))
         {

@@ -43,7 +43,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
             {
                 var query = _db.Users.Where(u => u.DeletedAt != null);
                 if (n is not null)
-                    query = query.Where(u => EF.Functions.Like(u.Email, $"%{n}%") || EF.Functions.Like(u.DisplayName, $"%{n}%"));
+                    query = query.Where(u => EF.Functions.Like(u.Email.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(u.DisplayName.ToLower(), $"%{n}%".ToLower()));
                 var total = await query.CountAsync();
                 var rows = await query.OrderByDescending(u => u.DeletedAt).Skip((page - 1) * pageSize).Take(pageSize)
                     .Select(u => new AdminTrashUserRow(u.Id, u.Email, u.DisplayName, u.DeletedAt!.Value)).ToListAsync();
@@ -52,7 +52,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
             case "boards":
             {
                 var query = _db.Boards.IgnoreQueryFilters().Where(b => b.DeletedAt != null);
-                if (n is not null) query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%"));
+                if (n is not null) query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()));
                 var total = await query.CountAsync();
                 var rows = await query.Include(b => b.Owner).OrderByDescending(b => b.DeletedAt)
                     .Skip((page - 1) * pageSize).Take(pageSize)
@@ -63,7 +63,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
             case "problems":
             {
                 var query = _db.Problems.IgnoreQueryFilters().Where(p => p.DeletedAt != null);
-                if (n is not null) query = query.Where(p => EF.Functions.Like(p.Title, $"%{n}%"));
+                if (n is not null) query = query.Where(p => EF.Functions.Like(p.Title.ToLower(), $"%{n}%".ToLower()));
                 var total = await query.CountAsync();
                 var problems = await query.OrderByDescending(p => p.DeletedAt)
                     .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
@@ -80,7 +80,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
             case "bank":
             {
                 var query = _db.BankProblems.IgnoreQueryFilters().Where(b => b.DeletedAt != null);
-                if (n is not null) query = query.Where(b => EF.Functions.Like(b.Title, $"%{n}%"));
+                if (n is not null) query = query.Where(b => EF.Functions.Like(b.Title.ToLower(), $"%{n}%".ToLower()));
                 var total = await query.CountAsync();
                 var rows = await query.Include(b => b.Owner).OrderByDescending(b => b.DeletedAt)
                     .Skip((page - 1) * pageSize).Take(pageSize)

@@ -285,9 +285,9 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         var query = _db.Submissions.Where(s => s.Problem!.BoardId == board.Id);
         if (userId is int uid) query = query.Where(s => s.UserId == uid);
         if (n is not null)
-            query = query.Where(s => EF.Functions.Like(s.User!.Email, $"%{n}%")
-                || EF.Functions.Like(s.User!.DisplayName, $"%{n}%")
-                || EF.Functions.Like(s.Problem!.Title, $"%{n}%"));
+            query = query.Where(s => EF.Functions.Like(s.User!.Email.ToLower(), $"%{n}%".ToLower())
+                || EF.Functions.Like(s.User!.DisplayName.ToLower(), $"%{n}%".ToLower())
+                || EF.Functions.Like(s.Problem!.Title.ToLower(), $"%{n}%".ToLower()));
         if (v is Verdict bv) query = query.Where(s => s.Verdict == bv);
 
         var total = await query.CountAsync();
