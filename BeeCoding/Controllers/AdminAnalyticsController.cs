@@ -50,9 +50,6 @@ public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig run
     /// <summary>Shared by the AI-usage page (AdminAiController) and the CSV/Excel exports.</summary>
     internal static async Task<List<AdminAiUsageRow>> AiUsageAllRowsAsync(AppDbContext _db)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var monthStart = new DateOnly(today.Year, today.Month, 1);
-
         var rows = await _db.AiUsages.Include(x => x.User).ToListAsync();
 
         static AdminAiUsageBucket Sum(IEnumerable<AiUsage> xs)
@@ -62,14 +59,21 @@ public class AdminAnalyticsController(AppDbContext db, PlatformRuntimeConfig run
             return new AdminAiUsageBucket(c, p, k, p + k);
         }
 
+        // AiUsage.Day is the user's own calendar day (UserClock), so "today" and "this month" are too: with the UTC day,
+        // a user east of UTC would see yesterday's row as today until their offset's midnight passes UTC.
         return rows.GroupBy(x => x.UserId)
-            .Select(g => new AdminAiUsageRow(
-                g.Key,
-                g.First().User?.Email ?? "?",
-                g.First().User?.DisplayName ?? "?",
-                Sum(g.Where(x => x.Day == today)),
-                Sum(g.Where(x => x.Day >= monthStart)),
-                Sum(g)))
+            .Select(g =>
+            {
+                var today = DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(g.First().User?.UtcOffsetMinutes ?? 0));
+                var monthStart = new DateOnly(today.Year, today.Month, 1);
+                return new AdminAiUsageRow(
+                    g.Key,
+                    g.First().User?.Email ?? "?",
+                    g.First().User?.DisplayName ?? "?",
+                    Sum(g.Where(x => x.Day == today)),
+                    Sum(g.Where(x => x.Day >= monthStart)),
+                    Sum(g));
+            })
             .OrderByDescending(r => r.AllTime.TotalTokens)
             .ToList();
     }

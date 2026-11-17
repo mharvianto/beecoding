@@ -239,4 +239,20 @@ public class HardeningTests
         Assert.Contains("memberRemoved", after);                // addressed to the user, not to the group: still delivered
         Assert.DoesNotContain("progressChanged", after);        // a broadcast to the board group, sent right after: no longer reaches them
     }
+
+    [Fact]
+    public async Task Admin_AI_usage_today_follows_each_users_own_day()
+    {
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var east = new User { Email = "east@test.dev", DisplayName = "East", Role = UserRole.Student, UtcOffsetMinutes = 14 * 60 };
+        db.Users.Add(east); await db.SaveChangesAsync();
+        var localToday = DateOnly.FromDateTime(DateTime.UtcNow.AddMinutes(east.UtcOffsetMinutes));
+        db.AiUsages.Add(new AiUsage { UserId = east.Id, Day = localToday, Calls = 4, PromptTokens = 10, CompletionTokens = 5 });
+        db.AiUsages.Add(new AiUsage { UserId = east.Id, Day = localToday.AddDays(-1), Calls = 9 });
+        await db.SaveChangesAsync();
+        var row = (await BeeCoding.Controllers.AdminAnalyticsController.AiUsageAllRowsAsync(db)).Single(r => r.UserId == east.Id);
+        Assert.Equal(4, row.Today.Calls);
+    }
 }
