@@ -255,4 +255,14 @@ public class HardeningTests
         var row = (await BeeCoding.Controllers.AdminAnalyticsController.AiUsageAllRowsAsync(db)).Single(r => r.UserId == east.Id);
         Assert.Equal(4, row.Today.Calls);
     }
+
+    [Fact]
+    public void The_model_builds_for_Postgres_and_makes_a_create_script_without_a_server()
+    {
+        var opts = new DbContextOptionsBuilder<AppDbContext>().UseNpgsql("Host=localhost;Database=x").Options;
+        using var db = new AppDbContext(opts);
+        var script = db.Database.GenerateCreateScript();
+        Assert.Contains("CREATE TABLE", script);
+        Assert.Contains("\"Users\"", script);
+    }
 }

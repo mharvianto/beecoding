@@ -80,11 +80,19 @@ builder.Services.AddResponseCompression(o =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = System.IO.Compression.CompressionLevel.Fastest);
 
+// Database:Provider = sqlite (default) | postgres. Postgres is prepared, not proven: see the EnsureCreated note below.
+var usePostgres = string.Equals(builder.Configuration["Database:Provider"], "postgres", StringComparison.OrdinalIgnoreCase);
 builder.Services.AddDbContext<AppDbContext>(o =>
+{
     // Split queries: Include of several collections (wall posts: reactions x comments, board: members x
     // problems x groups) would otherwise be one cartesian-product join that grows multiplicatively.
-    o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=beecoding.db",
-        s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+    if (usePostgres)
+        o.UseNpgsql(builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Database:Provider=postgres needs ConnectionStrings:Default"),
+            s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+    else
+        o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=beecoding.db",
+            s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+});
 
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(o =>
@@ -336,14 +344,16 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.MigrateAsync();
+    // shortcut: the 139 migrations are SQLite-typed, so a Postgres database is only created from the model (new, empty database);
+    // later schema changes need Postgres migrations in their own assembly, before this runs against real data.
+    if (usePostgres) await db.Database.EnsureCreatedAsync(); else await db.Database.MigrateAsync();
 
     // Encrypt secrets written before SecretBox existed: they read fine as plain text, but only a save re-encodes them.
-    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM Users WHERE TotpSecret IS NOT NULL AND TotpSecret NOT LIKE 'enc1:%'").ToListAsync())
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT \"Id\" AS \"Value\" FROM \"Users\" WHERE \"TotpSecret\" IS NOT NULL AND \"TotpSecret\" NOT LIKE 'enc1:%'").ToListAsync())
         db.Entry(await db.Users.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.TotpSecret).IsModified = true;
-    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM AiProviderConfigs WHERE ApiKey IS NOT NULL AND ApiKey NOT LIKE 'enc1:%'").ToListAsync())
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT \"Id\" AS \"Value\" FROM \"AiProviderConfigs\" WHERE \"ApiKey\" IS NOT NULL AND \"ApiKey\" NOT LIKE 'enc1:%'").ToListAsync())
         db.Entry(await db.AiProviderConfigs.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.ApiKey).IsModified = true;
-    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT Id AS Value FROM LtiToolKeys WHERE PrivateKeyPem NOT LIKE 'enc1:%'").ToListAsync())
+    foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT \"Id\" AS \"Value\" FROM \"LtiToolKeys\" WHERE \"PrivateKeyPem\" NOT LIKE 'enc1:%'").ToListAsync())
         db.Entry(await db.LtiToolKeys.FindAsync(id) ?? throw new InvalidOperationException()).Property(x => x.PrivateKeyPem).IsModified = true;
     await db.SaveChangesAsync();
 
