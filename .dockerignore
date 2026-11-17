@@ -1,0 +1,14 @@
+**/bin
+**/obj
+**/node_modules
+BeeCoding/wwwroot
+BeeCoding/ClientApp/dist
+*.db
+*.db-*
+.git
+.claude
+.devcontainer
+scripts
+dotnet
+Task.md
+BeeCoding/appsettings.Production.json

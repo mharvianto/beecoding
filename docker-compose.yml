@@ -1,0 +1,23 @@
+# Single VM: `docker compose up -d` (or `podman compose`). Secrets go in a .env file next to this one, never in git.
+services:
+  beecoding:
+    build: .
+    image: beecoding:latest
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - beecoding-data:/data
+    environment:
+      # Fill these in .env (App__PublicUrl is needed for reset/verification links; ADMIN_EMAILS (comma-separated) must already be registered accounts)
+      App__PublicUrl: ${PUBLIC_URL:-}
+      Admin__Emails: ${ADMIN_EMAILS:-}
+      Ai__Enabled: ${AI_ENABLED:-false}
+      Ai__ApiKey: ${AI_API_KEY:-}
+    # bubblewrap needs unprivileged user namespaces. If the judge reports no usable sandbox, try these two lines first;
+    # the last resort is Judge__RequireSandbox=false (rlimits only, weaker): see CONTAINERS.md.
+    # security_opt: ["seccomp=unconfined", "apparmor=unconfined"]
+    mem_limit: 4g
+
+volumes:
+  beecoding-data:

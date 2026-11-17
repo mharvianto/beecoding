@@ -35,7 +35,7 @@ portable** ke Kubernetes.
 
 ## 1. Build image (dipakai sama-sama oleh Podman & Swarm)
 
-Reuse Dockerfile multi-stage dari [DEPLOY.md §2.12](DEPLOY.md#212-image-dockerfile-multi-stage):
+`Dockerfile`, `.dockerignore` dan `docker-compose.yml` sudah ada di root repo (satu image web, judge in-process, data di volume `/data`). **Belum pernah dibangun dengan Docker/Podman**, karena dev container tidak punya keduanya; yang sudah dicoba hanya publish + jalan dengan env yang sama. Bentuknya kira-kira:
 
 ```dockerfile
 # --- build SPA + publish ---
