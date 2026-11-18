@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
 import MonacoEditor from './MonacoEditor.vue';
 import CodeDiff from './CodeDiff.vue';
+import Chevron from './Chevron.vue';
 import { timeAgo, fullTime } from '../lib/timeAgo';
 
 // Rows are buttons only for the viewer's own submissions that carry their code; a classmate's row (board) is plain text.
@@ -29,6 +30,7 @@ function load() { emit('load', open.value); close(); }
 </script>
 
 <template>
+  <p v-if="mine.length" class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5">Click a submission to see its code, compare it with your previous one, or load it into the editor.</p>
   <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
     <component :is="canOpen(s) ? 'button' : 'div'" v-for="s in submissions" :key="s.id"
                :type="canOpen(s) ? 'button' : undefined" @click="canOpen(s) && show(s)"
@@ -40,6 +42,7 @@ function load() { emit('load', open.value); close(); }
         {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
       </span>
       <time :datetime="s.createdAt" :title="fullTime(s.createdAt)" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ timeAgo(s.createdAt) }}</time>
+      <Chevron v-if="canOpen(s)" :open="false" size="1rem" class="text-slate-400" />
     </component>
     <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ emptyText }}</p>
   </div>
