@@ -29,7 +29,7 @@ public class SurveyTests
                 Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<AppDbContext>().SurveyResponses.CountAsync());
 
             Assert.Equal(HttpStatusCode.BadRequest, (await kid.PutAsJsonAsync("/api/survey", new Dictionary<string, string> { ["Bad Key!"] = "x" })).StatusCode);
-            Assert.Equal(HttpStatusCode.BadRequest, (await kid.PutAsJsonAsync("/api/survey", new Dictionary<string, string> { ["like"] = new string('x', 2001) })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await kid.PutAsJsonAsync("/api/survey", new Dictionary<string, string> { ["like"] = new string('x', 501) })).StatusCode);
             Assert.Equal(HttpStatusCode.Forbidden, (await kid.GetAsync("/api/survey/results")).StatusCode);
 
             var boss = app.CreateClient();

@@ -19,7 +19,7 @@ namespace BeeCoding.Controllers;
 [Route("api/survey")]
 public partial class SurveyController(AppDbContext db, AdminAccess admin) : ApiControllerBase
 {
-    private const int MaxQuestions = 60, MaxAnswerChars = 2000;
+    private const int MaxQuestions = 60, MaxAnswerChars = 500;
 
     [GeneratedRegex("^[a-z][a-z0-9_]{0,29}$")] private static partial Regex KeyRx();
 
