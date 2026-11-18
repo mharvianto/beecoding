@@ -14,6 +14,7 @@ import ProblemFeedback from '../components/ProblemFeedback.vue';
 import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
+import SubmissionHistory from '../components/SubmissionHistory.vue';
 import SplitPane from '../components/SplitPane.vue';
 import ReducedMotionNotice from '../components/ReducedMotionNotice.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
@@ -162,6 +163,14 @@ async function load() {
     const secondsSince = (Date.now() - new Date(myLatest.createdAt + (myLatest.createdAt.endsWith('Z') ? '' : 'Z')).getTime()) / 1000;
     if (secondsSince < 5) startSubmitCooldown(5 - secondsSince);
   }
+}
+// Put an old submission of mine back in the editor. The current text is only lost if it is not already one of my submissions.
+function loadFromHistory(sub) {
+  const here = code.value.trim();
+  if (here && !isPristine(code.value) && !submissions.value.some((x) => x.mine && (x.code || '').trim() === here)
+      && !confirm('Replace the code in the editor? It has not been submitted.')) return;
+  code.value = sub.code || '';
+  if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }
 async function loadSubs() {
   submissions.value = await api.get(`/api/problems/${pid.value}/submissions`);
@@ -425,17 +434,7 @@ function ago(ts) {
               :stderr="runOut?.stderr || ''" />
 
       <h3 class="font-semibold text-sm mt-5 mb-2">Submissions</h3>
-      <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
-        <div v-for="s in submissions" :key="s.id"
-             class="flex items-center gap-2 text-sm border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1.5">
-          <VerdictBadge :verdict="s.status === 'Done' ? s.verdict : s.status" small />
-          <span class="text-slate-500 dark:text-slate-400">{{ s.authorName }}</span>
-          <span v-if="s.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">
-            {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
-          </span>
-        </div>
-        <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions yet. Run your code to test it, then Submit.</p>
-      </div>
+      <SubmissionHistory :submissions="submissions" :current-code="code" show-author empty-text="No submissions yet. Run your code to test it, then Submit." @load="loadFromHistory" />
     </div>
     </template>
 
