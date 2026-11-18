@@ -89,7 +89,8 @@ public partial class SurveyController(AppDbContext db, AdminAccess admin, IConfi
     {
         if (!IsAdminUser(admin)) return Forbid();
         var rows = await db.SurveyResponses.OrderBy(x => x.Id).Select(x => new { x.Role, x.UpdatedAt, x.Answers }).ToListAsync();
-        return Ok(rows.Select(x => new { role = x.Role, at = x.UpdatedAt, answers = Parse(x.Answers) }));
+        // the day only: a timestamp to the second could be matched against submission times to guess who answered
+        return Ok(rows.Select(x => new { role = x.Role, at = x.UpdatedAt.ToString("yyyy-MM-dd"), answers = Parse(x.Answers) }));
     }
 
     private static Dictionary<string, string> Parse(string? json)
