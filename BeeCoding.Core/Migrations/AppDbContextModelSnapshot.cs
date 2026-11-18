@@ -1629,6 +1629,37 @@ namespace BeeCoding.Migrations
                     b.ToTable("Submissions");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.SurveyResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Answers")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("SurveyResponses");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.TestCase", b =>
                 {
                     b.Property<int>("Id")
@@ -2311,6 +2342,17 @@ namespace BeeCoding.Migrations
                         .IsRequired();
 
                     b.Navigation("Problem");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.SurveyResponse", b =>
+                {
+                    b.HasOne("BeeCoding.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("User");
                 });

@@ -42,6 +42,10 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
           <Icon name="settings" /> Account settings
         </RouterLink>
+        <RouterLink to="/survey" @click="open = false"
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <Icon name="message" /> Feedback survey
+        </RouterLink>
         <RouterLink v-if="auth.isTeacher" to="/reports/problems" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
           <Icon name="flag" /> Problem reports

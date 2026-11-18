@@ -1140,3 +1140,17 @@ public class BankProblemEmbedding
     public string TextHash { get; set; } = "";
     public byte[] Vector { get; set; } = [];
 }
+
+/// <summary>A user's answers to the in-app feedback survey (one per user, editable). <see cref="Answers"/> is a JSON object
+/// {questionId: answer}; the questions live in the browser (ClientApp/src/lib/surveyQuestions.js), so adding one needs no migration.
+/// <see cref="Role"/> is the user's role when they answered. Results shown to admins carry no user identity.</summary>
+public class SurveyResponse
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User? User { get; set; }
+    public string Role { get; set; } = "";
+    public string Answers { get; set; } = "{}";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}

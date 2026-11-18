@@ -22,6 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
     public DbSet<EmailLoginCode> EmailLoginCodes => Set<EmailLoginCode>();
     public DbSet<ProblemLike> ProblemLikes => Set<ProblemLike>();
+    public DbSet<SurveyResponse> SurveyResponses => Set<SurveyResponse>();
     public DbSet<StatementImage> StatementImages => Set<StatementImage>();
     public DbSet<ProblemReport> ProblemReports => Set<ProblemReport>();
     public DbSet<EmailVerificationToken> EmailVerificationTokens => Set<EmailVerificationToken>();
@@ -134,6 +135,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<StatementImage>().HasIndex(x => x.OwnerId);
         b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique().HasFilter(NotNull("BankProblemId"));
         b.Entity<ProblemLike>().HasIndex(x => new { x.UserId, x.ProblemId }).IsUnique().HasFilter(NotNull("ProblemId"));
+        b.Entity<SurveyResponse>().HasIndex(x => x.UserId).IsUnique();
+        b.Entity<SurveyResponse>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<ProblemLike>().HasIndex(x => x.BankProblemId);
         b.Entity<ProblemLike>().HasIndex(x => x.ProblemId);
         b.Entity<ProblemLike>().HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
