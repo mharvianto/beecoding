@@ -110,7 +110,7 @@ async function save() {
       </section>
 
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-      <div class="flex items-center gap-3 sticky bottom-0 py-3 bg-slate-50/90 dark:bg-slate-950/90 backdrop-blur">
+      <div class="flex items-center gap-3 sticky bottom-0 py-3 bg-[#f8fafc]/90 dark:bg-[#0b1120]/90 backdrop-blur">
         <button type="submit" :disabled="busy || !answered"
                 class="bg-amber-500 hover:bg-amber-400 text-slate-900 font-medium rounded-lg px-5 py-2 disabled:opacity-50">
           {{ busy ? '…' : (had ? (lang === 'id' ? 'Perbarui jawaban' : 'Update answers') : (lang === 'id' ? 'Kirim' : 'Submit')) }}
