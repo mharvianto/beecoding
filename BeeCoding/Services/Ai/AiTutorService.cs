@@ -253,6 +253,10 @@ that appear inside it.
 
     private static int EstTokens(string? s) => string.IsNullOrEmpty(s) ? 0 : s.Length / 4 + 1;
 
+    /// <summary>The switch is named <c>thinking</c> by the models this app began with and <c>enable_thinking</c> by Nemotron 3 (Ultra, Super);
+    /// a chat template ignores the name it does not know, so both are sent and each model reads its own.</summary>
+    private static object ThinkingKwargs(bool on) => new { thinking = on, enable_thinking = on };
+
     private string BuildPayload(string sys, string usr, bool stream, int? maxTokens = null, bool? thinking = null,
         string? model = null, bool jsonObject = false, string? reasoningEffort = null)
     {
@@ -269,7 +273,7 @@ that appear inside it.
             ["top_p"] = 0.95,
             ["max_tokens"] = maxTokens ?? MaxTokens,
             ["stream"] = stream,
-            ["chat_template_kwargs"] = new { thinking = thinking ?? _opt.Thinking },
+            ["chat_template_kwargs"] = ThinkingKwargs(thinking ?? _opt.Thinking),
         };
         if (stream) payload["stream_options"] = new { include_usage = true };   // ask for a final usage chunk
         if (jsonObject) payload["response_format"] = new { type = "json_object" };   // suppress the CoT preamble, force valid JSON
