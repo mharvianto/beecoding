@@ -2,6 +2,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useAuth } from '../stores/auth';
 import { isDark } from '../lib/theme';
+import { docLang } from '../lib/docLang';
 
 // Cloudflare Turnstile human check. Renders only while the server has it switched on (the public site key comes
 // with /api/auth/config); otherwise it shows nothing and the token stays empty. `action` must match the action the
@@ -48,7 +49,7 @@ function draw() {
   });
 }
 
-onMounted(async () => {
+async function init() {
   await auth.loadConfig();
   sitekey = auth.config.turnstileSiteKey || '';
   if (!sitekey || !el.value) return;
@@ -66,7 +67,17 @@ onMounted(async () => {
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   } catch { failed.value = true; }
-});
+}
+onMounted(init);
+
+// "Try again" after a blocked script or a failed challenge: drop what is left of the old attempt and start over.
+function retry() {
+  failed.value = false;
+  themeObserver?.disconnect();
+  if (widgetId !== null) { window.turnstile?.remove(widgetId); widgetId = null; }
+  emit('update:token', '');
+  init();
+}
 
 function reset() {
   emit('update:token', '');
@@ -82,8 +93,11 @@ defineExpose({ reset });
 <template>
   <div v-if="auth.config.turnstileSiteKey">
     <div ref="el" class="w-full"></div>
-    <p v-if="failed" class="text-xs text-red-600 dark:text-red-400 mt-1">
-      The verification check could not load. Turn off any blocker for this page and reload.
+    <p v-if="failed" role="alert" class="text-xs text-red-600 dark:text-red-400 mt-1">
+      {{ docLang === 'id'
+        ? 'Pemeriksaan keamanan tidak bisa dimuat. Matikan pemblokir iklan/privasi untuk halaman ini, atau minta pengelola jaringan membuka challenges.cloudflare.com.'
+        : 'The verification check could not load. Turn off any ad or privacy blocker for this page, or ask the network administrator to allow challenges.cloudflare.com.' }}
+      <button type="button" @click="retry" class="underline font-medium ml-1">{{ docLang === 'id' ? 'Coba lagi' : 'Try again' }}</button>
     </p>
   </div>
 </template>
