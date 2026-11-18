@@ -19,10 +19,13 @@ const busy = ref(false);
 const error = ref('');
 const saved = ref(false);
 const had = ref(false);
+const status = ref(null);   // { open, eligible, have, need, done, teacher } from /api/survey/status
 
 onMounted(async () => {
-  try { answers.value = await api.get('/api/survey/mine'); had.value = Object.keys(answers.value).length > 0; }
-  catch (e) { error.value = e.message; }
+  try {
+    status.value = await api.get('/api/survey/status');
+    answers.value = await api.get('/api/survey/mine'); had.value = Object.keys(answers.value).length > 0;
+  } catch (e) { error.value = e.message; }
   finally { loading.value = false; }
 });
 
@@ -54,6 +57,16 @@ async function save() {
     </p>
 
     <p v-if="loading" class="text-sm text-slate-500">…</p>
+    <div v-else-if="status && !status.open" class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm">
+      {{ lang === 'id' ? 'Survei ini sudah ditutup. Terima kasih!' : 'This survey is closed. Thank you!' }}
+    </div>
+    <div v-else-if="status && !status.eligible" class="rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-5 text-sm text-amber-900 dark:text-amber-200">
+      <template v-if="status.teacher">{{ lang === 'id' ? 'Buat dulu satu soal atau board, lalu kembali ke sini supaya jawaban Anda berdasar pengalaman memakai BeeCoding.' : 'Create a problem or a board first, then come back, so your answers come from actually using BeeCoding.' }}</template>
+      <template v-else>{{ lang === 'id'
+        ? `Kerjakan dan kirim beberapa soal dulu (Practice atau board), lalu kembali ke sini. Progres: ${status.have}/${status.need} submission selesai.`
+        : `Solve and submit a few problems first (Practice or a board), then come back. Progress: ${status.have}/${status.need} finished submissions.` }}</template>
+      <div class="mt-3"><RouterLink to="/practice" class="font-semibold underline">Practice</RouterLink></div>
+    </div>
     <form v-else @submit.prevent="save" class="space-y-8">
       <section v-for="s in sections" :key="s.id">
         <h2 class="font-semibold text-sm uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-3">{{ s.title[lang] }}</h2>

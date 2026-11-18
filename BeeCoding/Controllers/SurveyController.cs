@@ -17,9 +17,37 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/survey")]
-public partial class SurveyController(AppDbContext db, AdminAccess admin) : ApiControllerBase
+public partial class SurveyController(AppDbContext db, AdminAccess admin, IConfiguration cfg) : ApiControllerBase
 {
     private const int MaxQuestions = 60, MaxAnswerChars = 500;
+    /// <summary>Finished submissions (practice + boards) a student needs before they can answer, so the answers come from people who used the judge.</summary>
+    private const int StudentNeeds = 3;
+
+    /// <summary><c>Survey:Open</c> (default true): false stops new and changed answers and hides the banner.</summary>
+    private bool Open => cfg.GetValue("Survey:Open", true);
+
+    /// <summary>Students: <see cref="StudentNeeds"/> finished submissions. Teachers: at least one problem of their own (a board problem counts, it has a bank row). Admins: always.</summary>
+    private async Task<(bool Ok, int Have, int Need)> EligibleAsync()
+    {
+        if (IsAdminUser(admin)) return (true, 1, 1);
+        if (CurrentRole == "Teacher")
+        {
+            var own = await db.BankProblems.CountAsync(b => b.OwnerId == UserId) > 0 ? 1 : 0;
+            return (own >= 1, own, 1);
+        }
+        var done = await db.Submissions.CountAsync(x => x.UserId == UserId && x.Status == SubmissionStatus.Done)
+                 + await db.BankSubmissions.CountAsync(x => x.UserId == UserId && x.Status == SubmissionStatus.Done);
+        return (done >= StudentNeeds, Math.Min(done, StudentNeeds), StudentNeeds);
+    }
+
+    /// <summary>What the page and the banner need: is the survey open, may this user answer yet (and how far along are they), have they answered.</summary>
+    [HttpGet("status")]
+    public async Task<IActionResult> Status()
+    {
+        var (ok, have, need) = await EligibleAsync();
+        var done = await db.SurveyResponses.AnyAsync(x => x.UserId == UserId);
+        return Ok(new { open = Open, eligible = ok, have, need, done, teacher = CurrentRole == "Teacher" });
+    }
 
     [GeneratedRegex("^[a-z][a-z0-9_]{0,29}$")] private static partial Regex KeyRx();
 
@@ -33,6 +61,8 @@ public partial class SurveyController(AppDbContext db, AdminAccess admin) : ApiC
     [HttpPut]
     public async Task<IActionResult> Save(Dictionary<string, string> answers)
     {
+        if (!Open) return StatusCode(403, "The survey is closed.");
+        if (!(await EligibleAsync()).Ok) return StatusCode(403, "Use BeeCoding a little more before answering.");
         if (answers.Count > MaxQuestions) return BadRequest("Too many answers.");
         var clean = new Dictionary<string, string>();
         foreach (var (k, v) in answers)
