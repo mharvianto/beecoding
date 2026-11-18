@@ -12,7 +12,7 @@ namespace BeeCoding.Controllers;
 [Authorize]
 [Route("api/run")]
 public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOptions> opt,
-    AppDbContext db, BoardService boards) : ApiControllerBase
+    AppDbContext db, BoardService boards, VisibilityService vis, AdminAccess admin) : ApiControllerBase
 {
     private readonly IJudgeQueue _queue = queue;
     private readonly RateLimiter _rate = rate;
@@ -67,11 +67,13 @@ public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOp
         }
         if (problemId is int pid)
         {
-            var row = await _db.Problems.Where(p => p.Id == pid)
-                .Select(p => new { p.BoardId, p.BannedHeaders, p.BannedSymbols, p.AllowedLanguages, p.InputFileName }).FirstOrDefaultAsync();
-            if (row is null) return (null, null, null, null);
-            return await _boards.GetMembershipAsync(row.BoardId, UserId) is null
-                ? (null, null, null, null) : (row.BannedHeaders, row.BannedSymbols, row.AllowedLanguages, row.InputFileName);
+            var p = await _db.Problems.Include(p => p.Group).FirstOrDefaultAsync(p => p.Id == pid);
+            if (p is null) return (null, null, null, null);
+            var m = await _boards.GetMembershipAsync(p.BoardId, UserId);
+            if (m is null) return (null, null, null, null);
+            // Ids are sequential: a hidden or not-yet-open problem must not be probed through the rules it enforces (same check as Submit).
+            if (!vis.IsStaff(m.Role) && !IsAdminUser(admin) && !GroupAccess.StudentVisible(p, DateTime.UtcNow)) return (null, null, null, null);
+            return (p.BannedHeaders, p.BannedSymbols, p.AllowedLanguages, p.InputFileName);
         }
         return (null, null, null, null);
     }

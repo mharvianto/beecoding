@@ -83,18 +83,20 @@ public sealed class ResetRequestThrottle
     public bool TryAcquire(string key, int cap)
     {
         var now = DateTime.UtcNow.Ticks;
-        var allowed = false;
-        _hits.AddOrUpdate(key,
-            _ => { allowed = true; return (1, now); },
-            (_, cur) =>
+        // Read, compare and write as one step. (AddOrUpdate re-runs its delegate when threads collide, so a burst of parallel
+        // requests could each keep an "allowed" from a discarded attempt and all pass.)
+        lock (_hits)
+        {
+            if (_hits.TryGetValue(key, out var cur) && now - cur.Start <= Window)
             {
-                if (now - cur.Start > Window) { allowed = true; return (1, now); }
-                if (cur.Count >= cap) return cur;
-                allowed = true;
-                return (cur.Count + 1, cur.Start);
-            });
-        if (_hits.Count > 5000)
-            foreach (var kv in _hits.Where(kv => now - kv.Value.Start > Window).ToList()) _hits.TryRemove(kv.Key, out _);
-        return allowed;
+                if (cur.Count >= cap) return false;
+                _hits[key] = (cur.Count + 1, cur.Start);
+                return true;
+            }
+            _hits[key] = (1, now);
+            if (_hits.Count > 5000)
+                foreach (var kv in _hits.Where(kv => now - kv.Value.Start > Window).ToList()) _hits.TryRemove(kv.Key, out _);
+            return true;
+        }
     }
 }

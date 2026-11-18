@@ -602,7 +602,7 @@ app.UseStaticFiles(new StaticFileOptions
 
 // CSRF: the session cookie is SameSite=None (LTI iframes), so the browser would attach it to a
 // forged cross-site POST. Browsers label every request with Sec-Fetch-Site; refuse unsafe methods
-// from any other origin. Non-browser clients (admin-token scripts) send no header and pass.
+// from any other origin. Non-browser clients (admin-token scripts) send neither header and pass.
 // The two LTI entry points are cross-site POSTs from the LMS by design and carry their own state/nonce.
 // A WebSocket handshake is a GET, so it needs the same check: without it a page on another site could open /hubs/board or /lsp/cpp
 // with the visitor's cookie. In development the Vite page (another port, same site) talks to Kestrel directly, so same-site passes there.
@@ -612,10 +612,13 @@ app.Use(async (ctx, next) =>
     var r = ctx.Request;
     bool webSocketUpgrade = HttpMethods.IsGet(r.Method) && string.Equals(r.Headers.Upgrade.ToString(), "websocket", StringComparison.OrdinalIgnoreCase);
     bool unsafeMethod = !HttpMethods.IsGet(r.Method) && !HttpMethods.IsHead(r.Method) && !HttpMethods.IsOptions(r.Method);
-    if ((unsafeMethod || webSocketUpgrade)
-        && r.Headers.TryGetValue("Sec-Fetch-Site", out var site)
-        && site != "same-origin" && site != "none"
-        && !(webSocketUpgrade && isDevelopment && site == "same-site")
+    bool hasSite = r.Headers.TryGetValue("Sec-Fetch-Site", out var site);
+    // Old browsers send no Sec-Fetch-Site, but their Origin header still says where a POST came from.
+    bool crossSite = hasSite
+        ? site != "same-origin" && site != "none" && !(webSocketUpgrade && isDevelopment && site == "same-site")
+        : r.Headers.TryGetValue("Origin", out var origin)
+          && !(Uri.TryCreate(origin.ToString(), UriKind.Absolute, out var o) && string.Equals(o.Authority, r.Host.Value, StringComparison.OrdinalIgnoreCase));
+    if ((unsafeMethod || webSocketUpgrade) && crossSite
         && !r.Path.Equals("/lti/login", StringComparison.OrdinalIgnoreCase)
         && !r.Path.Equals("/lti/launch", StringComparison.OrdinalIgnoreCase))
     {

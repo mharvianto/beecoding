@@ -40,22 +40,22 @@ public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBa
         if (_fails.Count > 1000)   // one entry per probing IP would otherwise live forever
             foreach (var kv in _fails) if (now - kv.Value.WindowTicks > WindowTicks) _fails.TryRemove(kv.Key, out _);
 
-        var st = _fails.GetValueOrDefault(ip);
-        if (now - st.WindowTicks > WindowTicks) st = (0, now);   // window expired -> reset
-        if (st.Count >= MaxFails) return NotFound();             // locked out (still looks "off")
-
         if (string.IsNullOrWhiteSpace(expected)) return NotFound();   // feature off
 
-        var got = Request.Headers["X-Admin-Token"].ToString();
+        // Count the guess BEFORE checking it, in one locked step (a right token clears it): checking first and recording after
+        // lets a burst of parallel guesses all read "no misses yet" and all pass. Same rule as LoginThrottle.
+        lock (_fails)
+        {
+            var st = _fails.GetValueOrDefault(ip);
+            if (now - st.WindowTicks > WindowTicks) st = (0, now);   // window expired -> reset
+            if (st.Count >= MaxFails) return NotFound();             // locked out (still looks "off")
+            _fails[ip] = (st.Count + 1, st.WindowTicks == 0 ? now : st.WindowTicks);
+        }
 
+        var got = Request.Headers["X-Admin-Token"].ToString();
         var ok = CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(got), Encoding.UTF8.GetBytes(expected));
-        if (ok)
-        {
-            _fails.TryRemove(ip, out _);
-            return null;
-        }
-        _fails[ip] = (st.Count + 1, st.WindowTicks == 0 ? now : st.WindowTicks);
+        if (ok) { lock (_fails) _fails.TryRemove(ip, out _); return null; }
         return NotFound();   // never reveal "wrong token" vs "disabled"
     }
 

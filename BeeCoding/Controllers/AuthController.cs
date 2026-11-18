@@ -74,7 +74,8 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         };
         user.PasswordHash = _pw.Hash(user, dto.Password!);
         _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        try { await _db.SaveChangesAsync(); }
+        catch (DbUpdateException) { return Conflict("An account with that email already exists."); }   // two sign-ups with one address at once: the unique index refuses the second
 
         await SignInAsync(user);
         await _verification.SendAsync(user, Request);   // no-op unless outgoing email is configured
