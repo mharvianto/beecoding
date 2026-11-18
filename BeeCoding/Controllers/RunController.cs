@@ -47,15 +47,21 @@ public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOp
         timeout.CancelAfter(TimeSpan.FromSeconds(30));
         try
         {
-            return await _queue.EnqueueRunAsync(
+            var r = await _queue.EnqueueRunAsync(
                 dto.Language, dto.Code, dto.Stdin ?? "", _opt.RunTimeLimitMs, _opt.RunMemoryLimitKb,
                 inputFileName, timeout.Token);
+            return r with { Stdout = CutOutput(r.Stdout), Stderr = CutOutput(r.Stderr) };
         }
         catch (OperationCanceledException)
         {
             return StatusCode(504, "The judge is busy. Try again shortly.");
         }
     }
+
+    // The judge keeps up to 4 MB of output, and a loop that prints forever fills all of it. A Run box has room for a screenful, so the browser
+    // gets the head only (judging is unaffected; this is just the Run reply).
+    private const int MaxRunChars = 100_000;
+    internal static string CutOutput(string s) => s.Length <= MaxRunChars ? s : s[..MaxRunChars] + $"\n…[output cut after {MaxRunChars:N0} characters]";
 
     private async Task<(string? Headers, string? Symbols, string? AllowedLanguages, string? InputFileName)> RestrictionsForAsync(int? problemId, int? bankProblemId)
     {

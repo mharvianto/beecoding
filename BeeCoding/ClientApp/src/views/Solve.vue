@@ -1,4 +1,5 @@
 <script setup>
+import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { api } from '../lib/api';
@@ -486,14 +487,7 @@ function ago(ts) {
           <div>
             <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
-                 class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{
-              runOut
-                ? (runOut.compileOk
-                    ? (runOut.stdout || '') + (runOut.stderr ? '\n[stderr] ' + runOut.stderr : '') +
-                      `\n— ${runOut.runtimeMs}ms, ${runOut.memoryKb}KB${runOut.timedOut ? ', TIMED OUT' : ''}`
-                    : '[compile error]\n' + runOut.compilerOutput)
-                : ''
-            }}</pre>
+                 class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
           </div>
         </div>
         <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
