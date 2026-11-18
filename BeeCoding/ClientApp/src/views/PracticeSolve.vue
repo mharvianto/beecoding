@@ -15,6 +15,7 @@ import EasierProblems from '../components/EasierProblems.vue';
 import ContentGuard from '../components/ContentGuard.vue';
 import StatementImage from '../components/StatementImage.vue';
 import AiHint from '../components/AiHint.vue';
+import SubmissionHistory from '../components/SubmissionHistory.vue';
 import SplitPane from '../components/SplitPane.vue';
 import ReducedMotionNotice from '../components/ReducedMotionNotice.vue';
 import { CODE_TEMPLATES, isPristine, allowedLangs, langLabel } from '../lib/templates';
@@ -118,6 +119,14 @@ async function load() {
     const secondsSince = (Date.now() - new Date(latest.createdAt + (latest.createdAt.endsWith('Z') ? '' : 'Z')).getTime()) / 1000;
     if (secondsSince < 5) startSubmitCooldown(5 - secondsSince);
   }
+}
+// Put an old submission back in the editor. The current text is only lost if it is not already one of the submissions.
+function loadFromHistory(sub) {
+  const here = code.value.trim();
+  if (here && !isPristine(code.value) && !submissions.value.some((x) => (x.code || '').trim() === here)
+      && !confirm('Replace the code in the editor? It has not been submitted.')) return;
+  code.value = sub.code || '';
+  if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }
 async function loadSubs() {
   submissions.value = await api.get(`/api/practice/${props.slug}/submissions`);
@@ -277,17 +286,7 @@ onBeforeUnmount(async () => {
               :stderr="runOut?.stderr || ''" />
 
       <h3 class="font-semibold text-sm mt-5 mb-2">History</h3>
-      <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
-        <div v-for="s in submissions" :key="s.id"
-             class="flex items-center gap-2 text-sm border border-slate-100 dark:border-slate-800 rounded-lg px-2 py-1.5">
-          <VerdictBadge :verdict="s.status === 'Done' ? s.verdict : s.status" small />
-          <span v-if="s.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">
-            {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
-          </span>
-          <span class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ new Date(s.createdAt + 'Z').toLocaleTimeString() }}</span>
-        </div>
-        <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions yet.</p>
-      </div>
+      <SubmissionHistory :submissions="submissions" :current-code="code" @load="loadFromHistory" />
     </div>
     </template>
 
