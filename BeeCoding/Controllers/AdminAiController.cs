@@ -152,7 +152,7 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
     }
 
     internal static AiExtrasDto ExtrasDto(AiProviderConfig? row) => new(row?.MaxTokens, row?.ReasoningEffort, row?.ReviewModel,
-        ParseFallbacks(row?.Fallbacks).Select(f => new AiFallbackViewDto(f.Id, f.BaseUrl, f.Model, ApiKeyPreview(f.ApiKey))).ToList());
+        ParseFallbacks(row?.Fallbacks).Select(f => new AiFallbackViewDto(f.Id, f.BaseUrl, f.Model, ApiKeyPreview(f.ApiKey))).ToList(), row?.JobEffort);
 
     [HttpGet("ai-provider/extras")]
     public async Task<ActionResult<AiExtrasDto>> GetAiExtras() =>
@@ -166,9 +166,9 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         var (error, row, next) = await ApplyExtrasAsync(_db, null, dto);
         if (error is not null) return BadRequest(error);
 
-        _aiProviderRuntime.SetExtras(row!.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList(), row.ReviewModel);
+        _aiProviderRuntime.SetExtras(row!.MaxTokens, row.ReasoningEffort, next.Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList(), row.ReviewModel, row.JobEffort);
         await _audit.RecordAsync(UserId, ActorEmail, "ai-extras-set", "AiProviderConfig", row.Id,
-            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, reviewModel={row.ReviewModel}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
+            $"maxTokens={row.MaxTokens}, effort={row.ReasoningEffort}, reviewModel={row.ReviewModel}, jobEffort={row.JobEffort}, fallbacks=[{string.Join(", ", next.Select(f => f.Model))}]");
         return ExtrasDto(row);
     }
 
@@ -181,6 +181,8 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         if (dto.MaxTokens is { } mt && (mt < 100 || mt > 16000)) return ("Max tokens must be between 100 and 16000 (blank = appsettings).", null, []);
         var effort = string.IsNullOrWhiteSpace(dto.ReasoningEffort) ? null : dto.ReasoningEffort.Trim().ToLowerInvariant();
         if (effort is not (null or "low" or "medium" or "high")) return ("Reasoning effort must be low, medium or high (blank = don't send it).", null, []);
+        var jobEffort = string.IsNullOrWhiteSpace(dto.JobEffort) ? null : dto.JobEffort.Trim().ToLowerInvariant();
+        if (jobEffort is not (null or "low" or "medium" or "high")) return ("Effort for generation and review must be low, medium or high (blank = quiet default).", null, []);
         var edits = dto.Fallbacks ?? [];
         if (edits.Count > 5) return ("At most 5 backup providers.", null, []);
 
@@ -201,6 +203,7 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
         row.MaxTokens = dto.MaxTokens;
         row.ReasoningEffort = effort;
         row.ReviewModel = organizationId is null && !string.IsNullOrWhiteSpace(dto.ReviewModel) ? dto.ReviewModel.Trim() : null;
+        row.JobEffort = organizationId is null ? jobEffort : null;
         row.Fallbacks = next.Count == 0 ? null : System.Text.Json.JsonSerializer.Serialize(next);
         row.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();

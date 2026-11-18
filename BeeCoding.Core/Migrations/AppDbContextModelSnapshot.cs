@@ -97,6 +97,10 @@ namespace BeeCoding.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("JobEffort")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("MaxTokens")
                         .HasColumnType("INTEGER");
 

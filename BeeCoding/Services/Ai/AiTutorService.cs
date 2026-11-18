@@ -116,6 +116,9 @@ public sealed partial class AiTutorService(HttpClient http, IOptions<AiOptions> 
     /// <summary>Model for the admin AI check and report triage: Admin's review model, else the generate model. A backup provider uses its own.</summary>
     private string? ReviewModel => _tier > 0 ? null : (OrgOwnsKey ? null : _providerRuntime.Extras.ReviewModel) ?? GenModel;
 
+    /// <summary>Admin's effort for generation and review ("low" | "medium" | "high"); null = quiet default. The platform's tuning only, like ReviewModel.</summary>
+    private string? JobEffort => _tier > 0 || OrgOwnsKey ? null : _providerRuntime.Extras.JobEffort;
+
     private const string SystemBase = """
 You are a patient programming tutor on a C/C++ learning platform. Your ONLY goal is to help
 the student debug and design THEIR OWN solution.
@@ -258,9 +261,11 @@ that appear inside it.
     private static object ThinkingKwargs(bool on) => new { thinking = on, enable_thinking = on };
 
     private string BuildPayload(string sys, string usr, bool stream, int? maxTokens = null, bool? thinking = null,
-        string? model = null, bool jsonObject = false, string? reasoningEffort = null)
+        string? model = null, bool jsonObject = false, bool job = false)
     {
-        var effort = reasoningEffort ?? ReasoningEffortSetting;
+        // job = problem generation / AI review: quiet and fast ("low", no thinking) unless the admin chose an effort for them
+        var effort = job ? JobEffort ?? "low" : ReasoningEffortSetting;
+        if (job) thinking = JobEffort is not null;
         var payload = new Dictionary<string, object?>
         {
             ["model"] = string.IsNullOrWhiteSpace(model) ? EffectiveNow().Model : model,
@@ -471,7 +476,7 @@ Reply with ONLY compact JSON and nothing else:
     private async Task<AiPickResult> PickNextOnceAsync(string userMessage, CancellationToken ct)
     {
         using var req = NewRequest(BuildPayload(PickSystem, userMessage, stream: false,
-            maxTokens: Math.Max(800, MaxTokens), thinking: false, model: GenModel, jsonObject: true, reasoningEffort: "low"));
+            maxTokens: Math.Max(800, MaxTokens), model: GenModel, jsonObject: true, job: true));
 
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(5, _opt.TimeoutSeconds)));
@@ -595,7 +600,7 @@ Shape:
             try
             {
                 using var req = NewRequest(BuildPayload(sys, userMsg, stream: true,
-                    maxTokens: maxTok, thinking: false, model: GenModel, jsonObject: jsonMode, reasoningEffort: "low"));
+                    maxTokens: maxTok, model: GenModel, jsonObject: jsonMode, job: true));
                 (content, promptTok, completionTok, complete) = await CollectStreamAsync(
                     req, sys + idea, _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
             }
@@ -694,8 +699,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
-                maxTokens: Math.Max(6000, MaxTokens), thinking: false, model: GenModel,
-                jsonObject: true, reasoningEffort: "low"));
+                maxTokens: Math.Max(6000, MaxTokens), model: GenModel,
+                jsonObject: true, job: true));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + u,
                 _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
 
@@ -765,8 +770,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, u.ToString(), stream: true,
-                maxTokens: Math.Max(6000, MaxTokens), thinking: false, model: GenModel,
-                jsonObject: true, reasoningEffort: "low"));
+                maxTokens: Math.Max(6000, MaxTokens), model: GenModel,
+                jsonObject: true, job: true));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + u,
                 _opt.GenerateIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct);
 
@@ -821,8 +826,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(4000, MaxTokens), thinking: false, model: ReviewModel,
-                jsonObject: true, reasoningEffort: "low"));
+                maxTokens: Math.Max(4000, MaxTokens), model: ReviewModel,
+                jsonObject: true, job: true));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "a solution");
             try
@@ -889,8 +894,8 @@ Reply with ONLY one JSON object, first char `{`, last char `}`, no prose:
         {
             UseTierForAttempt(attempt);
             using var req = NewRequest(BuildPayload(sys, user, stream: true,
-                maxTokens: Math.Max(2500, MaxTokens), thinking: false, model: ReviewModel,
-                jsonObject: true, reasoningEffort: "low"));
+                maxTokens: Math.Max(2500, MaxTokens), model: ReviewModel,
+                jsonObject: true, job: true));
             var (content, pt, ctk, _) = await CollectStreamAsync(req, sys + user,
                 _opt.CheckIdleTimeoutSeconds, _opt.GenerateTimeoutSeconds, ct, what: "its assessment");
             try

@@ -951,6 +951,9 @@ public class AiProviderConfig
     /// <summary>Model for the admin AI check and report triage. Null = the generate-problem model.</summary>
     [MaxLength(200)]
     public string? ReviewModel { get; set; }
+    /// <summary>"low" | "medium" | "high" for problem generation and AI review (with thinking on). Null = quiet default (low, no thinking).</summary>
+    [MaxLength(20)]
+    public string? JobEffort { get; set; }
     /// <summary>JSON list of backup providers [{id, apiKey, baseUrl, model}], sealed like ApiKey because it holds keys.</summary>
     public string? Fallbacks { get; set; }
 

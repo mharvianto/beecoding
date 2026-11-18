@@ -49,11 +49,11 @@ public class AiProviderRuntime
     }
 
     /// <summary>What an admin set for the platform beyond the main provider; null/empty fields fall through to appsettings.</summary>
-    public record PlatformExtras(int? MaxTokens, string? ReasoningEffort, List<AiFallback> Fallbacks, string? ReviewModel = null);
+    public record PlatformExtras(int? MaxTokens, string? ReasoningEffort, List<AiFallback> Fallbacks, string? ReviewModel = null, string? JobEffort = null);
     private volatile PlatformExtras _extras = new(null, null, []);
     public PlatformExtras Extras => _extras;
-    public void SetExtras(int? maxTokens, string? reasoningEffort, List<AiFallback> fallbacks, string? reviewModel = null) =>
-        _extras = new PlatformExtras(maxTokens, Norm(reasoningEffort), fallbacks, Norm(reviewModel));
+    public void SetExtras(int? maxTokens, string? reasoningEffort, List<AiFallback> fallbacks, string? reviewModel = null, string? jobEffort = null) =>
+        _extras = new PlatformExtras(maxTokens, Norm(reasoningEffort), fallbacks, Norm(reviewModel), Norm(jobEffort));
 
     // An organization's own tuning and backups, used only while that organization brings its own key (see AiTutorService.OrgOwnsKey).
     private volatile Dictionary<int, PlatformExtras> _orgExtras = new();

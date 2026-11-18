@@ -135,6 +135,22 @@ public class AiFailoverTests
     }
 
     [Fact]
+    public async Task The_admin_effort_for_jobs_turns_thinking_on_and_blank_keeps_them_quiet()
+    {
+        foreach (var (effort, thinking, sent) in new[] { ((string?)null, "false", "low"), ("medium", "true", "medium") })
+        {
+            var rt = new AiProviderRuntime();
+            rt.SetPlatform("main", null, "hint-model", "gen-model");
+            rt.SetExtras(null, null, [], null, effort);
+            var bodies = new List<string>();
+            var s = Svc(new Route(r => { bodies.Add(r.Content!.ReadAsStringAsync().Result); return Sse("not json"); }), rt);
+            try { await s.SolveForCheckAsync("print hi", "cpp", default); } catch (AiUnavailableException) { }
+            Assert.Contains($"\"enable_thinking\":{thinking}", bodies[0]);
+            Assert.Contains($"\"reasoning_effort\":\"{sent}\"", bodies[0]);
+        }
+    }
+
+    [Fact]
     public async Task The_platform_tuning_does_not_follow_an_organization_that_brought_its_own_key()
     {
         var rt = new AiProviderRuntime();
