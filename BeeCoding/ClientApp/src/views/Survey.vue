@@ -71,7 +71,7 @@ async function save() {
       <section v-for="s in sections" :key="s.id">
         <h2 class="font-semibold text-sm uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-3">{{ s.title[lang] }}</h2>
         <div class="space-y-5">
-          <fieldset v-for="q in s.items" :key="q.id" class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+          <fieldset v-for="q in s.items" :key="q.id" class="relative rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
             <legend class="sr-only">{{ q.q[lang] }}</legend>
             <label :for="q.type === 'text' ? `q-${q.id}` : undefined" class="block text-sm font-medium mb-3">{{ q.q[lang] }}</label>
 
