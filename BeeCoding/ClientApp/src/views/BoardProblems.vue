@@ -1,4 +1,5 @@
 <script setup>
+import Chevron from '../components/Chevron.vue';
 import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -382,9 +383,10 @@ async function reorderGroupTo(id, target, pos) {
              :draggable="canReorder && !!sec.group"
              @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
           <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
-          <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-500 dark:text-slate-400 w-4 text-left"
+          <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-500 dark:text-slate-400 text-left"
+                  :aria-expanded="!collapsed[sec.group ? sec.group.id : 'none']"
                   :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
-            {{ collapsed[sec.group ? sec.group.id : 'none'] ? '▸' : '▾' }}
+            <Chevron :open="!collapsed[sec.group ? sec.group.id : 'none']" />
           </button>
           <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : 'Ungrouped' }}</h2>
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>

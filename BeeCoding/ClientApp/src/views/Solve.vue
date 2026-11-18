@@ -1,4 +1,5 @@
 <script setup>
+import Chevron from '../components/Chevron.vue';
 import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
 import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
@@ -399,7 +400,7 @@ function ago(ts) {
         <button @click="showLecture = !showLecture"
                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">
           <span><Icon name="present" /> {{ lecture.teacherName }}'s code · live</span>
-          <span class="text-xs font-normal">{{ ago(lecture.updatedAt) }} ago · {{ showLecture ? '▾' : '▸' }}</span>
+          <span class="text-xs font-normal inline-flex items-center gap-1">{{ ago(lecture.updatedAt) }} ago <Chevron :open="showLecture" /></span>
         </button>
         <div v-if="showLecture" class="p-2 space-y-2">
           <pre class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ lecture.code || '(empty)' }}</pre>
@@ -412,7 +413,7 @@ function ago(ts) {
         <button @click="showMonitor = !showMonitor"
                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60">
           <span><Icon name="eye" /> Student code · {{ studentList.length }} live</span>
-          <span class="text-xs">{{ showMonitor ? '▾' : '▸' }}</span>
+          <Chevron :open="showMonitor" />
         </button>
         <div v-if="showMonitor" class="divide-y divide-slate-100 dark:divide-slate-800">
           <div v-for="s in studentList" :key="s.uid">
@@ -420,7 +421,7 @@ function ago(ts) {
                     class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <span class="flex-1 truncate">{{ s.authorName }}</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ ago(s.updatedAt) }} ago</span>
-              <span class="text-xs text-slate-400">{{ openStudent === s.uid ? '▾' : '▸' }}</span>
+              <span class="text-slate-400"><Chevron :open="openStudent === s.uid" size="1rem" /></span>
             </button>
             <pre v-if="openStudent === s.uid"
                  class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg m-2 p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ s.code || '(empty)' }}</pre>

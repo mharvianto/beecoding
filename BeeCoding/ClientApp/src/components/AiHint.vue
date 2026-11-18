@@ -1,4 +1,5 @@
 <script setup>
+import Chevron from './Chevron.vue';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { api } from '../lib/api';
@@ -128,10 +129,10 @@ async function ask(extra = {}) {
 
 <template>
   <div v-if="enabled" class="mt-5 border border-violet-200 dark:border-violet-500/30 rounded-xl overflow-hidden">
-    <button @click="open = !open"
+    <button @click="open = !open" :aria-expanded="open"
             class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300">
       <span><Icon name="bot" /> AI tutor{{ liveMode ? '' : ' — hints only' }}</span>
-      <span class="text-xs">{{ open ? '▾' : '▸' }}</span>
+      <Chevron :open="open" />
     </button>
 
     <div v-if="open" class="p-3 space-y-2">

@@ -1,4 +1,5 @@
 <script setup>
+import Chevron from './Chevron.vue';
 import { ref, watch } from 'vue';
 import { api } from '../lib/api';
 import VerdictBadge from './VerdictBadge.vue';
@@ -76,7 +77,7 @@ function goTo(id) {
           <button @click="showFailedTest = !showFailedTest"
                   class="w-full flex items-center justify-between px-4 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
             <span>Failed test detail — staff only</span>
-            <span>{{ showFailedTest ? '▾ hide' : '▸ show' }}</span>
+            <span class="inline-flex items-center gap-1">{{ showFailedTest ? 'hide' : 'show' }} <Chevron :open="showFailedTest" size="1rem" /></span>
           </button>
           <pre v-if="showFailedTest" class="max-h-48 overflow-auto text-xs font-mono text-slate-700 dark:text-slate-200 whitespace-pre-wrap px-4 pb-2">{{ sub.failedTest }}</pre>
         </div>

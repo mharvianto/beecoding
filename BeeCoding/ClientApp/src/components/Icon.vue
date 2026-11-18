@@ -3,6 +3,7 @@
 // Add one: put its Lucide path(s) here, then <Icon name="x" />. Size and colour come from the parent's CSS.
 defineProps({ name: { type: String, required: true } });
 const PATHS = {
+  chevron: 'M6 9l6 6 6-6',
   sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z M12 2v2 M12 20v2 M4.93 4.93l1.41 1.41 M17.66 17.66l1.41 1.41 M2 12h2 M20 12h2 M6.34 17.66l-1.41 1.41 M19.07 4.93l-1.41 1.41',
   moon: 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z',
   monitor: 'M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z M8 21h8 M12 17v4',

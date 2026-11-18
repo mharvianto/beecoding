@@ -1,4 +1,5 @@
 <script setup>
+import Chevron from './Chevron.vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps({
@@ -56,7 +57,7 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
               lowest <span :class="tier(g.minSimilarity)">{{ pct(g.minSimilarity) }}</span>
             </span>
             <button class="row-action-btn ml-auto" @click="toggle(g)">
-              <span>{{ opened[groupKey(g)] ? '▾' : '▸' }}</span><span>Strongest pairs</span>
+              <Chevron :open="!!opened[groupKey(g)]" size="1rem" /><span>Strongest pairs</span>
             </button>
           </div>
           <div class="flex flex-wrap gap-1.5 mt-2">
