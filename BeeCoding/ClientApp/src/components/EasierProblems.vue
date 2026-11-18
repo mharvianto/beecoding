@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, watch } from 'vue';
 import { api } from '../lib/api';
 import LevelBadge from './LevelBadge.vue';
@@ -18,7 +19,7 @@ watch(() => [props.slug, props.solved, props.attempts], async ([slug, solved]) =
 
 <template>
   <div v-if="items.length" class="mb-3 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50/60 dark:bg-amber-500/5 px-3 py-2">
-    <div class="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5">🪜 Stuck? Try an easier one first</div>
+    <div class="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5"><Icon name="arrowup" /> Stuck? Try an easier one first</div>
     <ul class="space-y-1.5">
       <li v-for="p in items" :key="p.id" class="flex items-center gap-2 flex-wrap text-sm">
         <RouterLink :to="`/practice/${p.slug}`" class="font-medium text-sky-700 dark:text-sky-300 hover:underline">{{ p.title }}</RouterLink>

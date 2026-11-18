@@ -192,7 +192,7 @@ onBeforeUnmount(async () => {
           <span v-for="t in tagList" :key="t"
                 class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
           <button v-if="board.isOwner || auth.user?.isAdmin" @click="startEditTags" class="row-action-btn">
-            {{ tagList.length ? '✏️ Edit tags' : '+ Add tags' }}
+            <template v-if="tagList.length"><Icon name="pencil" /> Edit tags</template><template v-else>+ Add tags</template>
           </button>
         </div>
         <div v-else class="flex items-center gap-2 mt-1">

@@ -823,7 +823,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             <div v-else class="flex flex-wrap items-center gap-1 mt-1.5">
               <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
                     class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-              <button @click="startEditBoardTags(b)" class="row-action-btn">{{ b.tags ? '✏️ Edit tags' : '+ Add tags' }}</button>
+              <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> Edit tags</template><template v-else>+ Add tags</template></button>
             </div>
           </div>
           <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">No boards yet.</p>
@@ -860,7 +860,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                   <div v-else class="flex flex-wrap items-center gap-1">
                     <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
                           class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-                    <button @click="startEditBoardTags(b)" class="row-action-btn">{{ b.tags ? '✏️ Edit' : '+ Add' }}</button>
+                    <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> Edit</template><template v-else>+ Add</template></button>
                   </div>
                 </td>
               </tr>

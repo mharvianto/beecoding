@@ -244,7 +244,7 @@ async function toggleHiddenByStudent(post) {
                   :class="post.hiddenByStudent
                     ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                     : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
-            {{ post.hiddenByStudent ? '🔒 hidden from peers' : 'visible to peers' }}
+            <template v-if="post.hiddenByStudent"><Icon name="lock" /> hidden from peers</template><template v-else>visible to peers</template>
           </button>
           <VerdictBadge v-if="!post.redacted && post.verdict !== 'None'" :verdict="post.verdict" small
                         :class="post.mine && post.postId ? 'ml-1' : 'ml-auto'" />

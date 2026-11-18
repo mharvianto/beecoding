@@ -1,14 +1,15 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import LogoMark from '../components/LogoMark.vue';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 const features = [
-  ['🧑‍🏫', 'Teacher posts problems', 'Build problems with samples and hidden tests, or pull from a shared problem bank.', 'bg-amber-100 dark:bg-amber-500/15'],
-  ['📡', 'Live classroom board', 'A Padlet-style wall and a grid update in real time as students work — with controls over who sees whose answers.', 'bg-sky-100 dark:bg-sky-500/15'],
-  ['⚙️', 'Sandboxed C / C++ judge', 'Run and submit code against real tests with CPU, memory and wall-clock limits. Students pick C or C++.', 'bg-violet-100 dark:bg-violet-500/15'],
-  ['🎯', 'Practice + XP', 'A public bank of problems to solve for XP and a leaderboard, independent of any class.', 'bg-emerald-100 dark:bg-emerald-500/15'],
-  ['💡', 'C/C++ IntelliSense', 'Optional clangd-powered autocomplete, hover docs and inline diagnostics in the editor.', 'bg-rose-100 dark:bg-rose-500/15'],
-  ['🤖', 'AI tutor (hints only)', 'Optional. Points at the bug and suggests an approach — it will not write the solution for you.', 'bg-teal-100 dark:bg-teal-500/15'],
+  ['present', 'Teacher posts problems', 'Build problems with samples and hidden tests, or pull from a shared problem bank.', 'bg-amber-100 dark:bg-amber-500/15'],
+  ['users', 'Live classroom board', 'A Padlet-style wall and a grid update in real time as students work — with controls over who sees whose answers.', 'bg-sky-100 dark:bg-sky-500/15'],
+  ['settings', 'Sandboxed C / C++ judge', 'Run and submit code against real tests with CPU, memory and wall-clock limits. Students pick C or C++.', 'bg-violet-100 dark:bg-violet-500/15'],
+  ['target', 'Practice + XP', 'A public bank of problems to solve for XP and a leaderboard, independent of any class.', 'bg-emerald-100 dark:bg-emerald-500/15'],
+  ['bulb', 'C/C++ IntelliSense', 'Optional clangd-powered autocomplete, hover docs and inline diagnostics in the editor.', 'bg-rose-100 dark:bg-rose-500/15'],
+  ['bot', 'AI tutor (hints only)', 'Optional. Points at the bug and suggests an approach — it will not write the solution for you.', 'bg-teal-100 dark:bg-teal-500/15'],
 ];
 
 const steps = [
@@ -176,7 +177,7 @@ const faqs = [
         <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="[icon, title, body, tint] in features" :key="title"
                class="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition hover:-translate-y-1 hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-500/40">
-            <div class="w-11 h-11 rounded-xl grid place-items-center text-2xl" :class="tint">{{ icon }}</div>
+            <div class="w-11 h-11 rounded-xl grid place-items-center text-2xl" :class="tint"><Icon :name="icon" /></div>
             <h3 class="font-semibold mt-4">{{ title }}</h3>
             <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{{ body }}</p>
           </div>

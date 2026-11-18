@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { tableView } from '../lib/tableView';
 </script>
 
@@ -7,12 +8,12 @@ import { tableView } from '../lib/tableView';
     <button type="button" @click="tableView = 'card'" title="Card view"
             class="px-2 py-1"
             :class="tableView === 'card' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-      ▦ Cards
+      <Icon name="grid" /> Cards
     </button>
     <button type="button" @click="tableView = 'table'" title="Table view"
             class="px-2 py-1 border-l border-slate-300 dark:border-slate-700"
             :class="tableView === 'table' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-      ☰ Table
+      <Icon name="rows" /> Table
     </button>
   </div>
 </template>

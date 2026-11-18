@@ -242,7 +242,7 @@ function pickFormula(e) {
             <span class="text-slate-500 dark:text-slate-400">Statement (Markdown)</span>
             <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
                    :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor">
-              {{ imgBusy ? 'Uploading…' : '🖼 Add image' }}
+              <template v-if="!imgBusy"><Icon name="image" /> Add image</template><template v-else>Uploading…</template>
               <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Choose an image" class="hidden" @change="addImage" />
             </label>
             <button type="button" @click="toggleWrite"
@@ -372,11 +372,11 @@ function pickFormula(e) {
           <h3 class="font-semibold text-sm">Test cases</h3>
           <button v-if="canRegenTests" @click="emit('regenerate-tests')" :disabled="regenBusy || addExtremeBusy"
                   class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-            {{ regenBusy ? '✨ regenerating…' : '✨ regenerate hidden tests' }}
+            <Icon name="sparkles" /> {{ regenBusy ? 'regenerating…' : 'regenerate hidden tests' }}
           </button>
           <button v-if="canRegenTests" @click="emit('add-extreme-tests')" :disabled="regenBusy || addExtremeBusy"
                   class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-            {{ addExtremeBusy ? '✨ adding…' : '✨ add extreme tests' }}
+            <Icon name="sparkles" /> {{ addExtremeBusy ? 'adding…' : 'add extreme tests' }}
           </button>
           <button @click="addTest" class="text-xs text-amber-600 ml-auto">+ add test</button>
         </div>

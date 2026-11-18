@@ -319,11 +319,11 @@ onBeforeUnmount(() => { pollStopped = true; });
             <span>▶</span><span>Try it</span>
           </RouterLink>
           <RouterLink :to="`/bank/${b.slug}/edit`" class="row-action-btn">
-            <span>{{ student && (b.pendingReview || b.isPublic) ? '👁️' : '✏️' }}</span>
+            <span><Icon :name="student && (b.pendingReview || b.isPublic) ? 'eye' : 'pencil'" /></span>
             <span>{{ student && (b.pendingReview || b.isPublic) ? 'View' : 'Edit' }}</span>
           </RouterLink>
           <template v-if="student && !b.isPublic && !b.pendingReview">
-            <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span>📤</span><span>Submit to Practice</span></button>
+            <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span><Icon name="upload" /></span><span>Submit to Practice</span></button>
             <button @click="openPropose(b)" class="row-action-btn"><span><Icon name="bulb" /></span><span>Propose to a board</span></button>
           </template>
         </div>

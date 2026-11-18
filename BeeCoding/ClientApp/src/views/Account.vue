@@ -77,11 +77,11 @@ const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag,
 
 // ---- sections: /account, /account/profile, /account/security, /account/danger ----
 const sections = [
-  { key: 'overview', label: 'Overview', icon: '📊', to: '/account' },
-  { key: 'profile', label: 'Profile', icon: '👤', to: '/account/profile' },
-  { key: 'editor', label: 'Editor', icon: '⌨️', to: '/account/editor' },
-  { key: 'security', label: 'Security', icon: '🔒', to: '/account/security' },
-  { key: 'danger', label: 'Delete account', icon: '⚠️', to: '/account/danger' },
+  { key: 'overview', label: 'Overview', icon: 'chart', to: '/account' },
+  { key: 'profile', label: 'Profile', icon: 'user', to: '/account/profile' },
+  { key: 'editor', label: 'Editor', icon: 'keyboard', to: '/account/editor' },
+  { key: 'security', label: 'Security', icon: 'lock', to: '/account/security' },
+  { key: 'danger', label: 'Delete account', icon: 'alert', to: '/account/danger' },
 ];
 const section = computed(() => sections.find((s) => s.key === route.params.section)?.key || 'overview');
 
@@ -198,7 +198,7 @@ async function deleteAccount(force = false) {
                     :class="section === item.key
                       ? (item.key === 'danger' ? 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300 font-medium' : 'bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium')
                       : (item.key === 'danger' ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800')">
-          <span aria-hidden="true">{{ item.icon }}</span>
+          <Icon :name="item.icon" />
           <span>{{ item.label }}</span>
           <span v-if="item.key === 'security' && auth.user?.mfaEnabled === false" class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Two-step verification is off"></span>
         </RouterLink>

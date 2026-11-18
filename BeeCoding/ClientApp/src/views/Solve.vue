@@ -345,7 +345,7 @@ function ago(ts) {
         <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
       </p>
       <p v-if="problem.closed && !isStaff" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
-        🔚 This session is closed — you can still read and run code, but new submissions are no longer accepted.
+        <Icon name="lock" /> This session is closed — you can still read and run code, but new submissions are no longer accepted.
       </p>
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
         <Icon name="file" /> This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
@@ -381,16 +381,14 @@ function ago(ts) {
               :class="myPost.hiddenByStudent
                 ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                 : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
-        {{ myPost.hiddenByStudent
-          ? "🔒 Live code & progress hidden from classmates"
-          : "👥 Hide live code & progress from classmates" }}
+        <Icon :name="myPost.hiddenByStudent ? 'lock' : 'users'" /> {{ myPost.hiddenByStudent ? "Live code & progress hidden from classmates" : "Hide live code & progress from classmates" }}
       </button>
 
       <!-- lecturing mode: teacher's live code, shown to students -->
       <div v-if="board?.lecturingMode && !isStaff && lecture" class="mt-4 border border-sky-200 dark:border-sky-500/30 rounded-xl overflow-hidden">
         <button @click="showLecture = !showLecture"
                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">
-          <span>👨‍🏫 {{ lecture.teacherName }}'s code · live</span>
+          <span><Icon name="present" /> {{ lecture.teacherName }}'s code · live</span>
           <span class="text-xs font-normal">{{ ago(lecture.updatedAt) }} ago · {{ showLecture ? '▾' : '▸' }}</span>
         </button>
         <div v-if="showLecture" class="p-2 space-y-2">

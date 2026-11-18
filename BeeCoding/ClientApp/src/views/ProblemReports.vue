@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { api } from '../lib/api';
@@ -110,7 +111,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
           {{ r.reporterName }}<template v-if="r.reporterEmail"> ({{ r.reporterEmail }})</template> · {{ when(r.createdAt) }}
           <template v-if="r.resolvedAt"> · {{ r.status.toLowerCase() }} {{ r.resolvedByName ? `by ${r.resolvedByName}` : '' }} {{ when(r.resolvedAt) }}</template>
         </div>
-        <p v-if="r.note && reviewing?.id !== r.id" class="text-xs bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-slate-600 dark:text-slate-300">📝 {{ r.note }}</p>
+        <p v-if="r.note && reviewing?.id !== r.id" class="text-xs bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-slate-600 dark:text-slate-300"><Icon name="file" /> {{ r.note }}</p>
 
         <div v-if="reviewing?.id === r.id" class="space-y-2">
           <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is." aria-label="Optional note: what you changed, or why it's fine as is."

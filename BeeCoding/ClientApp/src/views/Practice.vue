@@ -188,7 +188,7 @@ onMounted(() => {
         <span class="ml-auto"></span>
         <button v-if="guide.aiAvailable && guide.source !== 'ai'" @click="loadGuide(true)" :disabled="aiBusy"
                 class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-          {{ aiBusy ? `Thinking… ${aiElapsed}s` : '✨ Let AI pick' }}
+          <template v-if="aiBusy">Thinking… {{ aiElapsed }}s</template><template v-else><Icon name="sparkles" /> Let AI pick</template>
         </button>
         <button v-else-if="guide.source === 'ai'" @click="loadGuide(false)"
                 class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600">use heuristic</button>

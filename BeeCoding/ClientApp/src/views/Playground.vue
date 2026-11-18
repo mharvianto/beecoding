@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import MonacoEditor from '../components/MonacoEditor.vue';
@@ -92,7 +93,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
 <template>
   <div class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
-      <h1 class="text-sm font-bold">🧪 Playground</h1>
+      <h1 class="text-sm font-bold"><Icon name="flask" /> Playground</h1>
       <span class="text-xs text-slate-500 dark:text-slate-400">Scratch C / C++ — nothing is graded or shared.</span>
       <div class="ml-auto flex items-center gap-2">
         <button @click="playgroundFocus = !playgroundFocus"

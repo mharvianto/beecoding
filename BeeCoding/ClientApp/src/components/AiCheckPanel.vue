@@ -83,7 +83,7 @@ const ACTION = {
       </template>
       <template v-if="check(result)">
         <p :class="check(result).mismatched + check(result).errored ? 'text-amber-700 dark:text-amber-300' : 'text-emerald-700 dark:text-emerald-300'">
-          {{ check(result).mismatched + check(result).errored ? '⚠️' : '✅' }} {{ check(result).summary }}
+          <Icon :name="check(result).mismatched + check(result).errored ? 'alert' : 'check'" /> {{ check(result).summary }}
         </p>
         <div v-for="t in flagged(check(result))" :key="t.index" class="border border-slate-200 dark:border-slate-800 rounded p-2 bg-white dark:bg-slate-900">
           <div class="text-slate-400 mb-1">{{ t.isSample ? 'sample' : 'hidden' }} #{{ t.index }} · {{ t.verdict }}<template v-if="t.detail"> — {{ t.detail }}</template></div>

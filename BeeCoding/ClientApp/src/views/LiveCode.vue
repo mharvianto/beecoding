@@ -282,7 +282,7 @@ onBeforeUnmount(async () => {
 
     <div v-if="observing"
          class="flex items-center gap-2 flex-wrap text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 px-4 py-2 border-b border-sky-100 dark:border-sky-500/20">
-      <span>👨‍🏫 {{ other.name }} is presenting — your editor is not shown to students.</span>
+      <span><Icon name="present" /> {{ other.name }} is presenting — your editor is not shown to students.</span>
       <button @click="loadTeacherCode" class="underline hover:no-underline">Copy their code</button>
       <button @click="takeOver" class="ml-auto px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-medium">Take over</button>
     </div>
@@ -375,7 +375,7 @@ onBeforeUnmount(async () => {
                        ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'">
                   <template v-if="lecturingOn && lecture">
-                    <span class="truncate">👨‍🏫 {{ lecture.teacherName }} · {{ lecture.language === 'c' ? 'C' : 'C++' }} · {{ ago(lecture.updatedAt) }} ago</span>
+                    <span class="truncate"><Icon name="present" /> {{ lecture.teacherName }} · {{ lecture.language === 'c' ? 'C' : 'C++' }} · {{ ago(lecture.updatedAt) }} ago</span>
                     <button @click="loadTeacherCode" class="ml-auto shrink-0 bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-2.5 py-0.5">Load into my editor</button>
                   </template>
                   <span v-else>{{ lecturingOn ? 'Waiting for the teacher to start typing…' : 'The teacher hasn’t started a live session yet.' }}</span>
