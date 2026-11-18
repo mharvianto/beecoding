@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { computed } from 'vue';
 import { useAuth } from '../stores/auth';
 import DocLangToggle from '../components/DocLangToggle.vue';
@@ -23,7 +24,7 @@ const sections = [
 <template>
   <div class="max-w-3xl mx-auto px-4 py-6 text-slate-700 dark:text-slate-200">
     <div class="flex items-start justify-between gap-3">
-      <h1 class="text-2xl font-bold">📖 {{ lang === 'id' ? 'Panduan membuat soal' : 'Guide to writing problems' }}</h1>
+      <h1 class="text-2xl font-bold"><Icon name="book" /> {{ lang === 'id' ? 'Panduan membuat soal' : 'Guide to writing problems' }}</h1>
       <DocLangToggle class="shrink-0 mt-1" />
     </div>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
@@ -73,7 +74,7 @@ const sections = [
             <li><strong>Bank soal pribadi</strong> (<RouterLink to="/bank">My problems</RouterLink>): tulis sekali, lalu tarik ke board mana pun lewat <em>copy to</em>. Kalau soalnya dibuat <em>public</em>, soal itu muncul di Practice.</li>
             <li><strong>Langsung di board</strong>: Boards → pilih board → Problems → New. Soal baru langsung ada di board itu.</li>
             <li><strong>AI Generator</strong> bisa membuat draf soal beserta test-nya. Selalu baca hasilnya: periksa statement dan test sebelum dipakai. Soal hasil AI yang dibagikan melewati review admin.</li>
-            <li>Siswa bisa mengusulkan soal ke boardmu. Usulan muncul di halaman Problems board (dan di 🔔). Saat disetujui, soal disalin dalam keadaan <strong>hidden</strong>.</li>
+            <li>Siswa bisa mengusulkan soal ke boardmu. Usulan muncul di halaman Problems board (dan di <Icon name="bell" />). Saat disetujui, soal disalin dalam keadaan <strong>hidden</strong>.</li>
           </ul>
         </template>
       </section>
@@ -117,7 +118,7 @@ const sections = [
         <h2 id="gambar">3. Gambar dan rumus</h2>
         <h3>Gambar</h3>
         <ol>
-          <li>Di editor, klik <strong>🖼 Add image</strong> di atas kotak statement dan pilih file.</li>
+          <li>Di editor, klik <strong><Icon name="image" /> Add image</strong> di atas kotak statement dan pilih file.</li>
           <li>Kode seperti <code v-pre>![](/api/images/abc123…)</code> disisipkan di kursor. Kamu bisa mengisi keterangan di dalam kurung siku: <code v-pre>![Graf contoh](/api/images/…)</code>.</li>
           <li>Beri baris kosong di atas dan di bawahnya supaya gambar tampil sebagai blok sendiri. Satu soal boleh punya beberapa gambar.</li>
         </ol>
@@ -169,7 +170,7 @@ const sections = [
         <table>
           <tbody>
             <tr><td><strong>Allowed languages</strong></td><td>C, C++, atau keduanya. Kosong berarti semua bahasa boleh.</td></tr>
-            <tr><td><strong>Level</strong> dan <strong>Tags</strong></td><td>Easy / Medium / Hard. Tag dipisah koma (<code>array,sorting</code>) dan dipakai untuk pencarian serta rekomendasi di Practice. Tombol <strong>🏷️ Suggest tags</strong> mengusulkan tag dari soal yang mirip; klik untuk menambah, tidak ada yang dipasang otomatis.</td></tr>
+            <tr><td><strong>Level</strong> dan <strong>Tags</strong></td><td>Easy / Medium / Hard. Tag dipisah koma (<code>array,sorting</code>) dan dipakai untuk pencarian serta rekomendasi di Practice. Tombol <strong><Icon name="tag" /> Suggest tags</strong> mengusulkan tag dari soal yang mirip; klik untuk menambah, tidak ada yang dipasang otomatis.</td></tr>
             <tr><td><strong>Time (ms)</strong></td><td>Batas waktu per test, 100–10000, awalnya 1000. Naikkan hanya kalau solusi yang benar memang butuh lebih lama.</td></tr>
             <tr><td><strong>Memory (KB)</strong></td><td>Batas memori, 4096–512000, awalnya 32768.</td></tr>
             <tr><td><strong>Banned headers</strong></td><td>Header yang tidak boleh di-<code>#include</code>, mis. <code>algorithm</code>. Mengisi satu saja juga memblokir <code>&lt;bits/stdc++.h&gt;</code>.</td></tr>
@@ -212,7 +213,7 @@ const sections = [
           <li><strong>Jangan menyalin atau menerjemahkan statement</strong> dari situs lain, dan jangan sekadar mengganti nama tokoh. Itu tetap salinan.</li>
           <li><strong>Tulis ulang dengan kata-katamu sendiri</strong>: cerita, contoh, dan test case buatan sendiri. Mengambil idenya (mis. "cari indeks yang jumlah kiri dan kanannya sama") boleh.</li>
           <li><strong>Lebih baik lagi, ubah tantangannya</strong>: aturan atau batasan yang berbeda, agar bukan soal yang jawabannya sudah beredar luas.</li>
-          <li><strong>Cek dulu apakah soalmu sudah ada</strong> di bank atau di board. Di My problems, tombol <strong>🔎 Similar problems</strong> pada sebuah soal menampilkan soal publik yang paling mirip (judul dan tingkat kemiripannya saja). Soal yang sama dengan nama berbeda akan ditolak saat ditinjau.</li>
+          <li><strong>Cek dulu apakah soalmu sudah ada</strong> di bank atau di board. Di My problems, tombol <strong><Icon name="search" /> Similar problems</strong> pada sebuah soal menampilkan soal publik yang paling mirip (judul dan tingkat kemiripannya saja). Soal yang sama dengan nama berbeda akan ditolak saat ditinjau.</li>
           <li>Bila terinspirasi dari sebuah soal, sebutkan sumbernya di akhir statement, misalnya <em>"Terinspirasi dari ..."</em>.</li>
         </ul>
         <p>Admin dapat menolak atau menghapus soal yang disalin dari sumber lain.</p>
@@ -275,7 +276,7 @@ const sections = [
             <li><strong>Personal problem bank</strong> (<RouterLink to="/bank">My problems</RouterLink>): write once, then pull it into any board with <em>copy to</em>. A problem marked <em>public</em> appears in Practice.</li>
             <li><strong>Straight on a board</strong>: Boards → pick a board → Problems → New. The new problem is on that board right away.</li>
             <li>The <strong>AI Generator</strong> can draft a problem and its tests. Always read the result: check the statement and the tests before using it. AI problems that are shared go through admin review.</li>
-            <li>Students can propose problems to your board. Proposals show up on the board's Problems page (and in 🔔). When approved, the problem is copied as <strong>hidden</strong>.</li>
+            <li>Students can propose problems to your board. Proposals show up on the board's Problems page (and in <Icon name="bell" />). When approved, the problem is copied as <strong>hidden</strong>.</li>
           </ul>
         </template>
       </section>
@@ -319,7 +320,7 @@ const sections = [
         <h2 id="gambar">3. Images and formulas</h2>
         <h3>Images</h3>
         <ol>
-          <li>In the editor, click <strong>🖼 Add image</strong> above the statement box and choose a file.</li>
+          <li>In the editor, click <strong><Icon name="image" /> Add image</strong> above the statement box and choose a file.</li>
           <li>Code like <code v-pre>![](/api/images/abc123…)</code> is inserted at the cursor. You can write a caption inside the square brackets: <code v-pre>![Example graph](/api/images/…)</code>.</li>
           <li>Leave a blank line above and below it so the image is shown as a block of its own. A problem can have several images.</li>
         </ol>
@@ -371,7 +372,7 @@ const sections = [
         <table>
           <tbody>
             <tr><td><strong>Allowed languages</strong></td><td>C, C++, or both. Empty means every language is allowed.</td></tr>
-            <tr><td><strong>Level</strong> and <strong>Tags</strong></td><td>Easy / Medium / Hard. Tags are comma-separated (<code>array,sorting</code>) and used for search and recommendations in Practice. The <strong>🏷️ Suggest tags</strong> button proposes tags from similar problems; click one to add it, nothing is applied on its own.</td></tr>
+            <tr><td><strong>Level</strong> and <strong>Tags</strong></td><td>Easy / Medium / Hard. Tags are comma-separated (<code>array,sorting</code>) and used for search and recommendations in Practice. The <strong><Icon name="tag" /> Suggest tags</strong> button proposes tags from similar problems; click one to add it, nothing is applied on its own.</td></tr>
             <tr><td><strong>Time (ms)</strong></td><td>Time limit per test, 100–10000, 1000 to begin with. Raise it only if a correct solution really needs longer.</td></tr>
             <tr><td><strong>Memory (KB)</strong></td><td>Memory limit, 4096–512000, 32768 to begin with.</td></tr>
             <tr><td><strong>Banned headers</strong></td><td>Headers that may not be <code>#include</code>d, e.g. <code>algorithm</code>. Setting even one also blocks <code>&lt;bits/stdc++.h&gt;</code>.</td></tr>
@@ -414,7 +415,7 @@ const sections = [
           <li><strong>Do not copy or translate a statement</strong> from another site, and do not just change the character names. That is still a copy.</li>
           <li><strong>Rewrite it in your own words</strong>: your own story, examples and test cases. Taking the idea (e.g. "find the index whose left and right sums are equal") is fine.</li>
           <li><strong>Better still, change the challenge</strong>: different rules or constraints, so it is not a problem whose answer is already everywhere.</li>
-          <li><strong>Check that your problem does not already exist</strong> in the bank or on a board. In My problems, the <strong>🔎 Similar problems</strong> button on a problem lists the closest public ones (titles and how close they are, nothing more). The same problem under a new name will be rejected in review.</li>
+          <li><strong>Check that your problem does not already exist</strong> in the bank or on a board. In My problems, the <strong><Icon name="search" /> Similar problems</strong> button on a problem lists the closest public ones (titles and how close they are, nothing more). The same problem under a new name will be rejected in review.</li>
           <li>If a problem inspired yours, name the source at the end of the statement, e.g. <em>"Inspired by ..."</em>.</li>
         </ul>
         <p>Admins may reject or remove problems copied from another source.</p>

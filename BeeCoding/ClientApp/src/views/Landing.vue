@@ -1,4 +1,5 @@
 <script setup>
+import LogoMark from '../components/LogoMark.vue';
 import ThemeToggle from '../components/ThemeToggle.vue';
 
 const features = [
@@ -73,7 +74,7 @@ const faqs = [
   <div class="landing min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
     <header class="sticky top-0 z-30 backdrop-blur bg-slate-50/80 dark:bg-slate-950/80 border-b border-transparent">
       <div class="max-w-6xl w-full mx-auto px-4 h-14 flex items-center justify-between">
-        <span class="font-bold text-lg text-amber-700 dark:text-amber-400">🐝 BeeCoding</span>
+        <span class="font-bold text-lg text-amber-700 dark:text-amber-400"><LogoMark />BeeCoding</span>
         <div class="flex items-center gap-3 text-sm">
           <ThemeToggle />
           <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Sign in</RouterLink>

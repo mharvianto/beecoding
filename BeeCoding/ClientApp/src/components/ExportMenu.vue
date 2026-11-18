@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { downloadFile } from '../lib/download';
 import RowMenu from './RowMenu.vue';
 
@@ -26,9 +27,9 @@ async function get(path, params, fallback) {
 <template>
   <span class="inline-flex">
     <RowMenu :label="label" icon="⬇">
-      <button class="row-menu-item" @click="get('results.xlsx', {}, 'results.xlsx')">📊 Results (Excel)</button>
-      <button class="row-menu-item" @click="get('answers.zip', { pick: 'best' }, 'answers.zip')">📁 Answers (ZIP) — best attempt</button>
-      <button class="row-menu-item" @click="get('answers.zip', { pick: 'latest' }, 'answers.zip')">📁 Answers (ZIP) — latest attempt</button>
+      <button class="row-menu-item" @click="get('results.xlsx', {}, 'results.xlsx')"><Icon name="table" /> Results (Excel)</button>
+      <button class="row-menu-item" @click="get('answers.zip', { pick: 'best' }, 'answers.zip')"><Icon name="folder" /> Answers (ZIP) — best attempt</button>
+      <button class="row-menu-item" @click="get('answers.zip', { pick: 'latest' }, 'answers.zip')"><Icon name="folder" /> Answers (ZIP) — latest attempt</button>
     </RowMenu>
   </span>
 </template>

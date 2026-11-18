@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { vClickOutside } from '../lib/clickOutside';
 import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -202,7 +203,7 @@ onBeforeUnmount(async () => {
         </div>
       </div>
       <div class="text-sm text-slate-500 dark:text-slate-400 flex flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap">
-        <span v-if="presence.length">🟢 {{ presence.length }} online</span>
+        <span v-if="presence.length"><span class="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-1 align-middle"></span>{{ presence.length }} online</span>
         <span v-if="isStaff" class="flex items-center gap-2">
           Join code: <span class="font-mono font-semibold text-slate-700 dark:text-slate-200">{{ board.joinCode }}</span>
           <button @click="showQr = !showQr"
@@ -230,49 +231,49 @@ onBeforeUnmount(async () => {
     <div v-if="isStaff" class="flex flex-wrap items-center gap-2 my-4">
       <RouterLink :to="`/boards/${board.slug}/stats`"
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-        📊 Statistics
+        <Icon name="chart" /> Statistics
       </RouterLink>
       <RouterLink :to="`/boards/${board.slug}/submissions`"
                   class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-        🧾 Submissions
+        <Icon name="file" /> Submissions
       </RouterLink>
       <div class="relative" v-click-outside="() => (exportOpen = false)">
         <button @click="exportOpen = !exportOpen" :disabled="exporting" :aria-expanded="exportOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 disabled:opacity-60">
-          {{ exporting ? '⏳ Preparing…' : '⬇ Download' }}
+          <template v-if="exporting">Preparing…</template><template v-else><Icon name="download" /> Download</template>
         </button>
         <div v-if="exportOpen"
              class="absolute left-0 z-50 mt-1 w-80 max-w-[90vw] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
           <button @click="exportFile('results.xlsx', 'results.xlsx')"
-                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            📊 Results (Excel)
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="table" /> Results (Excel)
             <span class="block text-[11px] text-slate-500 dark:text-slate-400">Verdict, score and attempts per student and problem, plus every attempt</span>
           </button>
           <button @click="exportFile('answers.zip?pick=best', 'answers.zip')"
-                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            📁 Answers (ZIP) — best attempt
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="folder" /> Answers (ZIP) — best attempt
             <span class="block text-[11px] text-slate-500 dark:text-slate-400">Source code, one folder per problem, one file per student</span>
           </button>
           <button @click="exportFile('answers.zip?pick=latest', 'answers.zip')"
-                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            📁 Answers (ZIP) — latest attempt
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="folder" /> Answers (ZIP) — latest attempt
           </button>
         </div>
       </div>
 
       <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
-            title="Exam mode is on for ungrouped problems">🔒 Exam mode{{ hasGroups ? ' (ungrouped)' : '' }}</span>
+            title="Exam mode is on for ungrouped problems"><Icon name="lock" /> Exam mode{{ hasGroups ? ' (ungrouped)' : '' }}</span>
       <div class="relative" :class="progress.examMode ? '' : 'sm:ml-auto'" v-click-outside="() => (settingsOpen = false)">
         <button @click="settingsOpen = !settingsOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-          ⚙️ Settings
+          <Icon name="settings" /> Settings
         </button>
         <div v-if="settingsOpen"
              class="absolute right-0 z-50 mt-1 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
           <button @click="toggleExam(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   :class="progress.examMode ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
-            {{ progress.examMode ? '🔒 Exam mode ON — peers hidden' : '🔓 Exam mode off' }}{{ hasGroups ? ' (ungrouped)' : '' }}
+            <Icon :name="progress.examMode ? 'lock' : 'unlock'" /> {{ progress.examMode ? 'Exam mode ON — peers hidden' : 'Exam mode off' }}{{ hasGroups ? ' (ungrouped)' : '' }}
           </button>
           <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" @click="settingsOpen = false"
                       class="block px-3 pb-2 -mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:underline">
@@ -281,30 +282,30 @@ onBeforeUnmount(async () => {
           <button @click="toggleLecturing(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   :class="board.lecturingMode ? 'text-sky-600 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
-            👨‍🏫 {{ board.lecturingMode ? 'Lecturing ON — students see your code' : 'Lecturing mode' }}
+            <Icon name="present" /> {{ board.lecturingMode ? 'Lecturing ON — students see your code' : 'Lecturing mode' }}
           </button>
           <button v-if="board.isOwner" @click="toggleProposals(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   :class="board.allowProposals ? 'text-slate-600 dark:text-slate-300' : 'text-rose-600 dark:text-rose-400 font-medium'">
-            💡 {{ board.allowProposals ? 'Students can propose problems' : 'Proposals off' }}
+            <Icon name="bulb" /> {{ board.allowProposals ? 'Students can propose problems' : 'Proposals off' }}
           </button>
           <button v-if="board.isOwner" @click="setView('grid'); settingsOpen = false"
-                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            👥 Manage students (grid)
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="users" /> Manage students (grid)
           </button>
           <RouterLink :to="`/boards/${board.slug}/live`" @click="settingsOpen = false"
-                      class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            🎥 Live code
+                      class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            <Icon name="video" /> Live code
           </RouterLink>
           <RouterLink :to="`/boards/${board.slug}/plagiarism`" @click="settingsOpen = false"
-                      class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-            🔍 Plagiarism check
+                      class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+            <Icon name="search" /> Plagiarism check
           </RouterLink>
           <template v-if="board.isOwner">
             <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
             <button @click="deleteBoard"
                     class="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
-              🗑️ Delete board
+              <Icon name="trash" /> Delete board
             </button>
           </template>
         </div>
@@ -313,22 +314,22 @@ onBeforeUnmount(async () => {
 
     <!-- Student: exam-mode notice -->
     <div v-if="!isStaff && examProblems.length" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
-      🔒 Exam mode is on for {{ examProblems.length === progress.problems.length ? 'every problem' : examProblems.map((p) => p.title).join(', ') }}
+      <Icon name="lock" /> Exam mode is on for {{ examProblems.length === progress.problems.length ? 'every problem' : examProblems.map((p) => p.title).join(', ') }}
       — you can’t see other students’ progress {{ examProblems.length === progress.problems.length ? '' : 'on ' + (examProblems.length === 1 ? 'it' : 'them') }}.
     </div>
 
     <!-- Student: live-coding session running -->
     <RouterLink v-if="!isStaff && board.lecturingMode" :to="`/boards/${board.slug}/live`"
                 class="my-4 flex items-center gap-2 text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 rounded-lg px-3 py-2 hover:bg-sky-100 dark:hover:bg-sky-500/15">
-      🎥 The teacher is live-coding now — open the shared editor →
+      <Icon name="video" /> The teacher is live-coding now — open the shared editor →
     </RouterLink>
 
     <!-- Problems -->
     <RouterLink :to="`/boards/${board.slug}/problems`"
                 class="my-4 flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 hover:border-amber-400 dark:hover:border-amber-500">
-      <span class="text-sm font-medium">📋 Problems ({{ problems.length }})
+      <span class="text-sm font-medium"><Icon name="file" /> Problems ({{ problems.length }})
         <span v-if="pendingProposals > 0" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-900"
-              :title="`${pendingProposals} proposed problem(s) waiting for you`">💡 {{ pendingProposals }}</span>
+              :title="`${pendingProposals} proposed problem(s) waiting for you`"><Icon name="bulb" /> {{ pendingProposals }}</span>
       </span>
       <span class="text-slate-500 dark:text-slate-400 text-sm">{{ isStaff ? 'View & manage' : 'Browse & solve' }} →</span>
     </RouterLink>

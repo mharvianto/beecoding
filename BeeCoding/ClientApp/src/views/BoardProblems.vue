@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -288,11 +289,11 @@ async function reorderGroupTo(id, target, pos) {
       <div v-if="isStaff" class="flex items-center gap-2 flex-wrap">
         <button @click="editingGroup = null"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-          📁 Add group
+          <Icon name="folder" /> Add group
         </button>
         <button @click="picking = true"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-          📚 From bank
+          <Icon name="book" /> From bank
         </button>
         <button @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-slate-900">
           + Add problem
@@ -303,7 +304,7 @@ async function reorderGroupTo(id, target, pos) {
 
     <section v-if="board?.isOwner && proposals.length"
              class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">
-      <h2 class="text-sm font-semibold mb-2">💡 Proposed problems
+      <h2 class="text-sm font-semibold mb-2"><Icon name="bulb" /> Proposed problems
         <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-900">{{ pendingProposals.length }}</span>
       </h2>
       <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
@@ -323,16 +324,16 @@ async function reorderGroupTo(id, target, pos) {
                 </span>
               </div>
               <div v-if="p.inputFileName || p.bannedHeaders || p.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span v-if="p.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads input from file <span class="font-mono">{{ p.inputFileName }}</span>, not stdin</span>
-              <span v-if="p.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ p.bannedHeaders }}</span></span>
-              <span v-if="p.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ p.bannedSymbols }}</span></span>
+              <span v-if="p.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> reads input from file <span class="font-mono">{{ p.inputFileName }}</span>, not stdin</span>
+              <span v-if="p.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> headers: <span class="font-mono">{{ p.bannedHeaders }}</span></span>
+              <span v-if="p.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> functions: <span class="font-mono">{{ p.bannedSymbols }}</span></span>
             </div>
               <p v-if="p.note" class="text-xs text-slate-500 dark:text-slate-400 mt-1">“{{ p.note }}”</p>
               <p v-if="p.reviewNote" class="text-xs text-rose-600 dark:text-rose-400 mt-1">Declined: {{ p.reviewNote }}</p>
             </div>
             <div v-if="p.status === 'Pending'" class="flex items-center gap-1 shrink-0">
-              <button @click="approveProposal(p)" :disabled="proposalBusy" class="row-action-btn row-action-btn--success"><span>✅</span><span>Approve</span></button>
-              <button @click="rejecting = { id: p.id, reason: '' }" :disabled="proposalBusy" class="row-action-btn row-action-btn--danger"><span>✖️</span><span>Decline</span></button>
+              <button @click="approveProposal(p)" :disabled="proposalBusy" class="row-action-btn row-action-btn--success"><span><Icon name="check" /></span><span>Approve</span></button>
+              <button @click="rejecting = { id: p.id, reason: '' }" :disabled="proposalBusy" class="row-action-btn row-action-btn--danger"><span><Icon name="x" /></span><span>Decline</span></button>
             </div>
           </div>
           <div v-if="rejecting && rejecting.id === p.id" class="mt-2 flex gap-2 flex-wrap">
@@ -347,8 +348,8 @@ async function reorderGroupTo(id, target, pos) {
               <summary class="cursor-pointer text-slate-500 dark:text-slate-400">Tests ({{ p.testCases.length }})</summary>
               <template v-for="(t, i) in p.testCases" :key="t.id ?? i">
               <div class="mt-2 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
-                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">👁 visible to students (sample)</span>
-                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🔒 hidden from students (graded)</span>
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> visible to students (sample)</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> hidden from students (graded)</span>
               </div>
               <div class="mt-1 grid grid-cols-2 gap-2">
                 <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.stdin }}</pre>
@@ -389,8 +390,8 @@ async function reorderGroupTo(id, target, pos) {
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
-            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
-            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300">🔒 exam</span>
+            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> hidden</span>
+            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> exam</span>
             <span v-if="stateLabel(sec.group)" class="text-[11px] px-1.5 py-0.5 rounded"
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
@@ -399,8 +400,8 @@ async function reorderGroupTo(id, target, pos) {
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" title="Move group up"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" title="Move group down"><span>↓</span></button>
-              <button @click="editingGroup = sec.group" class="row-action-btn"><span>✏️</span><span class="max-sm:hidden">Edit</span></button>
-              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span>🗑️</span><span class="max-sm:hidden">Delete</span></button>
+              <button @click="editingGroup = sec.group" class="row-action-btn"><span><Icon name="pencil" /></span><span class="max-sm:hidden">Edit</span></button>
+              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span><Icon name="trash" /></span><span class="max-sm:hidden">Delete</span></button>
             </span>
           </template>
         </div>
@@ -422,10 +423,10 @@ async function reorderGroupTo(id, target, pos) {
                 <div class="font-medium flex items-center gap-2 flex-wrap">
                   {{ p.title }}
                   <LevelBadge :level="p.level" />
-                  <span v-if="p.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🙈 hidden</span>
+                  <span v-if="p.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> hidden</span>
                   <RouterLink v-if="isStaff && openReports[p.id]" :to="`/reports/problems?problem=${p.id}`"
                               class="text-[11px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
-                              :title="`${openReports[p.id]} open report(s) — click to review`">🚩 {{ openReports[p.id] }}</RouterLink>
+                              :title="`${openReports[p.id]} open report(s) — click to review`"><Icon name="flag" /> {{ openReports[p.id] }}</RouterLink>
                 </div>
                 <div v-if="p.tags" class="flex flex-wrap gap-1 mt-1">
                   <span v-for="t in p.tags.split(',')" :key="t"
@@ -436,7 +437,7 @@ async function reorderGroupTo(id, target, pos) {
                   <span class="whitespace-nowrap">{{ p.timeLimitMs }}ms</span>
                   <span class="whitespace-nowrap">{{ p.memoryLimitKb }}KB</span>
                   <template v-if="isStaff">
-                    <span class="whitespace-nowrap">✅ {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved</span>
+                    <span class="whitespace-nowrap"><Icon name="check" /> {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved</span>
                     <span class="whitespace-nowrap">{{ stats[p.id]?.submissions || 0 }} submissions</span>
                     <span class="whitespace-nowrap">{{ Math.round((stats[p.id]?.acceptRate || 0) * 100) }}% AC</span>
                   </template>
@@ -451,17 +452,17 @@ async function reorderGroupTo(id, target, pos) {
           </select>
           <button v-if="bankUpdates[p.slug] !== undefined" @click="updateFromBank(p)" class="row-action-btn row-action-btn--accent"
                   title="The bank problem this was copied from has changed since">
-                <span>🔄</span><span class="max-sm:hidden">Update from bank</span>
+                <span><Icon name="refresh" /></span><span class="max-sm:hidden">Update from bank</span>
               </button>
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
-                <span>{{ p.hidden ? '🙈' : '👁️' }}</span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
+                <span><Icon :name="p.hidden ? 'eyeoff' : 'eye'" /></span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
               </button>
               <button v-if="isStaff" @click="router.push({ path: `/boards/${slug}/plagiarism`, query: { problem: p.slug } })" class="row-action-btn"
                       title="Compare students' latest submissions to this problem">
-                <span>🔍</span><span class="max-sm:hidden">Similarity</span>
+                <span><Icon name="search" /></span><span class="max-sm:hidden">Similarity</span>
               </button>
               <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
-                <span>✏️</span><span class="max-sm:hidden">Edit</span>
+                <span><Icon name="pencil" /></span><span class="max-sm:hidden">Edit</span>
               </button>
               <ExportMenu v-if="isStaff" :slug="slug" :problem="p.slug" label="Download results and answers for this problem" @error="error = $event" />
               <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 ml-auto sm:ml-1">

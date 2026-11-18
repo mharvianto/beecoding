@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -199,7 +200,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       <div class="flex items-center gap-2">
         <button v-if="aiEnabled" @click="genOpen = !genOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300">
-          ✨ Generate with AI
+          <Icon name="sparkles" /> Generate with AI
         </button>
         <RouterLink to="/bank/new" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-slate-900">
           + New problem
@@ -207,7 +208,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       </div>
     </div>
     <p class="text-sm mb-2">
-      <RouterLink to="/guide/problems" class="text-amber-700 dark:text-amber-400 hover:underline">📖 Guide to writing problems</RouterLink>
+      <RouterLink to="/guide/problems" class="text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> Guide to writing problems</RouterLink>
     </p>
     <p v-if="student" class="text-sm text-slate-500 dark:text-slate-400 mb-4">
       Write your own problems here — they stay private to you. When one is ready, send it to an admin to
@@ -222,7 +223,7 @@ onBeforeUnmount(() => { pollStopped = true; });
     </p>
 
     <div v-if="genOpen" class="mb-4 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-500/5">
-      <p class="text-sm font-semibold text-violet-700 dark:text-violet-300">✨ Generate a problem from an idea</p>
+      <p class="text-sm font-semibold text-violet-700 dark:text-violet-300"><Icon name="sparkles" /> Generate a problem from an idea</p>
       <textarea v-model="gen.idea" rows="3"
                 placeholder="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'" aria-label="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'"
                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
@@ -287,8 +288,8 @@ onBeforeUnmount(() => { pollStopped = true; });
           <div class="flex items-center gap-1 shrink-0">
             <RouterLink v-if="openReports[b.id]" :to="`/reports/problems?bank=${b.id}`" @click.stop
                         class="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
-                        :title="`${openReports[b.id]} open report(s) — click to review`">🚩 {{ openReports[b.id] }}</RouterLink>
-            <span v-if="b.generatedByAi" class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
+                        :title="`${openReports[b.id]} open report(s) — click to review`"><Icon name="flag" /> {{ openReports[b.id] }}</RouterLink>
+            <span v-if="b.generatedByAi" class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI</span>
             <span v-if="b.pendingReview" class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   title="An admin reviews AI-generated problems before they're shared with other teachers">
               ⏳ pending review
@@ -323,19 +324,19 @@ onBeforeUnmount(() => { pollStopped = true; });
           </RouterLink>
           <template v-if="student && !b.isPublic && !b.pendingReview">
             <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span>📤</span><span>Submit to Practice</span></button>
-            <button @click="openPropose(b)" class="row-action-btn"><span>💡</span><span>Propose to a board</span></button>
+            <button @click="openPropose(b)" class="row-action-btn"><span><Icon name="bulb" /></span><span>Propose to a board</span></button>
           </template>
         </div>
         <SimilarProblems v-if="b.mine" :url="`/api/bank/${b.slug}/similar`" class="mt-1 -ml-2" />
         <div v-if="!b.mine && auth.user.isAdmin" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
-          <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" title="Admin: move this problem to Trash"><span>🗑</span><span>Delete</span></button>
+          <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" title="Admin: move this problem to Trash"><span><Icon name="trash" /></span><span>Delete</span></button>
         </div>
         <div v-if="b.mine && b.pendingReview && (student || !b.generatedByAi)" class="mt-1 -ml-2">
           <button @click="withdrawPractice(b)" class="row-action-btn"><span>↩️</span><span>Withdraw from review</span></button>
         </div>
         <ul v-if="proposalsBySlug[b.slug]?.length" class="mt-2 space-y-1">
           <li v-for="r in proposalsBySlug[b.slug]" :key="r.id" class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
-            <span>💡 {{ r.boardTitle }}:</span>
+            <span><Icon name="bulb" /> {{ r.boardTitle }}:</span>
             <span :class="{ 'text-amber-700 dark:text-amber-400': r.status === 'Pending', 'text-emerald-600 dark:text-emerald-400': r.status === 'Approved', 'text-rose-600 dark:text-rose-400': r.status === 'Rejected' }">
               {{ { Pending: 'waiting', Approved: 'approved', Rejected: 'declined', Withdrawn: 'withdrawn' }[r.status] }}
             </span>

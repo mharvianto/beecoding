@@ -1,4 +1,5 @@
 <script setup>
+import LogoMark from './components/LogoMark.vue';
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from './stores/auth';
@@ -127,7 +128,7 @@ onBeforeUnmount(() => {
           </svg>
         </button>
 
-        <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-700 dark:text-amber-400 shrink-0">🐝 BeeCoding</RouterLink>
+        <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-700 dark:text-amber-400 shrink-0"><LogoMark />BeeCoding</RouterLink>
 
         <!-- primary nav: burger-toggled dropdown on mobile, inline row after the logo on ≥md -->
         <nav :class="mobileNavOpen ? 'flex' : 'hidden'"

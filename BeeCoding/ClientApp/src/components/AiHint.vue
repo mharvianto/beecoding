@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
@@ -129,7 +130,7 @@ async function ask(extra = {}) {
   <div v-if="enabled" class="mt-5 border border-violet-200 dark:border-violet-500/30 rounded-xl overflow-hidden">
     <button @click="open = !open"
             class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300">
-      <span>🤖 AI tutor{{ liveMode ? '' : ' — hints only' }}</span>
+      <span><Icon name="bot" /> AI tutor{{ liveMode ? '' : ' — hints only' }}</span>
       <span class="text-xs">{{ open ? '▾' : '▸' }}</span>
     </button>
 
@@ -165,7 +166,7 @@ async function ask(extra = {}) {
         </button>
         <button v-if="liveMode" @click="ask({ explain: true })" :disabled="busy || !teacherCode"
                 class="border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          ✨ Explain the teacher's code
+          <Icon name="sparkles" /> Explain the teacher's code
         </button>
       </div>
 

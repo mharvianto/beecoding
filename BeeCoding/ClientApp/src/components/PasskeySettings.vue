@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../lib/api';
 import { createPasskey, passkeysSupported } from '../lib/webauthn';
@@ -71,7 +72,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
           </template>
           <template v-else>
             <div class="min-w-0 flex-1">
-              <div class="text-sm font-medium truncate">🔑 {{ k.name }}</div>
+              <div class="text-sm font-medium truncate"><Icon name="key" /> {{ k.name }}</div>
               <div class="text-xs text-slate-500 dark:text-slate-400">
                 Added {{ when(k.createdAt) }} · {{ k.lastUsedAt ? `last used ${when(k.lastUsedAt)}` : 'not used yet' }}
               </div>

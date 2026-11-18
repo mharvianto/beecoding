@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 import { api } from '../lib/api';
 import { langLabel } from '../lib/templates';
@@ -62,7 +63,7 @@ async function add(item) {
             <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
               <span class="font-medium text-sm break-words">{{ b.title }}</span>
               <LevelBadge :level="b.level" class="shrink-0" />
-              <span v-if="b.generatedByAi" class="shrink-0 whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI</span>
+              <span v-if="b.generatedByAi" class="shrink-0 whitespace-nowrap text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI</span>
             </div>
             <div class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
               {{ langLabel(b.allowedLanguages) }} · {{ b.testCount }} tests ({{ b.sampleCount }} sample)

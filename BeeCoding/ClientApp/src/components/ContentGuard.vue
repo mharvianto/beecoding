@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 /**
@@ -84,7 +85,7 @@ const watermarkStyle = computed(() => {
 
     <div v-if="active && hidden"
          class="absolute inset-0 grid place-items-center rounded-lg bg-slate-100/85 dark:bg-slate-900/85 text-sm text-slate-500 dark:text-slate-400">
-      👁️ Return to this tab to view the problem
+      <Icon name="eye" /> Return to this tab to view the problem
     </div>
   </div>
 </template>

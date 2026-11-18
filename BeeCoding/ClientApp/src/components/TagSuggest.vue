@@ -7,6 +7,7 @@ const suggestionsOn = () => (enabledProbe ??= api.get('/api/tag-suggestions/enab
 </script>
 
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 
 /** Tag chips for the problem editor, from problems that mean something similar. Clicking one adds it; nothing is applied on its own. */
@@ -35,7 +36,7 @@ async function ask() {
 <template>
   <div v-if="available" class="flex items-center gap-2 flex-wrap text-xs">
     <button type="button" @click="ask" :disabled="busy" class="row-action-btn disabled:opacity-50">
-      <span>🏷️</span><span>{{ busy ? 'Thinking…' : 'Suggest tags' }}</span>
+      <span><Icon name="tag" /></span><span>{{ busy ? 'Thinking…' : 'Suggest tags' }}</span>
     </button>
     <button v-for="t in shown" :key="t" type="button" @click="emit('add', t)" :title="`Add “${t}”`"
             class="rounded px-2 py-0.5 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20">+ {{ t }}</button>

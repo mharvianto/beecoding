@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { api } from '../lib/api';
 
@@ -70,7 +71,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
     </button>
     <button type="button" @click="openReport" title="Report a problem with this problem"
             class="inline-flex items-center gap-1 text-xs rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300">
-      <span aria-hidden="true">🚩</span><span>{{ fb.reported ? 'Reported' : 'Report' }}</span>
+      <span aria-hidden="true"><Icon name="flag" /></span><span>{{ fb.reported ? 'Reported' : 'Report' }}</span>
     </button>
   </span>
 

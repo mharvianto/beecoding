@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import { ref, reactive, toRef, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -1379,7 +1380,7 @@ onMounted(async () => {
           <h2 class="font-semibold text-sm">Usage</h2>
           <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
           <button @click="downloadFile('/api/admin-ui/analytics/ai-usage.csv', 'ai-usage.csv')"
-                  class="text-xs text-slate-500 dark:text-slate-400 ml-auto">⬇ export CSV</button>
+                  class="text-xs text-slate-500 dark:text-slate-400 ml-auto"><Icon name="download" /> export CSV</button>
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
@@ -1445,7 +1446,7 @@ onMounted(async () => {
       <!-- two-step verification policy -->
       <div v-if="mfaPolicy" class="mb-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
         <div class="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
-          <h2 class="font-semibold text-sm whitespace-nowrap">🔒 Require two-step verification</h2>
+          <h2 class="font-semibold text-sm whitespace-nowrap"><Icon name="lock" /> Require two-step verification</h2>
           <span class="text-xs text-slate-500 dark:text-slate-400">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5 pt-1">
@@ -1525,9 +1526,9 @@ onMounted(async () => {
             </select>
             <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
             <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
-            <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
-            <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
-            <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in">🔑 passkey</span>
+            <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified"><Icon name="message" /> unverified</span>
+            <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on"><Icon name="lock" /> 2FA</span>
+            <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in"><Icon name="key" /> passkey</span>
             <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
           </div>
           <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
@@ -1567,9 +1568,9 @@ onMounted(async () => {
                 </select>
                 <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
                 <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
-                <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified">✉ unverified</span>
-                <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on">🔒 2FA</span>
-                <span v-if="u.hasPasskey" class="ml-1 inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in">🔑 passkey</span>
+                <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified"><Icon name="message" /> unverified</span>
+                <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on"><Icon name="lock" /> 2FA</span>
+                <span v-if="u.hasPasskey" class="ml-1 inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in"><Icon name="key" /> passkey</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
@@ -1659,10 +1660,10 @@ onMounted(async () => {
       <div v-if="selectedBoards.size" class="flex items-center gap-2 mb-2 text-sm">
         <span>{{ selectedBoards.size }} selected</span>
         <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1 text-xs font-medium">
-          ➕ Add groups / problems
+          <Icon name="plus" /> Add groups / problems
         </button>
         <button @click="archiveSelectedBoards" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1 text-xs font-medium">
-          🗄️ Archive selected
+          <Icon name="archive" /> Archive selected
         </button>
       </div>
       <BulkAddPanel v-if="bulkAdding" :slugs="[...selectedBoards]" bank-url="/api/admin-ui/bank" add-url="/api/admin-ui/boards/bulk-add"
@@ -1895,8 +1896,8 @@ onMounted(async () => {
             <button @click="copyReviewJson(row)" class="row-action-btn" title="Copy this problem as JSON (same format as Problems export/import)">
               {{ reviewJsonCopied === row.slug ? '✓ copied' : '⧉ copy JSON' }}
             </button>
-            <button @click="downloadReviewJson(row)" class="row-action-btn" title="Download this problem as a .json file">⬇ JSON</button>
-            <button @click="deleteAiReview(row)" class="row-action-btn row-action-btn--danger" title="Move this problem to Trash"><span>🗑</span><span>Delete</span></button>
+            <button @click="downloadReviewJson(row)" class="row-action-btn" title="Download this problem as a .json file"><Icon name="download" /> JSON</button>
+            <button @click="deleteAiReview(row)" class="row-action-btn row-action-btn--danger" title="Move this problem to Trash"><span><Icon name="trash" /></span><span>Delete</span></button>
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
               ✓ Approve &amp; share
             </button>
@@ -1912,14 +1913,14 @@ onMounted(async () => {
           <span v-if="!row.tags" class="text-slate-500 dark:text-slate-400">no tags</span>
           <span class="text-slate-300 dark:text-slate-600">|</span>
           <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ row.tests.length }} tests</span>
-          <span class="rounded px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">👁 {{ row.tests.filter((t) => t.isSample).length }} visible</span>
-          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">🔒 {{ row.tests.filter((t) => !t.isSample).length }} hidden</span>
+          <span class="rounded px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><Icon name="eye" /> {{ row.tests.filter((t) => t.isSample).length }} visible</span>
+          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><Icon name="lock" /> {{ row.tests.filter((t) => !t.isSample).length }} hidden</span>
           <span v-if="!row.tests.some((t) => !t.isSample)" class="rounded px-2 py-0.5 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium">
-            ⚠ no hidden test — a solution could just print the samples
+            <Icon name="alert" /> no hidden test — a solution could just print the samples
           </span>
-          <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">📄 reads <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
-          <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
-          <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">🚫 functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
+          <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> reads <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
+          <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
+          <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
         </div>
 
         <div v-if="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-start gap-x-4 gap-y-2">
@@ -1934,8 +1935,8 @@ onMounted(async () => {
           <div class="grid sm:grid-cols-2 gap-2">
             <div v-for="(t, i) in row.tests" :key="i" class="text-xs border border-slate-100 dark:border-slate-800 rounded-lg p-2">
               <div class="text-slate-400 mb-1 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
-                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">👁 visible to students (sample)</span>
-                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300">🔒 hidden from students (graded)</span>
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> visible to students (sample)</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> hidden from students (graded)</span>
               </div>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto">stdin: {{ t.stdin }}</pre>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto mt-1">expected: {{ t.expectedStdout }}</pre>
@@ -1977,7 +1978,7 @@ onMounted(async () => {
         <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button @click="downloadFile('/api/admin-ui/analytics/report.xlsx', 'beecoding-report.xlsx')"
                   class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-            📊 Export all as Excel (.xlsx)
+            <Icon name="chart" /> Export all as Excel (.xlsx)
           </button>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
             One workbook, three sheets — Topics, Users, Weekly engagement.
@@ -2232,7 +2233,7 @@ onMounted(async () => {
             <template v-if="latency.pendingNow != null"> · {{ latency.pendingNow }} waiting now</template>
           </p>
           <p v-if="latency.unfinished > 0" class="text-xs text-rose-600 dark:text-rose-400 mb-2">
-            ⚠️ {{ latency.unfinished }} submission{{ latency.unfinished === 1 ? ' has' : 's have' }} been waiting for more than 2 minutes
+            <Icon name="alert" /> {{ latency.unfinished }} submission{{ latency.unfinished === 1 ? ' has' : 's have' }} been waiting for more than 2 minutes
             (oldest {{ Math.round(latency.oldestUnfinishedSeconds / 60) }} min). Judging normally takes under a second, so these jobs were
             most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.
           </p>

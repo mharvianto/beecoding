@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { RouterLink } from 'vue-router';
 import { api } from '../lib/api';
@@ -236,7 +237,7 @@ onBeforeUnmount(async () => {
   <div v-if="board" class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
       <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
-      <h1 class="text-sm font-bold">🎥 Live code · {{ board.title }}</h1>
+      <h1 class="text-sm font-bold"><Icon name="video" /> Live code · {{ board.title }}</h1>
       <span v-if="isStaff"
             class="text-[11px] px-2 py-0.5 rounded-full"
             :class="lecturingOn
@@ -250,7 +251,7 @@ onBeforeUnmount(async () => {
                 :class="showStudents
                   ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-600 dark:border-slate-600'
                   : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'">
-          👀 Student panel {{ showStudents ? 'on' : 'off' }}
+          <Icon name="eye" /> Student panel {{ showStudents ? 'on' : 'off' }}
         </button>
         <button v-if="isStaff" @click="toggleLecturing"
                 class="text-xs px-2.5 py-1 rounded-lg font-medium"
@@ -339,7 +340,7 @@ onBeforeUnmount(async () => {
         <template #b>
           <div class="h-full flex flex-col bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
-              <span class="font-semibold">👀 Student code</span>
+              <span class="font-semibold"><Icon name="eye" /> Student code</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ studentList.length }} live</span>
               <select v-if="studentList.length" v-model="selectedUid"
                       class="ml-auto text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">

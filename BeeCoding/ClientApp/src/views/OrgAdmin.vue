@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import ImageUsagePanel from '../components/ImageUsagePanel.vue';
 import { ref, onMounted, watch } from 'vue';
@@ -796,7 +797,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <template v-if="selectedBoards.size">
             <span>{{ selectedBoards.size }} selected</span>
             <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1 text-xs font-medium">
-              ➕ Add groups / problems
+              <Icon name="plus" /> Add groups / problems
             </button>
           </template>
         </div>

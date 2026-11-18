@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref } from 'vue';
 import { api } from '../lib/api';
 
@@ -23,7 +24,7 @@ async function run() {
 <template>
   <div class="min-w-0">
     <button @click="run" :disabled="busy" class="row-action-btn disabled:opacity-50">
-      <span>🔎</span><span>{{ busy ? 'Searching…' : 'Similar problems' }}</span>
+      <span><Icon name="search" /></span><span>{{ busy ? 'Searching…' : 'Similar problems' }}</span>
     </button>
     <p v-if="error" role="alert" class="text-xs text-red-600 dark:text-red-400 mt-2">{{ error }}</p>
     <div v-if="result" class="mt-2 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs space-y-1.5">

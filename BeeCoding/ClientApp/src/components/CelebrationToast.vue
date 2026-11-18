@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { watch } from 'vue';
 import { useCelebrationToast } from '../stores/celebrationToast';
 import { useProgress } from '../stores/progress';
@@ -27,7 +28,7 @@ watch(() => toast.deadline, (d) => {
           Lv {{ toast.level }} · {{ toast.xp }} XP · {{ progress.toNext }} to Lv {{ toast.level + 1 }}
         </div>
         <div class="text-xs text-amber-700 dark:text-amber-400 mt-1.5 font-medium">
-          🔥 {{ toast.solvedToday }} solved today
+          <Icon name="flame" /> {{ toast.solvedToday }} solved today
         </div>
       </div>
     </div>

@@ -1,4 +1,6 @@
 <script setup>
+import LogoMark from '../components/LogoMark.vue';
+import Icon from '../components/Icon.vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import { useRouter, useRoute } from 'vue-router';
@@ -156,7 +158,7 @@ function backToPassword(clearError = true) {
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
     <div class="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6">
-      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
+      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1"><LogoMark />BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">{{ challenge ? 'Two-step verification' : linkInfo ? 'Connect Google' : 'Sign in to your account' }}</p>
       <p v-if="justReset" class="mb-3 text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-2">
         Your password was changed. Sign in with the new one.
@@ -233,7 +235,7 @@ function backToPassword(clearError = true) {
         </div>
         <button v-if="passkeysOn" type="button" @click="usePasskey" :disabled="busy"
                 class="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50">
-          🔑 Sign in with a passkey
+          <Icon name="key" /> Sign in with a passkey
         </button>
         <GoogleButton v-if="googleOn" :return-to="route.query.r ? String(route.query.r) : ''" />
       </div>

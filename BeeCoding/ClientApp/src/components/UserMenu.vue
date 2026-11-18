@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 import { useProblemReports } from '../stores/problemReports';
 import { useAuth } from '../stores/auth';
@@ -13,7 +14,7 @@ const open = ref(false);
 const reports = useProblemReports();
 onMounted(() => { if (auth.isTeacher) reports.refresh(); });
 
-const THEMES = [['light', '☀️', 'Light'], ['dark', '🌙', 'Dark'], ['system', '🖥️', 'System']];
+const THEMES = [['light', 'sun', 'Light'], ['dark', 'moon', 'Dark'], ['system', 'monitor', 'System']];
 const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() || '?';
 </script>
 
@@ -38,28 +39,28 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
           <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ auth.user.email }} · {{ auth.user.role }}</div>
         </div>
         <RouterLink to="/account" @click="open = false"
-                    class="block px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          ⚙️ Account settings
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <Icon name="settings" /> Account settings
         </RouterLink>
         <RouterLink v-if="auth.isTeacher" to="/reports/problems" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          🚩 Problem reports
+          <Icon name="flag" /> Problem reports
           <span v-if="reports.open > 0" class="ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 tabular-nums">{{ reports.open }}</span>
         </RouterLink>
         <RouterLink v-if="auth.user.hasOrgAdmin" to="/org-admin" @click="open = false"
-                    class="block px-3 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-          🏢 Organization
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <Icon name="building" /> Organization
         </RouterLink>
         <RouterLink v-if="auth.user.isAdmin" to="/admin" @click="open = false"
-                    class="block px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-          🛡️ Admin
+                    class="flex items-center gap-2 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <Icon name="shield" /> Admin
         </RouterLink>
         <div class="px-3 py-2">
           <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Theme</div>
           <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="[key, icon, label] in THEMES" :key="key" @click="setTheme(key)" :title="label"
                     class="flex-1 px-2 py-1" :class="theme === key ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-              {{ icon }}
+              <Icon :name="icon" />
             </button>
           </div>
         </div>

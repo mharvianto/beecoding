@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
@@ -234,15 +235,15 @@ onBeforeUnmount(async () => {
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
-        <span v-if="progress.streak > 0">· 🔥 {{ progress.streak }}-day streak</span>
+        <span v-if="progress.streak > 0">· <Icon name="flame" /> {{ progress.streak }}-day streak</span>
       </div>
       <p v-if="problem.bannedHeaders || problem.bannedSymbols" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2 space-y-0.5">
-        <span v-if="problem.bannedHeaders" class="block">🚫 Banned headers: <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">bits/stdc++.h</span>).</span>
-        <span v-if="problem.bannedSymbols" class="block">🚫 Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
+        <span v-if="problem.bannedHeaders" class="block"><Icon name="ban" /> Banned headers: <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">bits/stdc++.h</span>).</span>
+        <span v-if="problem.bannedSymbols" class="block"><Icon name="ban" /> Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
         <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
       </p>
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
-        📄 This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
+        <Icon name="file" /> This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
       </p>
 
       <NextProblems :slug="props.slug" :solved="!!problem.solved" />
@@ -256,7 +257,7 @@ onBeforeUnmount(async () => {
 
 
       <p class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
-        🔒 Protected problem — served as an encrypted image watermarked with your identity.
+        <Icon name="lock" /> Protected problem — served as an encrypted image watermarked with your identity.
       </p>
       <ContentGuard :active="true" :watermark="''">
         <StatementImage :bank-id="pid" />

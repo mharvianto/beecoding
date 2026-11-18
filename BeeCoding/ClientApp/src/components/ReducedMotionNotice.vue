@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 
 // Shown once, ever, per browser — only when the device actually has reduce-motion on,
@@ -29,7 +30,7 @@ function dismiss() { visible.value = false; }
                 text-sm max-w-[calc(100vw-2rem)] sm:max-w-sm">
       <div class="flex items-center gap-3">
         <button @click="expanded = !expanded" class="text-left flex-1 hover:underline">
-          ✨ Animasi dikurangi sesuai pengaturan perangkatmu
+          <Icon name="sparkles" /> Animasi dikurangi sesuai pengaturan perangkatmu
         </button>
         <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss" aria-label="Dismiss">✕</button>
       </div>

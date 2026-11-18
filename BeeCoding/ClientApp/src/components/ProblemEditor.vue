@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed, watch, nextTick } from 'vue';
 import MarkdownBlock from './MarkdownBlock.vue';
 import { SUPPORTED_LANGS } from '../lib/templates';
@@ -216,9 +217,9 @@ function pickFormula(e) {
       <div class="flex items-center gap-3 flex-wrap mb-4">
         <h2 class="font-bold text-lg">{{ props.problem?.id ? 'Edit' : 'New' }} problem</h2>
         <a :href="withBase('/guide/problems')" target="_blank" rel="noopener"
-           class="text-xs text-amber-700 dark:text-amber-400 hover:underline">📖 Guide to writing problems</a>
+           class="text-xs text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> Guide to writing problems</a>
         <span v-if="props.problem?.generatedByAi"
-              class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-generated</span>
+              class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI-generated</span>
         <span v-if="props.problem?.pendingReview"
               class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
               title="An admin reviews AI-generated problems before they're shared with other teachers">
@@ -246,10 +247,10 @@ function pickFormula(e) {
             </label>
             <button type="button" @click="toggleWrite"
                     class="ml-auto px-2 py-0.5 rounded border"
-                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'">✎ Write</button>
+                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="pencil" /> Write</button>
             <button type="button" @click="togglePreview"
                     class="px-2 py-0.5 rounded border"
-                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'">👁 Preview</button>
+                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="eye" /> Preview</button>
           </div>
           <p v-if="imgError" role="alert" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
           <div v-show="showWrite" class="flex flex-wrap items-center gap-1 mb-1 text-xs" role="toolbar" aria-label="Formatting">

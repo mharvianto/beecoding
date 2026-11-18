@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -292,7 +293,7 @@ async function deleteAccount(force = false) {
           <h2 class="font-semibold text-sm">AI tutor usage</h2>
 
           <div v-if="aiUsage.blocked" class="text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
-            🚫 {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
+            <Icon name="ban" /> {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
           </div>
           <div v-else-if="aiUsage.dailyQuota > 0">
             <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">

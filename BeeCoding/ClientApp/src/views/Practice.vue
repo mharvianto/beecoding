@@ -1,4 +1,5 @@
 <script setup>
+import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -170,7 +171,7 @@ onMounted(() => {
     <div class="flex items-baseline justify-between gap-x-3 gap-y-1 flex-wrap mb-1">
       <h1 class="text-xl font-bold">Practice</h1>
       <div class="text-sm text-slate-500 dark:text-slate-400">
-        <span v-if="progress.streak > 0">🔥 {{ progress.streak }}-day streak ·</span>
+        <span v-if="progress.streak > 0"><Icon name="flame" /> {{ progress.streak }}-day streak ·</span>
         Lv {{ progress.level }} · {{ progress.xp }} XP · {{ progress.toNext }} XP to next level
       </div>
     </div>
@@ -183,7 +184,7 @@ onMounted(() => {
     <div v-if="guide.recommended.length" class="mb-5">
       <div class="flex items-center gap-2 mb-2">
         <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Recommended for you</h2>
-        <span v-if="guide.source === 'ai'" class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">✨ AI-picked</span>
+        <span v-if="guide.source === 'ai'" class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI-picked</span>
         <span class="ml-auto"></span>
         <button v-if="guide.aiAvailable && guide.source !== 'ai'" @click="loadGuide(true)" :disabled="aiBusy"
                 class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">

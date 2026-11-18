@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useNotifications, notificationText, notificationTarget } from '../stores/notifications';
@@ -35,11 +36,10 @@ async function go(n) {
 
 <template>
   <div class="relative" v-click-outside="() => (open = false)">
-    <!-- Emoji, like the rest of the app's icons (and the 🔔 chips on wall cards / problem tabs). -->
-    <button @click="toggle" class="relative px-2 text-xl leading-none transition"
+    <button @click="toggle" class="relative px-2 text-xl leading-none transition text-slate-700 dark:text-slate-200"
             :class="notif.unread ? '' : 'opacity-60 hover:opacity-100'"
             title="Notifications" aria-label="Notifications">
-      🔔
+      <Icon name="bell" class="!w-5 !h-5" />
       <span v-if="notif.unread" class="absolute -top-2 -right-1.5 min-w-4 h-4 px-1 rounded-full ring-2 ring-white dark:ring-slate-900 bg-amber-500 text-slate-900 text-[11px] font-bold leading-4 text-center">
         {{ notif.unread > 9 ? '9+' : notif.unread }}
       </span>

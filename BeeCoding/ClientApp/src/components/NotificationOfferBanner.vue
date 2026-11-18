@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
@@ -59,7 +60,7 @@ async function turnOn() {
       <span v-if="message">{{ message }}</span>
       <template v-else>
         <span>
-          🔔 Turn on notifications
+          <Icon name="bell" /> Turn on notifications
           <span class="hidden sm:inline">— hear about comments, reactions and reviews even when this tab is in the background.</span>
         </span>
         <button @click="turnOn" :disabled="busy" class="font-semibold underline hover:no-underline disabled:opacity-50">{{ busy ? '…' : 'Turn on' }}</button>

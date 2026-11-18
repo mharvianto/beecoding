@@ -1,4 +1,5 @@
 <script setup>
+import Icon from './Icon.vue';
 import { ref, watch, computed, onMounted, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -206,13 +207,13 @@ async function toggleHiddenByStudent(post) {
                 ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
         <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
-        <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card">🔔</span>
+        <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card"><Icon name="bell" /></span>
       </button>
     </div>
 
     <div v-if="activeExam && !wall.viewerIsStaff"
          class="text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2 mb-3">
-      🔒 Exam mode — only your own posts are shown.
+      <Icon name="lock" /> Exam mode — only your own posts are shown.
     </div>
 
     <!-- masonry wall -->
@@ -234,7 +235,7 @@ async function toggleHiddenByStudent(post) {
               <span v-if="post.mine" class="text-xs text-slate-500 dark:text-slate-400 font-normal">· you</span>
             </div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400">
-              <span v-if="draftFor(post)" class="text-amber-700 dark:text-amber-400 font-medium">✎ editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
+              <span v-if="draftFor(post)" class="text-amber-700 dark:text-amber-400 font-medium"><Icon name="pencil" /> editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
               <span v-else>{{ ago(post.updatedAt) }} ago</span>
             </div>
           </div>
@@ -251,7 +252,7 @@ async function toggleHiddenByStudent(post) {
         </div>
 
         <div v-if="post.redacted" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
-          🔒 This student’s answer is hidden from peers.
+          <Icon name="lock" /> This student’s answer is hidden from peers.
         </div>
 
         <template v-else>
@@ -287,7 +288,7 @@ async function toggleHiddenByStudent(post) {
             <button @click="acknowledge(post)"
                     class="text-xs font-medium rounded-full px-2.5 py-0.5 bg-amber-500 text-slate-900 hover:bg-amber-600"
                     title="Show the new feedback and mark it as seen">
-              🔔 {{ post.newActivity }} new — mark as seen
+              <Icon name="bell" /> {{ post.newActivity }} new — mark as seen
             </button>
           </div>
 
@@ -307,7 +308,7 @@ async function toggleHiddenByStudent(post) {
           <div v-if="post.postId" class="px-4 mt-2 pb-3">
             <button @click="openComments[post.postId] ? (openComments[post.postId] = false) : acknowledge(post)"
                     class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-              💬 {{ post.comments.length }} comment{{ post.comments.length === 1 ? '' : 's' }}
+              <Icon name="message" /> {{ post.comments.length }} comment{{ post.comments.length === 1 ? '' : 's' }}
             </button>
             <div v-if="openComments[post.postId]" class="mt-2 space-y-1.5">
               <div :id="'comments-' + post.postId" class="max-h-56 overflow-y-auto space-y-1.5 pr-1">

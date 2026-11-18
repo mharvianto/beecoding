@@ -1,4 +1,5 @@
 <script setup>
+import LogoMark from '../components/LogoMark.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -55,7 +56,7 @@ async function signOut() { await auth.logout(); router.replace('/login'); }
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
     <div class="max-w-sm w-full">
-      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1">🐝 BeeCoding</h1>
+      <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1"><LogoMark />BeeCoding</h1>
       <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Confirm your email</p>
 
       <div v-if="state === 'ready'" class="space-y-3">
