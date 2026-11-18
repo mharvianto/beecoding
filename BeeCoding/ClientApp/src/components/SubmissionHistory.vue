@@ -1,7 +1,9 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
-import { timeAgo, fullTime, lineDiff } from '../lib/timeAgo';
+import MonacoEditor from './MonacoEditor.vue';
+import CodeDiff from './CodeDiff.vue';
+import { timeAgo, fullTime } from '../lib/timeAgo';
 
 // Rows are buttons only for the viewer's own submissions that carry their code; a classmate's row (board) is plain text.
 const props = defineProps({
@@ -14,12 +16,14 @@ const emit = defineEmits(['load']);
 
 const canOpen = (s) => s.mine !== false && s.code != null;
 const openId = ref(null);
-const diff = ref(false);
+const mode = ref('code');   // 'code' | 'prev' (against my attempt just before) | 'editor' (against what is in the editor now)
 const closeBtn = ref(null);
+const mine = computed(() => props.submissions.filter(canOpen));   // newest first
 const open = computed(() => props.submissions.find((s) => s.id === openId.value));
-const lines = computed(() => (open.value && diff.value ? lineDiff(open.value.code || '', props.currentCode) : null));
+const prev = computed(() => { const i = mine.value.findIndex((s) => s.id === openId.value); return i >= 0 ? mine.value[i + 1] : undefined; });
+const lang = computed(() => (open.value?.language === 'c' ? 'c' : 'cpp'));
 
-function show(s) { openId.value = s.id; diff.value = false; nextTick(() => closeBtn.value?.focus()); }
+function show(s) { openId.value = s.id; mode.value = 'code'; nextTick(() => closeBtn.value?.focus()); }
 function close() { openId.value = null; }
 function load() { emit('load', open.value); close(); }
 </script>
@@ -42,7 +46,7 @@ function load() { emit('load', open.value); close(); }
 
   <div v-if="open" role="dialog" aria-modal="true" aria-label="Submission" @keydown.esc="close" @click.self="close"
        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-    <div class="w-full max-w-3xl max-h-[90vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
+    <div class="w-full max-w-5xl max-h-[95vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
       <div class="flex items-center gap-2 mb-3">
         <VerdictBadge :verdict="open.status === 'Done' ? open.verdict : open.status" small />
         <span v-if="open.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">{{ open.runtimeMs }}ms · {{ open.memoryKb }}KB · {{ Math.round(open.score * 100) }}%</span>
@@ -52,19 +56,22 @@ function load() { emit('load', open.value); close(); }
 
       <div class="flex flex-wrap items-center gap-2 mb-2">
         <div class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs" role="group">
-          <button type="button" @click="diff = false" :aria-pressed="!diff" class="px-3 py-1" :class="!diff ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">Code</button>
-          <button type="button" @click="diff = true" :aria-pressed="diff" class="px-3 py-1" :class="diff ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">Compare with editor</button>
+          <button type="button" @click="mode = 'code'" :aria-pressed="mode === 'code'" class="px-3 py-1" :class="mode === 'code' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">Code</button>
+          <button type="button" @click="mode = 'prev'" :disabled="!prev" :aria-pressed="mode === 'prev'" class="px-3 py-1 disabled:opacity-40" :class="mode === 'prev' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'"
+                  :title="prev ? '' : 'This is your first submission'">vs previous submission</button>
+          <button type="button" @click="mode = 'editor'" :aria-pressed="mode === 'editor'" class="px-3 py-1" :class="mode === 'editor' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">vs editor now</button>
         </div>
         <button type="button" @click="load" class="ml-auto text-sm bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5">Load into editor</button>
       </div>
+      <p v-if="mode !== 'code'" class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+        {{ mode === 'prev' ? `Left: your previous submission (${timeAgo(prev.createdAt)}) · Right: this one` : 'Left: this submission · Right: your editor now' }}
+      </p>
 
-      <pre v-if="!diff" class="flex-1 min-h-0 text-xs bg-slate-50 dark:bg-slate-950 rounded p-3 overflow-auto whitespace-pre">{{ open.code }}</pre>
-      <template v-else>
-        <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">This submission → your editor now. <span class="text-red-600 dark:text-red-400">− only in the submission</span> · <span class="text-emerald-600 dark:text-emerald-400">+ only in the editor</span></p>
-        <pre v-if="lines" class="flex-1 min-h-0 text-xs bg-slate-50 dark:bg-slate-950 rounded p-3 overflow-auto whitespace-pre"><span v-for="(l, i) in lines" :key="i" class="block"
-          :class="l.t === '+' ? 'bg-emerald-100 dark:bg-emerald-500/15' : l.t === '-' ? 'bg-red-100 dark:bg-red-500/15' : ''">{{ l.t }} {{ l.s }}</span></pre>
-        <p v-else class="text-xs text-slate-500">Too long to compare (over 400 lines).</p>
-      </template>
+      <div class="h-[60vh]">
+        <MonacoEditor v-if="mode === 'code'" :model-value="open.code" :language="lang" read-only :filename="'submission'" />
+        <CodeDiff v-else-if="mode === 'prev'" :original="prev.code || ''" :modified="open.code || ''" :language="lang" />
+        <CodeDiff v-else :original="open.code || ''" :modified="currentCode" :language="lang" />
+      </div>
     </div>
   </div>
 </template>
