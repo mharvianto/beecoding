@@ -119,7 +119,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ tr(error) }}</p>
 
     <div class="flex-1 min-h-0">
-      <SplitPane direction="vertical" storage-key="beecoding.split.playground" :initial="68" :min="110">
+      <SplitPane direction="vertical" foldable storage-key="beecoding.split.playground" :initial="68" :min="110">
         <template #a>
           <MonacoEditor v-model="code" :language="lang" :lsp="lang" />
         </template>

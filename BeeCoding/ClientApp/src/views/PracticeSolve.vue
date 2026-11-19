@@ -294,7 +294,7 @@ onBeforeUnmount(async () => {
     </template>
 
     <template #b>
-    <SplitPane direction="vertical" storage-key="beecoding.split.solve-console" :initial="66" :min="110">
+    <SplitPane direction="vertical" foldable storage-key="beecoding.split.solve-console" :initial="66" :min="110">
       <template #a>
         <MonacoEditor v-model="code" :language="solveLang" :lsp="solveLang" :filename="props.slug" />
       </template>

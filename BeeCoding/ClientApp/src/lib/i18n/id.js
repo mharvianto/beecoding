@@ -1365,6 +1365,7 @@ export default {
   "That is not a valid ZIP file.": "Itu bukan berkas ZIP yang valid.",
   "The ZIP is too large once unpacked.": "ZIP terlalu besar setelah dibuka.",
   "Open the output in a large window": "Buka output di jendela besar",
+  "Run panel": "Panel jalankan",
   "Wrap lines": "Bungkus baris",
   "Nothing yet — run your code.": "Belum ada — jalankan kode Anda.",
 };

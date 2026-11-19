@@ -1,6 +1,8 @@
 <script setup>
 import { tr } from '../lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ioFolded, setIoFolded } from '../lib/ioFold';
+import Icon from './Icon.vue';
 
 const props = defineProps({
   direction: { type: String, default: 'horizontal' },  // 'horizontal' = side by side, 'vertical' = stacked
@@ -9,9 +11,11 @@ const props = defineProps({
   min: { type: Number, default: 120 },                  // px min for either pane
   storageKey: { type: String, default: '' },
   collapseBelow: { type: Number, default: 1024 },       // a horizontal split lays out stacked under this width (still draggable)
+  foldable: { type: Boolean, default: false },          // vertical only: a slim bar under pane A folds pane B away (per device); A then takes everything
   hideB: { type: Boolean, default: false },             // collapse pane B entirely — pane A fills, no divider
 });
 
+const fold = computed(() => props.foldable && ioFolded.value);
 const el = ref(null);
 const wide = ref(typeof window === 'undefined' || window.innerWidth >= props.collapseBelow);
 function updateWide() { wide.value = window.innerWidth >= props.collapseBelow; }
@@ -78,12 +82,17 @@ onBeforeUnmount(() => {
 <template>
   <div ref="el" class="min-h-0 min-w-0 h-full w-full flex" :class="isRow ? 'flex-row' : 'flex-col'">
     <div class="min-h-0 min-w-0 overflow-hidden"
-         :class="hideB ? 'flex-1' : ''"
-         :style="hideB ? null : (isRow ? { width: pct + '%' } : { height: pct + '%' })">
+         :class="hideB || fold ? 'flex-1' : ''"
+         :style="hideB || fold ? null : (isRow ? { width: pct + '%' } : { height: pct + '%' })">
       <slot name="a" />
     </div>
 
-    <div v-if="!hideB" @pointerdown.prevent="onDown"
+    <button v-if="foldable && !hideB" type="button" @click="setIoFolded(!ioFolded)" :aria-expanded="!ioFolded"
+            class="shrink-0 flex items-center gap-1 px-3 py-0.5 text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+      <Icon name="chevron" class="transition-transform" :class="ioFolded ? '-rotate-90' : ''" /> {{ tr('Run panel') }}
+    </button>
+
+    <div v-if="!hideB && !fold" @pointerdown.prevent="onDown"
          class="group shrink-0 z-10 flex items-center justify-center touch-none select-none
                 bg-slate-200 dark:bg-slate-800 hover:bg-amber-400 dark:hover:bg-amber-500 active:bg-amber-400 transition-colors"
          :class="isRow ? 'w-1.5 cursor-col-resize' : 'h-3 md:h-1.5 cursor-row-resize'"
@@ -92,7 +101,7 @@ onBeforeUnmount(() => {
             :class="isRow ? 'w-0.5 h-8' : 'h-0.5 w-10'"></span>
     </div>
 
-    <div v-if="!hideB" class="flex-1 min-h-0 min-w-0 overflow-hidden">
+    <div v-if="!hideB && !fold" class="flex-1 min-h-0 min-w-0 overflow-hidden">
       <slot name="b" />
     </div>
   </div>

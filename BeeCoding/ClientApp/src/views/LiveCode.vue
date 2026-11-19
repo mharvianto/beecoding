@@ -289,7 +289,7 @@ onBeforeUnmount(async () => {
       <SplitPane direction="horizontal" storage-key="beecoding.split.livecode-main"
                  :initial="55" :initial-stacked="50" :min="320" :hide-b="!showStudents">
         <template #a>
-          <SplitPane direction="vertical" storage-key="beecoding.split.livecode" :initial="60" :min="110">
+          <SplitPane direction="vertical" foldable storage-key="beecoding.split.livecode" :initial="60" :min="110">
             <template #a>
               <MonacoEditor v-model="code" :language="liveLang" :lsp="liveLang" />
             </template>
@@ -397,7 +397,7 @@ onBeforeUnmount(async () => {
         </template>
 
         <template #b>
-          <SplitPane direction="vertical" storage-key="beecoding.split.livecode-student" :initial="58" :min="110">
+          <SplitPane direction="vertical" foldable storage-key="beecoding.split.livecode-student" :initial="58" :min="110">
             <template #a>
               <MonacoEditor v-model="code" :language="liveLang" :lsp="liveLang" />
             </template>
