@@ -497,8 +497,9 @@ using (var scope = app.Services.CreateScope())
     runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }
 
-// Build the sandbox runner + probe capabilities before serving traffic.
-app.Services.GetRequiredService<NativeToolchain>().Initialize();
+// Build the sandbox runner + probe capabilities before serving traffic. With the Redis broker the compiling happens in
+// BeeCoding.Judge, so the web image needs no gcc/bubblewrap and must not demand them.
+if (!judgeOpt.Queue.UseRedis) app.Services.GetRequiredService<NativeToolchain>().Initialize();
 
 app.UseForwardedHeaders();
 

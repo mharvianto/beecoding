@@ -589,7 +589,7 @@ public class AdminUiController(
         bool sysstatInstalled = await _sysstat.IsInstalledAsync();
 
         return new AdminSystemStatusDto(
-            _toolchain.BwrapUsable ? "bubblewrap + rlimits" : "rlimits only",
+            _judgeOpt.Queue.UseRedis ? "separate judge (see its own log)" : _toolchain.BwrapUsable ? "bubblewrap + rlimits" : "rlimits only",
             _toolchain.BwrapUsable, _judgeOpt.RequireSandbox,
             judgeBackend, realtimeBackend, redisConfigured, redisConnected,
             pendingJobs, dbOk, DateTime.UtcNow,

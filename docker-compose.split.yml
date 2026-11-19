@@ -1,0 +1,43 @@
+# Judge as its own container (web + Redis + judge): `docker compose -f docker-compose.split.yml up -d`.
+# The default docker-compose.yml stays the one-container setup. Secrets go in .env, never in git. See CONTAINERS.md §4.
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]   # a job queue, not data: a restart may drop queued runs
+
+  beecoding:
+    build: { context: ., target: web-slim }
+    image: beecoding-web:latest
+    restart: unless-stopped
+    depends_on: [redis]
+    ports:
+      - "8080:8080"
+    volumes:
+      - beecoding-data:/data
+    environment:
+      App__PublicUrl: ${PUBLIC_URL:-}
+      Admin__Emails: ${ADMIN_EMAILS:-}
+      Ai__Enabled: ${AI_ENABLED:-false}
+      Ai__ApiKey: ${AI_API_KEY:-}
+      Judge__Queue__Backend: redis
+      Judge__Queue__RedisConnectionString: redis:6379
+    mem_limit: 2g
+
+  beecoding-judge:
+    build: { context: ., target: judge }
+    image: beecoding-judge:latest
+    restart: unless-stopped
+    depends_on: [redis]
+    environment:
+      Judge__Queue__RedisConnectionString: redis:6379
+      # bubblewrap needs unprivileged user namespaces. If this container refuses to start ("no usable sandbox"), enable the
+      # two security_opt lines first; the last resort is Judge__RequireSandbox: "false" (rlimits only, weaker).
+      # Judge__RequireSandbox: "false"
+    # security_opt: ["seccomp=unconfined", "apparmor=unconfined"]
+    deploy:
+      replicas: 1   # stateless: raise it (or `docker compose up --scale beecoding-judge=3`) when runs queue up
+    mem_limit: 4g
+
+volumes:
+  beecoding-data:

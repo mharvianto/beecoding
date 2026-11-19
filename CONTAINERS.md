@@ -264,7 +264,12 @@ yang beda dari web:
   kalau `bwrap` tidak bisa jalan di container (lihat catatan §1), **image judge akan
   menolak start** kecuali kamu set `Judge__RequireSandbox=false` secara eksplisit.
 
-### 4.1 Dockerfile — dua target dari satu file
+**Sudah ada di repo:** `Dockerfile` punya target `judge` dan `web-slim` (web tanpa `gcc`/`bubblewrap`; stage terakhir, `web`, tetap
+default satu-image), dan `docker-compose.split.yml` menjalankan web + Redis + judge:
+`docker compose -f docker-compose.split.yml up -d`. Belum pernah dibangun/dijalankan dengan Docker/Podman (dev container tidak punya
+keduanya). Web dengan `Judge__Queue__Backend=redis` **tidak lagi** memeriksa `gcc`/`bwrap` saat start (itu tugas image judge).
+
+### 4.1 Dockerfile — dua target dari satu file (ringkasan; file aslinya di root repo)
 
 Perluas Dockerfile di §1: publish **dua** project dari stage `build` yang sama, lalu pisah
 jadi dua stage runtime:
