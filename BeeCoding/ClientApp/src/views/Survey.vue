@@ -4,7 +4,6 @@ import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { docLang } from '../lib/docLang';
 import { SECTIONS, forWho } from '../lib/surveyQuestions';
-import DocLangToggle from '../components/DocLangToggle.vue';
 
 const auth = useAuth();
 const who = computed(() => (auth.user?.role === 'Teacher' ? 'teacher' : 'student'));
@@ -48,7 +47,6 @@ async function save() {
   <div class="max-w-2xl mx-auto px-4 py-8">
     <div class="flex items-start justify-between gap-3 mb-1">
       <h1 class="text-2xl font-bold">{{ lang === 'id' ? 'Survei BeeCoding' : 'BeeCoding survey' }}</h1>
-      <DocLangToggle />
     </div>
     <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
       {{ lang === 'id'

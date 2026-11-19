@@ -3,14 +3,17 @@ import LogoMark from '../components/LogoMark.vue';
 import ThemeToggle from '../components/ThemeToggle.vue';
 import DocLangToggle from '../components/DocLangToggle.vue';
 import { docLang } from '../lib/docLang';
+import { useAuth } from '../stores/auth';
 defineProps({ title: String, updated: String });
+const auth = useAuth();
 </script>
 
 <template>
   <div class="min-h-full flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100">
     <header class="max-w-3xl w-full mx-auto px-4 h-14 flex items-center justify-between">
       <RouterLink to="/" class="font-bold text-lg text-amber-700 dark:text-amber-400"><LogoMark />BeeCoding</RouterLink>
-      <span class="flex items-center gap-3"><DocLangToggle /><ThemeToggle /></span>
+      <!-- signed in, the app header above already carries the language and theme controls -->
+      <span v-if="!auth.user" class="flex items-center gap-3"><DocLangToggle /><ThemeToggle /></span>
     </header>
 
     <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-8">

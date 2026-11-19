@@ -2,7 +2,6 @@
 import Icon from '../components/Icon.vue';
 import { computed } from 'vue';
 import { useAuth } from '../stores/auth';
-import DocLangToggle from '../components/DocLangToggle.vue';
 import { docLang as lang } from '../lib/docLang';
 
 const auth = useAuth();
@@ -25,7 +24,6 @@ const sections = [
   <div class="max-w-3xl mx-auto px-4 py-6 text-slate-700 dark:text-slate-200">
     <div class="flex items-start justify-between gap-3">
       <h1 class="text-2xl font-bold"><Icon name="book" /> {{ lang === 'id' ? 'Panduan membuat soal' : 'Guide to writing problems' }}</h1>
-      <DocLangToggle class="shrink-0 mt-1" />
     </div>
     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
       {{ lang === 'id'
