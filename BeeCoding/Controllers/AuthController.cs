@@ -176,12 +176,10 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
 
         var (token, _) = await _resets.CreateAsync(user, PasswordResetService.EmailLifetime, provesEmail: true);
         var link = _resets.BuildLink(Request, token);
-        var body =
-            $"Hi {user.DisplayName},\n\n" +
-            "Someone asked to reset the password for your BeeCoding account. Use this link to choose a new one " +
-            $"(it works once and expires in {(int)PasswordResetService.EmailLifetime.TotalMinutes} minutes):\n\n{link}\n\n" +
-            "If that wasn't you, ignore this email — your password stays as it is.\n";
-        _ = _email.SendAsync(user.Email, "Reset your BeeCoding password", body);   // deliberately not awaited
+        var lang = Text.LangOf(user.Preferences, Request);
+        var body = Text.T(lang, "Hi {0},\n\nSomeone asked to reset the password for your BeeCoding account. Use this link to choose a new one (it works once and expires in {1} minutes):\n\n{2}\n\nIf that wasn't you, ignore this email — your password stays as it is.\n",
+            user.DisplayName, (int)PasswordResetService.EmailLifetime.TotalMinutes, link);
+        _ = _email.SendAsync(user.Email, Text.T(lang, "Reset your BeeCoding password"), body);   // deliberately not awaited
         return NoContent();
     }
 

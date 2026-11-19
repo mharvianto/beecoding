@@ -1,11 +1,14 @@
 import { withBase } from './base';
+import { tr } from './i18n';
+import { docLang } from './docLang';
 
 async function request(method, url, body) {
   const opts = {
     method,
     credentials: 'include',
     // The server derives the user's local calendar day from this (AI daily quota), see UtcOffsetMiddleware.
-    headers: { 'X-UTC-Offset': String(-new Date().getTimezoneOffset()) },
+    // X-Lang: the language the interface is in, for the few texts the server writes itself (an email sent before sign-in).
+    headers: { 'X-UTC-Offset': String(-new Date().getTimezoneOffset()), 'X-Lang': docLang.value },
   };
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
@@ -17,7 +20,7 @@ async function request(method, url, body) {
   const data = text ? tryParse(text) : null;
   if (!res.ok) {
     const msg = friendlyMessage(res.status, data) || res.statusText || `HTTP ${res.status}`;
-    const err = new Error(msg);
+    const err = new Error(tr(msg));   // the server's English message, in the app's language when there is a translation
     err.status = res.status;
     err.body = data;
     if (data && typeof data === 'object') Object.assign(err, data);
@@ -46,7 +49,7 @@ async function upload(url, file) {
   const res = await fetch(withBase(url), { method: 'POST', credentials: 'include', body });
   const text = await res.text();
   const data = text ? tryParse(text) : null;
-  if (!res.ok) throw new Error(friendlyMessage(res.status, data) || `HTTP ${res.status}`);
+  if (!res.ok) throw new Error(tr(friendlyMessage(res.status, data) || `HTTP ${res.status}`));
   return data;
 }
 

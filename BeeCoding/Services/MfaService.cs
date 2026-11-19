@@ -173,12 +173,11 @@ public class MfaService(AppDbContext db, IDataProtectionProvider dp, EmailServic
         _db.EmailLoginCodes.Add(row);
         await _db.SaveChangesAsync();
 
+        var lang = Text.LangOf(user.Preferences);
         var body = signIn
-            ? $"Your BeeCoding sign-in code is {code}\n\nIt works once and expires in {EmailCodeMinutes} minutes.\n\n" +
-              "If you weren't trying to sign in, someone may know your password. Please change it."
-            : $"Your BeeCoding code to turn on email verification is {code}\n\nIt works once and expires in {EmailCodeMinutes} minutes.\n\n" +
-              "If you didn't ask for this, you can ignore this email.";
-        if (!await _email.SendAsync(user.Email, $"{code} is your BeeCoding code", body + "\n"))
+            ? Text.T(lang, "Your BeeCoding sign-in code is {0}\n\nIt works once and expires in {1} minutes.\n\nIf you weren't trying to sign in, someone may know your password. Please change it.", code, EmailCodeMinutes)
+            : Text.T(lang, "Your BeeCoding code to turn on email verification is {0}\n\nIt works once and expires in {1} minutes.\n\nIf you didn't ask for this, you can ignore this email.", code, EmailCodeMinutes);
+        if (!await _email.SendAsync(user.Email, Text.T(lang, "{0} is your BeeCoding code", code), body + "\n"))
         {
             _db.EmailLoginCodes.Remove(row);
             await _db.SaveChangesAsync();

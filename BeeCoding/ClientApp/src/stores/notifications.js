@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { useProblemReports } from './problemReports';
 import { api } from '../lib/api';
+import { tr } from '../lib/i18n';
 import { createBoardConnection } from '../lib/signalr';
 import { showBrowserNotification } from '../lib/browserNotify';
 
@@ -121,29 +122,31 @@ export function notificationTarget(n) {
 
 /** One-line description shared by the bell list and the toast. */
 export function notificationText(n) {
-  if (n.kind === 'report') return `${n.actorName} reported a problem — ${n.snippet}`;
-  if (n.kind === 'report-update') {
-    const verdict = n.emoji === '✅' ? 'resolved' : 'dismissed';
-    return `Your report was ${verdict} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
-  }
-  if (n.kind === 'review-submitted') return `${n.actorName} submitted “${n.problemTitle}” for review`;
-  if (n.kind === 'proposal') return `${n.actorName} proposed a problem — ${n.problemTitle}${n.snippet ? `: “${n.snippet}”` : ''}`;
-  if (n.kind === 'proposal-update' || n.kind === 'practice-review') {
-    const what = n.kind === 'proposal-update' ? 'proposal' : 'practice submission';
-    return `Your ${what} “${n.problemTitle}” was ${n.emoji === '✅' ? 'approved' : 'declined'} by ${n.actorName}${n.snippet ? `: “${n.snippet}”` : ''}`;
-  }
-  if (n.kind === "org-invite") return `${n.actorName} invited you to the organization “${n.problemTitle}”`;
-  if (n.kind === "group-opens") return `The session “${n.problemTitle}” on ${n.snippet} is now open`;
-  if (n.kind === "group-closing") return `The session “${n.problemTitle}” on ${n.snippet} closes within the hour`;
-  if (n.kind === "problem-new") return n.count > 1 ? `${n.count} new problems on ${n.snippet} (latest: ${n.problemTitle})` : `New problem on ${n.snippet}: ${n.problemTitle}`;
-  if (n.kind === "lti-sync-failed") return n.count > 1 ? `Sending grades to the LMS failed ${n.count} times for “${n.problemTitle}”` : `Sending grades to the LMS failed for “${n.problemTitle}”`;
-  if (n.kind === "security") return `Security: ${n.problemTitle}`;
-  const who = n.actorIsStaff ? `${n.actorName} 👨‍🏫` : n.actorName;
+  const name = n.actorName, title = n.problemTitle, snippet = n.snippet, ok = n.emoji === '✅';
+  const note = snippet ? `: “${snippet}”` : '';
+  if (n.kind === 'report') return tr('{name} reported a problem — {snippet}', { name, snippet });
+  if (n.kind === 'report-update')
+    return tr(ok ? 'Your report was resolved by {name}{note}' : 'Your report was dismissed by {name}{note}', { name, note });
+  if (n.kind === 'review-submitted') return tr('{name} submitted “{title}” for review', { name, title });
+  if (n.kind === 'proposal') return tr('{name} proposed a problem — {title}{note}', { name, title, note });
+  if (n.kind === 'proposal-update')
+    return tr(ok ? 'Your proposal “{title}” was approved by {name}{note}' : 'Your proposal “{title}” was declined by {name}{note}', { name, title, note });
+  if (n.kind === 'practice-review')
+    return tr(ok ? 'Your practice submission “{title}” was approved by {name}{note}' : 'Your practice submission “{title}” was declined by {name}{note}', { name, title, note });
+  if (n.kind === 'org-invite') return tr('{name} invited you to the organization “{title}”', { name, title });
+  if (n.kind === 'group-opens') return tr('The session “{title}” on {snippet} is now open', { title, snippet });
+  if (n.kind === 'group-closing') return tr('The session “{title}” on {snippet} closes within the hour', { title, snippet });
+  if (n.kind === 'problem-new')
+    return n.count > 1 ? tr('{n} new problems on {snippet} (latest: {title})', { n: n.count, snippet, title }) : tr('New problem on {snippet}: {title}', { snippet, title });
+  if (n.kind === 'lti-sync-failed')
+    return n.count > 1 ? tr('Sending grades to the LMS failed {n} times for “{title}”', { n: n.count, title }) : tr('Sending grades to the LMS failed for “{title}”', { title });
+  if (n.kind === 'security') return tr('Security: {title}', { title });
+  const who = n.actorIsStaff ? `${name} 👨‍🏫` : name;
   if (n.kind === 'comment')
     return n.count > 1
-      ? `${n.count} new comments on your card (latest from ${who}: “${n.snippet}”)`
-      : `${who} commented: “${n.snippet}”`;
+      ? tr('{n} new comments on your card (latest from {who}: “{snippet}”)', { n: n.count, who, snippet })
+      : tr('{who} commented: “{snippet}”', { who, snippet });
   return n.count > 1
-    ? `${n.count} new reactions on your card (latest ${n.emoji} from ${who})`
-    : `${who} reacted ${n.emoji} to your card`;
+    ? tr('{n} new reactions on your card (latest {emoji} from {who})', { n: n.count, emoji: n.emoji, who })
+    : tr('{who} reacted {emoji} to your card', { who, emoji: n.emoji });
 }

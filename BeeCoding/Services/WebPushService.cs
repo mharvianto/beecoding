@@ -34,20 +34,10 @@ public class WebPushService(IConfiguration cfg, IServiceScopeFactory scopes, IHt
         return AllowedHostSuffixes.Any(s => host.EndsWith(s) || host == s[1..]);
     }
 
-    /// <summary>Title, body and router path (the service worker prefixes the app's base path) for a bell item; mirrors notificationText in the SPA.</summary>
-    public static (string Title, string Body, string Url) Describe(NotificationDto n)
+    /// <summary>Title, body and router path (the service worker prefixes the app's base path) for a bell item; the sentence is the one the email uses.</summary>
+    public static (string Title, string Body, string Url) Describe(NotificationDto n, string lang = "en")
     {
-        var who = n.ActorIsStaff ? $"{n.ActorName} 👨‍🏫" : n.ActorName;
-        var body = n.Kind switch
-        {
-            "report" => $"{n.ActorName} reported a problem — {n.Snippet}",
-            "review-submitted" => $"{n.ActorName} submitted “{n.ProblemTitle}” for review",
-            "proposal" => $"{n.ActorName} proposed a problem — {n.ProblemTitle}",
-            "proposal-update" or "practice-review" => $"Your {(n.Kind == "proposal-update" ? "proposal" : "practice submission")} “{n.ProblemTitle}” was {(n.Emoji == "✅" ? "approved" : "declined")} by {n.ActorName}{(string.IsNullOrEmpty(n.Snippet) ? "" : $": “{n.Snippet}”")}",
-            "report-update" => $"Your report was {(n.Emoji == "✅" ? "resolved" : "dismissed")} by {n.ActorName}{(string.IsNullOrEmpty(n.Snippet) ? "" : $": “{n.Snippet}”")}",
-            "comment" => $"{who} commented: “{n.Snippet}”",
-            _ => n.Count > 1 ? $"{n.Count} new reactions on your card (latest {n.Emoji} from {who})" : $"{who} reacted {n.Emoji} to your card",
-        };
+        var body = NotificationService.EmailText(n, lang);
         var url = !string.IsNullOrEmpty(n.Link) ? n.Link : $"/boards/{n.BoardSlug}?problem={n.ProblemId}&post={n.PostId}";
         var title = string.IsNullOrEmpty(n.ProblemTitle) ? "BeeCoding" : n.ProblemTitle;
         return (title, body, url);
@@ -57,8 +47,14 @@ public class WebPushService(IConfiguration cfg, IServiceScopeFactory scopes, IHt
     public void Queue(int userId, NotificationDto dto)
     {
         if (!Enabled) return;
-        var (title, body, url) = Describe(dto);
-        _ = Task.Run(() => SendAsync(userId, title, body, url, $"beecoding-{dto.Id}"));
+        _ = Task.Run(async () =>
+        {
+            string prefs;
+            using (var scope = scopes.CreateScope())
+                prefs = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.Where(u => u.Id == userId).Select(u => u.Preferences).FirstOrDefaultAsync() ?? "";
+            var (title, body, url) = Describe(dto, Text.LangOf(prefs));
+            await SendAsync(userId, title, body, url, $"beecoding-{dto.Id}");
+        });
     }
 
     /// <summary>Deliver to every subscription of a user; returns how many accepted it.</summary>

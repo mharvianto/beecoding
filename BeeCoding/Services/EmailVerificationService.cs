@@ -45,12 +45,10 @@ public class EmailVerificationService(AppDbContext db, EmailService email, IConf
         await _db.SaveChangesAsync();
 
         var link = PublicUrl.Build(_cfg, request, $"/verify-email?token={Uri.EscapeDataString(token)}");
-        var body =
-            $"Hi {user.DisplayName},\n\n" +
-            "Please confirm your email address for your BeeCoding account by opening this link " +
-            $"(it works once and expires in {(int)Lifetime.TotalHours} hours):\n\n{link}\n\n" +
-            "If you didn't create a BeeCoding account, you can ignore this email.\n";
-        _ = _email.SendAsync(user.Email, "Confirm your BeeCoding email", body);   // deliberately not awaited
+        var lang = Text.LangOf(user.Preferences, request);
+        var body = Text.T(lang, "Hi {0},\n\nPlease confirm your email address for your BeeCoding account by opening this link (it works once and expires in {1} hours):\n\n{2}\n\nIf you didn't create a BeeCoding account, you can ignore this email.\n",
+            user.DisplayName, (int)Lifetime.TotalHours, link);
+        _ = _email.SendAsync(user.Email, Text.T(lang, "Confirm your BeeCoding email"), body);   // deliberately not awaited
         return true;
     }
 

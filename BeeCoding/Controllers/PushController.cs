@@ -64,7 +64,7 @@ public class PushController(AppDbContext db, WebPushService push) : ApiControlle
     public async Task<ActionResult<object>> Test()
     {
         if (!_push.Enabled) return NotFound();
-        var sent = await _push.SendAsync(UserId, "BeeCoding", "Test notification: push works on this device.", "/", $"beecoding-test-{Guid.NewGuid():N}");
+        var sent = await _push.SendAsync(UserId, "BeeCoding", Text.T(Text.LangOf(await _db.Users.Where(u => u.Id == UserId).Select(u => u.Preferences).FirstOrDefaultAsync(), Request), "Test notification: push works on this device."), "/", $"beecoding-test-{Guid.NewGuid():N}");
         return new { sent };
     }
 }

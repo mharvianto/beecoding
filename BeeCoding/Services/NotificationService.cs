@@ -365,39 +365,43 @@ public class NotificationService(AppDbContext db, IBoardNotifier notifier, WebPu
         if (dto is null) return;
         await _notifier.NotificationAsync(n.UserId, dto, await UnreadCountAsync(n.UserId));
         _webPush.Queue(n.UserId, dto);
-        if (emailTo is not null) QueueEmail(emailTo, dto);
+        if (emailTo is not null)
+            QueueEmail(emailTo, dto, Text.LangOf(await _db.Users.Where(u => u.Id == n.UserId).Select(u => u.Preferences).FirstOrDefaultAsync()));
     }
 
     /// <summary>Plain-text mail, sent in the background (SMTP can take seconds and must not hold up the click that caused it;
     /// <see cref="EmailService.SendAsync"/> never throws). Without <c>App:PublicUrl</c> there is no link to put in it, so none is sent.</summary>
-    private void QueueEmail(string to, NotificationDto d)
+    private void QueueEmail(string to, NotificationDto d, string lang)
     {
         var baseUrl = _cfg["App:PublicUrl"]?.Trim().TrimEnd('/');
         if (string.IsNullOrEmpty(baseUrl)) return;
         var path = d.Link ?? $"/boards/{Uri.EscapeDataString(d.BoardSlug)}?problem={d.ProblemId}&post={d.PostId}";
-        var body = $"{EmailText(d)}\n\nOpen it: {baseUrl}{path}\n\nChoose which notifications you get by email: {baseUrl}/account";
-        _ = Task.Run(() => _email.SendAsync(to, "BeeCoding: you have a new notification", body));
+        var body = Text.T(lang, "{0}\n\nOpen it: {1}{2}\n\nChoose which notifications you get by email: {1}/account", EmailText(d, lang), baseUrl, path);
+        _ = Task.Run(() => _email.SendAsync(to, Text.T(lang, "BeeCoding: you have a new notification"), body));
     }
 
-    public static string EmailText(NotificationDto d)
+    /// <summary>One sentence for a bell item, for the email and the web push (the SPA has its own copy in stores/notifications.js).</summary>
+    public static string EmailText(NotificationDto d, string lang = "en")
     {
         var note = string.IsNullOrWhiteSpace(d.Snippet) ? "" : $": \"{d.Snippet}\"";
+        var ok = d.Emoji == "✅";
+        var who = d.ActorIsStaff ? $"{d.ActorName} 👨‍🏫" : d.ActorName;
         return d.Kind switch
         {
-            "report" => $"{d.ActorName} reported your problem \"{d.ProblemTitle}\"{note}",
-            "report-update" => $"Your report on \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "resolved" : "dismissed")} by {d.ActorName}{note}",
-            "review-submitted" => $"{d.ActorName} submitted \"{d.ProblemTitle}\" for review",
-            "proposal" => $"{d.ActorName} proposed the problem \"{d.ProblemTitle}\" for your board{note}",
-            "proposal-update" => $"Your proposal \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
-            "practice-review" => $"Your practice submission \"{d.ProblemTitle}\" was {(d.Emoji == "✅" ? "approved" : "declined")} by {d.ActorName}{note}",
-            "org-invite" => $"{d.ActorName} invited you to the organization \"{d.ProblemTitle}\". Accept or decline it in your account.",
-            "group-opens" => $"The session \"{d.ProblemTitle}\" on {d.Snippet} is now open",
-            "group-closing" => $"The session \"{d.ProblemTitle}\" on {d.Snippet} closes within the hour",
-            "problem-new" => d.Count > 1 ? $"{d.Count} new problems on {d.Snippet}" : $"New problem on {d.Snippet}: \"{d.ProblemTitle}\"",
-            "lti-sync-failed" => $"Sending grades of the board \"{d.ProblemTitle}\" to the LMS failed. Check the LTI settings.",
-            "security" => $"Security notice for your account: {d.ProblemTitle}. If this was not you, reset your password now.",
-            "comment" => $"{d.ActorName} commented on your card{note}",
-            _ => $"{d.ActorName} reacted {d.Emoji} to your card",
+            "report" => Text.T(lang, "{0} reported your problem \"{1}\"{2}", d.ActorName, d.ProblemTitle, note),
+            "report-update" => Text.T(lang, ok ? "Your report on \"{0}\" was resolved by {1}{2}" : "Your report on \"{0}\" was dismissed by {1}{2}", d.ProblemTitle, d.ActorName, note),
+            "review-submitted" => Text.T(lang, "{0} submitted \"{1}\" for review", d.ActorName, d.ProblemTitle),
+            "proposal" => Text.T(lang, "{0} proposed the problem \"{1}\" for your board{2}", d.ActorName, d.ProblemTitle, note),
+            "proposal-update" => Text.T(lang, ok ? "Your proposal \"{0}\" was approved by {1}{2}" : "Your proposal \"{0}\" was declined by {1}{2}", d.ProblemTitle, d.ActorName, note),
+            "practice-review" => Text.T(lang, ok ? "Your practice submission \"{0}\" was approved by {1}{2}" : "Your practice submission \"{0}\" was declined by {1}{2}", d.ProblemTitle, d.ActorName, note),
+            "org-invite" => Text.T(lang, "{0} invited you to the organization \"{1}\". Accept or decline it in your account.", d.ActorName, d.ProblemTitle),
+            "group-opens" => Text.T(lang, "The session \"{0}\" on {1} is now open", d.ProblemTitle, d.Snippet ?? ""),
+            "group-closing" => Text.T(lang, "The session \"{0}\" on {1} closes within the hour", d.ProblemTitle, d.Snippet ?? ""),
+            "problem-new" => d.Count > 1 ? Text.T(lang, "{0} new problems on {1}", d.Count, d.Snippet ?? "") : Text.T(lang, "New problem on {0}: \"{1}\"", d.Snippet ?? "", d.ProblemTitle),
+            "lti-sync-failed" => Text.T(lang, "Sending grades of the board \"{0}\" to the LMS failed. Check the LTI settings.", d.ProblemTitle),
+            "security" => Text.T(lang, "Security notice for your account: {0}. If this was not you, reset your password now.", d.ProblemTitle),
+            "comment" => Text.T(lang, "{0} commented on your card{1}", d.ActorName, note),
+            _ => Text.T(lang, "{0} reacted {1} to your card", who, d.Emoji ?? ""),
         };
     }
 
