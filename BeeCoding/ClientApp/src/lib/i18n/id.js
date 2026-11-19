@@ -1366,6 +1366,7 @@ export default {
   "The ZIP is too large once unpacked.": "ZIP terlalu besar setelah dibuka.",
   "Open the output in a large window": "Buka output di jendela besar",
   "Run panel": "Panel jalankan",
+  "Drag to resize, click to fold": "Seret untuk mengubah ukuran, klik untuk melipat",
   "Wrap lines": "Bungkus baris",
   "Nothing yet — run your code.": "Belum ada — jalankan kode Anda.",
 };
