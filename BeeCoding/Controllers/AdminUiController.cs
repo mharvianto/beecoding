@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using BeeCoding.Data;
@@ -921,29 +922,134 @@ public class AdminUiController(
     }
 
     // ---- problems export / import -------------------------------------------
-    [HttpGet("problems/export")]
-    public async Task<IActionResult> Export()
+    private static readonly JsonSerializerOptions ExportJson = new();   // PascalCase and compact; an import reads it case-insensitively
+
+    private IQueryable<BankProblem> ExportQuery(bool? isPublic, string? level, string? tag, string? owner, DateTime? since)
     {
-        var problems = await _db.BankProblems.Where(b => !b.BoardOnly).Include(b => b.Owner).Include(b => b.TestCases)
-            .OrderBy(b => b.Id).ToListAsync();
+        var q = _db.BankProblems.AsNoTracking().Where(b => !b.BoardOnly);
+        if (isPublic is bool pub) q = q.Where(b => b.IsPublic == pub);
+        if (Enum.TryParse<ProblemLevel>(level, true, out var lv)) q = q.Where(b => b.Level == lv);
+        var t = (tag ?? "").Trim().ToLowerInvariant();
+        if (t.Length > 0) q = q.Where(b => ("," + b.Tags + ",").Contains("," + t + ","));
+        var o = (owner ?? "").Trim().ToLowerInvariant();
+        if (o.Length > 0) q = q.Where(b => b.Owner!.Email == o);
+        if (since is DateTime s) q = q.Where(b => b.UpdatedAt >= s);
+        return q;
+    }
 
-        var bundle = new AdminProblemBundle(1, DateTime.UtcNow, problems.Select(b => new AdminProblemItem(
-            b.Owner?.Email ?? "", b.Title, b.StatementMarkdown, b.AllowedLanguages, b.Level.ToString(),
-            b.Tags, b.TimeLimitMs, b.MemoryLimitKb, b.IsPublic, b.GeneratedByAi,
-            b.BannedHeaders, b.BannedSymbols,
-            b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
-                .Select(t => new AdminProblemTest(t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position))
-                .ToList(),
-            b.InputFileName)).ToList());
+    private static AdminProblemItem ToExportItem(BankProblem b) => new(
+        b.Owner?.Email ?? "", b.Title, b.StatementMarkdown, b.AllowedLanguages, b.Level.ToString(),
+        b.Tags, b.TimeLimitMs, b.MemoryLimitKb, b.IsPublic, b.GeneratedByAi,
+        b.BannedHeaders, b.BannedSymbols,
+        b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
+            .Select(t => new AdminProblemTest(t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position)).ToList(),
+        b.InputFileName, b.Slug);
 
-        var json = JsonSerializer.Serialize(bundle, new JsonSerializerOptions { WriteIndented = true });
-        return File(System.Text.Encoding.UTF8.GetBytes(json), "application/json",
-            $"beecoding-problems-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json");
+    private static Task<List<BankProblem>> ExportPage(IQueryable<BankProblem> q, int skip, int take) =>
+        q.Include(b => b.Owner).Include(b => b.TestCases).OrderBy(b => b.Id).Skip(skip).Take(take).ToListAsync();
+
+    private static string CsvCell(string? v)
+    {
+        v ??= "";
+        return v.IndexOfAny([',', '"', '\n', '\r']) >= 0 ? "\"" + v.Replace("\"", "\"\"") + "\"" : v;
+    }
+
+    /// <summary>The bank as a download. <c>format=zip</c> (what the Admin page uses) is one import-ready JSON file per <c>batch</c>
+    /// problems plus an index.csv; <c>format=json</c> is the single file it always was. Filters narrow what is exported. The
+    /// result is built in a temp file one batch at a time, so memory stays flat however many problems there are.</summary>
+    [HttpGet("problems/export")]
+    public async Task<IActionResult> Export([FromQuery] string format = "json", [FromQuery] int batch = 100,
+        [FromQuery(Name = "public")] bool? isPublic = null, [FromQuery] string? level = null, [FromQuery] string? tag = null,
+        [FromQuery] string? owner = null, [FromQuery] DateTime? since = null)
+    {
+        batch = Math.Clamp(batch, 10, 1000);
+        bool zipped = string.Equals(format, "zip", StringComparison.OrdinalIgnoreCase);
+        var query = ExportQuery(isPublic, level, tag, owner, since);
+        var total = await query.CountAsync();
+        var now = DateTime.UtcNow;
+        var tmp = new FileStream(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose);
+        try
+        {
+            if (zipped)
+            {
+                using var zip = new ZipArchive(tmp, ZipArchiveMode.Create, leaveOpen: true);
+                var index = new StringBuilder("id,slug,title,owner,level,tags,public,ai,tests,samples,updated\n");
+                int file = 0;
+                for (var skip = 0; skip < total; skip += batch)
+                {
+                    var rows = await ExportPage(query, skip, batch);
+                    var entry = zip.CreateEntry($"problems-{++file:D3}.json", CompressionLevel.Optimal);
+                    await using (var s = entry.Open())
+                        await JsonSerializer.SerializeAsync(s, new AdminProblemBundle(1, now, rows.Select(ToExportItem).ToList()), ExportJson);
+                    foreach (var b in rows)
+                        index.Append(string.Join(',', b.Id, CsvCell(b.Slug), CsvCell(b.Title), CsvCell(b.Owner?.Email), b.Level, CsvCell(b.Tags),
+                            b.IsPublic, b.GeneratedByAi, b.TestCases.Count, b.TestCases.Count(t => t.IsSample), b.UpdatedAt.ToString("s"))).Append('\n');
+                }
+                await using (var s = zip.CreateEntry("index.csv", CompressionLevel.Optimal).Open())
+                    await s.WriteAsync(new UTF8Encoding(true).GetPreamble().Concat(Encoding.UTF8.GetBytes(index.ToString())).ToArray());   // BOM: Excel reads it as UTF-8
+            }
+            else
+            {
+                await using (var w = new Utf8JsonWriter(tmp))
+                {
+                    w.WriteStartObject();
+                    w.WriteNumber("Version", 1);
+                    w.WriteString("ExportedAt", now);
+                    w.WriteStartArray("Problems");
+                    for (var skip = 0; skip < total; skip += batch)
+                        foreach (var b in await ExportPage(query, skip, batch)) JsonSerializer.Serialize(w, ToExportItem(b), ExportJson);
+                    w.WriteEndArray();
+                    w.WriteEndObject();
+                }
+            }
+            tmp.Position = 0;
+            return File(tmp, zipped ? "application/zip" : "application/json", $"beecoding-problems-{now:yyyyMMdd-HHmmss}.{(zipped ? "zip" : "json")}");
+        }
+        catch { await tmp.DisposeAsync(); throw; }
     }
 
     [HttpPost("problems/import")]
     [RequestSizeLimit(BodyLimits.AdminImportBytes)]   // a whole problem bank can be tens of MB
-    public async Task<ActionResult<AdminImportResult>> Import(AdminProblemBundle bundle, [FromQuery] bool replaceExisting = true)
+    public async Task<ActionResult<AdminImportResult>> Import(AdminProblemBundle bundle, [FromQuery] bool replaceExisting = true) =>
+        await ImportBundle(bundle, replaceExisting);
+
+    /// <summary>The ZIP the export makes (or any ZIP of such JSON files): every .json inside is imported in turn.</summary>
+    [HttpPost("problems/import-zip")]
+    [RequestSizeLimit(BodyLimits.AdminImportBytes)]
+    public async Task<ActionResult<AdminImportResult>> ImportZip([FromQuery] bool replaceExisting = true)
+    {
+        const long MaxUnzipped = 400L * 1024 * 1024;
+        await using var tmp = new FileStream(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose);
+        await Request.Body.CopyToAsync(tmp);
+        tmp.Position = 0;
+        ZipArchive zip;
+        try { zip = new ZipArchive(tmp, ZipArchiveMode.Read, leaveOpen: true); }
+        catch (InvalidDataException) { return BadRequest("That is not a valid ZIP file."); }
+        int created = 0, updated = 0, skipped = 0;
+        var errors = new List<string>();
+        using (zip)
+        {
+            long unzipped = 0;
+            foreach (var e in zip.Entries.Where(e => e.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase)).OrderBy(e => e.FullName))
+            {
+                unzipped += e.Length;
+                if (unzipped > MaxUnzipped) return BadRequest("The ZIP is too large once unpacked.");
+                AdminProblemBundle? bundle;
+                try
+                {
+                    await using var s = e.Open();
+                    bundle = await JsonSerializer.DeserializeAsync<AdminProblemBundle>(s, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                }
+                catch (JsonException ex) { errors.Add($"{e.FullName}: {ex.Message}"); continue; }
+                if (bundle?.Problems is null) { errors.Add($"{e.FullName}: no problems in it"); continue; }
+                var r = await ImportBundle(bundle, replaceExisting);
+                created += r.Created; updated += r.Updated; skipped += r.Skipped; errors.AddRange(r.Errors);
+            }
+        }
+        return new AdminImportResult(created, updated, skipped, errors);
+    }
+
+    private async Task<AdminImportResult> ImportBundle(AdminProblemBundle bundle, bool replaceExisting)
     {
         int created = 0, updated = 0, skipped = 0;
         var errors = new List<string>();
@@ -964,7 +1070,10 @@ public class AdminUiController(
                 owner ??= firstTeacher;
                 if (owner is null) { errors.Add($"{title}: no teacher account to own it"); continue; }
 
-                var existing = await _db.BankProblems.Include(b => b.TestCases)
+                // the slug is the stable key when the file carries one (a renamed problem is then updated, not duplicated)
+                var existing = string.IsNullOrWhiteSpace(item.Slug) ? null
+                    : await _db.BankProblems.Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Slug == item.Slug && !b.BoardOnly);
+                existing ??= await _db.BankProblems.Include(b => b.TestCases)
                     .FirstOrDefaultAsync(b => b.OwnerId == owner.Id && b.Title == title && !b.BoardOnly);
                 if (existing is not null && !replaceExisting) { skipped++; continue; }
 

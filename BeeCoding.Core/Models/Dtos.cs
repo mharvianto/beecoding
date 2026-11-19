@@ -217,7 +217,8 @@ public record AdminProblemTest(string Stdin, string ExpectedStdout, bool IsSampl
 public record AdminProblemItem(
     string OwnerEmail, string Title, string StatementMarkdown, string AllowedLanguages, string Level,
     string Tags, int TimeLimitMs, int MemoryLimitKb, bool IsPublic, bool GeneratedByAi,
-    string? BannedHeaders, string? BannedSymbols, List<AdminProblemTest> Tests, string? InputFileName = null);
+    string? BannedHeaders, string? BannedSymbols, List<AdminProblemTest> Tests, string? InputFileName = null,
+    string? Slug = null);   // the stable key for an import; without it the owner's email + title is used
 public record AdminProblemBundle(int Version, DateTime ExportedAt, List<AdminProblemItem> Problems);
 public record AdminImportResult(int Created, int Updated, int Skipped, List<string> Errors);
 

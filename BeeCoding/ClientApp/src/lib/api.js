@@ -53,8 +53,18 @@ async function upload(url, file) {
   return data;
 }
 
+/** POST a file as the raw request body (the server reads the stream), e.g. a ZIP import. */
+async function postFile(url, file) {
+  const res = await fetch(withBase(url), { method: 'POST', credentials: 'include', headers: { 'Content-Type': file.type || 'application/octet-stream' }, body: file });
+  const text = await res.text();
+  const data = text ? tryParse(text) : null;
+  if (!res.ok) throw new Error(tr(friendlyMessage(res.status, data) || `HTTP ${res.status}`));
+  return data;
+}
+
 export const api = {
   upload,
+  postFile,
   get: (u) => request('GET', u),
   post: (u, b) => request('POST', u, b ?? {}),
   put: (u, b) => request('PUT', u, b ?? {}),

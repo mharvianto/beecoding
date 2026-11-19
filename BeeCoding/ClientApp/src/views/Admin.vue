@@ -874,7 +874,22 @@ async function downloadFile(url, fallbackName) {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   } catch (e) { err.value = e.message; }
 }
-const exportProblems = () => downloadFile('/api/admin-ui/problems/export', 'beecoding-problems.json');
+// Export: filters narrow the bank, `batch` problems go in each JSON file of the ZIP (see AdminUiController.Export).
+const exportOpts = ref({ level: '', visibility: '', tag: '', owner: '', since: '', batch: 100, format: 'zip' });
+const exporting = ref(false);
+async function exportProblems() {
+  const o = exportOpts.value;
+  const p = new URLSearchParams({ format: o.format, batch: String(o.batch) });
+  if (o.level) p.set('level', o.level);
+  if (o.visibility) p.set('public', o.visibility === 'public' ? 'true' : 'false');
+  if (o.tag.trim()) p.set('tag', o.tag.trim());
+  if (o.owner.trim()) p.set('owner', o.owner.trim());
+  if (o.since) p.set('since', o.since);
+  err.value = ''; exporting.value = true;
+  try { await downloadFile(`/api/admin-ui/problems/export?${p}`, `beecoding-problems.${o.format}`); }
+  catch (e) { err.value = e.message; }
+  finally { exporting.value = false; }
+}
 
 // ---- reports: analytics export + system status ----
 const systemStatus = ref(null);
@@ -963,9 +978,9 @@ async function importProblems(ev) {
   if (!file) return;
   err.value = ''; importResult.value = null; importing.value = true;
   try {
-    const bundle = JSON.parse(await file.text());
-    importResult.value = await api.post(
-      `/api/admin-ui/problems/import?replaceExisting=${replaceExisting.value}`, bundle);
+    importResult.value = /\.zip$/i.test(file.name)
+      ? await api.postFile(`/api/admin-ui/problems/import-zip?replaceExisting=${replaceExisting.value}`, file)
+      : await api.post(`/api/admin-ui/problems/import?replaceExisting=${replaceExisting.value}`, JSON.parse(await file.text()));
   } catch (e) { err.value = e.message; }
   finally { importing.value = false; }
 }
@@ -1730,23 +1745,46 @@ onMounted(async () => {
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">{{ tr('Export') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          {{ tr('Downloads every bank problem (all owners) with its test cases as a JSON file.') }}
+          {{ tr('Downloads bank problems (all owners) with their test cases. The ZIP has one JSON file per batch of problems plus an index.csv; each file can be imported on its own.') }}
         </p>
-        <button @click="exportProblems"
-                class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-          {{ tr('Download problems.json') }}
-        </button>
+        <div class="flex flex-wrap gap-2 mb-2 text-sm">
+          <select v-model="exportOpts.level" :aria-label="tr('Level')" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5">
+            <option value="">{{ tr('All levels') }}</option><option value="Easy">{{ tr('Easy') }}</option><option value="Medium">{{ tr('Medium') }}</option><option value="Hard">{{ tr('Hard') }}</option>
+          </select>
+          <select v-model="exportOpts.visibility" :aria-label="tr('Visibility')" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5">
+            <option value="">{{ tr('Public and private') }}</option><option value="public">{{ tr('Public only') }}</option><option value="private">{{ tr('Private only') }}</option>
+          </select>
+          <input v-model="exportOpts.tag" :placeholder="tr('Tag')" :aria-label="tr('Tag')" class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5" />
+          <input v-model="exportOpts.owner" :placeholder="tr('Owner email')" :aria-label="tr('Owner email')" class="w-52 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5" />
+          <label class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">{{ tr('Updated since') }}
+            <input v-model="exportOpts.since" type="date" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-slate-100" />
+          </label>
+        </div>
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+          <select v-model="exportOpts.format" :aria-label="tr('Format')" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1.5">
+            <option value="zip">{{ tr('ZIP (one file per batch)') }}</option><option value="json">{{ tr('One JSON file') }}</option>
+          </select>
+          <label v-if="exportOpts.format === 'zip'" class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">{{ tr('Problems per file') }}
+            <select v-model.number="exportOpts.batch" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-slate-900 dark:text-slate-100">
+              <option v-for="n in [25, 50, 100, 250, 500]" :key="n" :value="n">{{ n }}</option>
+            </select>
+          </label>
+          <button @click="exportProblems" :disabled="exporting"
+                  class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
+            {{ exporting ? tr('Preparing…') : tr('Download') }}
+          </button>
+        </div>
       </div>
 
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <h2 class="font-semibold text-sm mb-1">{{ tr('Import') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          {{ tr('Upserts by (owner email, title). Owner resolved by email, falling back to the first teacher.') }}
+          {{ tr('Upserts by slug when the file has one, else by (owner email, title). Owner resolved by email, falling back to the first teacher. A .json file or the exported .zip.') }}
         </p>
         <label class="flex items-center gap-2 text-xs mb-2">
-          <input type="checkbox" v-model="replaceExisting" /> {{ tr('Replace existing (overwrite a problem with the same owner + title)') }}
+          <input type="checkbox" v-model="replaceExisting" /> {{ tr('Replace existing (overwrite a problem with the same slug, or owner + title)') }}
         </label>
-        <input type="file" accept="application/json,.json" :aria-label="tr('problems.json file')" @change="importProblems" :disabled="importing"
+        <input type="file" accept="application/json,.json,application/zip,.zip" :aria-label="tr('problems.json or ZIP file')" @change="importProblems" :disabled="importing"
                class="text-sm" />
         <p v-if="importing" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
         <div v-if="importResult" class="mt-3 text-sm">

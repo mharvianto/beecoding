@@ -310,4 +310,57 @@ public class BoardProblemBankTests
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); Environment.SetEnvironmentVariable("Admin__Token", null); }
     }
+
+    [Fact]
+    public async Task The_admin_export_zips_in_batches_with_filters_and_the_zip_imports_back_by_slug()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var t = await TeacherAsync(app);
+            AdminProblemItemJson Item(string title, string level, string tags) => new(title, "Statement of " + title, level, tags);
+            var bundle = new { version = 1, exportedAt = DateTime.UtcNow, problems = new[] { Item("Easy one", "Easy", "array,loop"), Item("Hard one", "Hard", "graph"), Item("Hard two", "Hard", "graph,dp") }.Concat(Enumerable.Range(1, 12).Select(n => Item($"Filler {n}", "Medium", "x")))
+                .Select(i => new { ownerEmail = "teacher@demo.test", title = i.Title, statementMarkdown = i.Statement, allowedLanguages = "", level = i.Level, tags = i.Tags,
+                    timeLimitMs = 1000, memoryLimitKb = 32768, isPublic = true, generatedByAi = false, bannedHeaders = "", bannedSymbols = "",
+                    tests = new[] { new { stdin = "1\n", expectedStdout = "1\n", isSample = true, points = 1, position = 0 } } }) };
+            var imported = await (await t.PostAsJsonAsync("/api/admin-ui/problems/import", bundle)).Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal(15, imported.GetProperty("created").GetInt32());
+
+            // the whole bank in batches of 10: several files, nothing lost or repeated at a page boundary
+            using (var all = new System.IO.Compression.ZipArchive(await t.GetStreamAsync("/api/admin-ui/problems/export?format=zip&batch=10")))
+            {
+                var files = all.Entries.Where(e => e.FullName.StartsWith("problems-")).OrderBy(e => e.FullName).ToList();
+                var titles = files.SelectMany(f => JsonDocument.Parse(f.Open()).RootElement.GetProperty("Problems").EnumerateArray().Select(x => x.GetProperty("Title").GetString())).ToList();
+                Assert.True(files.Count > 1);                                   // the seeded bank plus the 15 does not fit in one batch of 10
+                Assert.Equal((titles.Count + 9) / 10, files.Count);             // every file but the last is full
+                Assert.Equal(titles.Count, titles.Distinct().Count());           // nothing repeated at a page boundary
+                Assert.Contains("Filler 12", titles);
+            }
+
+            using var zip = new System.IO.Compression.ZipArchive(await t.GetStreamAsync("/api/admin-ui/problems/export?format=zip&level=Hard&tag=graph&batch=10"));
+            Assert.Contains(zip.Entries, e => e.FullName == "index.csv");
+            var file = Assert.Single(zip.Entries, e => e.FullName.StartsWith("problems-"));
+            using var doc = JsonDocument.Parse(file.Open());
+            var names = doc.RootElement.GetProperty("Problems").EnumerateArray().Select(x => x.GetProperty("Title").GetString()).OrderBy(x => x).ToArray();
+            Assert.Equal(new[] { "Hard one", "Hard two" }, names);
+            Assert.All(doc.RootElement.GetProperty("Problems").EnumerateArray(), x => Assert.False(string.IsNullOrEmpty(x.GetProperty("Slug").GetString())));
+            using (var idx = new StreamReader(zip.GetEntry("index.csv")!.Open())) Assert.DoesNotContain("Easy one", await idx.ReadToEndAsync());
+
+            // the same ZIP imported back updates the two rows, even though the title in the file is changed (slug is the key)
+            var ms = new MemoryStream();
+            using (var z2 = new System.IO.Compression.ZipArchive(ms, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+            using (var w = new StreamWriter(z2.CreateEntry("renamed.json").Open()))
+                w.Write(file.Open().Let(s => new StreamReader(s).ReadToEnd()).Replace("Hard one", "Hard one (renamed)"));
+            ms.Position = 0;
+            var res = await (await t.PostAsync("/api/admin-ui/problems/import-zip", new StreamContent(ms))).Content.ReadFromJsonAsync<JsonElement>();
+            Assert.Equal(0, res.GetProperty("created").GetInt32());
+            Assert.Equal(2, res.GetProperty("updated").GetInt32());
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    record AdminProblemItemJson(string Title, string Statement, string Level, string Tags);
 }
+
+file static class StreamExt { public static R Let<T, R>(this T x, Func<T, R> f) => f(x); }
