@@ -25,6 +25,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
     private readonly OrgAccess _orgAccess = orgAccess;
 
     [HttpPost("api/problems/{problemId:int}/submit")]
+    [RequestSizeLimit(BodyLimits.CodeBodyBytes)]
     public async Task<ActionResult<object>> Submit(int problemId, SubmitDto dto)
     {
         var problem = await _db.Problems.Include(p => p.TestCases).Include(p => p.Group).FirstOrDefaultAsync(p => p.Id == problemId);

@@ -428,6 +428,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     }
 
     [HttpPost("{slug}/submit")]
+    [RequestSizeLimit(BodyLimits.CodeBodyBytes)]
     public async Task<ActionResult<object>> Submit(string slug, SubmitDto dto)
     {
         var problem = await Playable().Include(b => b.TestCases).FirstOrDefaultAsync(b => b.Slug == slug);

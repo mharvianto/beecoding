@@ -676,6 +676,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         : null;
 
     [HttpPost("hint")]
+    [RequestSizeLimit(BodyLimits.CodeBodyBytes)]
     public async Task<IActionResult> Hint(AiHintDto dto)
     {
         var orgId = await _orgs.ForHintAsync(dto.ProblemId, dto.BoardSlug, UserId);
@@ -707,6 +708,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     }
 
     [HttpPost("hint/stream")]
+    [RequestSizeLimit(BodyLimits.CodeBodyBytes)]
     public async Task Stream(AiHintDto dto)
     {
         var orgId = await _orgs.ForHintAsync(dto.ProblemId, dto.BoardSlug, UserId);

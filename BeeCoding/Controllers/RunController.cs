@@ -22,6 +22,7 @@ public class RunController(IJudgeQueue queue, RateLimiter rate, IOptions<JudgeOp
 
     /// <summary>Ad-hoc compile + run with custom stdin. Not judged, not persisted.</summary>
     [HttpPost]
+    [RequestSizeLimit(BodyLimits.CodeBodyBytes)]
     public async Task<ActionResult<RunResultDto>> Run(RunDto dto, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is empty.");
