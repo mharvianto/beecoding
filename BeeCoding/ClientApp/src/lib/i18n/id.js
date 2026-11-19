@@ -1346,4 +1346,5 @@ export default {
   "without": "tanpa",
   "Admins": "Admin",
   "Organization admins": "Admin organisasi",
+  "by {name}": "oleh {name}",
 };

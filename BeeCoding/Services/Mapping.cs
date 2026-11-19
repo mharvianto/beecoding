@@ -95,5 +95,6 @@ public static class Mapping
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => new TestCaseDto(t.Id, t.Stdin, "", true, t.Points, t.Position))
             .ToList(),
-        solved, b.BannedHeaders, b.BannedSymbols, b.InputFileName, b.IsPublic);
+        solved, b.BannedHeaders, b.BannedSymbols, b.InputFileName, b.IsPublic,
+        b.Owner is { DeletedAt: null } o ? o.DisplayName : null);
 }

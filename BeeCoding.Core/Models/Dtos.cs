@@ -407,7 +407,8 @@ public record PracticeProblemDto(
     int Id, string Slug, string Title, string StatementMarkdown, string AllowedLanguages,
     int TimeLimitMs, int MemoryLimitKb, string Level, string Tags,
     List<TestCaseDto> SampleTests, bool Solved, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
-    bool IsPublic = true);   // false = the author's own draft: no likes/reports/AI hints
+    bool IsPublic = true,   // false = the author's own draft: no likes/reports/AI hints
+    string? AuthorName = null);   // who wrote it (display name); null when unknown or the account is gone
 
 public record BankSubmissionDto(
     int Id, int BankProblemId, string Status, string Verdict,

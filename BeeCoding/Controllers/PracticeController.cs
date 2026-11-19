@@ -420,7 +420,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
     [HttpGet("{slug}")]
     public async Task<ActionResult<PracticeProblemDto>> Get(string slug)
     {
-        var b = await Playable().Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
+        var b = await Playable().Include(x => x.TestCases).Include(x => x.Owner).FirstOrDefaultAsync(x => x.Slug == slug);
         if (b is null) return NotFound();
         bool solved = await _db.BankSubmissions.AnyAsync(
             s => s.UserId == UserId && s.BankProblemId == b.Id && s.Verdict == Verdict.Accepted && s.Score >= 1.0);

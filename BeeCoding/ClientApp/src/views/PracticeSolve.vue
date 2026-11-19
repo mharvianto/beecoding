@@ -239,6 +239,7 @@ onBeforeUnmount(async () => {
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
+        <span v-if="problem.authorName" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('by {name}', { name: problem.authorName }) }}</span>
         <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ tr('✓ solved') }}</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
