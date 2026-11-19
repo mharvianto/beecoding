@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -68,35 +69,35 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to {title}', { title: board.title }) }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
-      <h1 class="text-xl font-bold">Submissions</h1>
+      <h1 class="text-xl font-bold">{{ tr('Submissions') }}</h1>
       <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
-        <RouterLink :to="`/boards/${slug}/stats`" class="px-3 py-1.5 text-slate-500 dark:text-slate-400">Statistics</RouterLink>
-        <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 bg-slate-800 text-white dark:bg-slate-600">Submissions</RouterLink>
+        <RouterLink :to="`/boards/${slug}/stats`" class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{{ tr('Statistics') }}</RouterLink>
+        <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 bg-slate-800 text-white dark:bg-slate-600">{{ tr('Submissions') }}</RouterLink>
       </span>
     </div>
     <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
 
     <div class="flex flex-wrap gap-2 mb-3">
-      <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student or problem…" aria-label="Search student or problem…"
+      <input v-model="submissionQ" @keyup.enter="searchSubmissions" :placeholder="tr('Search student or problem…')" :aria-label="tr('Search student or problem…')"
              class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-model="submissionUserId" @change="searchSubmissions"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="All students">
-        <option value="">All students</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('All students')">
+        <option value="">{{ tr('All students') }}</option>
         <option v-for="st in students" :key="st.userId" :value="st.userId">{{ st.displayName }}</option>
       </select>
       <select v-model="submissionVerdict" @change="searchSubmissions"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Any verdict">
-        <option value="">Any verdict</option>
-        <option value="Accepted">Accepted</option>
-        <option value="WrongAnswer">Wrong answer</option>
-        <option value="TimeLimit">Time limit</option>
-        <option value="MemoryLimit">Memory limit</option>
-        <option value="RuntimeError">Runtime error</option>
-        <option value="CompileError">Compile error</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('Any verdict')">
+        <option value="">{{ tr('Any verdict') }}</option>
+        <option value="Accepted">{{ tr('Accepted') }}</option>
+        <option value="WrongAnswer">{{ tr('Wrong answer') }}</option>
+        <option value="TimeLimit">{{ tr('Time limit') }}</option>
+        <option value="MemoryLimit">{{ tr('Memory limit') }}</option>
+        <option value="RuntimeError">{{ tr('Runtime error') }}</option>
+        <option value="CompileError">{{ tr('Compile error') }}</option>
       </select>
-      <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+      <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
       <TableViewToggle class="ml-auto" />
     </div>
 
@@ -117,7 +118,7 @@ onMounted(async () => {
           {{ s.userDisplayName }} · {{ Math.round(s.score * 100) }}% · {{ s.runtimeMs }}ms · {{ s.language || '—' }}
         </div>
       </button>
-      <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions.</p>
+      <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No submissions.') }}</p>
     </div>
 
     <!-- desktop: table -->
@@ -125,9 +126,9 @@ onMounted(async () => {
       <table class="w-full text-sm">
         <thead>
           <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-            <th class="font-normal py-1.5 px-3">When</th><th class="font-normal px-3">Student</th>
-            <th class="font-normal px-3">Problem</th><th class="font-normal px-3">Verdict</th>
-            <th class="font-normal px-3">Score</th><th class="font-normal px-3">Runtime</th><th class="font-normal px-3">Lang</th>
+            <th class="font-normal py-1.5 px-3">{{ tr('When') }}</th><th class="font-normal px-3">{{ tr('Student') }}</th>
+            <th class="font-normal px-3">{{ tr('Problem') }}</th><th class="font-normal px-3">{{ tr('Verdict') }}</th>
+            <th class="font-normal px-3">{{ tr('Score') }}</th><th class="font-normal px-3">{{ tr('Runtime') }}</th><th class="font-normal px-3">{{ tr('Lang') }}</th>
           </tr>
         </thead>
         <tbody class="[&_td]:py-1.5 [&_td]:px-3">
@@ -145,7 +146,7 @@ onMounted(async () => {
             <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
             <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
           </tr>
-          <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3 px-3">No submissions.</td></tr>
+          <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3 px-3">{{ tr('No submissions.') }}</td></tr>
         </tbody>
       </table>
     </div>
@@ -155,9 +156,9 @@ onMounted(async () => {
       </span>
       <div class="ml-auto flex gap-2">
         <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
-                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
         <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
-                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
       </div>
     </div>
 

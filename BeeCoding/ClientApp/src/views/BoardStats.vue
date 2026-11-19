@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { hasData } from '../lib/hasData';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -66,12 +67,12 @@ onMounted(async () => {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to {title}', { title: board.title }) }}</RouterLink>
     <div class="flex items-center justify-between mt-2 mb-4">
-      <h1 class="text-xl font-bold">Statistics</h1>
+      <h1 class="text-xl font-bold">{{ tr('Statistics') }}</h1>
       <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
-        <RouterLink :to="`/boards/${slug}/stats`" class="px-3 py-1.5 bg-slate-800 text-white dark:bg-slate-600">Statistics</RouterLink>
-        <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 text-slate-500 dark:text-slate-400">Submissions</RouterLink>
+        <RouterLink :to="`/boards/${slug}/stats`" class="px-3 py-1.5 bg-slate-800 text-white dark:bg-slate-600">{{ tr('Statistics') }}</RouterLink>
+        <RouterLink :to="`/boards/${slug}/submissions`" class="px-3 py-1.5 text-slate-500 dark:text-slate-400">{{ tr('Submissions') }}</RouterLink>
       </span>
     </div>
     <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
@@ -79,26 +80,26 @@ onMounted(async () => {
     <div class="space-y-4">
       <div v-if="stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Students</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Students') }}</div>
           <div class="text-xl font-bold">{{ stats.totalStudents }}</div>
         </div>
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Problems</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Problems') }}</div>
           <div class="text-xl font-bold">{{ stats.totalProblems }}</div>
         </div>
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 col-span-2 sm:col-span-1">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Submissions') }}</div>
           <div class="text-xl font-bold">{{ stats.totalSubmissions }}</div>
           <div class="text-[11px] text-slate-500 dark:text-slate-400">
-            {{ stats.totalSubmissions ? Math.round(100 * stats.acceptedSubmissions / stats.totalSubmissions) : 0 }}% accepted
+            {{ tr('{n}% accepted', { n: stats.totalSubmissions ? Math.round(100 * stats.acceptedSubmissions / stats.totalSubmissions) : 0 }) }}
           </div>
         </div>
       </div>
-      <p v-else class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
+      <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">Engagement</h2>
+          <h2 class="font-semibold text-sm">{{ tr('Engagement') }}</h2>
           <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                     @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
@@ -108,15 +109,15 @@ onMounted(async () => {
           </span>
         </div>
         <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`Active students / ${engagementGranularity}`" :points="activeUserPoints()" />
-          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
+          <MiniLineChart :title="tr('Active students / {g}', { g: tr(engagementGranularity) })" :points="activeUserPoints()" />
+          <MiniLineChart :title="tr('Submissions / {g}', { g: tr(engagementGranularity) })" :points="submissionPoints()" />
         </div>
-        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
+        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity in this window yet.') }}</p>
       </div>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">AI usage</h2>
+          <h2 class="font-semibold text-sm">{{ tr('AI usage') }}</h2>
           <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                     @click="setAiGranularity(g[0])" class="px-2.5 py-1"
@@ -126,14 +127,14 @@ onMounted(async () => {
           </span>
         </div>
         <div v-if="hasData(aiEngagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
-          <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
+          <MiniLineChart :title="tr('AI calls / {g}', { g: tr(aiGranularity) })" :points="aiCallPoints()" />
+          <MiniLineChart :title="tr('AI tokens / {g}', { g: tr(aiGranularity) })" :points="aiTokenPoints()" />
         </div>
-        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage in this window yet.</p>
+        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No AI usage in this window yet.') }}</p>
       </div>
 
       <div v-if="stats?.topics?.length">
-        <h2 class="font-semibold text-sm mb-1.5">Top topics by attempts</h2>
+        <h2 class="font-semibold text-sm mb-1.5">{{ tr('Top topics by attempts') }}</h2>
         <TopicBarChart :items="topicBarItems()" />
       </div>
     </div>

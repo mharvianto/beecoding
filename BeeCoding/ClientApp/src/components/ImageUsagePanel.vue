@@ -25,10 +25,10 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
       <div v-for="[label, value, hint] in [
         ['Pictures', usage.images, ''],
         ['Storage', fmt(usage.bytes), ''],
-        ['Unused', fmt(usage.unusedBytes), usage.unused + ' picture' + (usage.unused === 1 ? '' : 's') + ', cleaned automatically'],
+        ['Unused', fmt(usage.unusedBytes), tr(usage.unused === 1 ? '{n} picture, cleaned automatically' : '{n} pictures, cleaned automatically', { n: usage.unused })],
         ['Uploaders', usage.users, ''],
       ]" :key="label" class="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2">
-        <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ label }}</div>
+        <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr(label) }}</div>
         <div class="text-lg font-semibold leading-tight">{{ value }}</div>
         <div v-if="hint" class="text-[11px] text-slate-500 dark:text-slate-400">{{ hint }}</div>
       </div>
@@ -67,8 +67,8 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
       </table>
     </div>
     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-      Showing the {{ usage.top.length }} heaviest uploader{{ usage.top.length === 1 ? '' : 's' }}. Each picture is at most {{ usage.maxKb }} KB.
-      Deleting pictures frees space inside the database file; the file itself only shrinks after a <code>VACUUM</code>.
+      {{ tr(usage.top.length === 1 ? 'Showing the {n} heaviest uploader. Each picture is at most {kb} KB.' : 'Showing the {n} heaviest uploaders. Each picture is at most {kb} KB.', { n: usage.top.length, kb: usage.maxKb }) }}
+      {{ tr('Deleting pictures frees space inside the database file; the file itself only shrinks after a') }} <code>VACUUM</code>.
     </p>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../lib/api';
 import { QUESTIONS, SECTIONS } from '../lib/surveyQuestions';
@@ -67,20 +68,20 @@ function exportCsv() {
 <template>
   <div class="max-w-3xl mx-auto px-4 py-8">
     <div class="flex flex-wrap items-center gap-3 mb-1">
-      <h1 class="text-2xl font-bold">Survey results</h1>
-      <span class="text-sm text-slate-500 dark:text-slate-400">{{ shown.length }} response(s)</span>
+      <h1 class="text-2xl font-bold">{{ tr('Survey results') }}</h1>
+      <span class="text-sm text-slate-500 dark:text-slate-400">{{ tr('{n} response(s)', { n: shown.length }) }}</span>
       <div class="ml-auto flex items-center gap-2">
-        <select v-model="role" aria-label="Role" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
-          <option value="all">All</option><option value="student">Students</option><option value="teacher">Teachers</option>
+        <select v-model="role" :aria-label="tr('Role')" class="border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+          <option value="all">{{ tr('All') }}</option><option value="student">{{ tr('Students') }}</option><option value="teacher">{{ tr('Teachers') }}</option>
         </select>
-        <div class="inline-flex rounded-md border border-slate-300 dark:border-slate-700 overflow-hidden text-xs" role="group" aria-label="Chart style">
+        <div class="inline-flex rounded-md border border-slate-300 dark:border-slate-700 overflow-hidden text-xs" role="group" :aria-label="tr('Chart style')">
           <button v-for="[v, label] in [['donut', 'Donut'], ['bars', 'Bars']]" :key="v" type="button" @click="setView(v)" :aria-pressed="view === v"
                   class="px-2 py-1 font-medium" :class="view === v ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">{{ label }}</button>
         </div>
-        <button @click="exportCsv" :disabled="!shown.length" class="row-action-btn">Export CSV</button>
+        <button @click="exportCsv" :disabled="!shown.length" class="row-action-btn">{{ tr('Export CSV') }}</button>
       </div>
     </div>
-    <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">Answers carry no name or email. With few responses in a group, treat the numbers as anecdotes.</p>
+    <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">{{ tr('Answers carry no name or email. With few responses in a group, treat the numbers as anecdotes.') }}</p>
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
     <p v-else-if="loading" class="text-sm text-slate-500">…</p>
@@ -92,7 +93,7 @@ function exportCsv() {
                class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
             <div class="flex items-baseline gap-2">
               <h3 class="text-sm font-medium flex-1">{{ c.q.q.en }}</h3>
-              <span v-if="c.mean !== undefined" class="text-xs tabular-nums text-slate-500">mean {{ c.mean }}</span>
+              <span v-if="c.mean !== undefined" class="text-xs tabular-nums text-slate-500">{{ tr('mean {n}', { n: c.mean }) }}</span>
               <span v-if="c.nps !== undefined" class="text-xs tabular-nums text-slate-500">NPS {{ c.nps }}</span>
               <span class="text-xs tabular-nums text-slate-400">n={{ c.n }}</span>
             </div>
@@ -122,7 +123,7 @@ function exportCsv() {
             </ul>
             <ul v-else class="mt-2 space-y-1.5">
               <li v-for="(t, i) in c.texts" :key="i" class="text-sm bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 whitespace-pre-wrap">{{ t }}</li>
-              <li v-if="!c.texts.length" class="text-xs text-slate-400">No answers yet.</li>
+              <li v-if="!c.texts.length" class="text-xs text-slate-400">{{ tr('No answers yet.') }}</li>
             </ul>
           </div>
         </div>

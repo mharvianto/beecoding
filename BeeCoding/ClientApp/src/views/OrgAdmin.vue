@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import ImageUsagePanel from '../components/ImageUsagePanel.vue';
@@ -262,7 +263,7 @@ async function addMember() {
   err.value = ''; notice.value = '';
   try {
     const res = await api.post(`/api/org-admin/${orgId.value}/members`, { email: newMemberEmail.value.trim(), orgRole: newMemberRole.value });
-    if (res?.invited) notice.value = `Invitation sent to ${res.email}. They become a member when they accept it.`;
+    if (res?.invited) notice.value = tr('Invitation sent to {p0}. They become a member when they accept it.', { p0: res.email });
     newMemberEmail.value = '';
     await loadMembers();
   } catch (e) { err.value = e.message; }
@@ -274,7 +275,7 @@ async function changeMemberRole(m, role) {
   catch (e) { err.value = e.message; await loadMembers(); }
 }
 async function removeMember(m) {
-  if (!(await confirmDialog.ask(`Remove "${m.displayName}" from this organization?`, { confirmLabel: 'Remove' }))) return;
+  if (!(await confirmDialog.ask(tr('Remove "{p0}" from this organization?', { p0: m.displayName }), { confirmLabel: tr('Remove') }))) return;
   err.value = '';
   try { await api.del(`/api/org-admin/${orgId.value}/members/${m.userId}`); await loadMembers(); }
   catch (e) { err.value = e.message; }
@@ -434,7 +435,7 @@ async function saveAiProvider() {
   finally { aiProviderSaving.value = false; }
 }
 async function clearAiProviderKey() {
-  if (!(await confirmDialog.ask('Clear this organization\'s saved API key? It will fall back to the platform default.', { confirmLabel: 'Clear' }))) return;
+  if (!(await confirmDialog.ask(tr('Clear this organization\'s saved API key? It will fall back to the platform default.'), { confirmLabel: tr('Clear') }))) return;
   err.value = '';
   try { await api.del(`/api/org-admin/${orgId.value}/ai-provider/api-key`); await loadAiProvider(); }
   catch (e) { err.value = e.message; }
@@ -460,7 +461,7 @@ async function saveLtiPlatform() {
   } catch (e) { err.value = e.message; }
 }
 async function deleteLtiPlatform(p) {
-  if (!(await confirmDialog.ask(`Remove platform "${p.name}"? Existing linked users/boards stay, but it can no longer launch.`, { confirmLabel: 'Remove' }))) return;
+  if (!(await confirmDialog.ask(tr('Remove platform "{p0}"? Existing linked users/boards stay, but it can no longer launch.', { p0: p.name }), { confirmLabel: tr('Remove') }))) return;
   err.value = '';
   try { await api.del(`/api/org-admin/${orgId.value}/lti-platforms/${p.id}`); await loadLtiPlatforms(); }
   catch (e) { err.value = e.message; }
@@ -501,14 +502,14 @@ onMounted(() => { url.read(); loadOrgs(); });
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center gap-3 mb-4">
-      <h1 class="text-xl font-bold">Organization</h1>
+      <h1 class="text-xl font-bold">{{ tr('Organization') }}</h1>
       <TableViewToggle class="ml-auto" />
     </div>
 
     <p v-if="err" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ err }}</p>
 
     <p v-if="orgs && !orgs.length" class="text-slate-500 dark:text-slate-400 text-sm">
-      You don't administer any organization.
+      {{ tr('You don\'t administer any organization.') }}
     </p>
 
     <template v-else-if="orgs">
@@ -519,7 +520,7 @@ onMounted(() => { url.read(); loadOrgs(); });
         </select>
         <h2 v-else class="font-semibold">{{ orgs[0]?.name }}</h2>
         <span v-if="summary" class="text-xs text-slate-500 dark:text-slate-400">
-          {{ summary.memberCount }} member(s) · {{ summary.boardCount }} board(s)
+          {{ tr('{a} member(s) · {b} board(s)', { a: summary.memberCount, b: summary.boardCount }) }}
         </span>
       </div>
 
@@ -527,7 +528,7 @@ onMounted(() => { url.read(); loadOrgs(); });
       <div class="mb-4">
         <button @click="mobileTabsOpen = !mobileTabsOpen"
                 class="md:hidden w-full flex items-center justify-between gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium">
-          {{ tabDefs.find((t) => t[0] === tab)?.[1] }}
+          {{ tr(tabDefs.find((t) => t[0] === tab)?.[1]) }}
           <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0 transition-transform" :class="{ 'rotate-180': mobileTabsOpen }"
                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6" /></svg>
         </button>
@@ -536,51 +537,51 @@ onMounted(() => { url.read(); loadOrgs(); });
           <button v-for="t in tabDefs" :key="t[0]"
                   @click="switchTab(t[0])" class="whitespace-nowrap text-left md:text-center rounded-lg px-3 py-1.5"
                   :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
-            {{ t[1] }}
+            {{ tr(t[1]) }}
           </button>
         </div>
       </div>
 
       <!-- Dashboard -->
       <section v-show="tab === 'dashboard'" class="space-y-5">
-        <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+        <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
 
         <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           <button type="button" @click="switchTab('members')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-            <div class="text-xs text-slate-500 dark:text-slate-400">Members</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Members') }}</div>
             <div class="text-2xl font-bold">{{ fmt(dashboard.totalMembers) }}</div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {{ dashboard.teacherCount }} teacher · {{ dashboard.studentCount }} student · {{ dashboard.adminCount }} admin
+              {{ tr('{t} teacher · {s} student · {a} admin', { t: dashboard.teacherCount, s: dashboard.studentCount, a: dashboard.adminCount }) }}
             </div>
           </button>
 
           <button type="button" @click="switchTab('boards')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-            <div class="text-xs text-slate-500 dark:text-slate-400">Boards</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Boards') }}</div>
             <div class="text-2xl font-bold">{{ fmt(dashboard.totalBoards) }}</div>
-            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ fmt(dashboard.totalProblems) }} problem(s)</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ tr('{n} problem(s)', { n: fmt(dashboard.totalProblems) }) }}</div>
           </button>
 
           <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-            <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Submissions') }}</div>
             <div class="text-2xl font-bold">{{ fmt(dashboard.totalSubmissions) }}</div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {{ dashboard.totalSubmissions ? Math.round(100 * dashboard.acceptedSubmissions / dashboard.totalSubmissions) : 0 }}% accepted
+              {{ tr('{n}% accepted', { n: dashboard.totalSubmissions ? Math.round(100 * dashboard.acceptedSubmissions / dashboard.totalSubmissions) : 0 }) }}
             </div>
           </div>
 
           <button type="button" @click="switchTab('ai')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-            <div class="text-xs text-slate-500 dark:text-slate-400">AI calls today / this month</div>
+            <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('AI calls today / this month') }}</div>
             <div class="text-2xl font-bold">{{ fmt(dashboard.aiToday.calls) }} / {{ fmt(dashboard.aiMonth.calls) }}</div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-              {{ fmt(dashboard.aiToday.totalTokens) }} / {{ fmt(dashboard.aiMonth.totalTokens) }} tokens · across this org's members
+              {{ tr('{a} / {b} tokens · across this org\'s members', { a: fmt(dashboard.aiToday.totalTokens), b: fmt(dashboard.aiMonth.totalTokens) }) }}
             </div>
           </button>
         </div>
-        <p v-else-if="!dashboard" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
+        <p v-else-if="!dashboard" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
 
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <h3 class="font-semibold text-sm">Engagement</h3>
+            <h3 class="font-semibold text-sm">{{ tr('Engagement') }}</h3>
             <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
               <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                       @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
@@ -590,15 +591,15 @@ onMounted(() => { url.read(); loadOrgs(); });
             </span>
           </div>
           <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniLineChart :title="`Active users / ${engagementGranularity}`" :points="activeUserPoints()" />
-            <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
+            <MiniLineChart :title="tr('Active users / {g}', { g: tr(engagementGranularity) })" :points="activeUserPoints()" />
+            <MiniLineChart :title="tr('Submissions / {g}', { g: tr(engagementGranularity) })" :points="submissionPoints()" />
           </div>
-          <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
+          <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity in this window yet.') }}</p>
         </div>
 
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <h3 class="font-semibold text-sm">AI usage</h3>
+            <h3 class="font-semibold text-sm">{{ tr('AI usage') }}</h3>
             <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
               <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                       @click="setAiGranularity(g[0])" class="px-2.5 py-1"
@@ -608,37 +609,36 @@ onMounted(() => { url.read(); loadOrgs(); });
             </span>
           </div>
           <div v-if="hasData(aiEngagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
-            <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
+            <MiniLineChart :title="tr('AI calls / {g}', { g: tr(aiGranularity) })" :points="aiCallPoints()" />
+            <MiniLineChart :title="tr('AI tokens / {g}', { g: tr(aiGranularity) })" :points="aiTokenPoints()" />
           </div>
-          <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage in this window yet.</p>
+          <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No AI usage in this window yet.') }}</p>
         </div>
 
         <div v-if="hintEffect">
           <div class="flex items-center gap-2 mb-1">
-            <h3 class="font-semibold text-sm">Are AI hints helping?</h3>
-            <select v-model.number="hintEffectDays" @change="loadHintEffect" aria-label="Time window"
+            <h3 class="font-semibold text-sm">{{ tr('Are AI hints helping?') }}</h3>
+            <select v-model.number="hintEffectDays" @change="loadHintEffect" :aria-label="tr('Time window')"
                     class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
-              <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
+              <option :value="7">{{ tr('Last 7 days') }}</option><option :value="30">{{ tr('Last 30 days') }}</option><option :value="90">{{ tr('Last 90 days') }}</option>
             </select>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Per student and problem on this organization's boards that asked for a hint (no hint text is kept). Pairs solved before the first hint are left out.
-            Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.
+            {{ tr('Per student and problem on this organization\'s boards that asked for a hint (no hint text is kept). Pairs solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.') }}
           </p>
-          <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">No hints on this organization's boards in this period yet.</p>
+          <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints on this organization\'s boards in this period yet.') }}</p>
           <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div><dt class="text-xs text-slate-500">Student–problem pairs</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.students }} students)</span></dd></div>
-            <div><dt class="text-xs text-slate-500">Solved after a hint</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
-            <div><dt class="text-xs text-slate-500">Solved within 30 min</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
-            <div><dt class="text-xs text-slate-500">Median time to solve</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
-            <div><dt class="text-xs text-slate-500">Deep hints (level 3+), never solved</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-            <div><dt class="text-xs text-slate-500">No hint, same problems: solved</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
           </dl>
         </div>
 
         <div v-if="topicStats">
-          <h2 class="font-semibold text-sm mb-1.5">Top topics by attempts</h2>
+          <h2 class="font-semibold text-sm mb-1.5">{{ tr('Top topics by attempts') }}</h2>
           <TopicBarChart :items="topicBarItems()" />
         </div>
       </section>
@@ -646,52 +646,48 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- Members -->
       <section v-show="tab === 'members'">
         <div class="flex flex-wrap gap-2 mb-3">
-          <input v-model="newMemberEmail" @keyup.enter="addMember" placeholder="Email of an existing BeeCoding account" aria-label="Email of an existing BeeCoding account"
+          <input v-model="newMemberEmail" @keyup.enter="addMember" :placeholder="tr('Email of an existing BeeCoding account')" :aria-label="tr('Email of an existing BeeCoding account')"
                  class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-          <select v-model="newMemberRole" aria-label="Role" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
-            <option value="Member">Member</option>
-            <option value="Admin">Admin</option>
+          <select v-model="newMemberRole" :aria-label="tr('Role')" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
+            <option value="Member">{{ tr('Member') }}</option>
+            <option value="Admin">{{ tr('Admin') }}</option>
           </select>
-          <button @click="addMember" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 font-medium">Add</button>
+          <button @click="addMember" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 font-medium">{{ tr('Add') }}</button>
         </div>
         <p v-if="notice" class="text-xs text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Joining</h3>
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">{{ tr('Joining') }}</h3>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-            Someone you add must accept an invitation first — as a member, you can see their practice activity. Accounts whose
-            email is on one of the organization's domains are added at once instead. The platform admin sets those domains
-            (none = always invite, the usual choice when several departments share one university domain).
+            {{ tr('Someone you add must accept an invitation first — as a member, you can see their practice activity. Accounts whose email is on one of the organization\'s domains are added at once instead. The platform admin sets those domains (none = always invite, the usual choice when several departments share one university domain).') }}
           </p>
           <p class="text-xs">
-            <template v-if="emailDomains">Auto-accepted domains: <b>{{ emailDomains }}</b></template>
-            <template v-else>No domains set — everyone is invited.</template>
-            <span class="text-slate-500 dark:text-slate-400"> (set by the platform admin)</span>
+            <template v-if="emailDomains">{{ tr('Auto-accepted domains:') }} <b>{{ emailDomains }}</b></template>
+            <template v-else>{{ tr('No domains set — everyone is invited.') }}</template>
+            <span class="text-slate-500 dark:text-slate-400"> {{ tr('(set by the platform admin)') }}</span>
           </p>
         </div>
 
         <div v-if="invites.length" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Waiting for an answer ({{ invites.length }})</h3>
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">{{ tr('Waiting for an answer ({n})', { n: invites.length }) }}</h3>
           <ul class="divide-y divide-slate-100 dark:divide-slate-800">
             <li v-for="i in invites" :key="i.id" class="py-1.5 flex items-center gap-2 text-sm">
               <span class="flex-1 min-w-0 truncate">{{ i.displayName }} <span class="text-xs text-slate-400">· {{ i.email }} · {{ i.orgRole.toLowerCase() }}</span></span>
-              <button @click="cancelInvite(i)" class="row-action-btn">Cancel</button>
+              <button @click="cancelInvite(i)" class="row-action-btn">{{ tr('Cancel') }}</button>
             </li>
           </ul>
         </div>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk add (CSV)</h3>
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">{{ tr('Bulk add (CSV)') }}</h3>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-            Header row with an <code>email</code> column (optional <code>role</code>: Member/Admin, default
-            Member). Only existing BeeCoding accounts can be added — have others register first. Accounts outside this
-            organization's domains are invited, not added.
+            {{ tr('Header row with an “email” column (optional “role”: Member/Admin, default Member). Only existing BeeCoding accounts can be added — have others register first. Accounts outside this organization\'s domains are invited, not added.') }}
           </p>
-          <input type="file" accept="text/csv,.csv" aria-label="CSV file of members" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
-          <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">Importing…</p>
+          <input type="file" accept="text/csv,.csv" :aria-label="tr('CSV file of members')" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
+          <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
           <div v-if="memberImportResult" class="mt-2 text-xs space-y-1">
             <p class="text-emerald-600 dark:text-emerald-400">
-              Added {{ memberImportResult.added }} · Invited {{ memberImportResult.invited }} · Skipped {{ memberImportResult.skipped }} · Errors {{ memberImportResult.errors }}
+              {{ tr('Added {a} · Invited {b} · Skipped {c} · Errors {d}', { a: memberImportResult.added, b: memberImportResult.invited, c: memberImportResult.skipped, d: memberImportResult.errors }) }}
             </p>
             <ul class="space-y-0.5">
               <li v-for="(row, i) in memberImportResult.rows.filter((r) => r.message)" :key="i" class="text-slate-500 dark:text-slate-400">
@@ -710,20 +706,20 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <div class="text-[11px] text-slate-400 truncate">{{ m.email }}</div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
-                <button @click="viewMemberSubmissions(m)" class="row-action-btn">Submissions</button>
-                <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button>
+                <button @click="viewMemberSubmissions(m)" class="row-action-btn">{{ tr('Submissions') }}</button>
+                <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
               </div>
             </div>
             <div class="flex items-center gap-2 mt-2">
               <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
                       class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
-                <option value="Member">Member</option>
-                <option value="Admin">Admin</option>
+                <option value="Member">{{ tr('Member') }}</option>
+                <option value="Admin">{{ tr('Admin') }}</option>
               </select>
-              <span class="text-[11px] text-slate-400">joined {{ new Date(m.joinedAt).toLocaleDateString() }}</span>
+              <span class="text-[11px] text-slate-400">{{ tr('joined {when}', { when: new Date(m.joinedAt).toLocaleDateString() }) }}</span>
             </div>
           </div>
-          <p v-if="members && !members.length" class="text-slate-500 dark:text-slate-400 text-sm">No members yet.</p>
+          <p v-if="members && !members.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No members yet.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -731,8 +727,8 @@ onMounted(() => { url.read(); loadOrgs(); });
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th class="font-normal py-1.5 pr-3">Name / email</th><th class="font-normal pr-3">Role</th>
-                <th class="font-normal pr-3">Joined</th><th class="font-normal pr-3"></th>
+                <th class="font-normal py-1.5 pr-3">{{ tr('Name / email') }}</th><th class="font-normal pr-3">{{ tr('Role') }}</th>
+                <th class="font-normal pr-3">{{ tr('Joined') }}</th><th class="font-normal pr-3"></th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -741,17 +737,17 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <td>
                   <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
                           class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
-                    <option value="Member">Member</option>
-                    <option value="Admin">Admin</option>
+                    <option value="Member">{{ tr('Member') }}</option>
+                    <option value="Admin">{{ tr('Admin') }}</option>
                   </select>
                 </td>
                 <td class="text-[11px] text-slate-400">{{ new Date(m.joinedAt).toLocaleDateString() }}</td>
                 <td class="whitespace-nowrap">
-                  <button @click="viewMemberSubmissions(m)" class="row-action-btn">Submissions</button>
-                  <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">Remove</button>
+                  <button @click="viewMemberSubmissions(m)" class="row-action-btn">{{ tr('Submissions') }}</button>
+                  <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
                 </td>
               </tr>
-              <tr v-if="members && !members.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No members yet.</td></tr>
+              <tr v-if="members && !members.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No members yet.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -759,28 +755,27 @@ onMounted(() => { url.read(); loadOrgs(); });
 
       <!-- (still the Members tab: what the members' statement pictures take up) -->
       <section v-show="tab === 'members'">
-        <ImageUsagePanel :usage="imageUsage" title="Members' statement pictures" />
+        <ImageUsagePanel :usage="imageUsage" :title="tr('Members\' statement pictures')" />
       </section>
 
       <!-- Boards -->
       <section v-show="tab === 'boards'">
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-3 mb-3">
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">Bulk-create boards</h3>
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">{{ tr('Bulk-create boards') }}</h3>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-            One title per line — e.g. 13 session boards for one course. The owner must already have a
-            Teacher account and be a member of this org (or have an email on one of its domains) — invite them on the Members tab first.
+            {{ tr('One title per line — e.g. 13 session boards for one course. The owner must already have a Teacher account and be a member of this org (or have an email on one of its domains) — invite them on the Members tab first.') }}
           </p>
-          <input v-model="bulkBoardOwnerEmail" placeholder="Owner's email (existing Teacher account)" aria-label="Owner's email (existing Teacher account)"
+          <input v-model="bulkBoardOwnerEmail" :placeholder="tr('Owner\'s email (existing Teacher account)')" :aria-label="tr('Owner\'s email (existing Teacher account)')"
                  class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
           <textarea v-model="bulkBoardTitles" rows="4" placeholder="Session 1&#10;Session 2&#10;Session 3" aria-label="Session 1&#10;Session 2&#10;Session 3"
                     class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm font-mono"></textarea>
           <button @click="bulkCreateBoards" :disabled="bulkBoardBusy || !bulkBoardOwnerEmail.trim() || !bulkBoardTitles.trim()"
                   class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ bulkBoardBusy ? 'Creating…' : 'Create boards' }}
+            {{ bulkBoardBusy ? tr('Creating…') : tr('Create boards') }}
           </button>
           <div v-if="bulkBoardResult" class="mt-2 text-xs space-y-1">
             <p class="text-emerald-600 dark:text-emerald-400">
-              Created {{ bulkBoardResult.created }} · Errors {{ bulkBoardResult.errors }}
+              {{ tr('Created {a} · Errors {b}', { a: bulkBoardResult.created, b: bulkBoardResult.errors }) }}
             </p>
             <ul class="space-y-0.5">
               <li v-for="(row, i) in bulkBoardResult.rows.filter((r) => r.message)" :key="i" class="text-slate-500 dark:text-slate-400">
@@ -792,12 +787,12 @@ onMounted(() => { url.read(); loadOrgs(); });
 
         <div v-if="boards?.length" class="flex items-center gap-2 mb-2 text-sm flex-wrap">
           <label class="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-            <input type="checkbox" :checked="selectedBoards.size === boards.length" @change="selectAllBoards($event.target.checked)" /> Select all
+            <input type="checkbox" :checked="selectedBoards.size === boards.length" @change="selectAllBoards($event.target.checked)" /> {{ tr('Select all') }}
           </label>
           <template v-if="selectedBoards.size">
-            <span>{{ selectedBoards.size }} selected</span>
+            <span>{{ tr('{n} selected', { n: selectedBoards.size }) }}</span>
             <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1 text-xs font-medium">
-              <Icon name="plus" /> Add groups / problems
+              <Icon name="plus" /> {{ tr('Add groups / problems') }}
             </button>
           </template>
         </div>
@@ -812,21 +807,21 @@ onMounted(() => { url.read(); loadOrgs(); });
             </div>
             <div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div>
             <div class="text-[11px] text-slate-400 mt-0.5">
-              {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
+              {{ tr('{a} student(s) · {b} problem(s) · created {when}', { a: b.memberCount, b: b.problemCount, when: new Date(b.createdAt).toLocaleDateString() }) }}
             </div>
             <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1 mt-1.5">
-              <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" aria-label="Tags" @keyup.enter="saveBoardTags(b)"
+              <input v-model="boardTagsInput" :placeholder="tr('e.g. semester-1, class-a')" :aria-label="tr('Tags')" @keyup.enter="saveBoardTags(b)"
                      class="flex-1 text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
-              <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
-              <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
+              <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">{{ tr('Save') }}</button>
+              <button @click="editingBoardTagsSlug = null" class="row-action-btn">{{ tr('Cancel') }}</button>
             </div>
             <div v-else class="flex flex-wrap items-center gap-1 mt-1.5">
               <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
                     class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-              <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> Edit tags</template><template v-else>+ Add tags</template></button>
+              <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> {{ tr('Edit tags') }}</template><template v-else>{{ tr('+ Add tags') }}</template></button>
             </div>
           </div>
-          <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">No boards yet.</p>
+          <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No boards yet.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -837,9 +832,9 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <th class="font-normal py-1.5 pr-3">
                   <input type="checkbox" :checked="!!boards?.length && selectedBoards.size === boards.length" @change="selectAllBoards($event.target.checked)" />
                 </th>
-                <th class="font-normal py-1.5 pr-3">Title</th><th class="font-normal pr-3">Owner</th>
-                <th class="font-normal pr-3">Students</th><th class="font-normal pr-3">Problems</th><th class="font-normal pr-3">Created</th>
-                <th class="font-normal pr-3">Tags</th>
+                <th class="font-normal py-1.5 pr-3">{{ tr('Title') }}</th><th class="font-normal pr-3">{{ tr('Owner') }}</th>
+                <th class="font-normal pr-3">{{ tr('Students') }}</th><th class="font-normal pr-3">{{ tr('Problems') }}</th><th class="font-normal pr-3">{{ tr('Created') }}</th>
+                <th class="font-normal pr-3">{{ tr('Tags') }}</th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -852,19 +847,19 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
                 <td class="min-w-48">
                   <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1">
-                    <input v-model="boardTagsInput" placeholder="e.g. semester-1, class-a" aria-label="Tags" @keyup.enter="saveBoardTags(b)"
+                    <input v-model="boardTagsInput" :placeholder="tr('e.g. semester-1, class-a')" :aria-label="tr('Tags')" @keyup.enter="saveBoardTags(b)"
                            class="flex-1 text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
-                    <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">Save</button>
-                    <button @click="editingBoardTagsSlug = null" class="row-action-btn">Cancel</button>
+                    <button @click="saveBoardTags(b)" class="row-action-btn row-action-btn--success">{{ tr('Save') }}</button>
+                    <button @click="editingBoardTagsSlug = null" class="row-action-btn">{{ tr('Cancel') }}</button>
                   </div>
                   <div v-else class="flex flex-wrap items-center gap-1">
                     <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
                           class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-                    <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> Edit</template><template v-else>+ Add</template></button>
+                    <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> {{ tr('Edit') }}</template><template v-else>{{ tr('+ Add') }}</template></button>
                   </div>
                 </td>
               </tr>
-              <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">No boards yet.</td></tr>
+              <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No boards yet.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -873,31 +868,31 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- Submissions -->
       <section v-show="tab === 'submissions'">
         <div class="flex flex-wrap items-center gap-2 mb-3">
-          <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…" aria-label="Search student, email, problem, or board…"
+          <input v-model="submissionQ" @keyup.enter="searchSubmissions" :placeholder="tr('Search student, email, problem, or board…')" :aria-label="tr('Search student, email, problem, or board…')"
                  class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
           <select v-model="submissionSource" @change="searchSubmissions"
-                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Board + Practice">
-            <option value="">Board + Practice</option>
-            <option value="board">Board only</option>
-            <option value="practice">Practice only</option>
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('Board + Practice')">
+            <option value="">{{ tr('Board + Practice') }}</option>
+            <option value="board">{{ tr('Board only') }}</option>
+            <option value="practice">{{ tr('Practice only') }}</option>
           </select>
           <select v-model="submissionVerdict" @change="searchSubmissions"
-                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Any verdict">
-            <option value="">Any verdict</option>
-            <option value="Accepted">Accepted</option>
-            <option value="WrongAnswer">Wrong answer</option>
-            <option value="TimeLimit">Time limit</option>
-            <option value="MemoryLimit">Memory limit</option>
-            <option value="RuntimeError">Runtime error</option>
-            <option value="CompileError">Compile error</option>
+                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('Any verdict')">
+            <option value="">{{ tr('Any verdict') }}</option>
+            <option value="Accepted">{{ tr('Accepted') }}</option>
+            <option value="WrongAnswer">{{ tr('Wrong answer') }}</option>
+            <option value="TimeLimit">{{ tr('Time limit') }}</option>
+            <option value="MemoryLimit">{{ tr('Memory limit') }}</option>
+            <option value="RuntimeError">{{ tr('Runtime error') }}</option>
+            <option value="CompileError">{{ tr('Compile error') }}</option>
           </select>
-          <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
-          <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+          <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
+          <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
         </div>
         <div v-if="submissionUserId" class="flex items-center gap-2 mb-3 text-xs">
-          <span class="text-slate-500 dark:text-slate-400">Filtered to</span>
+          <span class="text-slate-500 dark:text-slate-400">{{ tr('Filtered to') }}</span>
           <span class="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">{{ submissionUserLabel || memberName(submissionUserId) }}</span>
-          <button @click="clearSubmissionUserFilter" class="row-action-btn">✕ clear</button>
+          <button @click="clearSubmissionUserFilter" class="row-action-btn">{{ tr('✕ clear') }}</button>
         </div>
 
         <!-- mobile: cards -->
@@ -914,10 +909,10 @@ onMounted(() => { url.read(); loadOrgs(); });
               <template v-else>{{ s.problemTitle }}</template>
             </div>
             <div class="text-[11px] text-slate-400 mt-0.5">
-              {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
+              {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}
             </div>
           </button>
-          <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions.</p>
+          <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No submissions.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -925,10 +920,10 @@ onMounted(() => { url.read(); loadOrgs(); });
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
-                <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board / Source</th>
-                <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
-                <th class="font-normal pr-3">Runtime</th><th class="font-normal pr-3">Lang</th>
+                <th class="font-normal py-1.5 pr-3">{{ tr('When') }}</th><th class="font-normal pr-3">{{ tr('Student') }}</th>
+                <th class="font-normal pr-3">{{ tr('Problem') }}</th><th class="font-normal pr-3">{{ tr('Board / Source') }}</th>
+                <th class="font-normal pr-3">{{ tr('Verdict') }}</th><th class="font-normal pr-3">{{ tr('Score') }}</th>
+                <th class="font-normal pr-3">{{ tr('Runtime') }}</th><th class="font-normal pr-3">{{ tr('Lang') }}</th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -941,13 +936,13 @@ onMounted(() => { url.read(); loadOrgs(); });
                               class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
                   <template v-else>{{ s.problemTitle }}</template>
                 </td>
-                <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : 'Practice' }}</td>
+                <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
                 <td><VerdictBadge :verdict="s.verdict" small /></td>
                 <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
                 <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
                 <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
               </tr>
-              <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">No submissions.</td></tr>
+              <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No submissions.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -957,9 +952,9 @@ onMounted(() => { url.read(); loadOrgs(); });
           </span>
           <div class="ml-auto flex gap-2">
             <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
-                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
             <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
-                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
           </div>
         </div>
 
@@ -972,12 +967,12 @@ onMounted(() => { url.read(); loadOrgs(); });
         <div class="flex items-center gap-2 mb-3">
           <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
-            <option :value="null">Pick a board…</option>
+            <option :value="null">{{ tr('Pick a board…') }}</option>
             <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
           </select>
         <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
-          <option :value="null">All problems</option>
+          <option :value="null">{{ tr('All problems') }}</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
         </div>
@@ -993,103 +988,99 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- AI settings -->
       <section v-show="tab === 'ai'" class="max-w-sm space-y-3">
         <p class="text-xs text-slate-500 dark:text-slate-400">
-          These settings only take effect once your organization has its own AI API key
-          <em>and</em> base URL set below — until then, your members use (and are bound by)
-          the platform's own pause and quota, and this quota field is ignored. Bring your own
-          key and this org becomes independent of the platform's pause entirely.
+          {{ tr('These settings only take effect once your organization has its own AI API key') }}
+          <em>{{ tr('and') }}</em> {{ tr('base URL set below — until then, your members use (and are bound by) the platform\'s own pause and quota, and this quota field is ignored. Bring your own key and this org becomes independent of the platform\'s pause entirely.') }}
         </p>
         <template v-if="aiSettings">
           <label class="flex items-center gap-2 text-sm">
-            <input type="checkbox" v-model="aiSettings.paused" /> Pause AI for this organization
+            <input type="checkbox" v-model="aiSettings.paused" /> {{ tr('Pause AI for this organization') }}
           </label>
-          <input v-if="aiSettings.paused" v-model="aiSettings.pausedReason" placeholder="Reason (shown to users)" aria-label="Reason (shown to users)"
+          <input v-if="aiSettings.paused" v-model="aiSettings.pausedReason" :placeholder="tr('Reason (shown to users)')" :aria-label="tr('Reason (shown to users)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-          <label class="flex items-center gap-2 text-sm">Daily quota — students
+          <label class="flex items-center gap-2 text-sm">{{ tr('Daily quota — students') }}
             <input v-model.number="aiSettings.dailyQuotaStudent" type="number" min="0"
                    class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label class="flex items-center gap-2 text-sm">Daily quota — teachers
+          <label class="flex items-center gap-2 text-sm">{{ tr('Daily quota — teachers') }}
             <input v-model.number="aiSettings.dailyQuotaTeacher" type="number" min="0"
                    class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <button @click="saveAiSettings" :disabled="aiSaving"
                   class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ aiSaving ? 'Saving…' : 'Save' }}
+            {{ aiSaving ? tr('Saving…') : tr('Save') }}
           </button>
         </template>
 
         <div class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-4">
-          <h3 class="font-semibold text-sm mb-1">AI provider (bring your own key)</h3>
+          <h3 class="font-semibold text-sm mb-1">{{ tr('AI provider (bring your own key)') }}</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Leave everything blank to keep using the platform default.
+            {{ tr('Leave everything blank to keep using the platform default.') }}
           </p>
           <template v-if="aiProvider">
             <label class="flex flex-col gap-1 text-sm mb-2">
               <span class="text-xs text-slate-500 dark:text-slate-400">
-                API key {{ aiProvider.hasApiKey ? `(saved: ${aiProvider.apiKeyPreview})` : '(none — using the platform default)' }}
+                {{ tr('API key') }} {{ aiProvider.hasApiKey ? tr('(saved: {p}) ', { p: aiProvider.apiKeyPreview }).trim() : tr('(none — using the platform default)') }}
               </span>
               <div class="flex gap-2">
-                <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key" aria-label="Leave blank to keep the saved key"
+                <input v-model="aiProviderForm.apiKey" type="password" :placeholder="tr('Leave blank to keep the saved key')" :aria-label="tr('Leave blank to keep the saved key')"
                        class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-                <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
+                <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">{{ tr('Clear') }}</button>
               </div>
             </label>
-            <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Base URL</label>
-            <input id="ai-base-url" v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = platform default)" aria-label="Base URL (blank = platform default)"
+            <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Base URL') }}</label>
+            <input id="ai-base-url" v-model="aiProviderForm.baseUrl" :placeholder="tr('Base URL (blank = platform default)')" :aria-label="tr('Base URL (blank = platform default)')"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-            <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model</label>
-            <input id="ai-model" v-model="aiProviderForm.model" placeholder="Model (blank = platform default)" aria-label="Model (blank = platform default)"
+            <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model') }}</label>
+            <input id="ai-model" v-model="aiProviderForm.model" :placeholder="tr('Model (blank = platform default)')" :aria-label="tr('Model (blank = platform default)')"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-            <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model for generating problems</label>
-            <input id="ai-generate-model" v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
+            <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model for generating problems') }}</label>
+            <input id="ai-generate-model" v-model="aiProviderForm.generateModel" :placeholder="tr('Generate-problem model (blank = same as above)')" :aria-label="tr('Generate-problem model (blank = same as above)')"
                    class="w-full mb-2 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ aiProviderMsg }}</p>
             <button @click="saveAiProvider" :disabled="aiProviderSaving"
                     class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-              {{ aiProviderSaving ? 'Saving…' : 'Save' }}
+              {{ aiProviderSaving ? tr('Saving…') : tr('Save') }}
             </button>
           </template>
         </div>
         <div v-if="aiExtras" class="border-t border-slate-200 dark:border-slate-800 pt-3 mt-4">
-          <h3 class="font-semibold text-sm mb-1">Tuning and backup providers</h3>
+          <h3 class="font-semibold text-sm mb-1">{{ tr('Tuning and backup providers') }}</h3>
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-            Used only while this organization has its own API key above — the platform's settings and backups never apply to you, and yours never apply to anyone else.
-            Backups are tried in order when your provider fails (timeout, 429, 5xx, 401/403, empty reply; not for a 400/422). A backup with a blank key or URL
-            uses the same account and address as your main provider. Backup URLs must be public https addresses.
+            {{ tr('Used only while this organization has its own API key above — the platform\'s settings and backups never apply to you, and yours never apply to anyone else. Backups are tried in order when your provider fails (timeout, 429, 5xx, 401/403, empty reply; not for a 400/422). A backup with a blank key or URL uses the same account and address as your main provider. Backup URLs must be public https addresses.') }}
           </p>
           <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
             <label class="flex flex-col gap-1">
-              <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
-              <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="default" aria-label="default"
+              <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Max tokens per hint (100–16000)') }}</span>
+              <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" :placeholder="tr('default')" :aria-label="tr('default')"
                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             </label>
             <label class="flex flex-col gap-1">
-              <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort (only if your model supports it)</span>
+              <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Reasoning effort (only if your model supports it)') }}</span>
               <select v-model="aiExtrasForm.reasoningEffort"
-                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" aria-label="default / don't send">
-                <option value="">default / don't send</option>
-                <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                      class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" :aria-label="tr('default / don\'t send')">
+                <option value="">{{ tr('default / don\'t send') }}</option>
+                <option value="low">{{ tr('low') }}</option><option value="medium">{{ tr('medium') }}</option><option value="high">{{ tr('high') }}</option>
               </select>
             </label>
           </div>
           <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
             <div class="flex items-center gap-2">
-              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>
-              <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
+              <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ tr('Backup {n}', { n: i + 1 }) }}</span>
+              <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">{{ tr('Remove') }}</button>
             </div>
-            <input v-model="f.model" placeholder="Model" aria-label="Model"
+            <input v-model="f.model" :placeholder="tr('Model')" :aria-label="tr('Model')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
+            <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)" aria-label="Base URL (blank = same as the main provider)"
+            <input v-model="f.baseUrl" :placeholder="tr('Base URL (blank = same as the main provider)')" :aria-label="tr('Base URL (blank = same as the main provider)')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </div>
-          <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
+          <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">{{ tr('+ Add backup provider') }}</button>
           <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
           <div>
             <button @click="saveAiExtras" :disabled="aiExtrasSaving"
                     class="mt-3 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-              {{ aiExtrasSaving ? 'Saving…' : 'Save' }}
+              {{ aiExtrasSaving ? tr('Saving…') : tr('Save') }}
             </button>
           </div>
         </div>
@@ -1098,11 +1089,9 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- LTI: this org's own platform registrations only -->
       <section v-show="tab === 'lti'" class="space-y-5">
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <h2 class="font-semibold text-sm mb-1">Tool configuration</h2>
+          <h2 class="font-semibold text-sm mb-1">{{ tr('Tool configuration') }}</h2>
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-            Give these to whoever registers BeeCoding as an external tool in your LMS. The
-            LMS gives back an issuer, a client ID, and its own login/token/JWKS URLs —
-            register the platform below with those.
+            {{ tr('Give these to whoever registers BeeCoding as an external tool in your LMS. The LMS gives back an issuer, a client ID, and its own login/token/JWKS URLs — register the platform below with those.') }}
           </p>
           <div v-if="ltiToolConfig" class="space-y-1.5 text-xs">
             <div v-for="[label, value] in [
@@ -1113,7 +1102,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             ]" :key="label" class="flex items-center gap-2">
               <span class="w-40 shrink-0 text-slate-500 dark:text-slate-400">{{ label }}</span>
               <code class="flex-1 min-w-0 truncate bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">{{ value }}</code>
-              <button @click="copyLtiValue(value)" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Copy">⧉</button>
+              <button @click="copyLtiValue(value)" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :title="tr('Copy')">⧉</button>
             </div>
             <p v-if="ltiCopyMsg" class="text-emerald-600 dark:text-emerald-400">{{ ltiCopyMsg }}</p>
           </div>
@@ -1121,26 +1110,26 @@ onMounted(() => { url.read(); loadOrgs(); });
 
         <div>
           <div class="flex items-center gap-2 mb-2">
-            <h2 class="font-semibold text-sm">Registered platforms</h2>
-            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">+ Add platform</button>
+            <h2 class="font-semibold text-sm">{{ tr('Registered platforms') }}</h2>
+            <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">{{ tr('+ Add platform') }}</button>
           </div>
 
           <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
-            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? 'New platform' : 'Edit platform' }}</h3>
-            <input v-model="ltiForm.name" placeholder="Name (e.g. Moodle)" aria-label="Name" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" aria-label="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.clientId" placeholder="Client ID" aria-label="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" aria-label="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" aria-label="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" aria-label="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" aria-label="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? tr('New platform') : tr('Edit platform') }}</h3>
+            <input v-model="ltiForm.name" :placeholder="tr('Name (e.g. Moodle)')" :aria-label="tr('Name')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.issuer" :placeholder="tr('Issuer (iss)')" :aria-label="tr('Issuer (iss)')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.clientId" :placeholder="tr('Client ID')" :aria-label="tr('Client ID')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.deploymentIds" :placeholder="tr('Deployment ID(s), comma-separated')" :aria-label="tr('Deployment ID(s), comma-separated')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.authLoginUrl" :placeholder="tr('Auth login URL')" :aria-label="tr('Auth login URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.authTokenUrl" :placeholder="tr('Auth token URL')" :aria-label="tr('Auth token URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+            <input v-model="ltiForm.jwksUrl" :placeholder="tr('JWKS (key set) URL')" :aria-label="tr('JWKS (key set) URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             <p class="text-[11px] text-slate-500 dark:text-slate-400">
-              Launches through this platform auto-join this organization and auto-assign new boards to it.
+              {{ tr('Launches through this platform auto-join this organization and auto-assign new boards to it.') }}
             </p>
-            <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
+            <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> {{ tr('Enabled') }}</label>
             <div class="flex gap-2 pt-1">
-              <button @click="saveLtiPlatform" class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
-              <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">Cancel</button>
+              <button @click="saveLtiPlatform" class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium">{{ tr('Save') }}</button>
+              <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">{{ tr('Cancel') }}</button>
             </div>
           </div>
 
@@ -1151,17 +1140,17 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <div class="font-medium text-sm">{{ p.name }}</div>
                 <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
                       :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
-                  {{ p.enabled ? 'enabled' : 'disabled' }}
+                  {{ p.enabled ? tr('enabled') : tr('disabled') }}
                 </span>
               </div>
               <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
               <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
               <div class="mt-2 flex gap-3">
-                <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">Edit</button>
-                <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
+                <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">{{ tr('Edit') }}</button>
+                <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
               </div>
             </div>
-            <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-500 dark:text-slate-400 text-sm">No platforms registered yet.</p>
+            <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No platforms registered yet.') }}</p>
           </div>
 
           <!-- desktop: table -->
@@ -1169,9 +1158,9 @@ onMounted(() => { url.read(); loadOrgs(); });
             <table class="w-full text-sm">
               <thead>
                 <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Issuer</th>
-                  <th class="font-normal pr-3">Client ID</th>
-                  <th class="font-normal pr-3">Status</th><th class="font-normal pr-3"></th>
+                  <th class="font-normal py-1.5 pr-3">{{ tr('Name') }}</th><th class="font-normal pr-3">{{ tr('Issuer') }}</th>
+                  <th class="font-normal pr-3">{{ tr('Client ID') }}</th>
+                  <th class="font-normal pr-3">{{ tr('Status') }}</th><th class="font-normal pr-3"></th>
                 </tr>
               </thead>
               <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -1182,15 +1171,15 @@ onMounted(() => { url.read(); loadOrgs(); });
                   <td>
                     <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                           :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
-                      {{ p.enabled ? 'enabled' : 'disabled' }}
+                      {{ p.enabled ? tr('enabled') : tr('disabled') }}
                     </span>
                   </td>
                   <td class="whitespace-nowrap">
-                    <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
-                    <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
+                    <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">{{ tr('Edit') }}</button>
+                    <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
                   </td>
                 </tr>
-                <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="5" class="text-slate-500 dark:text-slate-400 py-3">No platforms registered yet.</td></tr>
+                <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="5" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No platforms registered yet.') }}</td></tr>
               </tbody>
             </table>
           </div>

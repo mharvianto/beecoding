@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { api } from '../lib/api';
@@ -43,13 +44,13 @@ function pick() {
 
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
-    <h1 class="text-xl font-bold mt-2 mb-4">Plagiarism check</h1>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to {title}', { title: board.title }) }}</RouterLink>
+    <h1 class="text-xl font-bold mt-2 mb-4">{{ tr('Plagiarism check') }}</h1>
     <label class="flex items-center gap-2 text-sm mb-3">
-      <span class="text-slate-500 dark:text-slate-400">Problem</span>
+      <span class="text-slate-500 dark:text-slate-400">{{ tr('Problem') }}</span>
       <select v-model="problem" @change="pick"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-xs" aria-label="All problems">
-        <option value="">All problems</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-xs" :aria-label="tr('All problems')">
+        <option value="">{{ tr('All problems') }}</option>
         <option v-for="p in problems" :key="p.slug" :value="p.slug">{{ p.title }}</option>
       </select>
     </label>

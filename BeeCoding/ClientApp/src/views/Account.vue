@@ -276,8 +276,8 @@ async function deleteAccount(force = false) {
               </span>
             </div>
             <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
-              <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
+              <MiniLineChart :title="tr('Submissions / {g}', { g: tr(engagementGranularity) })" :points="attemptPoints()" />
+              <MiniLineChart :title="tr('Problems solved / {g}', { g: tr(engagementGranularity) })" :points="solvedPoints()" />
             </div>
             <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity in this window yet.') }}</p>
           </div>

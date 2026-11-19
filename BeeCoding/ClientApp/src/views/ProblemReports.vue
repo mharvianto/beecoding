@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
@@ -78,9 +79,9 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
 
 <template>
   <div class="max-w-4xl mx-auto px-4 py-6 sm:py-8">
-    <h1 class="text-xl font-bold mb-1">Problem reports</h1>
+    <h1 class="text-xl font-bold mb-1">{{ tr('Problem reports') }}</h1>
     <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-      Reports from students about your problems: test input that doesn't match the statement or breaks its constraints, wrong expected output, unclear text.
+      {{ tr('Reports from students about your problems: test input that doesn\'t match the statement or breaks its constraints, wrong expected output, unclear text.') }}
     </p>
 
     <div class="flex items-center gap-1 flex-wrap mb-3">
@@ -89,12 +90,12 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
               :class="status === s ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-600 dark:border-slate-600' : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'">
         {{ s }}<span v-if="s === 'Open' && data" class="ml-1 text-xs opacity-80">({{ data.openTotal }})</span>
       </button>
-      <button v-if="bankProblemId || problemId" @click="clearProblem" class="ml-2 text-xs text-amber-700 dark:text-amber-400">✕ Showing one problem · show all</button>
+      <button v-if="bankProblemId || problemId" @click="clearProblem" class="ml-2 text-xs text-amber-700 dark:text-amber-400">{{ tr('✕ Showing one problem · show all') }}</button>
     </div>
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
     <p v-if="data && !data.rows.length" class="text-sm text-slate-500 dark:text-slate-400 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl px-4 py-8 text-center">
-      {{ status === 'Open' ? 'No open reports. 🎉' : 'Nothing here.' }}
+      {{ status === 'Open' ? tr('No open reports. 🎉') : tr('Nothing here.') }}
     </p>
 
     <div class="space-y-3">
@@ -102,7 +103,7 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
         <div class="flex items-center gap-2 flex-wrap">
           <RouterLink v-if="link(r)" :to="link(r)" class="font-medium text-sm hover:underline">{{ r.problemTitle }}</RouterLink>
           <span v-else class="font-medium text-sm">{{ r.problemTitle }}</span>
-          <span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ r.kind === 'practice' ? 'Practice' : 'Board' }}</span>
+          <span class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ r.kind === 'practice' ? tr('Practice') : tr('Board') }}</span>
           <span class="text-[11px] px-1.5 py-0.5 rounded-full" :class="CATEGORY[r.category][1]">{{ CATEGORY[r.category][0] }}</span>
           <span class="text-[11px] px-1.5 py-0.5 rounded-full ml-auto" :class="STATUS_STYLE[r.status]">{{ r.status }}</span>
         </div>
@@ -114,28 +115,28 @@ const VERB = { Resolved: 'Resolve', Dismissed: 'Dismiss', Open: 'Reopen' };
         <p v-if="r.note && reviewing?.id !== r.id" class="text-xs bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 text-slate-600 dark:text-slate-300"><Icon name="file" /> {{ r.note }}</p>
 
         <div v-if="reviewing?.id === r.id" class="space-y-2">
-          <textarea v-model="reviewing.note" rows="2" maxlength="1000" placeholder="Optional note: what you changed, or why it's fine as is." aria-label="Optional note: what you changed, or why it's fine as is."
+          <textarea v-model="reviewing.note" rows="2" maxlength="1000" :placeholder="tr('Optional note: what you changed, or why it\'s fine as is.')" :aria-label="tr('Optional note: what you changed, or why it\'s fine as is.')"
                     class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
           <div class="flex gap-2">
             <button @click="applyReview" :disabled="busyId === r.id" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1.5 text-sm font-medium disabled:opacity-50">{{ VERB[reviewing.status] }}</button>
-            <button @click="reviewing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+            <button @click="reviewing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">{{ tr('Cancel') }}</button>
           </div>
         </div>
         <div v-else class="flex gap-1 flex-wrap">
           <template v-if="r.status === 'Open'">
-            <button @click="startReview(r, 'Resolved')" class="row-action-btn row-action-btn--success">✓ Resolve</button>
-            <button @click="startReview(r, 'Dismissed')" class="row-action-btn">✕ Dismiss</button>
+            <button @click="startReview(r, 'Resolved')" class="row-action-btn row-action-btn--success">{{ tr('✓ Resolve') }}</button>
+            <button @click="startReview(r, 'Dismissed')" class="row-action-btn">{{ tr('✕ Dismiss') }}</button>
           </template>
-          <button v-else @click="startReview(r, 'Open')" class="row-action-btn">↺ Reopen</button>
+          <button v-else @click="startReview(r, 'Open')" class="row-action-btn">{{ tr('↺ Reopen') }}</button>
           <AiCheckPanel kind="report" :id="r.id" class="w-full" />
         </div>
       </article>
     </div>
 
     <div v-if="lastPage > 1" class="flex items-center justify-center gap-1 mt-4 text-sm">
-      <button @click="go(page - 1)" :disabled="page === 1" class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
-      <span class="px-3 text-slate-500 dark:text-slate-400">Page {{ page }} / {{ lastPage }}</span>
-      <button @click="go(page + 1)" :disabled="page === lastPage" class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+      <button @click="go(page - 1)" :disabled="page === 1" class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
+      <span class="px-3 text-slate-500 dark:text-slate-400">{{ tr('Page {a} / {b}', { a: page, b: lastPage }) }}</span>
+      <button @click="go(page + 1)" :disabled="page === lastPage" class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
     </div>
   </div>
 </template>
