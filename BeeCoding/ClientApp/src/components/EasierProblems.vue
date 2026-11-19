@@ -22,7 +22,7 @@ watch(() => [props.slug, props.solved, props.attempts], async ([slug, solved]) =
     <div class="text-xs font-semibold text-amber-700 dark:text-amber-300 mb-1.5"><Icon name="arrowup" /> Stuck? Try an easier one first</div>
     <ul class="space-y-1.5">
       <li v-for="p in items" :key="p.id" class="flex items-center gap-2 flex-wrap text-sm">
-        <RouterLink :to="`/practice/${p.slug}`" class="font-medium text-sky-700 dark:text-sky-300 hover:underline">{{ p.title }}</RouterLink>
+        <RouterLink :to="`/practice/${p.slug}`" class="font-medium hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ p.title }}</RouterLink>
         <LevelBadge :level="p.level" />
         <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ p.reason }}</span>
       </li>

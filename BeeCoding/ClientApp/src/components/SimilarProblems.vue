@@ -31,7 +31,7 @@ async function run() {
       <p v-if="!result.items.length" class="text-slate-500 dark:text-slate-400">Nothing to compare with yet.</p>
       <div v-for="s in result.items" :key="s.id" class="flex items-center gap-2">
         <span class="tabular-nums w-10 shrink-0 text-slate-500 dark:text-slate-400">{{ Math.round(s.score * 100) }}%</span>
-        <RouterLink v-if="s.linkable" :to="`/practice/${s.slug}`" target="_blank" class="min-w-0 truncate text-sky-700 dark:text-sky-300 hover:underline" :title="`Open “${s.title}”`">{{ s.title }}</RouterLink>
+        <RouterLink v-if="s.linkable" :to="`/practice/${s.slug}`" target="_blank" class="min-w-0 truncate hover:underline hover:text-amber-600 dark:hover:text-amber-400" :title="`Open “${s.title}”`">{{ s.title }}</RouterLink>
         <span v-else class="min-w-0 truncate text-slate-700 dark:text-slate-200">{{ s.title }}</span>
         <span class="shrink-0 rounded px-1.5 py-0.5 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">{{ s.state }}</span>
       </div>
