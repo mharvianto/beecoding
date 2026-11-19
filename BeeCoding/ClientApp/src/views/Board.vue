@@ -263,7 +263,7 @@ onBeforeUnmount(async () => {
       </div>
 
       <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
-            :title="tr('Exam mode is on for ungrouped problems')"><Icon name="lock" /> {{ tr('Exam mode') }}{{ hasGroups ? tr('(ungrouped)') : '' }}</span>
+            :title="tr('Exam mode is on for ungrouped problems')"><Icon name="lock" /> {{ tr('Exam mode') }}{{ hasGroups ? ' ' + tr('(ungrouped)') : '' }}</span>
       <div class="relative" :class="progress.examMode ? '' : 'sm:ml-auto'" v-click-outside="() => (settingsOpen = false)">
         <button @click="settingsOpen = !settingsOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
@@ -274,7 +274,7 @@ onBeforeUnmount(async () => {
           <button @click="toggleExam(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
                   :class="progress.examMode ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
-            <Icon :name="progress.examMode ? 'lock' : 'unlock'" /> {{ progress.examMode ? tr('Exam mode ON — peers hidden') : tr('Exam mode off') }}{{ hasGroups ? tr('(ungrouped)') : '' }}
+            <Icon :name="progress.examMode ? 'lock' : 'unlock'" /> {{ progress.examMode ? tr('Exam mode ON — peers hidden') : tr('Exam mode off') }}{{ hasGroups ? ' ' + tr('(ungrouped)') : '' }}
           </button>
           <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" @click="settingsOpen = false"
                       class="block px-3 pb-2 -mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:underline">

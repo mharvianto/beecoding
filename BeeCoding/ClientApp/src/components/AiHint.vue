@@ -132,7 +132,7 @@ async function ask(extra = {}) {
   <div v-if="enabled" class="mt-5 border border-violet-200 dark:border-violet-500/30 rounded-xl overflow-hidden">
     <button @click="open = !open" :aria-expanded="open"
             class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300">
-      <span><Icon name="bot" /> {{ tr('AI tutor') }}{{ liveMode ? '' : tr('— hints only') }}</span>
+      <span><Icon name="bot" /> {{ tr('AI tutor') }}{{ liveMode ? '' : ' ' + tr('— hints only') }}</span>
       <Chevron :open="open" />
     </button>
 
