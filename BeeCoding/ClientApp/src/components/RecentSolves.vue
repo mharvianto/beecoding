@@ -48,7 +48,7 @@ onBeforeUnmount(() => clearInterval(timer));
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading && !rows.length }">
       <div v-for="r in rows" :key="r.userId + '-' + r.problemSlug"
-           class="px-4 py-2.5 bg-white dark:bg-slate-900"
+           class="px-4 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/50"
            :class="{ 'bg-amber-50 dark:bg-amber-500/10': r.me }">
         <!-- narrow screens: who and when on top, the whole problem title below (it wraps instead of being cut to a few letters) -->
         <div class="sm:hidden">
@@ -57,7 +57,7 @@ onBeforeUnmount(() => clearInterval(timer));
             <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
           </div>
           <div class="flex items-start gap-2 mt-0.5">
-            <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline line-clamp-2 min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
+            <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm hover:underline hover:text-amber-600 dark:hover:text-amber-400 line-clamp-2 min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
             <LevelBadge :level="r.level" class="shrink-0 mt-0.5" />
           </div>
         </div>
@@ -67,7 +67,7 @@ onBeforeUnmount(() => clearInterval(timer));
             {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> (you)</span>
           </span>
           <span class="text-xs text-slate-500 dark:text-slate-400 shrink-0">solved</span>
-          <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm text-sky-700 dark:text-sky-300 hover:underline truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
+          <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm hover:underline hover:text-amber-600 dark:hover:text-amber-400 truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
           <LevelBadge :level="r.level" />
           <span class="text-[11px] text-slate-500 dark:text-slate-400 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
         </div>
