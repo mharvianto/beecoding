@@ -27,6 +27,7 @@ onMounted(() => {
     minimap: { enabled: false },
     scrollBeyondLastLine: false,
     renderSideBySide: true,
+    ignoreTrimWhitespace: false,   // a change in trailing spaces is still a change worth seeing
     fontSize: editorFontSize.value,
     fontFamily: editorFontFamily.value || undefined,
   });

@@ -22,12 +22,18 @@ const closeBtn = ref(null);
 const mine = computed(() => props.submissions.filter(canOpen));   // newest first
 const open = computed(() => props.submissions.find((s) => s.id === openId.value));
 const prev = computed(() => { const i = mine.value.findIndex((s) => s.id === openId.value); return i >= 0 ? mine.value[i + 1] : undefined; });
+const sameCode = computed(() => {
+  const a = open.value?.code, b = mode.value === 'prev' ? prev.value?.code : mode.value === 'editor' ? props.currentCode : null;
+  return b != null && a === b;
+});
 const lang = computed(() => (open.value?.language === 'c' ? 'c' : 'cpp'));
 
 const idx = computed(() => mine.value.findIndex((s) => s.id === openId.value));
 const older = computed(() => mine.value[idx.value + 1]);
 const newer = computed(() => (idx.value > 0 ? mine.value[idx.value - 1] : undefined));
-function show(s) { openId.value = s.id; mode.value = 'code'; nextTick(() => closeBtn.value?.focus()); }
+const wide = ref(false);   // room for two columns: the modal is widened for a diff and Monaco keeps them side by side
+function show(s) {
+  wide.value = window.innerWidth >= 1200; openId.value = s.id; mode.value = 'code'; nextTick(() => closeBtn.value?.focus()); }
 function close() { openId.value = null; }
 function load() { emit('load', open.value); close(); }
 </script>
@@ -52,7 +58,7 @@ function load() { emit('load', open.value); close(); }
 
   <div v-if="open" role="dialog" aria-modal="true" aria-label="Submission" @keydown.esc="close" @click.self="close"
        class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50">
-    <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
+    <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full my-8 flex flex-col overflow-hidden transition-[max-width]" :class="mode === 'code' ? 'max-w-3xl' : 'max-w-6xl'" style="height: 80vh">
       <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center justify-between gap-2 px-4 pt-3">
           <div class="flex items-center gap-1.5 min-w-0">
@@ -69,11 +75,13 @@ function load() { emit('load', open.value); close(); }
                   class="row-action-btn shrink-0" :class="mode === 'prev' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with previous</span></button>
           <button type="button" @click="mode = mode === 'editor' ? 'code' : 'editor'" :aria-pressed="mode === 'editor'"
                   class="row-action-btn shrink-0" :class="mode === 'editor' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with editor</span></button>
-          <button type="button" @click="load" class="row-action-btn row-action-btn--accent shrink-0 ml-auto"><span>↳</span><span>Load into editor</span></button>
+          <button type="button" @click="load" class="shrink-0 ml-auto text-xs font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1">Load into editor</button>
         </div>
       </div>
       <p v-if="mode !== 'code'" class="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 px-4 py-1 border-b border-slate-100 dark:border-slate-800">
-        {{ mode === 'prev' ? `Left: your previous submission (${timeAgo(prev.createdAt)}) · Right: this one` : 'Left: this submission · Right: your editor now' }}
+        <template v-if="sameCode">Identical code — there is nothing to highlight.</template>
+        <template v-else-if="mode === 'prev'">{{ wide ? 'Left' : 'Red' }}: your previous submission ({{ timeAgo(prev.createdAt) }}) · {{ wide ? 'Right' : 'Green' }}: this one</template>
+        <template v-else>{{ wide ? 'Left' : 'Red' }}: this submission · {{ wide ? 'Right' : 'Green' }}: your editor now</template>
       </p>
       <div class="flex-1 min-h-0">
         <MonacoEditor v-if="mode === 'code'" :model-value="open.code" :language="lang" read-only :filename="'submission'" />
