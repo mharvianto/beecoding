@@ -32,6 +32,12 @@ let resizeObserver = null;
 // device or resizing the window still gets it right.
 const SIDE_BY_SIDE_MIN_WIDTH = 700;
 
+// On a phone the code is wider than the screen and the change is often off to the right: wrap lines, drop the ruler lane and
+// fold the unchanged stretches, so the change itself is the first thing on screen. Same as CodeDiff.vue.
+const layout = (width) => (width >= SIDE_BY_SIDE_MIN_WIDTH
+  ? { renderSideBySide: true, diffWordWrap: 'inherit', wordWrap: 'off', renderOverviewRuler: true, hideUnchangedRegions: { enabled: false } }
+  : { renderSideBySide: false, diffWordWrap: 'on', wordWrap: 'on', renderOverviewRuler: false, hideUnchangedRegions: { enabled: true, contextLineCount: 2, minimumLineCount: 4 } });
+
 function editorTheme() {
   const dark = appTheme.value === 'dark'
     || (appTheme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -53,8 +59,8 @@ onMounted(async () => {
     theme: editorTheme(),
     readOnly: true,
     automaticLayout: true,
-    renderSideBySide: el.value.clientWidth >= SIDE_BY_SIDE_MIN_WIDTH,
     minimap: { enabled: false },
+    ...layout(el.value.clientWidth),
   });
   const lang = (l) => (l === 'c' ? 'c' : 'cpp');
   diffEditor.setModel({
@@ -64,7 +70,7 @@ onMounted(async () => {
 
   resizeObserver = new ResizeObserver((entries) => {
     const width = entries[0]?.contentRect.width ?? 0;
-    diffEditor?.updateOptions({ renderSideBySide: width >= SIDE_BY_SIDE_MIN_WIDTH });
+    diffEditor?.updateOptions(layout(width));
   });
   resizeObserver.observe(el.value);
 });

@@ -15,6 +15,9 @@ const props = defineProps({
 defineCustomThemesOnce();
 const dark = () => appTheme.value === 'dark' || (appTheme.value === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+// On a phone the code is wider than the screen and the change is often off to the right, so wrap lines, drop the ruler lane,
+// and fold the unchanged stretches: the first thing on screen is then the change itself.
+const narrow = window.innerWidth < 700;
 const el = ref(null);
 let diff = null, a = null, b = null;
 
@@ -29,6 +32,7 @@ onMounted(() => {
     renderSideBySide: true,
     ignoreTrimWhitespace: false,   // a change in trailing spaces is still a change worth seeing
     fontSize: editorFontSize.value,
+    ...(narrow ? { diffWordWrap: 'on', wordWrap: 'on', renderOverviewRuler: false, hideUnchangedRegions: { enabled: true, contextLineCount: 2, minimumLineCount: 4 } } : {}),
     fontFamily: editorFontFamily.value || undefined,
   });
   a = monaco.editor.createModel(props.original, props.language);
