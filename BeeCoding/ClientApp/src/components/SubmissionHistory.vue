@@ -24,6 +24,9 @@ const open = computed(() => props.submissions.find((s) => s.id === openId.value)
 const prev = computed(() => { const i = mine.value.findIndex((s) => s.id === openId.value); return i >= 0 ? mine.value[i + 1] : undefined; });
 const lang = computed(() => (open.value?.language === 'c' ? 'c' : 'cpp'));
 
+const idx = computed(() => mine.value.findIndex((s) => s.id === openId.value));
+const older = computed(() => mine.value[idx.value + 1]);
+const newer = computed(() => (idx.value > 0 ? mine.value[idx.value - 1] : undefined));
 function show(s) { openId.value = s.id; mode.value = 'code'; nextTick(() => closeBtn.value?.focus()); }
 function close() { openId.value = null; }
 function load() { emit('load', open.value); close(); }
@@ -48,29 +51,31 @@ function load() { emit('load', open.value); close(); }
   </div>
 
   <div v-if="open" role="dialog" aria-modal="true" aria-label="Submission" @keydown.esc="close" @click.self="close"
-       class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50">
-    <div class="w-full max-w-5xl max-h-[95vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 sm:p-5">
-      <div class="flex items-center gap-2 mb-3">
-        <VerdictBadge :verdict="open.status === 'Done' ? open.verdict : open.status" small />
-        <span v-if="open.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">{{ open.runtimeMs }}ms · {{ open.memoryKb }}KB · {{ Math.round(open.score * 100) }}%</span>
-        <time :datetime="open.createdAt" class="text-xs text-slate-500 dark:text-slate-400">{{ fullTime(open.createdAt) }} ({{ timeAgo(open.createdAt) }})</time>
-        <button ref="closeBtn" type="button" @click="close" aria-label="Close" class="ml-auto text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 px-1">✕</button>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-2 mb-2">
-        <div class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs" role="group">
-          <button type="button" @click="mode = 'code'" :aria-pressed="mode === 'code'" class="px-3 py-1" :class="mode === 'code' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">Code</button>
-          <button type="button" @click="mode = 'prev'" :disabled="!prev" :aria-pressed="mode === 'prev'" class="px-3 py-1 disabled:opacity-40" :class="mode === 'prev' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'"
-                  :title="prev ? '' : 'This is your first submission'">vs previous submission</button>
-          <button type="button" @click="mode = 'editor'" :aria-pressed="mode === 'editor'" class="px-3 py-1" :class="mode === 'editor' ? 'bg-amber-500 text-slate-900' : 'text-slate-600 dark:text-slate-300'">vs editor now</button>
+       class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50">
+    <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
+      <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
+        <div class="flex items-center justify-between gap-2 px-4 pt-3">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <button v-if="older" type="button" @click="show(older)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Older submission" aria-label="Older submission">◀</button>
+            <VerdictBadge :verdict="open.status === 'Done' ? open.verdict : open.status" small />
+            <time :datetime="open.createdAt" class="text-sm font-semibold truncate">{{ fullTime(open.createdAt) }} <span class="hidden sm:inline font-normal text-slate-500 dark:text-slate-400">({{ timeAgo(open.createdAt) }})</span></time>
+            <button v-if="newer" type="button" @click="show(newer)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Newer submission" aria-label="Newer submission">▶</button>
+          </div>
+          <button ref="closeBtn" type="button" @click="close" aria-label="Close" title="Close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0">✕</button>
         </div>
-        <button type="button" @click="load" class="ml-auto text-sm bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5">Load into editor</button>
+        <div class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
+          <span v-if="open.status === 'Done'">{{ open.runtimeMs }}ms · {{ open.memoryKb }}KB · {{ Math.round(open.score * 100) }}%</span>
+          <button v-if="prev" type="button" @click="mode = mode === 'prev' ? 'code' : 'prev'" :aria-pressed="mode === 'prev'"
+                  class="row-action-btn shrink-0" :class="mode === 'prev' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with previous</span></button>
+          <button type="button" @click="mode = mode === 'editor' ? 'code' : 'editor'" :aria-pressed="mode === 'editor'"
+                  class="row-action-btn shrink-0" :class="mode === 'editor' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with editor</span></button>
+          <button type="button" @click="load" class="row-action-btn row-action-btn--accent shrink-0 ml-auto"><span>↳</span><span>Load into editor</span></button>
+        </div>
       </div>
-      <p v-if="mode !== 'code'" class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">
+      <p v-if="mode !== 'code'" class="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 px-4 py-1 border-b border-slate-100 dark:border-slate-800">
         {{ mode === 'prev' ? `Left: your previous submission (${timeAgo(prev.createdAt)}) · Right: this one` : 'Left: this submission · Right: your editor now' }}
       </p>
-
-      <div class="h-[60vh]">
+      <div class="flex-1 min-h-0">
         <MonacoEditor v-if="mode === 'code'" :model-value="open.code" :language="lang" read-only :filename="'submission'" />
         <CodeDiff v-else-if="mode === 'prev'" :original="prev.code || ''" :modified="open.code || ''" :language="lang" />
         <CodeDiff v-else :original="open.code || ''" :modified="currentCode" :language="lang" />
