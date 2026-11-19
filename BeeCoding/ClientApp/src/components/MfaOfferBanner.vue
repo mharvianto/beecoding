@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -30,13 +31,13 @@ const setUp = () => router.push({ path: '/account/security', hash: '#two-step' }
   <div v-if="!auth.user.mfaOfferSnoozed" class="shrink-0 bg-sky-50 dark:bg-sky-500/10 border-b border-sky-200 dark:border-sky-500/20 text-sm text-sky-900 dark:text-sky-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
       <span>
-        <Icon name="lock" /> Protect your account with two-step verification
-        <span class="hidden sm:inline">— {{ auth.isTeacher ? 'your boards and your students’ work depend on it.' : 'a stolen password alone will no longer be enough.' }}</span>
+        <Icon name="lock" /> {{ tr('Protect your account with two-step verification') }}
+        <span class="hidden sm:inline">— {{ auth.isTeacher ? tr('your boards and your students’ work depend on it.') : tr('a stolen password alone will no longer be enough.') }}</span>
       </span>
-      <button @click="setUp" class="font-semibold underline hover:no-underline">Set it up</button>
+      <button @click="setUp" class="font-semibold underline hover:no-underline">{{ tr('Set it up') }}</button>
       <span class="ml-auto flex items-center gap-3 text-xs text-sky-700 dark:text-sky-300">
-        <button @click="hide(false)" class="hover:underline">Not now</button>
-        <button @click="hide(true)" class="hover:underline">Don't ask again</button>
+        <button @click="hide(false)" class="hover:underline">{{ tr('Not now') }}</button>
+        <button @click="hide(true)" class="hover:underline">{{ tr('Don\'t ask again') }}</button>
       </span>
     </div>
   </div>

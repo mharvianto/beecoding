@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, watch, onBeforeUnmount } from 'vue';
 import { theme as appTheme } from '../lib/theme';
 import { withBase } from '../lib/base';
@@ -40,7 +41,7 @@ async function load() {
     objectUrl = URL.createObjectURL(new Blob([plain], { type: 'image/png' }));
     src.value = objectUrl;
   } catch {
-    err.value = 'Failed to load the problem.';
+    err.value = tr('Failed to load the problem.');
   }
 }
 
@@ -50,9 +51,9 @@ onBeforeUnmount(revoke);
 
 <template>
   <div>
-    <p v-if="err" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ err }}</p>
+    <p v-if="err" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(err) }}</p>
     <img v-else-if="src" :src="src" alt="" draggable="false"
          class="w-full rounded-lg border border-slate-200 dark:border-slate-800 select-none pointer-events-none" />
-    <p v-else class="text-sm text-slate-500 dark:text-slate-400">Loading problem…</p>
+    <p v-else class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading problem…') }}</p>
   </div>
 </template>

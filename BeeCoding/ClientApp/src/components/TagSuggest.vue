@@ -7,6 +7,7 @@ const suggestionsOn = () => (enabledProbe ??= api.get('/api/tag-suggestions/enab
 </script>
 
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 
@@ -27,7 +28,7 @@ async function ask() {
   busy.value = true; message.value = '';
   try {
     tags.value = await api.post('/api/tag-suggestions', { title: props.title, statement: props.statement });
-    if (!tags.value.length) message.value = 'Write a title and a few sentences of the statement first.';
+    if (!tags.value.length) message.value = tr('Write a title and a few sentences of the statement first.');
   } catch (e) { message.value = e.message; tags.value = null; }
   finally { busy.value = false; }
 }
@@ -36,12 +37,12 @@ async function ask() {
 <template>
   <div v-if="available" class="flex items-center gap-2 flex-wrap text-xs">
     <button type="button" @click="ask" :disabled="busy" class="row-action-btn disabled:opacity-50">
-      <span><Icon name="tag" /></span><span>{{ busy ? 'Thinking…' : 'Suggest tags' }}</span>
+      <span><Icon name="tag" /></span><span>{{ busy ? tr('Thinking…') : tr('Suggest tags') }}</span>
     </button>
     <button v-for="t in shown" :key="t" type="button" @click="emit('add', t)" :title="`Add “${t}”`"
             class="rounded px-2 py-0.5 bg-violet-50 text-violet-700 hover:bg-violet-100 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20">+ {{ t }}</button>
-    <span v-if="tags && !shown.length && tags.length" class="text-slate-500 dark:text-slate-400">Nothing new to suggest.</span>
-    <span v-if="message" class="text-slate-500 dark:text-slate-400">{{ message }}</span>
-    <span v-if="shown.length" class="text-[11px] text-slate-500 dark:text-slate-400">Guessed from similar problems; check them.</span>
+    <span v-if="tags && !shown.length && tags.length" class="text-slate-500 dark:text-slate-400">{{ tr('Nothing new to suggest.') }}</span>
+    <span v-if="message" class="text-slate-500 dark:text-slate-400">{{ tr(message) }}</span>
+    <span v-if="shown.length" class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('Guessed from similar problems; check them.') }}</span>
   </div>
 </template>

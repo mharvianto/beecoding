@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { useRouter } from 'vue-router';
 import { useNotifications, notificationText, notificationTarget } from '../stores/notifications';
 
@@ -23,7 +24,7 @@ function go(n) {
           <span class="block break-words">{{ notificationText(n) }}</span>
           <span class="block text-[11px] text-slate-300 truncate">{{ n.problemTitle }}<template v-if="n.boardTitle"> · {{ n.boardTitle }}</template></span>
         </span>
-        <span @click.stop="notif.dismissToast(n.id)" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss">✕</span>
+        <span @click.stop="notif.dismissToast(n.id)" class="shrink-0 text-slate-400 hover:text-slate-200" :title="tr('Dismiss')">✕</span>
       </button>
     </TransitionGroup>
   </div>

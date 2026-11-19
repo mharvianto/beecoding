@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Chevron from './Chevron.vue';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted, onUnmounted } from 'vue';
@@ -131,23 +132,22 @@ async function ask(extra = {}) {
   <div v-if="enabled" class="mt-5 border border-violet-200 dark:border-violet-500/30 rounded-xl overflow-hidden">
     <button @click="open = !open" :aria-expanded="open"
             class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300">
-      <span><Icon name="bot" /> AI tutor{{ liveMode ? '' : ' — hints only' }}</span>
+      <span><Icon name="bot" /> {{ tr('AI tutor') }}{{ liveMode ? '' : tr('— hints only') }}</span>
       <Chevron :open="open" />
     </button>
 
     <div v-if="open" class="p-3 space-y-2">
       <p class="text-[11px] text-slate-500 dark:text-slate-400">
         <template v-if="liveMode">
-          Ask what the teacher's code does, or get help with an error in your own follow-along code.
+          {{ tr('Ask what the teacher\'s code does, or get help with an error in your own follow-along code.') }}
         </template>
         <template v-else>
-          It looks at your current code and errors, points out bugs, and suggests an approach — it
-          will <b>not</b> write the solution for you.
+          {{ tr('It looks at your current code and errors, points out bugs, and suggests an approach — it will') }} <b>{{ tr('not') }}</b> {{ tr('write the solution for you.') }}
         </template>
       </p>
 
       <div class="flex items-center gap-1 text-xs">
-        <span class="text-slate-500 dark:text-slate-400 mr-1">Reply in:</span>
+        <span class="text-slate-500 dark:text-slate-400 mr-1">{{ tr('Reply in:') }}</span>
         <button v-for="(label, lc) in LANGS" :key="lc" @click="setLang(lc)" type="button"
                 class="px-2 py-0.5 rounded-lg border"
                 :class="lang === lc
@@ -163,25 +163,25 @@ async function ask(extra = {}) {
       <div class="flex flex-wrap gap-2">
         <button @click="ask()" :disabled="busy || (!code && !liveMode)"
                 class="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ busy ? `Thinking… ${elapsed}s` : liveMode ? 'Ask about my code' : 'Ask for a hint' }}
+          {{ busy ? `Thinking… ${elapsed}s` : liveMode ? tr('Ask about my code') : tr('Ask for a hint') }}
         </button>
         <button v-if="liveMode" @click="ask({ explain: true })" :disabled="busy || !teacherCode"
                 class="border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          <Icon name="sparkles" /> Explain the teacher's code
+          <Icon name="sparkles" /> {{ tr('Explain the teacher\'s code') }}
         </button>
       </div>
 
-      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
       <div v-if="reply" class="text-sm bg-slate-50 dark:bg-slate-800/60 rounded-lg p-3">
         <p v-if="level > 0 && !liveMode" class="text-[11px] uppercase tracking-wide text-violet-500 dark:text-violet-400 mb-1">
-          Hint {{ level }} / 4 · {{ LEVEL_LABEL[level] }}
+          {{ tr('Hint {n} / 4', { n: level }) }} · {{ tr(LEVEL_LABEL[level]) }}
         </p>
         <MarkdownBlock :text="reply" />
         <span v-if="busy" class="inline-block w-1.5 h-4 bg-violet-400 animate-pulse align-middle ml-0.5"></span>
       </div>
       <p v-if="level >= 2 && !busy && !liveMode" class="text-[11px] text-slate-500 dark:text-slate-400">
-        Ask again for a more detailed hint (the tutor still won't give the full solution).
-        <button @click="startOver" class="text-violet-500 dark:text-violet-400 hover:underline ml-1">Start over</button>
+        {{ tr('Ask again for a more detailed hint (the tutor still won\'t give the full solution).') }}
+        <button @click="startOver" class="text-violet-500 dark:text-violet-400 hover:underline ml-1">{{ tr('Start over') }}</button>
       </p>
     </div>
   </div>

@@ -1,19 +1,20 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { tableView } from '../lib/tableView';
 </script>
 
 <template>
   <div class="hidden sm:inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs shrink-0">
-    <button type="button" @click="tableView = 'card'" title="Card view"
+    <button type="button" @click="tableView = 'card'" :title="tr('Card view')"
             class="px-2 py-1"
             :class="tableView === 'card' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-      <Icon name="grid" /> Cards
+      <Icon name="grid" /> {{ tr('Cards') }}
     </button>
-    <button type="button" @click="tableView = 'table'" title="Table view"
+    <button type="button" @click="tableView = 'table'" :title="tr('Table view')"
             class="px-2 py-1 border-l border-slate-300 dark:border-slate-700"
             :class="tableView === 'table' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-      <Icon name="rows" /> Table
+      <Icon name="rows" /> {{ tr('Table') }}
     </button>
   </div>
 </template>

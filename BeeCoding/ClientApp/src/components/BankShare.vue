@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 import { api } from '../lib/api';
@@ -33,22 +34,21 @@ onMounted(load);
 <template>
   <section class="max-w-7xl mx-auto px-4 pb-10">
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 max-w-xl">
-      <h2 class="font-semibold text-sm mb-1">Share with teachers</h2>
+      <h2 class="font-semibold text-sm mb-1">{{ tr('Share with teachers') }}</h2>
       <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-        A teacher you add can read this problem, with all its tests, and copy it to their own boards. They cannot edit, delete or publish it.
-        Stopping the share removes their access, but a copy they already made stays on their board.
+        {{ tr('A teacher you add can read this problem, with all its tests, and copy it to their own boards. They cannot edit, delete or publish it. Stopping the share removes their access, but a copy they already made stays on their board.') }}
       </p>
       <div class="flex gap-2">
-        <input v-model="email" @keyup.enter="add" type="email" placeholder="teacher@school.example" aria-label="Teacher email"
+        <input v-model="email" @keyup.enter="add" type="email" :placeholder="tr('teacher@school.example')" :aria-label="tr('Teacher email')"
                class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <button @click="add" :disabled="busy || !email.trim()"
-                class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">Share</button>
+                class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">{{ tr('Share') }}</button>
       </div>
-      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ tr(error) }}</p>
       <ul v-if="shares.length" class="mt-3 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
         <li v-for="s in shares" :key="s.userId" class="flex items-center gap-2 py-1.5">
           <span class="truncate">{{ s.displayName }} <span class="text-xs text-slate-400">{{ s.email }}</span></span>
-          <button @click="remove(s)" class="row-action-btn row-action-btn--danger ml-auto"><span><Icon name="x" /></span><span>Stop sharing</span></button>
+          <button @click="remove(s)" class="row-action-btn row-action-btn--danger ml-auto"><span><Icon name="x" /></span><span>{{ tr('Stop sharing') }}</span></button>
         </li>
       </ul>
     </div>

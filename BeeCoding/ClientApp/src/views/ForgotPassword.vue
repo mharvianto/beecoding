@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import LogoMark from '../components/LogoMark.vue';
 import { ref } from 'vue';
 import { api } from '../lib/api';
@@ -35,25 +36,25 @@ async function submit() {
     <div class="absolute right-4 top-4"><ThemeToggle /></div>
     <div class="max-w-sm w-full">
       <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1"><LogoMark />BeeCoding</h1>
-      <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">Reset your password</p>
+      <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">{{ tr('Reset your password') }}</p>
 
       <div v-if="sent" class="text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-3">
-        If an account exists for <span class="font-semibold">{{ email }}</span>, we've emailed a link to reset the password.
+        {{ tr('If an account exists for') }} <span class="font-semibold">{{ email }}</span>, we've emailed a link to reset the password.
         It works once and expires in an hour. Check your spam folder if it doesn't show up.
       </div>
       <form v-else @submit.prevent="submit" class="space-y-3">
-        <p class="text-sm text-slate-500 dark:text-slate-400">Enter your account email and we'll send you a link to choose a new password.</p>
-        <input v-model="email" type="email" placeholder="Email" aria-label="Email" required autofocus
+        <p class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Enter your account email and we\'ll send you a link to choose a new password.') }}</p>
+        <input v-model="email" type="email" :placeholder="tr('Email')" :aria-label="tr('Email')" required autofocus
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <TurnstileWidget ref="turnstile" action="forgot-password" v-model:token="human" />
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
         <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
-          {{ busy ? '…' : 'Send reset link' }}
+          {{ busy ? '…' : tr('Send reset link') }}
         </button>
       </form>
       <p class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-        <RouterLink to="/login" class="text-amber-700 dark:text-amber-400">&larr; Back to sign in</RouterLink>
+        <RouterLink to="/login" class="text-amber-700 dark:text-amber-400">← {{ tr('Back to sign in') }}</RouterLink>
       </p>
     </div>
   </div>

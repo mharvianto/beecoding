@@ -1,4 +1,6 @@
 <script setup>
+import { agoShort as ago } from '../lib/timeAgo';
+import { tr } from '../lib/i18n';
 import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
 import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
@@ -145,12 +147,6 @@ async function run() {
   finally { running.value = false; }
 }
 
-function ago(ts) {
-  if (!ts) return '';
-  const s = Math.max(0, (Date.now() - new Date(ts + (ts.endsWith('Z') ? '' : 'Z')).getTime()) / 1000);
-  return s < 60 ? `${s | 0}s` : s < 3600 ? `${(s / 60) | 0}m` : `${(s / 3600) | 0}h`;
-}
-
 const compilerOutput = computed(() => (runOut.value && !runOut.value.compileOk ? runOut.value.compilerOutput : ''));
 
 watch(code, () => {
@@ -237,14 +233,14 @@ onBeforeUnmount(async () => {
 <template>
   <div v-if="board" class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
-      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
-      <h1 class="text-sm font-bold"><Icon name="video" /> Live code · {{ board.title }}</h1>
+      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to board') }}</RouterLink>
+      <h1 class="text-sm font-bold"><Icon name="video" /> {{ tr('Live code · {title}', { title: board.title }) }}</h1>
       <span v-if="isStaff"
             class="text-[11px] px-2 py-0.5 rounded-full"
             :class="lecturingOn
               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'">
-        {{ lecturingOn ? 'students are watching' : 'not broadcasting' }}
+        {{ lecturingOn ? tr('students are watching') : tr('not broadcasting') }}
       </span>
       <div class="ml-auto flex items-center gap-2">
         <button v-if="isStaff" @click="toggleStudentsPanel"
@@ -252,23 +248,23 @@ onBeforeUnmount(async () => {
                 :class="showStudents
                   ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-600 dark:border-slate-600'
                   : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'">
-          <Icon name="eye" /> Student panel {{ showStudents ? 'on' : 'off' }}
+          <Icon name="eye" /> {{ tr('Student panel') }} {{ showStudents ? tr('on') : tr('off') }}
         </button>
         <button v-if="isStaff" @click="toggleLecturing"
                 class="text-xs px-2.5 py-1 rounded-lg font-medium"
                 :class="lecturingOn
                   ? 'bg-amber-500 text-slate-900'
                   : 'border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300'">
-          {{ lecturingOn ? 'Stop broadcasting' : 'Start broadcasting' }}
+          {{ lecturingOn ? tr('Stop broadcasting') : tr('Start broadcasting') }}
         </button>
         <button @click="playgroundFocus = !playgroundFocus"
-                :title="playgroundFocus ? 'Show the top navigation bar' : 'Hide the top navigation bar for more room'"
+                :title="playgroundFocus ? tr('Show the top navigation bar') : tr('Hide the top navigation bar for more room')"
                 class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-          {{ playgroundFocus ? '⤡ Show navbar' : '⤢ Full screen' }}
+          {{ playgroundFocus ? tr('⤡ Show navbar') : tr('⤢ Full screen') }}
         </button>
         <button @click="resetTemplate"
                 class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-          Reset template
+          {{ tr('Reset template') }}
         </button>
         <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
           <button v-for="l in ['c', 'cpp']" :key="l" @click="setLang(l)" class="px-2.5 py-1"
@@ -279,13 +275,13 @@ onBeforeUnmount(async () => {
       </div>
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ tr(error) }}</p>
 
     <div v-if="observing"
          class="flex items-center gap-2 flex-wrap text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 px-4 py-2 border-b border-sky-100 dark:border-sky-500/20">
-      <span><Icon name="present" /> {{ other.name }} is presenting — your editor is not shown to students.</span>
-      <button @click="loadTeacherCode" class="underline hover:no-underline">Copy their code</button>
-      <button @click="takeOver" class="ml-auto px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-medium">Take over</button>
+      <span><Icon name="present" /> {{ tr('{name} is presenting — your editor is not shown to students.', { name: other.name }) }}</span>
+      <button @click="loadTeacherCode" class="underline hover:no-underline">{{ tr('Copy their code') }}</button>
+      <button @click="takeOver" class="ml-auto px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-medium">{{ tr('Take over') }}</button>
     </div>
 
     <!-- Teacher: left = my code + stdin + AI tutor, right = a student's code -->
@@ -302,14 +298,14 @@ onBeforeUnmount(async () => {
                 <div class="flex gap-2 items-center">
                   <button @click="run" :disabled="running"
                           class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-                    {{ running ? 'Running…' : 'Run' }}
+                    {{ running ? tr('Running…') : tr('Run') }}
                   </button>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">Run only — nothing is graded.</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Run only — nothing is graded.') }}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <div class="flex items-center justify-between gap-2">
-                      <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
+                      <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('stdin') }}</label>
                       <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
@@ -319,7 +315,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
                     <pre :style="{ fontSize: editorFontSize + 'px' }"
                          class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
                   </div>
@@ -334,22 +330,22 @@ onBeforeUnmount(async () => {
         <template #b>
           <div class="h-full flex flex-col bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
-              <span class="font-semibold"><Icon name="eye" /> Student code</span>
-              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ studentList.length }} live</span>
+              <span class="font-semibold"><Icon name="eye" /> {{ tr('Student code') }}</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('{n} live', { n: studentList.length }) }}</span>
               <select v-if="studentList.length" v-model="selectedUid"
                       class="ml-auto text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">
                 <option v-for="s in studentList" :key="s.uid" :value="s.uid">
-                  {{ s.authorName }} · {{ ago(s.updatedAt) }} ago
+                  {{ s.authorName }} · {{ ago(s.updatedAt) }}
                 </option>
               </select>
-              <button @click="toggleStudentsPanel" title="Hide this panel"
+              <button @click="toggleStudentsPanel" :title="tr('Hide this panel')"
                       class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                      :class="{ 'ml-auto': !studentList.length }" aria-label="Close">✕</button>
+                      :class="{ 'ml-auto': !studentList.length }" :aria-label="tr('Close')">✕</button>
             </div>
             <MonacoEditor v-if="selectedStudent" :model-value="selectedStudent.code"
                           :language="liveLang" :read-only="true" class="flex-1 min-h-0" />
             <div v-else class="flex-1 grid place-items-center text-sm text-slate-500 dark:text-slate-400 p-6 text-center">
-              No student is typing yet.
+              {{ tr('No student is typing yet.') }}
             </div>
           </div>
         </template>
@@ -369,15 +365,15 @@ onBeforeUnmount(async () => {
                        ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300'
                        : 'bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400'">
                   <template v-if="lecturingOn && lecture">
-                    <span class="truncate"><Icon name="present" /> {{ lecture.teacherName }} · {{ lecture.language === 'c' ? 'C' : 'C++' }} · {{ ago(lecture.updatedAt) }} ago</span>
-                    <button @click="loadTeacherCode" class="ml-auto shrink-0 bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-2.5 py-0.5">Load into my editor</button>
+                    <span class="truncate"><Icon name="present" /> {{ lecture.teacherName }} · {{ lecture.language === 'c' ? 'C' : 'C++' }} · {{ ago(lecture.updatedAt) }}</span>
+                    <button @click="loadTeacherCode" class="ml-auto shrink-0 bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-2.5 py-0.5">{{ tr('Load into my editor') }}</button>
                   </template>
-                  <span v-else>{{ lecturingOn ? 'Waiting for the teacher to start typing…' : 'The teacher hasn’t started a live session yet.' }}</span>
+                  <span v-else>{{ lecturingOn ? tr('Waiting for the teacher to start typing…') : tr('The teacher hasn’t started a live session yet.') }}</span>
                 </div>
                 <MonacoEditor v-if="lecture" :model-value="lecture.code" :language="lecture.language || 'cpp'"
                               :read-only="true" class="flex-1 min-h-0" />
                 <div v-else class="flex-1 grid place-items-center text-sm text-slate-500 dark:text-slate-400 p-6 text-center">
-                  The teacher’s code will show here.
+                  {{ tr('The teacher’s code will show here.') }}
                 </div>
               </div>
             </template>
@@ -385,10 +381,10 @@ onBeforeUnmount(async () => {
               <div class="h-full overflow-y-auto bg-white dark:bg-slate-900 p-3 space-y-2 border-r border-slate-200 dark:border-slate-800">
                 <div v-if="lecture && lecture.stdin">
                   <div class="flex items-center gap-2">
-                    <label class="text-xs text-slate-500 dark:text-slate-400">teacher's stdin</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('teacher\'s stdin') }}</label>
                     <button @click="useTeacherStdin"
                             class="ml-auto text-[11px] px-2 py-0.5 rounded-lg border border-sky-300 dark:border-sky-500/40 text-sky-700 dark:text-sky-300 hover:bg-sky-50 dark:hover:bg-sky-500/10">
-                      {{ stdinCopied ? 'Copied ✓' : 'Use this stdin' }}
+                      {{ stdinCopied ? tr('Copied ✓') : tr('Use this stdin') }}
                     </button>
                   </div>
                   <pre :style="{ fontSize: editorFontSize + 'px' }"
@@ -412,14 +408,14 @@ onBeforeUnmount(async () => {
                 <div class="flex gap-2 items-center">
                   <button @click="run" :disabled="running"
                           class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-                    {{ running ? 'Running…' : 'Run' }}
+                    {{ running ? tr('Running…') : tr('Run') }}
                   </button>
-                  <span class="text-xs text-slate-500 dark:text-slate-400">Your own editor — nothing is graded.</span>
+                  <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Your own editor — nothing is graded.') }}</span>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <div class="flex items-center justify-between gap-2">
-                      <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
+                      <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('stdin') }}</label>
                       <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
@@ -429,7 +425,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
+                    <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
                     <pre :style="{ fontSize: editorFontSize + 'px' }"
                          class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
                   </div>

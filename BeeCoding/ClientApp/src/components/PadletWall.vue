@@ -1,4 +1,6 @@
 <script setup>
+import { agoShort as ago } from '../lib/timeAgo';
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, watch, computed, onMounted, nextTick, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -107,16 +109,6 @@ function hash(n) { return ((n * 2654435761) >>> 0) % pastels.length; }
 function initials(name) {
   return (name || '?').split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() || '').join('');
 }
-function ago(iso) {
-  if (!iso) return '';
-  const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z');
-  if (!t) return '';
-  const s = Math.max(1, Math.floor((Date.now() - t) / 1000));
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s / 60) + 'm';
-  if (s < 86400) return Math.floor(s / 3600) + 'h';
-  return Math.floor(s / 86400) + 'd';
-}
 
 async function toggleReaction(post, emoji) {
   try {
@@ -184,7 +176,7 @@ async function delComment(post, c) {
 
 function openPost(post) {
   if (post.latestSubmissionId) { viewSubmissionId.value = post.latestSubmissionId; return; }
-  error.value = 'No submission yet for this problem.';
+  error.value = tr('No submission yet for this problem.');
 }
 
 async function toggleHiddenByStudent(post) {
@@ -197,7 +189,7 @@ async function toggleHiddenByStudent(post) {
 
 <template>
   <div>
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-2">{{ tr(error) }}</p>
 
     <!-- problem tabs -->
     <div class="flex gap-1 flex-wrap mb-4">
@@ -207,13 +199,13 @@ async function toggleHiddenByStudent(post) {
                 ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
         <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
-        <span v-if="tabHasNew(p.id)" class="ml-1" title="New reactions or comments on your card"><Icon name="bell" /></span>
+        <span v-if="tabHasNew(p.id)" class="ml-1" :title="tr('New reactions or comments on your card')"><Icon name="bell" /></span>
       </button>
     </div>
 
     <div v-if="activeExam && !wall.viewerIsStaff"
          class="text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2 mb-3">
-      <Icon name="lock" /> Exam mode — only your own posts are shown.
+      <Icon name="lock" /> {{ tr('Exam mode — only your own posts are shown.') }}
     </div>
 
     <!-- masonry wall -->
@@ -231,12 +223,12 @@ async function toggleHiddenByStudent(post) {
                 :class="avatarColors[hash(post.userId)]">{{ initials(post.authorName) }}</span>
           <div class="min-w-0">
             <div class="text-sm font-semibold truncate">
-              {{ post.redacted ? 'Hidden' : post.authorName }}
-              <span v-if="post.mine" class="text-xs text-slate-500 dark:text-slate-400 font-normal">· you</span>
+              {{ post.redacted ? tr('Hidden') : post.authorName }}
+              <span v-if="post.mine" class="text-xs text-slate-500 dark:text-slate-400 font-normal">{{ tr('· you') }}</span>
             </div>
             <div class="text-[11px] text-slate-500 dark:text-slate-400">
-              <span v-if="draftFor(post)" class="text-amber-700 dark:text-amber-400 font-medium"><Icon name="pencil" /> editing · {{ ago(draftFor(post).updatedAt) }} ago</span>
-              <span v-else>{{ ago(post.updatedAt) }} ago</span>
+              <span v-if="draftFor(post)" class="text-amber-700 dark:text-amber-400 font-medium"><Icon name="pencil" /> {{ tr('editing') }} · {{ ago(draftFor(post).updatedAt) }}</span>
+              <span v-else>{{ ago(post.updatedAt) }}</span>
             </div>
           </div>
           <button v-if="post.mine && post.postId" @click="toggleHiddenByStudent(post)"
@@ -244,7 +236,7 @@ async function toggleHiddenByStudent(post) {
                   :class="post.hiddenByStudent
                     ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                     : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
-            <template v-if="post.hiddenByStudent"><Icon name="lock" /> hidden from peers</template><template v-else>visible to peers</template>
+            <template v-if="post.hiddenByStudent"><Icon name="lock" /> {{ tr('hidden from peers') }}</template><template v-else>{{ tr('visible to peers') }}</template>
           </button>
           <VerdictBadge v-if="!post.redacted && post.verdict !== 'None'" :verdict="post.verdict" small
                         :class="post.mine && post.postId ? 'ml-1' : 'ml-auto'" />
@@ -252,7 +244,7 @@ async function toggleHiddenByStudent(post) {
         </div>
 
         <div v-if="post.redacted" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
-          <Icon name="lock" /> This student’s answer is hidden from peers.
+          <Icon name="lock" /> {{ tr('This student’s answer is hidden from peers.') }}
         </div>
 
         <template v-else>
@@ -260,14 +252,14 @@ async function toggleHiddenByStudent(post) {
           <div v-if="post.postId" class="px-4 pt-2">
             <div v-if="noteDraft[post.postId] !== undefined" class="flex gap-1">
               <input v-model="noteDraft[post.postId]" @keyup.enter="saveNote(post)"
-                     placeholder="Add a note…" aria-label="Note" maxlength="500"
+                     :placeholder="tr('Add a note…')" :aria-label="tr('Note')" maxlength="500"
                      class="flex-1 text-sm border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
-              <button @click="saveNote(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">save</button>
+              <button @click="saveNote(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">{{ tr('save') }}</button>
             </div>
             <p v-else-if="post.note" @click="post.mine && startNote(post)"
                class="text-sm text-slate-700 dark:text-slate-200" :class="{ 'cursor-text': post.mine }">{{ post.note }}</p>
             <button v-else-if="post.mine" @click="startNote(post)" class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-              + add a note
+              {{ tr('+ add a note') }}
             </button>
           </div>
 
@@ -276,19 +268,19 @@ async function toggleHiddenByStudent(post) {
                class="mx-4 mt-2 text-[11px] leading-snug rounded-lg p-2 overflow-x-auto max-h-44"
                :class="draftFor(post) ? 'bg-slate-800 text-amber-50 ring-1 ring-amber-400' : 'bg-slate-900 text-slate-100'">{{ previewCode(post) }}</pre>
           <div class="px-4 mt-1 text-[11px] text-slate-500 dark:text-slate-400">
-            <span v-if="post.attempts">{{ post.attempts }} attempt{{ post.attempts === 1 ? '' : 's' }}</span>
+            <span v-if="post.attempts">{{ tr(post.attempts === 1 ? '{n} attempt' : '{n} attempts', { n: post.attempts }) }}</span>
             <span v-if="post.runtimeMs"> · {{ post.runtimeMs }}ms · {{ post.memoryKb }}KB</span>
             <span v-if="post.score"> · {{ Math.round(post.score * 100) }}%</span>
           </div>
 
-          <div v-if="!post.postId" class="px-4 pb-3 pt-1 text-[11px] text-slate-500 dark:text-slate-400">watching live · not submitted yet</div>
+          <div v-if="!post.postId" class="px-4 pb-3 pt-1 text-[11px] text-slate-500 dark:text-slate-400">{{ tr('watching live · not submitted yet') }}</div>
 
           <!-- new feedback for the author -->
           <div v-if="post.mine && post.newActivity" class="px-4 mt-2">
             <button @click="acknowledge(post)"
                     class="text-xs font-medium rounded-full px-2.5 py-0.5 bg-amber-500 text-slate-900 hover:bg-amber-600"
-                    title="Show the new feedback and mark it as seen">
-              <Icon name="bell" /> {{ post.newActivity }} new — mark as seen
+                    :title="tr('Show the new feedback and mark it as seen')">
+              <Icon name="bell" /> {{ tr('{n} new — mark as seen', { n: post.newActivity }) }}
             </button>
           </div>
 
@@ -308,19 +300,19 @@ async function toggleHiddenByStudent(post) {
           <div v-if="post.postId" class="px-4 mt-2 pb-3">
             <button @click="openComments[post.postId] ? (openComments[post.postId] = false) : acknowledge(post)"
                     class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">
-              <Icon name="message" /> {{ post.comments.length }} comment{{ post.comments.length === 1 ? '' : 's' }}
+              <Icon name="message" /> {{ tr(post.comments.length === 1 ? '{n} comment' : '{n} comments', { n: post.comments.length }) }}
             </button>
             <div v-if="openComments[post.postId]" class="mt-2 space-y-1.5">
               <div :id="'comments-' + post.postId" class="max-h-56 overflow-y-auto space-y-1.5 pr-1">
               <button v-if="hiddenComments(post) > 0" @click="loadEarlier(post)"
                       class="w-full text-[11px] text-amber-700 dark:text-amber-400 hover:underline py-0.5">
-                Load earlier comments ({{ hiddenComments(post) }} more)
+                {{ tr('Load earlier comments ({n} more)', { n: hiddenComments(post) }) }}
               </button>
               <div v-for="c in visibleComments(post)" :key="c.id" class="text-xs bg-white/70 dark:bg-slate-800/70 rounded-lg px-2 py-1"
                    :class="{ 'border-l-2 border-amber-500': c.isNew }">
                 <span class="font-semibold">{{ c.authorName }}</span>
-                <span v-if="c.isNew" class="ml-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">NEW</span>
-                <span class="text-slate-500 dark:text-slate-400"> · {{ ago(c.createdAt) }} ago</span>
+                <span v-if="c.isNew" class="ml-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400">{{ tr('NEW') }}</span>
+                <span class="text-slate-500 dark:text-slate-400"> · {{ ago(c.createdAt) }}</span>
                 <button v-if="c.canDelete" @click="delComment(post, c)"
                         class="text-slate-300 dark:text-slate-600 hover:text-red-500 float-right">×</button>
                 <div class="text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{{ c.body }}</div>
@@ -328,9 +320,9 @@ async function toggleHiddenByStudent(post) {
               </div>
               <div class="flex gap-1">
                 <input v-model="commentDraft[post.postId]" @keyup.enter="addComment(post)"
-                       placeholder="Write a comment…" aria-label="Comment"
+                       :placeholder="tr('Write a comment…')" :aria-label="tr('Comment')"
                        class="flex-1 text-xs border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 bg-white dark:bg-slate-800" />
-                <button @click="addComment(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">send</button>
+                <button @click="addComment(post)" class="text-xs text-amber-700 dark:text-amber-400 px-1">{{ tr('send') }}</button>
               </div>
             </div>
           </div>
@@ -338,13 +330,13 @@ async function toggleHiddenByStudent(post) {
 
         <div class="px-4 py-1.5 text-right border-t border-slate-100 dark:border-slate-800">
           <button @click="openPost(post)"
-                  class="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">open ↗</button>
+                  class="text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">{{ tr('open ↗') }}</button>
         </div>
       </article>
     </div>
 
     <p v-if="!visiblePosts.length" class="text-slate-500 dark:text-slate-400 text-sm">
-      No posts yet — a card appears here when a student runs their first submission.
+      {{ tr('No posts yet — a card appears here when a student runs their first submission.') }}
     </p>
 
     <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />

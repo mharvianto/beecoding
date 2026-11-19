@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { api } from '../lib/api';
@@ -62,50 +63,50 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
 
 <template>
   <span class="inline-flex items-center gap-1.5">
-    <button type="button" @click="toggleLike" :aria-pressed="fb.liked" :title="fb.liked ? 'Remove your like' : 'Like this problem'"
+    <button type="button" @click="toggleLike" :aria-pressed="fb.liked" :title="fb.liked ? tr('Remove your like') : tr('Like this problem')"
             class="inline-flex items-center gap-1 text-xs rounded-md border px-2 py-0.5 transition-colors"
             :class="fb.liked
               ? 'border-rose-300 dark:border-rose-500/40 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-300'
               : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-300'">
       <span aria-hidden="true">{{ fb.liked ? '♥' : '♡' }}</span><span class="tabular-nums">{{ fb.likes }}</span>
     </button>
-    <button type="button" @click="openReport" title="Report a problem with this problem"
+    <button type="button" @click="openReport" :title="tr('Report a problem with this problem')"
             class="inline-flex items-center gap-1 text-xs rounded-md border border-slate-300 dark:border-slate-700 px-2 py-0.5 text-slate-500 dark:text-slate-400 hover:text-amber-700 dark:hover:text-amber-300">
-      <span aria-hidden="true"><Icon name="flag" /></span><span>{{ fb.reported ? 'Reported' : 'Report' }}</span>
+      <span aria-hidden="true"><Icon name="flag" /></span><span>{{ fb.reported ? tr('Reported') : tr('Report') }}</span>
     </button>
   </span>
 
   <Teleport to="body">
-    <div v-if="modal" role="dialog" aria-modal="true" aria-label="Report a problem" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" @click.self="modal = false" @keydown.esc="modal = false">
-      <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 max-h-[90vh] overflow-y-auto" role="dialog" aria-label="Report a problem">
+    <div v-if="modal" role="dialog" aria-modal="true" :aria-label="tr('Report a problem')" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" @click.self="modal = false" @keydown.esc="modal = false">
+      <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 max-h-[90vh] overflow-y-auto" role="dialog" :aria-label="tr('Report a problem')">
         <template v-if="!sent">
-          <h2 class="font-semibold">Report a problem</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Found something wrong with this problem? Tell the author what, and they'll take a look.</p>
+          <h2 class="font-semibold">{{ tr('Report a problem') }}</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Found something wrong with this problem? Tell the author what, and they\'ll take a look.') }}</p>
           <div class="space-y-1.5">
             <label v-for="[key, label, hint] in CATEGORIES" :key="key"
                    class="flex items-start gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm"
                    :class="category === key ? 'border-amber-500 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-200 dark:border-slate-700'">
               <input type="radio" :value="key" v-model="category" class="mt-1" />
-              <span><span class="block">{{ label }}</span><span v-if="hint" class="block text-[11px] text-slate-500 dark:text-slate-400">{{ hint }}</span></span>
+              <span><span class="block">{{ tr(label) }}</span><span v-if="hint" class="block text-[11px] text-slate-500 dark:text-slate-400">{{ tr(hint) }}</span></span>
             </label>
           </div>
           <div>
-            <textarea v-model="message" rows="4" maxlength="1000" placeholder="Describe it: which input or line is wrong, and what you expected (at least 10 characters)." aria-label="Describe it: which input or line is wrong, and what you expected (at least 10 characters)."
+            <textarea v-model="message" rows="4" maxlength="1000" :placeholder="tr('Describe it: which input or line is wrong, and what you expected (at least 10 characters).')" :aria-label="tr('Describe it: which input or line is wrong, and what you expected (at least 10 characters).')"
                       class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
             <div class="text-[11px] text-slate-500 dark:text-slate-400 text-right">{{ message.length }}/1000</div>
           </div>
-          <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+          <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
           <div class="flex gap-2 justify-end">
-            <button @click="modal = false" class="text-sm text-slate-500 dark:text-slate-400 px-3 py-2">Cancel</button>
+            <button @click="modal = false" class="text-sm text-slate-500 dark:text-slate-400 px-3 py-2">{{ tr('Cancel') }}</button>
             <button @click="submit" :disabled="busy || !ready" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-              {{ busy ? '…' : 'Send report' }}
+              {{ busy ? '…' : tr('Send report') }}
             </button>
           </div>
         </template>
         <template v-else>
-          <h2 class="font-semibold">Thanks for the report</h2>
-          <p class="text-sm text-slate-600 dark:text-slate-300">The author has been asked to review it.</p>
-          <div class="flex justify-end"><button @click="modal = false" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium">Close</button></div>
+          <h2 class="font-semibold">{{ tr('Thanks for the report') }}</h2>
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('The author has been asked to review it.') }}</p>
+          <div class="flex justify-end"><button @click="modal = false" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium">{{ tr('Close') }}</button></div>
         </template>
       </div>
     </div>

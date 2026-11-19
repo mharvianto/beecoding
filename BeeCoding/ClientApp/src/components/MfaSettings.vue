@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { useAuth } from '../stores/auth';
 import { api } from '../lib/api';
@@ -79,7 +80,7 @@ const confirmPending = () => guarded(async () => {
   await load();
 });
 const pendingLabel = computed(() => ({
-  totp: 'Remove authenticator app', email: 'Turn off email codes', codes: 'Generate new codes',
+  totp: tr('Remove authenticator app'), email: tr('Turn off email codes'), codes: tr('Generate new codes'),
 }[pending.value?.kind] || ''));
 
 // ---- recovery codes ----
@@ -101,45 +102,45 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
 
 <template>
   <section id="two-step" class="space-y-3 scroll-mt-4">
-    <h2 class="font-semibold text-sm">Two-step verification</h2>
+    <h2 class="font-semibold text-sm">{{ tr('Two-step verification') }}</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400">
-      After your password, sign-in also asks for a code, so a stolen password alone is not enough. Turn on one or more methods and pick the one you want each time you sign in.
+      {{ tr('After your password, sign-in also asks for a code, so a stolen password alone is not enough. Turn on one or more methods and pick the one you want each time you sign in.') }}
     </p>
     <p v-if="auth.user?.mfaRequired" class="text-sm rounded-lg px-3 py-2"
        :class="hasFactor ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300'">
-      <template v-if="hasFactor">✓ Required for your role, and it's on.</template>
-      <template v-else>Required for your role: turn on an authenticator app or email code to keep using BeeCoding.</template>
+      <template v-if="hasFactor">{{ tr('✓ Required for your role, and it\'s on.') }}</template>
+      <template v-else>{{ tr('Required for your role: turn on an authenticator app or email code to keep using BeeCoding.') }}</template>
     </p>
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
 
     <div v-if="status" class="space-y-3">
       <!-- authenticator app -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
         <div class="flex items-center gap-2">
-          <div class="font-medium text-sm">Authenticator app</div>
+          <div class="font-medium text-sm">{{ tr('Authenticator app') }}</div>
           <span v-if="status.totpEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">on</span>
-          <button v-if="status.totpEnabled" @click="ask('totp')" class="ml-auto row-action-btn row-action-btn--danger">Remove</button>
-          <button v-else-if="!setup" @click="startSetup" :disabled="busy" :class="['ml-auto', primaryBtn]">Set up</button>
+          <button v-if="status.totpEnabled" @click="ask('totp')" class="ml-auto row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
+          <button v-else-if="!setup" @click="startSetup" :disabled="busy" :class="['ml-auto', primaryBtn]">{{ tr('Set up') }}</button>
         </div>
         <p v-if="!status.totpEnabled && !setup" class="text-sm text-slate-500 dark:text-slate-400">
-          Use an app such as Google Authenticator, Microsoft Authenticator, 1Password or Authy to generate sign-in codes.
+          {{ tr('Use an app such as Google Authenticator, Microsoft Authenticator, 1Password or Authy to generate sign-in codes.') }}
         </p>
         <div v-if="setup" class="space-y-3">
-          <p class="text-sm text-slate-600 dark:text-slate-300">1. Scan this QR code with your authenticator app.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('1. Scan this QR code with your authenticator app.') }}</p>
           <QrCode :text="setup.uri" :size="180" />
           <p class="text-sm text-slate-600 dark:text-slate-300">
-            Can't scan? Enter this key by hand:
+            {{ tr('Can\'t scan? Enter this key by hand:') }}
             <code class="font-mono text-xs bg-slate-100 dark:bg-slate-800 rounded px-1.5 py-0.5 select-all break-all">{{ setup.secret }}</code>
-            <button @click="copySecret" class="text-xs text-amber-700 dark:text-amber-400 ml-1">{{ secretCopied ? 'copied' : 'copy' }}</button>
+            <button @click="copySecret" class="text-xs text-amber-700 dark:text-amber-400 ml-1">{{ secretCopied ? tr('copied') : tr('copy') }}</button>
           </p>
-          <p class="text-sm text-slate-600 dark:text-slate-300">2. Enter the 6-digit code it shows, and your password, to turn it on.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('2. Enter the 6-digit code it shows, and your password, to turn it on.') }}</p>
           <div class="flex flex-wrap gap-2">
-            <input v-model="setupPassword" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password"
+            <input v-model="setupPassword" type="password" autocomplete="current-password" :placeholder="tr('Password')" :aria-label="tr('Password')"
                    @keyup.enter="enableTotp" :class="[inputCls, 'w-48']" />
-            <input v-model="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code"
+            <input v-model="setupCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" :aria-label="tr('Verification code')"
                    @keyup.enter="enableTotp" :class="[inputCls, 'w-36 tracking-widest text-center']" />
-            <button @click="enableTotp" :disabled="busy || !setupCode || !setupPassword" :class="primaryBtn">Turn on</button>
-            <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+            <button @click="enableTotp" :disabled="busy || !setupCode || !setupPassword" :class="primaryBtn">{{ tr('Turn on') }}</button>
+            <button @click="cancelSetup" class="text-sm text-slate-500 dark:text-slate-400 px-2">{{ tr('Cancel') }}</button>
           </div>
         </div>
       </div>
@@ -147,25 +148,25 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
       <!-- email code -->
       <div v-if="status.emailAvailable || status.emailEnabled" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
         <div class="flex items-center gap-2">
-          <div class="font-medium text-sm">Email code</div>
+          <div class="font-medium text-sm">{{ tr('Email code') }}</div>
           <span v-if="status.emailEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">on</span>
-          <button v-if="status.emailEnabled" @click="ask('email')" class="ml-auto row-action-btn row-action-btn--danger">Turn off</button>
-          <button v-else-if="!emailStep" @click="startEmail" :disabled="busy" :class="['ml-auto', primaryBtn]">Set up</button>
+          <button v-if="status.emailEnabled" @click="ask('email')" class="ml-auto row-action-btn row-action-btn--danger">{{ tr('Turn off') }}</button>
+          <button v-else-if="!emailStep" @click="startEmail" :disabled="busy" :class="['ml-auto', primaryBtn]">{{ tr('Set up') }}</button>
         </div>
         <p v-if="!status.emailEnabled && !emailStep" class="text-sm text-slate-500 dark:text-slate-400">
-          Get a 6-digit code at <b>{{ auth.user?.email }}</b> each time you sign in. No app needed, but it is only as safe as your inbox.
+          {{ tr('Get a 6-digit code at') }} <b>{{ auth.user?.email }}</b> {{ tr('each time you sign in. No app needed, but it is only as safe as your inbox.') }}
         </p>
         <p v-if="status.emailEnabled && !status.emailAvailable" class="text-sm text-amber-700 dark:text-amber-300">
-          This server can't send email right now, so this method is unavailable at sign-in. Use another method or a recovery code.
+          {{ tr('This server can\'t send email right now, so this method is unavailable at sign-in. Use another method or a recovery code.') }}
         </p>
         <div v-if="emailStep" class="space-y-3">
-          <p class="text-sm text-slate-600 dark:text-slate-300">We sent a code to <b>{{ auth.user?.email }}</b>. Enter it to turn this on.</p>
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('We sent a code to') }} <b>{{ auth.user?.email }}</b>. Enter it to turn this on.</p>
           <div class="flex flex-wrap gap-2">
-            <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code"
+            <input v-model="emailCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" :aria-label="tr('Verification code')"
                    @keyup.enter="enableEmail" :class="[inputCls, 'w-36 tracking-widest text-center']" />
-            <button @click="enableEmail" :disabled="busy || !emailCode" :class="primaryBtn">Turn on</button>
-            <button @click="startEmail" :disabled="busy" class="text-sm text-amber-700 dark:text-amber-400 px-2">Send again</button>
-            <button @click="cancelEmail" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+            <button @click="enableEmail" :disabled="busy || !emailCode" :class="primaryBtn">{{ tr('Turn on') }}</button>
+            <button @click="startEmail" :disabled="busy" class="text-sm text-amber-700 dark:text-amber-400 px-2">{{ tr('Send again') }}</button>
+            <button @click="cancelEmail" class="text-sm text-slate-500 dark:text-slate-400 px-2">{{ tr('Cancel') }}</button>
           </div>
         </div>
       </div>
@@ -173,12 +174,12 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
       <!-- recovery codes -->
       <div v-if="hasFactor" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
         <div class="flex items-center gap-2">
-          <div class="font-medium text-sm">Recovery codes</div>
-          <button @click="ask('codes')" class="ml-auto row-action-btn">Generate new codes</button>
+          <div class="font-medium text-sm">{{ tr('Recovery codes') }}</div>
+          <button @click="ask('codes')" class="ml-auto row-action-btn">{{ tr('Generate new codes') }}</button>
         </div>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          If you lose your device, one of these codes lets you in. Each works once.
-          <span :class="status.recoveryCodesLeft <= 2 ? 'text-red-600 dark:text-red-400 font-medium' : ''">{{ status.recoveryCodesLeft }} left.</span>
+          {{ tr('If you lose your device, one of these codes lets you in. Each works once.') }}
+          <span :class="status.recoveryCodesLeft <= 2 ? 'text-red-600 dark:text-red-400 font-medium' : ''">{{ tr('{n} left.', { n: status.recoveryCodesLeft }) }}</span>
         </p>
       </div>
     </div>
@@ -186,25 +187,25 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
     <!-- password confirmation -->
     <div v-if="pending" class="border border-amber-200 dark:border-amber-500/30 bg-amber-50/50 dark:bg-amber-500/5 rounded-xl p-4 space-y-2">
       <div class="text-sm font-medium">{{ pendingLabel }}</div>
-      <p class="text-sm text-slate-500 dark:text-slate-400">Enter your password to confirm.</p>
+      <p class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Enter your password to confirm.') }}</p>
       <div class="flex flex-wrap gap-2">
-        <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" @keyup.enter="confirmPending" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-        <button @click="confirmPending" :disabled="busy || !password" :class="primaryBtn">Confirm</button>
-        <button @click="pending = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+        <input v-model="password" type="password" autocomplete="current-password" :placeholder="tr('Password')" :aria-label="tr('Password')" @keyup.enter="confirmPending" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <button @click="confirmPending" :disabled="busy || !password" :class="primaryBtn">{{ tr('Confirm') }}</button>
+        <button @click="pending = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">{{ tr('Cancel') }}</button>
       </div>
     </div>
 
     <!-- recovery codes, shown once -->
     <div v-if="codes" class="border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 rounded-xl p-4 space-y-3">
-      <div class="text-sm font-medium">Save your recovery codes</div>
-      <p class="text-sm text-slate-600 dark:text-slate-300">Keep them somewhere safe. They are shown only now, and each works once.</p>
+      <div class="text-sm font-medium">{{ tr('Save your recovery codes') }}</div>
+      <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('Keep them somewhere safe. They are shown only now, and each works once.') }}</p>
       <div class="grid grid-cols-2 gap-x-6 gap-y-1 font-mono text-sm">
         <span v-for="c in codes" :key="c" class="select-all">{{ c }}</span>
       </div>
       <div class="flex flex-wrap gap-2">
-        <button @click="copyCodes" class="row-action-btn">{{ codesCopied ? 'Copied' : 'Copy' }}</button>
-        <button @click="downloadCodes" class="row-action-btn">Download</button>
-        <button @click="codes = null" :class="['ml-auto', primaryBtn]">I saved them</button>
+        <button @click="copyCodes" class="row-action-btn">{{ codesCopied ? tr('Copied') : tr('Copy') }}</button>
+        <button @click="downloadCodes" class="row-action-btn">{{ tr('Download') }}</button>
+        <button @click="codes = null" :class="['ml-auto', primaryBtn]">{{ tr('I saved them') }}</button>
       </div>
     </div>
   </section>

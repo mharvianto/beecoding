@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
@@ -94,17 +95,17 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
 <template>
   <div class="h-full flex flex-col">
     <div class="flex items-center gap-3 px-4 py-2 border-b border-slate-200 dark:border-slate-800 flex-wrap">
-      <h1 class="text-sm font-bold"><Icon name="flask" /> Playground</h1>
-      <span class="text-xs text-slate-500 dark:text-slate-400">Scratch C / C++ — nothing is graded or shared.</span>
+      <h1 class="text-sm font-bold"><Icon name="flask" /> {{ tr('Playground') }}</h1>
+      <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Scratch C / C++ — nothing is graded or shared.') }}</span>
       <div class="ml-auto flex items-center gap-2">
         <button @click="playgroundFocus = !playgroundFocus"
-                :title="playgroundFocus ? 'Show the top navigation bar' : 'Hide the top navigation bar for more room'"
+                :title="playgroundFocus ? tr('Show the top navigation bar') : tr('Hide the top navigation bar for more room')"
                 class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-          {{ playgroundFocus ? '⤡ Show navbar' : '⤢ Full screen' }}
+          {{ playgroundFocus ? tr('⤡ Show navbar') : tr('⤢ Full screen') }}
         </button>
         <button @click="resetTemplate"
                 class="text-xs px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-          Reset template
+          {{ tr('Reset template') }}
         </button>
         <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
           <button v-for="l in ['c', 'cpp']" :key="l" @click="setLang(l)" class="px-2.5 py-1"
@@ -115,7 +116,7 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
       </div>
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ tr(error) }}</p>
 
     <div class="flex-1 min-h-0">
       <SplitPane direction="vertical" storage-key="beecoding.split.playground" :initial="68" :min="110">
@@ -127,23 +128,23 @@ onBeforeUnmount(() => { clearInterval(runCooldownTimer); });
             <div class="flex gap-2 items-center">
               <button @click="run" :disabled="running || runCooldown > 0"
                       class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-                {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
+                {{ running ? tr('Running…') : runCooldown > 0 ? `Wait ${runCooldown}s` : tr('Run') }}
               </button>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <div class="flex items-center justify-between gap-2">
-                  <label class="text-xs text-slate-500 dark:text-slate-400">stdin</label>
+                  <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('stdin') }}</label>
                   <span class="inline-flex items-center gap-3">
           <InputFileName v-model="inputFile" />
           <StdinFileButton @load="stdin = $event" />
         </span>
                 </div>
-                <textarea v-model="stdin" aria-label="Standard input" :style="{ fontSize: editorFontSize + 'px' }"
+                <textarea v-model="stdin" :aria-label="tr('Standard input')" :style="{ fontSize: editorFontSize + 'px' }"
                           class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
               </div>
               <div>
-                <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
+                <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
                 <pre :style="{ fontSize: editorFontSize + 'px' }"
                      class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
               </div>

@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { watch } from 'vue';
 import { useCelebrationToast } from '../stores/celebrationToast';
@@ -25,7 +26,7 @@ watch(() => toast.deadline, (d) => {
           {{ toast.xpGained > 0 ? `+${toast.xpGained} XP` : 'Accepted!' }}
         </div>
         <div class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-          Lv {{ toast.level }} · {{ toast.xp }} XP · {{ progress.toNext }} to Lv {{ toast.level + 1 }}
+          {{ tr('Lv {lv} · {xp} XP · {next} to Lv {lv2}', { lv: toast.level, xp: toast.xp, next: progress.toNext, lv2: toast.level + 1 }) }}
         </div>
         <div class="text-xs text-amber-700 dark:text-amber-400 mt-1.5 font-medium">
           <Icon name="flame" /> {{ toast.solvedToday }} solved today

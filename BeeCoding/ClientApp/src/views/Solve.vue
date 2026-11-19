@@ -1,4 +1,6 @@
 <script setup>
+import { agoShort as ago } from '../lib/timeAgo';
+import { tr } from '../lib/i18n';
 import Chevron from '../components/Chevron.vue';
 import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
@@ -103,7 +105,7 @@ let conn = null;
 const mine = computed(() => submissions.value.filter((s) => s.mine));
 const latestMine = computed(() => mine.value[0]);
 // Read out by screen readers (the verdict arrives asynchronously over SignalR).
-const verdictAnnouncement = computed(() => !latestMine.value ? '' : latestMine.value.status === 'Done' ? `Verdict: ${latestMine.value.verdict}` : 'Judging your submission');
+const verdictAnnouncement = computed(() => !latestMine.value ? '' : latestMine.value.status === 'Done' ? `Verdict: ${latestMine.value.verdict}` : tr('Judging your submission'));
 
 // lecturing mode
 const isStaff = computed(() => board.value?.role === 'Owner' || board.value?.role === 'Teacher');
@@ -170,7 +172,7 @@ async function load() {
 function loadFromHistory(sub) {
   const here = code.value.trim();
   if (here && !isPristine(code.value) && !submissions.value.some((x) => x.mine && (x.code || '').trim() === here)
-      && !confirm('Replace the code in the editor? It has not been submitted.')) return;
+      && !confirm(tr('Replace the code in the editor? It has not been submitted.'))) return;
   code.value = sub.code || '';
   if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }
@@ -325,10 +327,6 @@ onBeforeUnmount(async () => {
   try { await conn?.stop(); } catch {}
 });
 
-function ago(ts) {
-  const s = Math.max(0, (Date.now() - new Date(ts + (ts?.endsWith('Z') ? '' : 'Z')).getTime()) / 1000);
-  return s < 60 ? `${s | 0}s` : s < 3600 ? `${(s / 60) | 0}m` : `${(s / 3600) | 0}h`;
-}
 </script>
 
 <template>
@@ -338,7 +336,7 @@ function ago(ts) {
     <!-- Left: statement + submissions -->
     <div class="h-full overflow-y-auto p-5 border-r border-slate-200 dark:border-slate-800">
       <p class="sr-only" role="status">{{ verdictAnnouncement }}</p>
-      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to board</RouterLink>
+      <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to board') }}</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
@@ -347,29 +345,29 @@ function ago(ts) {
         <span class="ml-auto"><ProblemFeedback kind="board" :board-slug="props.slug" :slug="props.problemSlug" /></span>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-        {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
-        <span v-if="progress.streak > 0">· <Icon name="flame" /> {{ progress.streak }}-day practice streak</span>
+        {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · {{ tr('limit {ms} ms · {kb} KB', { ms: problem.timeLimitMs, kb: problem.memoryLimitKb }) }}
+        <span v-if="progress.streak > 0">· <Icon name="flame" /> {{ tr('{n}-day practice streak', { n: progress.streak }) }}</span>
       </div>
       <p v-if="problem.bannedHeaders || problem.bannedSymbols" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2 space-y-0.5">
-        <span v-if="problem.bannedHeaders" class="block"><Icon name="ban" /> Banned headers: <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">bits/stdc++.h</span>).</span>
-        <span v-if="problem.bannedSymbols" class="block"><Icon name="ban" /> Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
-        <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
+        <span v-if="problem.bannedHeaders" class="block"><Icon name="ban" /> {{ tr('Banned headers:') }} <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">{{ tr('bits/stdc++.h') }}</span>).</span>
+        <span v-if="problem.bannedSymbols" class="block"><Icon name="ban" /> {{ tr('Banned functions:') }} <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
+        <span class="block">{{ tr('Implement it yourself — a violation fails as a Compile Error, on Run and Submit.') }}</span>
       </p>
       <p v-if="problem.closed && !isStaff" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
-        <Icon name="lock" /> This session is closed — you can still read and run code, but new submissions are no longer accepted.
+        <Icon name="lock" /> {{ tr('This session is closed — you can still read and run code, but new submissions are no longer accepted.') }}
       </p>
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
-        <Icon name="file" /> This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
+        <Icon name="file" /> {{ tr('This problem reads input from a file named') }} <span class="font-mono">{{ problem.inputFileName }}</span> {{ tr('in the current directory — not from stdin.') }}
       </p>
 
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
-        <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
-        <button @click="useTemplate" class="underline hover:no-underline">Use the template instead</button>
-        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss" aria-label="Dismiss">✕</button>
+        <span>{{ tr('↩︎ Restored your unsaved code from {when}.', { when: restoredAt }) }}</span>
+        <button @click="useTemplate" class="underline hover:no-underline">{{ tr('Use the template instead') }}</button>
+        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
       </div>
 
       <p v-if="protectOn" class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
-        <Icon name="lock" /> Protected problem — served as an encrypted image watermarked with your identity.
+        <Icon name="lock" /> {{ tr('Protected problem — served as an encrypted image watermarked with your identity.') }}
       </p>
 
       <ContentGuard v-if="protectOn" :active="true" :watermark="''">
@@ -379,7 +377,7 @@ function ago(ts) {
       <template v-else>
         <MarkdownBlock :text="problem.statementMarkdown" />
         <div v-if="problem.sampleTests?.length" class="mt-4">
-          <h3 class="font-semibold text-sm mb-1">Samples</h3>
+          <h3 class="font-semibold text-sm mb-1">{{ tr('Samples') }}</h3>
           <div v-for="(t, i) in problem.sampleTests" :key="i" class="grid grid-cols-2 gap-2 mb-2 text-xs">
             <pre class="bg-slate-100 dark:bg-slate-800 rounded p-2 overflow-x-auto">{{ t.stdin }}</pre>
             <pre class="bg-slate-100 dark:bg-slate-800 rounded p-2 overflow-x-auto">{{ t.expectedStdout }}</pre>
@@ -399,12 +397,12 @@ function ago(ts) {
       <div v-if="board?.lecturingMode && !isStaff && lecture" class="mt-4 border border-sky-200 dark:border-sky-500/30 rounded-xl overflow-hidden">
         <button @click="showLecture = !showLecture"
                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300">
-          <span><Icon name="present" /> {{ lecture.teacherName }}'s code · live</span>
-          <span class="text-xs font-normal inline-flex items-center gap-1">{{ ago(lecture.updatedAt) }} ago <Chevron :open="showLecture" /></span>
+          <span><Icon name="present" /> {{ tr("{name}'s code · live", { name: lecture.teacherName }) }}</span>
+          <span class="text-xs font-normal inline-flex items-center gap-1">{{ ago(lecture.updatedAt) }} <Chevron :open="showLecture" /></span>
         </button>
         <div v-if="showLecture" class="p-2 space-y-2">
-          <pre class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ lecture.code || '(empty)' }}</pre>
-          <button @click="useLectureCode" class="text-xs bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-3 py-1">Copy into my editor</button>
+          <pre class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ lecture.code || tr('(empty)') }}</pre>
+          <button @click="useLectureCode" class="text-xs bg-sky-600 hover:bg-sky-700 text-white rounded-lg px-3 py-1">{{ tr('Copy into my editor') }}</button>
         </div>
       </div>
 
@@ -412,7 +410,7 @@ function ago(ts) {
       <div v-if="isStaff && board?.lecturingMode" class="mt-4 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
         <button @click="showMonitor = !showMonitor"
                 class="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold bg-slate-50 dark:bg-slate-800/60">
-          <span><Icon name="eye" /> Student code · {{ studentList.length }} live</span>
+          <span><Icon name="eye" /> {{ tr('Student code · {n} live', { n: studentList.length }) }}</span>
           <Chevron :open="showMonitor" />
         </button>
         <div v-if="showMonitor" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -420,13 +418,13 @@ function ago(ts) {
             <button @click="openStudent = openStudent === s.uid ? null : s.uid"
                     class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <span class="flex-1 truncate">{{ s.authorName }}</span>
-              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ ago(s.updatedAt) }} ago</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ ago(s.updatedAt) }}</span>
               <span class="text-slate-400"><Chevron :open="openStudent === s.uid" size="1rem" /></span>
             </button>
             <pre v-if="openStudent === s.uid"
-                 class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg m-2 p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ s.code || '(empty)' }}</pre>
+                 class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg m-2 p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ s.code || tr('(empty)') }}</pre>
           </div>
-          <p v-if="!studentList.length" class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">No student is typing yet.</p>
+          <p v-if="!studentList.length" class="px-3 py-2 text-sm text-slate-500 dark:text-slate-400">{{ tr('No student is typing yet.') }}</p>
         </div>
       </div>
 
@@ -435,7 +433,7 @@ function ago(ts) {
               :compiler-output="runOut && !runOut.compileOk ? runOut.compilerOutput : (latestMine?.compilerOutput || '')"
               :stderr="runOut?.stderr || ''" />
 
-      <h3 class="font-semibold text-sm mt-5 mb-2">Submissions</h3>
+      <h3 class="font-semibold text-sm mt-5 mb-2">{{ tr('Submissions') }}</h3>
       <SubmissionHistory :submissions="submissions" :current-code="code" show-author empty-text="No submissions yet. Run your code to test it, then Submit." @load="loadFromHistory" />
     </div>
     </template>
@@ -452,11 +450,11 @@ function ago(ts) {
         <div class="flex gap-2 items-center">
           <button @click="run" :disabled="running || runCooldown > 0"
                   class="border border-slate-400 dark:border-slate-500 text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
+            {{ running ? tr('Running…') : runCooldown > 0 ? `Wait ${runCooldown}s` : tr('Run') }}
           </button>
           <button @click="submit" :disabled="submitting || submitCooldown > 0 || (problem.closed && !isStaff)"
                   class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-semibold disabled:opacity-50">
-            {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
+            {{ submitting ? tr('Submitting…') : submitCooldown > 0 ? `Wait ${submitCooldown}s` : tr('Submit') }}
           </button>
           <span v-if="langs.length > 1" class="ml-3 inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="l in langs" :key="l" @click="setLang(l)"
@@ -473,25 +471,25 @@ function ago(ts) {
             <span class="block h-full bg-amber-400 transition-all duration-300 ease-out"
                   :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
           </span>
-          <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
+          <span class="tabular-nums">{{ tr('Testcase {a}/{b}', { a: testProgress.current, b: testProgress.total }) }}</span>
         </div>
         <div v-else-if="submittingId" class="text-xs text-slate-500 dark:text-slate-400 animate-pulse">
-          <template v-if="queuedAhead > 0">⏳ The judge is busy — {{ queuedAhead }} submission{{ queuedAhead === 1 ? '' : 's' }} ahead of yours. It will start on its own.</template>
-          <template v-else>Still checking your last submission…</template>
+          <template v-if="queuedAhead > 0">{{ tr(queuedAhead === 1 ? '⏳ The judge is busy — {n} submission ahead of yours. It will start on its own.' : '⏳ The judge is busy — {n} submissions ahead of yours. It will start on its own.', { n: queuedAhead }) }}</template>
+          <template v-else>{{ tr('Still checking your last submission…') }}</template>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label for="stdin-input" class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
+            <label for="stdin-input" class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : tr('stdin') }}</label>
             <textarea id="stdin-input" v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
-            <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
                  class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
           </div>
         </div>
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
       </div>
       </template>
     </SplitPane>

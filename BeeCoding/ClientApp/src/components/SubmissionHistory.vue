@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, nextTick } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
 import MonacoEditor from './MonacoEditor.vue';
@@ -39,7 +40,7 @@ function load() { emit('load', open.value); close(); }
 </script>
 
 <template>
-  <p v-if="mine.length" class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5">Click a submission to see its code, compare it with your previous one, or load it into the editor.</p>
+  <p v-if="mine.length" class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5">{{ tr('Click a submission to see its code, compare it with your previous one, or load it into the editor.') }}</p>
   <div class="space-y-1 max-h-64 overflow-y-auto pr-1">
     <component :is="canOpen(s) ? 'button' : 'div'" v-for="s in submissions" :key="s.id"
                :type="canOpen(s) ? 'button' : undefined" @click="canOpen(s) && show(s)"
@@ -53,35 +54,35 @@ function load() { emit('load', open.value); close(); }
       <time :datetime="s.createdAt" :title="fullTime(s.createdAt)" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ timeAgo(s.createdAt) }}</time>
       <Chevron v-if="canOpen(s)" :open="false" size="1rem" class="text-slate-400" />
     </component>
-    <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ emptyText }}</p>
+    <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr(emptyText) }}</p>
   </div>
 
-  <div v-if="open" role="dialog" aria-modal="true" aria-label="Submission" @keydown.esc="close" @click.self="close"
+  <div v-if="open" role="dialog" aria-modal="true" :aria-label="tr('Submission')" @keydown.esc="close" @click.self="close"
        class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full my-8 flex flex-col overflow-hidden transition-[max-width]" :class="mode === 'code' ? 'max-w-3xl' : 'max-w-6xl'" style="height: 80vh">
       <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center justify-between gap-2 px-4 pt-3">
           <div class="flex items-center gap-1.5 min-w-0">
-            <button v-if="older" type="button" @click="show(older)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Older submission" aria-label="Older submission">◀</button>
+            <button v-if="older" type="button" @click="show(older)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Older submission')" :aria-label="tr('Older submission')">◀</button>
             <VerdictBadge :verdict="open.status === 'Done' ? open.verdict : open.status" small />
             <time :datetime="open.createdAt" class="text-sm font-semibold truncate">{{ fullTime(open.createdAt) }} <span class="hidden sm:inline font-normal text-slate-500 dark:text-slate-400">({{ timeAgo(open.createdAt) }})</span></time>
-            <button v-if="newer" type="button" @click="show(newer)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Newer submission" aria-label="Newer submission">▶</button>
+            <button v-if="newer" type="button" @click="show(newer)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Newer submission')" :aria-label="tr('Newer submission')">▶</button>
           </div>
-          <button ref="closeBtn" type="button" @click="close" aria-label="Close" title="Close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0">✕</button>
+          <button ref="closeBtn" type="button" @click="close" :aria-label="tr('Close')" :title="tr('Close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0">✕</button>
         </div>
         <div class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
           <span v-if="open.status === 'Done'">{{ open.runtimeMs }}ms · {{ open.memoryKb }}KB · {{ Math.round(open.score * 100) }}%</span>
           <button v-if="prev" type="button" @click="mode = mode === 'prev' ? 'code' : 'prev'" :aria-pressed="mode === 'prev'"
-                  class="row-action-btn shrink-0" :class="mode === 'prev' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with previous</span></button>
+                  class="row-action-btn shrink-0" :class="mode === 'prev' && 'row-action-btn--accent'"><span>⇄</span><span>{{ tr('Compare with previous') }}</span></button>
           <button type="button" @click="mode = mode === 'editor' ? 'code' : 'editor'" :aria-pressed="mode === 'editor'"
-                  class="row-action-btn shrink-0" :class="mode === 'editor' && 'row-action-btn--accent'"><span>⇄</span><span>Compare with editor</span></button>
-          <button type="button" @click="load" class="shrink-0 ml-auto text-xs font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1">Load into editor</button>
+                  class="row-action-btn shrink-0" :class="mode === 'editor' && 'row-action-btn--accent'"><span>⇄</span><span>{{ tr('Compare with editor') }}</span></button>
+          <button type="button" @click="load" class="shrink-0 ml-auto text-xs font-medium bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1">{{ tr('Load into editor') }}</button>
         </div>
       </div>
       <p v-if="mode !== 'code'" class="shrink-0 text-[11px] text-slate-500 dark:text-slate-400 px-4 py-1 border-b border-slate-100 dark:border-slate-800">
-        <template v-if="sameCode">Identical code — there is nothing to highlight.</template>
-        <template v-else-if="mode === 'prev'">{{ wide ? 'Left' : 'Red' }}: your previous submission ({{ timeAgo(prev.createdAt) }}) · {{ wide ? 'Right' : 'Green' }}: this one</template>
-        <template v-else>{{ wide ? 'Left' : 'Red' }}: this submission · {{ wide ? 'Right' : 'Green' }}: your editor now</template>
+        <template v-if="sameCode">{{ tr('Identical code — there is nothing to highlight.') }}</template>
+        <template v-else-if="mode === 'prev'">{{ wide ? tr('Left: your previous submission ({when}) · Right: this one', { when: timeAgo(prev.createdAt) }) : tr('Red: your previous submission ({when}) · Green: this one', { when: timeAgo(prev.createdAt) }) }}</template>
+        <template v-else>{{ wide ? tr('Left: this submission · Right: your editor now') : tr('Red: this submission · Green: your editor now') }}</template>
       </p>
       <div class="flex-1 min-h-0">
         <MonacoEditor v-if="mode === 'code'" :model-value="open.code" :language="lang" read-only :filename="'submission'" />

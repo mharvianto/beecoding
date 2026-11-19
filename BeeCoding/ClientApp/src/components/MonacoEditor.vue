@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
 import * as monaco from 'monaco-editor';
 import { theme as appTheme } from '../lib/theme';
@@ -462,24 +463,24 @@ function download() {
     <div ref="el" class="h-full w-full"></div>
     <div v-if="pasteBlockedFlash"
          class="absolute top-1 left-4 z-10 text-[11px] font-mono px-2 py-1 rounded bg-rose-600 text-white shadow-sm">
-      Paste disabled — Exam mode
+      {{ tr('Paste disabled — Exam mode') }}
     </div>
     <div class="absolute top-1 right-4 z-10 flex items-center gap-1 text-[11px] font-mono transition-opacity
                 rounded-md px-1 py-0.5 bg-white/85 dark:bg-slate-900/85 opacity-70 hover:opacity-100 focus-within:opacity-100"
          :class="{ '!opacity-90': coarse }">
-      <button type="button" :class="btnCls" title="Decrease font size (Ctrl -)" @click="applyFont(fontSize - 1)">A&minus;</button>
+      <button type="button" :class="btnCls" :title="tr('Decrease font size (Ctrl -)')" @click="applyFont(fontSize - 1)">A&minus;</button>
       <span class="text-slate-500 dark:text-slate-400 tabular-nums w-4 text-center">{{ fontSize }}</span>
-      <button type="button" :class="btnCls" title="Increase font size (Ctrl +)" @click="applyFont(fontSize + 1)">A+</button>
+      <button type="button" :class="btnCls" :title="tr('Increase font size (Ctrl +)')" @click="applyFont(fontSize + 1)">A+</button>
       <button v-if="showLspBtn && serverLsp" type="button" :class="btnCls"
-              :title="!lspEnabled ? 'C/C++ IntelliSense off — click to enable'
+              :title="!lspEnabled ? tr('C/C++ IntelliSense off — click to enable')
                 : lspState === 'busy' ? 'IntelliSense is full right now — using basic completion, retrying automatically. Click to disable.'
                 : lspState === 'elsewhere' ? 'IntelliSense moved to another editor of yours — using basic completion here. Click to disable.'
                 : lspState === 'idle' ? 'IntelliSense paused while you were away — it reconnects when you type. Click to disable.'
                 : 'C/C++ IntelliSense on — click to disable'"
               @click="toggleLsp()">
-        LSP&nbsp;{{ !lspEnabled ? 'off' : lspState === 'on' || lspState === 'connecting' ? 'on' : lspState }}
+        LSP&nbsp;{{ !lspEnabled ? tr('off') : lspState === 'on' || lspState === 'connecting' ? 'on' : lspState }}
       </button>
-      <button type="button" :class="btnCls" title="Download as a file" @click="download()">&#8681;</button>
+      <button type="button" :class="btnCls" :title="tr('Download as a file')" @click="download()">&#8681;</button>
     </div>
   </div>
 </template>

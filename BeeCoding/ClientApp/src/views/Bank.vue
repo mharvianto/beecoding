@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
@@ -73,7 +74,7 @@ async function pollJob(jobId) {
     try {
       r = await api.get(`/api/ai/generate-problem/${jobId}`);
     } catch (e) {
-      if (e.status === 404) { finishJob(); genError.value = 'The generation job expired.'; return; }
+      if (e.status === 404) { finishJob(); genError.value = tr('The generation job expired.'); return; }
       continue;   // transient — keep polling
     }
     if (r.status === 'running') continue;
@@ -91,7 +92,7 @@ async function pollJob(jobId) {
   }
   if (!pollStopped) {
     finishJob();
-    genError.value = 'Still generating — check the bank in a minute; the draft may appear on its own.';
+    genError.value = tr('Still generating — check the bank in a minute; the draft may appear on its own.');
   }
 }
 
@@ -102,7 +103,7 @@ function finishJob() {
 }
 
 async function adminDelete(b) {
-  if (!(await confirmDialog.ask(`Delete “${b.title}” by ${b.ownerName}? It moves to Trash (Admin → Trash), where you can restore or purge it.`, { confirmLabel: 'Delete' }))) return;
+  if (!(await confirmDialog.ask(tr('Delete “{p0}” by {p1}? It moves to Trash (Admin → Trash), where you can restore or purge it.', { p0: b.title, p1: b.ownerName }), { confirmLabel: tr('Delete') }))) return;
   error.value = '';
   try { await api.del(`/api/bank/${b.slug}`); await load(); } catch (e) { error.value = e.message; }
 }
@@ -154,11 +155,11 @@ async function withdrawProposal(r) {
 
 async function submitPractice(b) {
   error.value = ''; notice.value = '';
-  if (!(await confirmDialog.ask(`Send “${b.title}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.`,
-    { confirmLabel: 'Send for review', danger: false }))) return;
+  if (!(await confirmDialog.ask(tr('Send “{p0}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.', { p0: b.title }),
+    { confirmLabel: tr('Send for review'), danger: false }))) return;
   try {
     await api.post(`/api/bank/${b.slug}/submit-practice`);
-    notice.value = 'Sent for review — you will get a notification when it is answered.';
+    notice.value = tr('Sent for review — you will get a notification when it is answered.');
     await load();
   } catch (e) { error.value = e.message; }
 }
@@ -175,7 +176,7 @@ async function sendProposal() {
   try {
     await api.post(`/api/bank/${pr.slug}/propose/${pr.boardSlug}`, { note: pr.note.trim() || null });
     propose.value = null;
-    notice.value = 'Proposal sent to the board owner — you will get a notification when they answer.';
+    notice.value = tr('Proposal sent to the board owner — you will get a notification when they answer.');
     loadProposals();
   } catch (e) { pr.error = e.message; pr.busy = false; }
 }
@@ -196,89 +197,88 @@ onBeforeUnmount(() => { pollStopped = true; });
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-1 gap-2 flex-wrap">
-      <h1 class="text-xl font-bold">Problem bank</h1>
+      <h1 class="text-xl font-bold">{{ tr('Problem bank') }}</h1>
       <div class="flex items-center gap-2">
         <button v-if="aiEnabled" @click="genOpen = !genOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border border-violet-300 dark:border-violet-500/40 text-violet-700 dark:text-violet-300">
-          <Icon name="sparkles" /> Generate with AI
+          <Icon name="sparkles" /> {{ tr('Generate with AI') }}
         </button>
         <RouterLink to="/bank/new" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-slate-900">
-          + New problem
+          {{ tr('+ New problem') }}
         </RouterLink>
       </div>
     </div>
     <p class="text-sm mb-2">
-      <RouterLink to="/guide/problems" class="text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> Guide to writing problems</RouterLink>
+      <RouterLink to="/guide/problems" class="text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> {{ tr('Guide to writing problems') }}</RouterLink>
     </p>
     <p v-if="student" class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-      Write your own problems here — they stay private to you. When one is ready, send it to an admin to
-      publish it in <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>,
+      {{ tr('Write your own problems here — they stay private to you. When one is ready, send it to an admin to publish it in') }} <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('Practice') }}</RouterLink>,
       or propose it to the owner of a board you belong to. A problem can't be edited while it waits for an answer or after it is published. Solving a problem you wrote yourself earns no XP and does not count toward your streak.
     </p>
     <p v-else class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-      Your reusable problem library — write a problem once here, then pull it into any
-      <RouterLink to="/boards" class="text-amber-700 dark:text-amber-400 hover:underline">board</RouterLink>
-      you own. Mark one public and it also joins the pool everyone solves from in
-      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+      {{ tr('Your reusable problem library — write a problem once here, then pull it into any') }}
+      <RouterLink to="/boards" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('board') }}</RouterLink>
+      {{ tr('you own. Mark one public and it also joins the pool everyone solves from in') }}
+      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('Practice') }}</RouterLink>.
     </p>
 
     <div v-if="genOpen" class="mb-4 border border-violet-200 dark:border-violet-500/30 rounded-xl p-4 space-y-3 bg-violet-50/40 dark:bg-violet-500/5">
-      <p class="text-sm font-semibold text-violet-700 dark:text-violet-300"><Icon name="sparkles" /> Generate a problem from an idea</p>
+      <p class="text-sm font-semibold text-violet-700 dark:text-violet-300"><Icon name="sparkles" /> {{ tr('Generate a problem from an idea') }}</p>
       <textarea v-model="gen.idea" rows="3"
-                placeholder="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'" aria-label="e.g. 'count array elements divisible by k', 'check if a graph is bipartite', 'prefix-sum range queries'"
+                :placeholder="tr('e.g. \'count array elements divisible by k\', \'check if a graph is bipartite\', \'prefix-sum range queries\'')" :aria-label="tr('e.g. \'count array elements divisible by k\', \'check if a graph is bipartite\', \'prefix-sum range queries\'')"
                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
       <div class="flex flex-wrap gap-2 text-sm">
         <select v-model="gen.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
-          <option>Easy</option><option>Medium</option><option>Hard</option>
+          <option>{{ tr('Easy') }}</option><option>{{ tr('Medium') }}</option><option>{{ tr('Hard') }}</option>
         </select>
         <select v-model="gen.language" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option value="cpp">C++</option><option value="c">C</option>
         </select>
-        <label class="flex items-center gap-1">tests
+        <label class="flex items-center gap-1">{{ tr('tests') }}
           <input v-model.number="gen.count" type="number" min="3" max="15"
                  class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1" />
         </label>
         <select v-model="gen.lang" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
-          <option value="id">Statement: Indonesian</option><option value="en">Statement: English</option>
+          <option value="id">{{ tr('Statement: Indonesian') }}</option><option value="en">{{ tr('Statement: English') }}</option>
         </select>
       </div>
       <p class="text-[11px] text-slate-500 dark:text-slate-400">
         The AI writes the statement + a reference solution; the judge runs that solution against the
         inputs, so the stored expected outputs are the real program output. Saved to your bank as a
-        private draft — review it, then {{ student ? 'submit it for review yourself' : 'publish it yourself' }}. This runs in the background — you can leave
+        private draft — review it, then {{ student ? tr('submit it for review yourself') : tr('publish it yourself') }}. This runs in the background — you can leave
         this page and it will still finish.
       </p>
-      <pre v-if="genError" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-40 overflow-auto">{{ genError }}</pre>
+      <pre v-if="genError" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-40 overflow-auto">{{ tr(genError) }}</pre>
       <div class="flex gap-2 items-center">
         <button @click="generate" :disabled="genBusy || !gen.idea.trim()"
                 class="bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ genBusy ? `Writing & checking… ${genElapsed}s` : 'Generate' }}
+          {{ genBusy ? `Writing & checking… ${genElapsed}s` : tr('Generate') }}
         </button>
-        <button v-if="genBusy" @click="finishJob" class="text-slate-500 dark:text-slate-400 text-sm px-3">Stop watching</button>
-        <button v-else @click="genOpen = false" class="text-slate-500 dark:text-slate-400 text-sm px-3">Cancel</button>
+        <button v-if="genBusy" @click="finishJob" class="text-slate-500 dark:text-slate-400 text-sm px-3">{{ tr('Stop watching') }}</button>
+        <button v-else @click="genOpen = false" class="text-slate-500 dark:text-slate-400 text-sm px-3">{{ tr('Cancel') }}</button>
       </div>
     </div>
 
     <div class="flex gap-2 mb-4 flex-wrap">
-      <input v-model="q" @keyup.enter="load" placeholder="Search title or tag…" aria-label="Search title or tag…"
+      <input v-model="q" @keyup.enter="load" :placeholder="tr('Search title or tag…')" :aria-label="tr('Search title or tag…')"
              class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-      <select v-if="!student" v-model="scope" @change="load" aria-label="Which problems to show"
+      <select v-if="!student" v-model="scope" @change="load" :aria-label="tr('Which problems to show')"
               class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
-        <option value="mine">Mine</option>
-        <option value="shared">Shared with me</option>
-        <option value="public">Public from others</option>
-        <option value="all">All</option>
+        <option value="mine">{{ tr('Mine') }}</option>
+        <option value="shared">{{ tr('Shared with me') }}</option>
+        <option value="public">{{ tr('Public from others') }}</option>
+        <option value="all">{{ tr('All') }}</option>
       </select>
       <select v-model="level" @change="load"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" aria-label="All levels">
-        <option value="">All levels</option>
-        <option>Easy</option><option>Medium</option><option>Hard</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" :aria-label="tr('All levels')">
+        <option value="">{{ tr('All levels') }}</option>
+        <option>{{ tr('Easy') }}</option><option>{{ tr('Medium') }}</option><option>{{ tr('Hard') }}</option>
       </select>
-      <button @click="load" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+      <button @click="load" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
-    <p v-if="notice" class="text-sm text-emerald-600 dark:text-emerald-400 mb-3">{{ notice }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ tr(error) }}</p>
+    <p v-if="notice" class="text-sm text-emerald-600 dark:text-emerald-400 mb-3">{{ tr(notice) }}</p>
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
       <div v-for="b in items" :key="b.id"
@@ -291,20 +291,20 @@ onBeforeUnmount(() => { pollStopped = true; });
                         :title="`${openReports[b.id]} open report(s) — click to review`"><Icon name="flag" /> {{ openReports[b.id] }}</RouterLink>
             <span v-if="b.generatedByAi" class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI</span>
             <span v-if="b.pendingReview" class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-                  title="An admin reviews AI-generated problems before they're shared with other teachers">
-              ⏳ pending review
+                  :title="tr('An admin reviews AI-generated problems before they\'re shared with other teachers')">
+              {{ tr('⏳ pending review') }}
             </span>
             <span v-else-if="b.isPublic && student" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-              live in Practice
+              {{ tr('live in Practice') }}
             </span>
             <span v-else-if="b.isPublic" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
-              shared
+              {{ tr('shared') }}
             </span>
           </div>
         </div>
         <div class="mt-1"><LevelBadge :level="b.level" /></div>
         <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-          {{ langLabel(b.allowedLanguages) }} · {{ b.testCount }} tests ({{ b.sampleCount }} sample)
+          {{ langLabel(b.allowedLanguages) }} · {{ tr('{n} tests ({s} sample)', { n: b.testCount, s: b.sampleCount }) }}
           <span v-if="!b.mine"> · by {{ b.ownerName }}</span>
         </div>
         <div v-if="b.tags" class="flex flex-wrap gap-1 mt-2">
@@ -313,55 +313,55 @@ onBeforeUnmount(() => { pollStopped = true; });
             {{ t }}
           </span>
         </div>
-        <p v-if="b.mine && b.reviewNote" class="text-[11px] text-rose-600 dark:text-rose-400 mt-2">Declined: {{ b.reviewNote }}</p>
+        <p v-if="b.mine && b.reviewNote" class="text-[11px] text-rose-600 dark:text-rose-400 mt-2">{{ tr('Declined:') }} {{ b.reviewNote }}</p>
         <div v-if="b.mine" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
-          <RouterLink :to="`/practice/${b.slug}`" class="row-action-btn" title="Solve and submit your own problem to check it works; earns no XP">
-            <span>▶</span><span>Try it</span>
+          <RouterLink :to="`/practice/${b.slug}`" class="row-action-btn" :title="tr('Solve and submit your own problem to check it works; earns no XP')">
+            <span>▶</span><span>{{ tr('Try it') }}</span>
           </RouterLink>
           <RouterLink :to="`/bank/${b.slug}/edit`" class="row-action-btn">
             <span><Icon :name="student && (b.pendingReview || b.isPublic) ? 'eye' : 'pencil'" /></span>
-            <span>{{ student && (b.pendingReview || b.isPublic) ? 'View' : 'Edit' }}</span>
+            <span>{{ student && (b.pendingReview || b.isPublic) ? tr('View') : tr('Edit') }}</span>
           </RouterLink>
           <template v-if="student && !b.isPublic && !b.pendingReview">
-            <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span><Icon name="upload" /></span><span>Submit to Practice</span></button>
-            <button @click="openPropose(b)" class="row-action-btn"><span><Icon name="bulb" /></span><span>Propose to a board</span></button>
+            <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span><Icon name="upload" /></span><span>{{ tr('Submit to Practice') }}</span></button>
+            <button @click="openPropose(b)" class="row-action-btn"><span><Icon name="bulb" /></span><span>{{ tr('Propose to a board') }}</span></button>
           </template>
         </div>
         <SimilarProblems v-if="b.mine" :url="`/api/bank/${b.slug}/similar`" class="mt-1 -ml-2" />
         <div v-if="!b.mine && auth.user.isAdmin" class="flex flex-wrap items-center gap-1 mt-3 -ml-2">
-          <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" title="Admin: move this problem to Trash"><span><Icon name="trash" /></span><span>Delete</span></button>
+          <button @click="adminDelete(b)" class="row-action-btn row-action-btn--danger" :title="tr('Admin: move this problem to Trash')"><span><Icon name="trash" /></span><span>{{ tr('Delete') }}</span></button>
         </div>
         <div v-if="b.mine && b.pendingReview && (student || !b.generatedByAi)" class="mt-1 -ml-2">
-          <button @click="withdrawPractice(b)" class="row-action-btn"><span>↩️</span><span>Withdraw from review</span></button>
+          <button @click="withdrawPractice(b)" class="row-action-btn"><span>↩️</span><span>{{ tr('Withdraw from review') }}</span></button>
         </div>
         <ul v-if="proposalsBySlug[b.slug]?.length" class="mt-2 space-y-1">
           <li v-for="r in proposalsBySlug[b.slug]" :key="r.id" class="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1 flex-wrap">
             <span><Icon name="bulb" /> {{ r.boardTitle }}:</span>
             <span :class="{ 'text-amber-700 dark:text-amber-400': r.status === 'Pending', 'text-emerald-600 dark:text-emerald-400': r.status === 'Approved', 'text-rose-600 dark:text-rose-400': r.status === 'Rejected' }">
-              {{ { Pending: 'waiting', Approved: 'approved', Rejected: 'declined', Withdrawn: 'withdrawn' }[r.status] }}
+              {{ { Pending: tr('waiting'), Approved: tr('approved'), Rejected: tr('declined'), Withdrawn: tr('withdrawn') }[r.status] }}
             </span>
             <span v-if="r.reviewNote">— “{{ r.reviewNote }}”</span>
-            <button v-if="r.status === 'Pending'" @click="withdrawProposal(r)" class="underline">withdraw</button>
+            <button v-if="r.status === 'Pending'" @click="withdrawProposal(r)" class="underline">{{ tr('withdraw') }}</button>
           </li>
         </ul>
         <div v-if="propose && propose.slug === b.slug" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
           <select v-model="propose.boardSlug"
                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
-            <option value="" disabled>Choose a board…</option>
+            <option value="" disabled>{{ tr('Choose a board…') }}</option>
             <option v-for="bd in boards" :key="bd.slug" :value="bd.slug">{{ bd.title }}</option>
           </select>
-          <input v-model="propose.note" maxlength="300" placeholder="Message to the board owner (optional)" aria-label="Message to the board owner (optional)"
+          <input v-model="propose.note" maxlength="300" :placeholder="tr('Message to the board owner (optional)')" :aria-label="tr('Message to the board owner (optional)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           <p v-if="propose.error" role="alert" class="text-xs text-red-600 dark:text-red-400">{{ propose.error }}</p>
           <div class="flex gap-2">
             <button @click="sendProposal" :disabled="propose.busy || !propose.boardSlug"
-                    class="bg-amber-500 text-slate-900 rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">Send proposal</button>
-            <button @click="propose = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
+                    class="bg-amber-500 text-slate-900 rounded-lg px-3 py-1 text-sm font-medium disabled:opacity-50">{{ tr('Send proposal') }}</button>
+            <button @click="propose = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">{{ tr('Cancel') }}</button>
           </div>
         </div>
       </div>
     </div>
-    <p v-if="!items.length" class="text-slate-500 dark:text-slate-400 text-sm">Nothing here yet.</p>
+    <p v-if="!items.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Nothing here yet.') }}</p>
 
   </div>
 </template>

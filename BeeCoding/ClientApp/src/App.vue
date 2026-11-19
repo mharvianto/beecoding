@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from './lib/i18n';
 import LogoMark from './components/LogoMark.vue';
 import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -10,6 +11,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
 import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
+import DocLangToggle from './components/DocLangToggle.vue';
 import VerifyEmailBanner from './components/VerifyEmailBanner.vue';
 import MfaOfferBanner from './components/MfaOfferBanner.vue';
 import OrgInviteBanner from './components/OrgInviteBanner.vue';
@@ -64,7 +66,7 @@ notifications.onBrowserClick = (n) => { notifications.markRead(n); router.push(n
 // The teacher removed this user from a board: if they're inside it, send them back to the list.
 notifications.onMemberRemoved = (e) => {
   if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');
-  undoToast.show(`You were removed from “${e.boardTitle}”.`);
+  undoToast.show(tr('You were removed from “{p0}”.', { p0: e.boardTitle }));
 };
 watch(activeUserId, (id) => { if (id) { notifications.start(); refreshPush(api); } else notifications.stop(); }, { immediate: true });
 // A notification clicked while the app is open in another tab: the service worker asks us to route there.
@@ -120,7 +122,7 @@ onBeforeUnmount(() => {
     <header v-if="auth.user && !(playgroundFocus && focusRoute)" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-7xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <button @click="mobileNavOpen = !mobileNavOpen"
-                class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" aria-label="Menu">
+                class="order-1 md:hidden shrink-0 p-1 -ml-1 text-slate-500 dark:text-slate-400" :aria-label="tr('Menu')">
           <svg v-if="!mobileNavOpen" viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
             <path d="M4 6h16M4 12h16M4 18h16" />
           </svg>
@@ -136,22 +138,23 @@ onBeforeUnmount(() => {
              class="md:flex order-5 md:order-2 w-full md:w-auto flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 text-sm
                     text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100
                     border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">
-          <RouterLink to="/boards" @click="mobileNavOpen = false">Boards</RouterLink>
-          <RouterLink to="/practice" @click="mobileNavOpen = false">Practice</RouterLink>
-          <RouterLink to="/playground" @click="mobileNavOpen = false">Playground</RouterLink>
-          <RouterLink to="/leaderboard" @click="mobileNavOpen = false">Leaderboard</RouterLink>
-          <RouterLink to="/bank" @click="mobileNavOpen = false">{{ auth.isTeacher ? 'Problem bank' : 'My problems' }}</RouterLink>
+          <RouterLink to="/boards" @click="mobileNavOpen = false">{{ tr('Boards') }}</RouterLink>
+          <RouterLink to="/practice" @click="mobileNavOpen = false">{{ tr('Practice') }}</RouterLink>
+          <RouterLink to="/playground" @click="mobileNavOpen = false">{{ tr('Playground') }}</RouterLink>
+          <RouterLink to="/leaderboard" @click="mobileNavOpen = false">{{ tr('Leaderboard') }}</RouterLink>
+          <RouterLink to="/bank" @click="mobileNavOpen = false">{{ auth.isTeacher ? tr('Problem bank') : tr('My problems') }}</RouterLink>
         </nav>
 
         <div class="order-3 ml-auto flex items-center gap-2 sm:gap-3 text-sm shrink-0">
           <RouterLink to="/leaderboard" v-if="progress.ready"
-                      class="hidden md:flex items-center gap-2" :title="`Your XP: ${progress.xp} · ${progress.toNext} XP to Lv ${progress.level + 1}`">
+                      class="hidden md:flex items-center gap-2" :title="tr('Your XP: {xp} · {next} XP to Lv {lv}', { xp: progress.xp, next: progress.toNext, lv: progress.level + 1 })">
             <span class="text-xs font-semibold text-amber-700 dark:text-amber-400">Lv {{ progress.level }}</span>
             <span class="hidden xl:block w-16 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
             </span>
-            <span class="hidden xl:inline text-xs text-slate-500 dark:text-slate-400">{{ progress.xp }} XP · {{ progress.toNext }} to Lv {{ progress.level + 1 }}</span>
+            <span class="hidden xl:inline text-xs text-slate-500 dark:text-slate-400">{{ tr('{xp} XP · {next} to Lv {lv}', { xp: progress.xp, next: progress.toNext, lv: progress.level + 1 }) }}</span>
           </RouterLink>
+          <DocLangToggle class="hidden sm:inline-flex" />
           <NotificationBell />
           <UserMenu @logout="logout" />
         </div>

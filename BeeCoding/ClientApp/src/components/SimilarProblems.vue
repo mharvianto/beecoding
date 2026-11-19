@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref } from 'vue';
 import { api } from '../lib/api';
@@ -26,9 +27,9 @@ async function run() {
     <button @click="run" :disabled="busy" class="row-action-btn disabled:opacity-50">
       <span><Icon name="search" /></span><span>{{ busy ? 'Searching…' : 'Similar problems' }}</span>
     </button>
-    <p v-if="error" role="alert" class="text-xs text-red-600 dark:text-red-400 mt-2">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-xs text-red-600 dark:text-red-400 mt-2">{{ tr(error) }}</p>
     <div v-if="result" class="mt-2 border border-slate-200 dark:border-slate-800 rounded-lg p-3 text-xs space-y-1.5">
-      <p v-if="!result.items.length" class="text-slate-500 dark:text-slate-400">Nothing to compare with yet.</p>
+      <p v-if="!result.items.length" class="text-slate-500 dark:text-slate-400">{{ tr('Nothing to compare with yet.') }}</p>
       <div v-for="s in result.items" :key="s.id" class="flex items-center gap-2">
         <span class="tabular-nums w-10 shrink-0 text-slate-500 dark:text-slate-400">{{ Math.round(s.score * 100) }}%</span>
         <RouterLink v-if="s.linkable" :to="`/practice/${s.slug}`" target="_blank" class="min-w-0 truncate hover:underline hover:text-amber-600 dark:hover:text-amber-400" :title="`Open “${s.title}”`">{{ s.title }}</RouterLink>

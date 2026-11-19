@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import { api } from '../lib/api';
@@ -37,7 +38,7 @@ const warnUnload = (e) => { if (dirty.value) { e.preventDefault(); e.returnValue
 window.addEventListener('beforeunload', warnUnload);
 onBeforeUnmount(() => window.removeEventListener('beforeunload', warnUnload));
 onBeforeRouteLeave(() => !dirty.value
-  || confirmDialog.ask('You have unsaved changes to this problem. Leave without saving?', { confirmLabel: 'Leave' }));
+  || confirmDialog.ask(tr('You have unsaved changes to this problem. Leave without saving?'), { confirmLabel: tr('Leave') }));
 
 async function load() {
   error.value = '';
@@ -58,7 +59,7 @@ async function save(form) {
   } catch (e) {
     // Locked after the first submission: offer to put these edits on a new (hidden) version instead of losing them.
     if (e.status === 409 && isBoard.value && editSlug.value
-        && await confirmDialog.ask(`${e.message}\n\nSave your changes as a new version? It is created as a hidden draft; the current problem is left as it is.`, { confirmLabel: 'Create new version' })) {
+        && await confirmDialog.ask(`${e.message}\n\nSave your changes as a new version? It is created as a hidden draft; the current problem is left as it is.`, { confirmLabel: tr('Create new version') })) {
       try {
         const body = { ...(form.value ?? form) };
         const v2 = await api.post(`${apiBase.value}/${editSlug.value}/new-version`);
@@ -98,7 +99,7 @@ function cancel() {
 
 // Both AI test actions work on the saved problem and then replace the form with the result.
 const discardEditsOk = () => !dirty.value
-  || confirmDialog.ask('This replaces the form with the saved problem plus the new tests, so your unsaved changes will be lost. Continue?', { confirmLabel: 'Continue' });
+  || confirmDialog.ask(tr('This replaces the form with the saved problem plus the new tests, so your unsaved changes will be lost. Continue?'), { confirmLabel: tr('Continue') });
 
 // regenerate hidden tests — bank problems only (background job, poll)
 async function regenerateTests() {
@@ -111,7 +112,7 @@ async function regenerateTests() {
       await new Promise((r) => setTimeout(r, 2000));
       let r;
       try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
-      catch (e) { if (e.status === 404) { error.value = 'The job expired.'; break; } continue; }
+      catch (e) { if (e.status === 404) { error.value = tr('The job expired.'); break; } continue; }
       if (r.status === 'running') continue;
       if (r.status === 'done') problem.value = r.problem;
       else error.value = (r.message || 'Regeneration failed.') +
@@ -133,10 +134,10 @@ async function addExtremeTests() {
       await new Promise((r) => setTimeout(r, 2000));
       let r;
       try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
-      catch (e) { if (e.status === 404) { error.value = 'The job expired.'; break; } continue; }
+      catch (e) { if (e.status === 404) { error.value = tr('The job expired.'); break; } continue; }
       if (r.status === 'running') continue;
       if (r.status === 'done') problem.value = r.problem;
-      else error.value = (r.message || 'Adding extreme tests failed.') +
+      else error.value = (r.message || tr('Adding extreme tests failed.')) +
         (r.compilerOutput ? '\n\n' + r.compilerOutput : '') + (r.stderr ? '\n\n' + r.stderr : '');
       break;
     }
@@ -154,7 +155,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <p v-if="!loaded" class="max-w-7xl mx-auto px-4 py-10 text-sm text-slate-500 dark:text-slate-400">Loading…</p>
+    <p v-if="!loaded" class="max-w-7xl mx-auto px-4 py-10 text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</p>
     <ProblemEditor v-else
       :problem="problem"
       :show-bank-fields="!isBoard"

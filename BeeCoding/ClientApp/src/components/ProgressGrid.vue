@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
@@ -75,7 +76,7 @@ const sortedStudents = computed(() => {
       <thead>
         <tr class="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
           <th class="text-left font-medium px-3 py-2 sticky left-0 bg-slate-50 dark:bg-slate-800 z-10" :aria-sort="ariaSort('name')">
-            <button @click="setSort('name')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" title="Sort by name">Student <span aria-hidden="true" class="text-[11px]">{{ arrow('name') }}</span></button>
+            <button @click="setSort('name')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" :title="tr('Sort by name')">{{ tr('Student') }} <span aria-hidden="true" class="text-[11px]">{{ arrow('name') }}</span></button>
           </th>
           <th v-for="(p, i) in problems" :key="p.id" class="px-2 py-2 font-medium whitespace-nowrap" :class="{ 'text-center': lettered }">
             <RouterLink v-if="boardSlug && p.slug" :to="problemPath(p)"
@@ -85,7 +86,7 @@ const sortedStudents = computed(() => {
             <span v-else :title="lettered ? `${letter(i)} · ${p.title}` : undefined">{{ lettered ? letter(i) : p.title }}</span>
           </th>
           <th class="px-3 py-2 font-medium" :aria-sort="ariaSort('solved')">
-            <button @click="setSort('solved')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" title="Sort by number solved">Solved <span aria-hidden="true" class="text-[11px]">{{ arrow('solved') }}</span></button>
+            <button @click="setSort('solved')" class="font-medium hover:text-slate-800 dark:hover:text-slate-100" :title="tr('Sort by number solved')">{{ tr('Solved') }} <span aria-hidden="true" class="text-[11px]">{{ arrow('solved') }}</span></button>
           </th>
         </tr>
       </thead>
@@ -93,29 +94,29 @@ const sortedStudents = computed(() => {
         <tr v-for="s in sortedStudents" :key="s.userId" class="border-t border-slate-100 dark:border-slate-800">
           <td class="px-3 py-2 sticky left-0 bg-white dark:bg-slate-900 z-10 whitespace-normal sm:whitespace-nowrap">
             <span :class="{ 'font-semibold': s.userId === currentUserId }">{{ s.displayName }}</span>
-            <span v-if="s.userId === currentUserId" class="text-xs text-slate-500 dark:text-slate-400"> (you)</span>
+            <span v-if="s.userId === currentUserId" class="text-xs text-slate-500 dark:text-slate-400"> {{ tr('(you)') }}</span>
             <span v-if="isStaff && needsHelp(s.userId)" class="ml-2 text-[11px] px-1.5 py-0.5 rounded border bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30"
-                  title="Asked the AI tutor for 3+ hints in a row on a problem that is not solved yet">may need help</span>
+                  :title="tr('Asked the AI tutor for 3+ hints in a row on a problem that is not solved yet')">{{ tr('may need help') }}</span>
             <button v-if="isStaff" @click="emit('toggle-hide', s)"
                     :aria-label="s.hiddenByTeacher ? 'Hidden from peers. Click to show.' : 'Visible to peers. Click to hide.'"
                     class="ml-2 text-[11px] px-1.5 py-0.5 rounded border"
                     :class="s.hiddenByTeacher
                       ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                       : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
-              {{ s.hiddenByTeacher ? 'hidden from peers' : 'visible' }}
+              {{ s.hiddenByTeacher ? tr('hidden from peers') : tr('visible') }}
             </button>
-            <button v-if="isStaff && canRemove" @click="emit('remove', s)" title="Remove from this board"
+            <button v-if="isStaff && canRemove" @click="emit('remove', s)" :title="tr('Remove from this board')"
                     class="ml-1 text-[11px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:border-rose-300 dark:hover:text-rose-400 dark:hover:border-rose-500/40">
-              ✕ remove
+              {{ tr('✕ remove') }}
             </button>
           </td>
           <td v-for="p in problems" :key="p.id" class="px-2 py-2 text-center">
             <template v-if="cell(s.userId, p.id)">
               <span v-if="cell(s.userId, p.id).redacted"
-                    class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" title="attempted (hidden)"></span>
+                    class="inline-block w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-600" :title="tr('attempted (hidden)')"></span>
               <button v-else-if="cell(s.userId, p.id).latestSubmissionId"
                       @click="viewSubmissionId = cell(s.userId, p.id).latestSubmissionId"
-                      class="inline-flex p-0 m-0 leading-none rounded hover:ring-2 hover:ring-amber-400 transition" title="View submission">
+                      class="inline-flex p-0 m-0 leading-none rounded hover:ring-2 hover:ring-amber-400 transition" :title="tr('View submission')">
                 <VerdictBadge :verdict="cell(s.userId, p.id).verdict" small />
               </button>
               <VerdictBadge v-else :verdict="cell(s.userId, p.id).verdict" small />
@@ -133,14 +134,14 @@ const sortedStudents = computed(() => {
         </tr>
         <tr v-if="!students.length">
           <td :colspan="problems.length + 2" class="px-3 py-6 text-center text-slate-500 dark:text-slate-400">
-            No students yet.
+            {{ tr('No students yet.') }}
           </td>
         </tr>
       </tbody>
     </table>
 
     <details v-if="lettered" class="border-t border-slate-100 dark:border-slate-800 px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-      <summary class="cursor-pointer select-none">Column key — {{ problems.length }} problems (hover a letter for its title)</summary>
+      <summary class="cursor-pointer select-none">{{ tr('Column key — {n} problems (hover a letter for its title)', { n: problems.length }) }}</summary>
       <ul class="mt-2 grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
         <li v-for="(p, i) in problems" :key="p.id" class="flex gap-2 min-w-0">
           <span class="font-semibold text-slate-600 dark:text-slate-300 w-7 shrink-0">{{ letter(i) }}</span>

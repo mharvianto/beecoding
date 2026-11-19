@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Chevron from '../components/Chevron.vue';
 import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted } from 'vue';
@@ -38,9 +39,9 @@ async function loadBankUpdates() {
 async function updateFromBank(p) {
   const locked = bankUpdates.value[p.slug];
   const ok = await confirmDialog.ask(locked
-    ? `Students have already submitted to “${p.title}”, so it is left as it is. The bank's current version is added as a new hidden draft next to it — publish it, then hide this one.`
-    : `Replace “${p.title}” with the bank's current statement, tests and limits? Any edits you made to this copy are lost.`,
-  { confirmLabel: locked ? 'Create draft' : 'Update' });
+    ? tr('Students have already submitted to “{p0}”, so it is left as it is. The bank\'s current version is added as a new hidden draft next to it — publish it, then hide this one.', { p0: p.title })
+    : tr('Replace “{p0}” with the bank\'s current statement, tests and limits? Any edits you made to this copy are lost.', { p0: p.title }),
+  { confirmLabel: locked ? tr('Create draft') : tr('Update') });
   if (!ok) return;
   error.value = '';
   try {
@@ -151,7 +152,7 @@ async function saveGroup(payload) {
   } catch (e) { error.value = e.message; }
 }
 async function deleteGroup(g) {
-  const ok = await confirmDialog.ask(`Delete the group "${g.title}"? Its problems are kept and become ungrouped.`, { confirmLabel: 'Delete group' });
+  const ok = await confirmDialog.ask(tr('Delete the group "{p0}"? Its problems are kept and become ungrouped.', { p0: g.title }), { confirmLabel: tr('Delete group') });
   if (!ok) return;
   try { await api.del(`/api/boards/${props.slug}/groups/${g.id}`); await loadAll(); } catch (e) { error.value = e.message; }
 }
@@ -172,8 +173,8 @@ async function moveProblem(p, groupId) {
 }
 const fmtWhen = (iso) => new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 function stateLabel(g) {
-  if (g.state === 'Upcoming') return `⏳ Opens ${fmtWhen(g.opensAt)}`;
-  if (g.state === 'Closed') return `🔚 Closed ${fmtWhen(g.closesAt)}`;
+  if (g.state === 'Upcoming') return tr('⏳ Opens {p0}', { p0: fmtWhen(g.opensAt) });
+  if (g.state === 'Closed') return tr('🔚 Closed {p0}', { p0: fmtWhen(g.closesAt) });
   return g.closesAt ? `🟢 Open · closes ${fmtWhen(g.closesAt)}` : g.opensAt ? `🟢 Open since ${fmtWhen(g.opensAt)}` : '';
 }
 
@@ -284,32 +285,32 @@ async function reorderGroupTo(id, target, pos) {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6" v-if="board">
-    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to {{ board.title }}</RouterLink>
+    <RouterLink :to="`/boards/${slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to {title}', { title: board.title }) }}</RouterLink>
     <div class="flex items-center justify-between gap-2 flex-wrap mt-2 mb-4">
-      <h1 class="text-xl font-bold">Problems</h1>
+      <h1 class="text-xl font-bold">{{ tr('Problems') }}</h1>
       <div v-if="isStaff" class="flex items-center gap-2 flex-wrap">
         <button @click="editingGroup = null"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-          <Icon name="folder" /> Add group
+          <Icon name="folder" /> {{ tr('Add group') }}
         </button>
         <button @click="picking = true"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
-          <Icon name="book" /> From bank
+          <Icon name="book" /> {{ tr('From bank') }}
         </button>
         <button @click="router.push(`/boards/${slug}/problems/new`)" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500 text-slate-900">
-          + Add problem
+          {{ tr('+ Add problem') }}
         </button>
       </div>
     </div>
-    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ tr(error) }}</p>
 
     <section v-if="board?.isOwner && proposals.length"
              class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">
-      <h2 class="text-sm font-semibold mb-2"><Icon name="bulb" /> Proposed problems
+      <h2 class="text-sm font-semibold mb-2"><Icon name="bulb" /> {{ tr('Proposed problems') }}
         <span v-if="pendingProposals.length" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-900">{{ pendingProposals.length }}</span>
       </h2>
       <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-        Approving adds the problem to this board <b>hidden</b>, with all of its tests — unhide it when you want students to see it.
+        {{ tr('Approving adds the problem to this board') }} <b>{{ tr('hidden') }}</b>, with all of its tests — unhide it when you want students to see it.
       </p>
       <ul class="space-y-2">
         <li v-for="p in proposals" :key="p.id"
@@ -321,36 +322,36 @@ async function reorderGroupTo(id, target, pos) {
                 <LevelBadge :level="p.level" /> by {{ p.proposerName }} · {{ p.testCases.length }} tests ({{ p.testCases.filter(t => t.isSample).length }} visible, {{ p.testCases.filter(t => !t.isSample).length }} hidden)
                 <span v-if="p.status !== 'Pending'" class="px-1.5 py-0.5 rounded-full"
                       :class="p.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'">
-                  {{ p.status === 'Approved' ? 'approved' : 'declined' }}
+                  {{ p.status === 'Approved' ? tr('approved') : tr('declined') }}
                 </span>
               </div>
               <div v-if="p.inputFileName || p.bannedHeaders || p.bannedSymbols" class="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span v-if="p.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> reads input from file <span class="font-mono">{{ p.inputFileName }}</span>, not stdin</span>
-              <span v-if="p.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> headers: <span class="font-mono">{{ p.bannedHeaders }}</span></span>
-              <span v-if="p.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> functions: <span class="font-mono">{{ p.bannedSymbols }}</span></span>
+              <span v-if="p.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> {{ tr('reads input from file') }} <span class="font-mono">{{ p.inputFileName }}</span>, not stdin</span>
+              <span v-if="p.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> {{ tr('headers:') }} <span class="font-mono">{{ p.bannedHeaders }}</span></span>
+              <span v-if="p.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> {{ tr('functions:') }} <span class="font-mono">{{ p.bannedSymbols }}</span></span>
             </div>
               <p v-if="p.note" class="text-xs text-slate-500 dark:text-slate-400 mt-1">“{{ p.note }}”</p>
-              <p v-if="p.reviewNote" class="text-xs text-rose-600 dark:text-rose-400 mt-1">Declined: {{ p.reviewNote }}</p>
+              <p v-if="p.reviewNote" class="text-xs text-rose-600 dark:text-rose-400 mt-1">{{ tr('Declined:') }} {{ p.reviewNote }}</p>
             </div>
             <div v-if="p.status === 'Pending'" class="flex items-center gap-1 shrink-0">
-              <button @click="approveProposal(p)" :disabled="proposalBusy" class="row-action-btn row-action-btn--success"><span><Icon name="check" /></span><span>Approve</span></button>
-              <button @click="rejecting = { id: p.id, reason: '' }" :disabled="proposalBusy" class="row-action-btn row-action-btn--danger"><span><Icon name="x" /></span><span>Decline</span></button>
+              <button @click="approveProposal(p)" :disabled="proposalBusy" class="row-action-btn row-action-btn--success"><span><Icon name="check" /></span><span>{{ tr('Approve') }}</span></button>
+              <button @click="rejecting = { id: p.id, reason: '' }" :disabled="proposalBusy" class="row-action-btn row-action-btn--danger"><span><Icon name="x" /></span><span>{{ tr('Decline') }}</span></button>
             </div>
           </div>
           <div v-if="rejecting && rejecting.id === p.id" class="mt-2 flex gap-2 flex-wrap">
-            <input v-model="rejecting.reason" maxlength="300" placeholder="Reason (optional, the student sees it)" aria-label="Reason (optional, the student sees it)"
+            <input v-model="rejecting.reason" maxlength="300" :placeholder="tr('Reason (optional, the student sees it)')" :aria-label="tr('Reason (optional, the student sees it)')"
                    class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
-            <button @click="rejectProposal" :disabled="proposalBusy" class="bg-rose-600 text-white rounded-lg px-3 py-1 text-sm">Decline</button>
-            <button @click="rejecting = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">Cancel</button>
+            <button @click="rejectProposal" :disabled="proposalBusy" class="bg-rose-600 text-white rounded-lg px-3 py-1 text-sm">{{ tr('Decline') }}</button>
+            <button @click="rejecting = null" class="text-slate-500 dark:text-slate-400 text-sm px-2">{{ tr('Cancel') }}</button>
           </div>
           <div v-if="openProposal === p.id" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
             <MarkdownBlock :text="p.statementMarkdown" />
             <details class="text-xs">
-              <summary class="cursor-pointer text-slate-500 dark:text-slate-400">Tests ({{ p.testCases.length }})</summary>
+              <summary class="cursor-pointer text-slate-500 dark:text-slate-400">{{ tr('Tests ({n})', { n: p.testCases.length }) }}</summary>
               <template v-for="(t, i) in p.testCases" :key="t.id ?? i">
               <div class="mt-2 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
-                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> visible to students (sample)</span>
-                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> hidden from students (graded)</span>
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> {{ tr('visible to students (sample)') }}</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> {{ tr('hidden from students (graded)') }}</span>
               </div>
               <div class="mt-1 grid grid-cols-2 gap-2">
                 <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1 overflow-auto max-h-24">{{ t.stdin }}</pre>
@@ -363,13 +364,13 @@ async function reorderGroupTo(id, target, pos) {
       </ul>
     </section>
 
-    <input v-model="q" type="search" placeholder="Search by title or tag..." aria-label="Search by title or tag..."
+    <input v-model="q" type="search" :placeholder="tr('Search by title or tag...')" :aria-label="tr('Search by title or tag...')"
            class="w-full text-sm border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 mb-3" />
     <p v-if="q && filtered.length !== problems.length" class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-      {{ filtered.length }} of {{ problems.length }} problems
+      {{ tr('{a} of {b} problems', { a: filtered.length, b: problems.length }) }}
     </p>
     <p v-if="canReorder && problems.length > 1" class="max-sm:hidden text-xs text-slate-500 dark:text-slate-400 mb-2">
-      Drag ⠿ to reorder or move problems between groups — drop on a group's header to send a problem to its end. Groups can be dragged by their ⠿ too.
+      {{ tr('Drag ⠿ to reorder or move problems between groups — drop on a group\'s header to send a problem to its end. Groups can be dragged by their ⠿ too.') }}
     </p>
 
     <div class="space-y-5">
@@ -382,28 +383,28 @@ async function reorderGroupTo(id, target, pos) {
              :class="isOverSection(sec) ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-300 dark:ring-amber-500/40' : ''"
              :draggable="canReorder && !!sec.group"
              @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
-          <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" title="Drag to reorder groups">⠿</span>
+          <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" :title="tr('Drag to reorder groups')">⠿</span>
           <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-500 dark:text-slate-400 text-left"
                   :aria-expanded="!collapsed[sec.group ? sec.group.id : 'none']"
                   :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
             <Chevron :open="!collapsed[sec.group ? sec.group.id : 'none']" />
           </button>
-          <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : 'Ungrouped' }}</h2>
-          <span class="text-xs text-slate-500 dark:text-slate-400">{{ sec.items.length }} problem{{ sec.items.length === 1 ? '' : 's' }}</span>
+          <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : tr('Ungrouped') }}</h2>
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr(sec.items.length === 1 ? '{n} problem' : '{n} problems', { n: sec.items.length }) }}</span>
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
-            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> hidden</span>
-            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> exam</span>
+            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> {{ tr('hidden') }}</span>
+            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> {{ tr('exam') }}</span>
             <span v-if="stateLabel(sec.group)" class="text-[11px] px-1.5 py-0.5 rounded"
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'">{{ stateLabel(sec.group) }}</span>
             <span v-if="isStaff" class="sm:ml-auto flex items-center gap-1 max-sm:w-full max-sm:pl-6">
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
-              <button @click="moveGroup(sec.group, -1)" class="row-action-btn" title="Move group up"><span>↑</span></button>
-              <button @click="moveGroup(sec.group, 1)" class="row-action-btn" title="Move group down"><span>↓</span></button>
-              <button @click="editingGroup = sec.group" class="row-action-btn"><span><Icon name="pencil" /></span><span class="max-sm:hidden">Edit</span></button>
-              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span><Icon name="trash" /></span><span class="max-sm:hidden">Delete</span></button>
+              <button @click="moveGroup(sec.group, -1)" class="row-action-btn" :title="tr('Move group up')"><span>↑</span></button>
+              <button @click="moveGroup(sec.group, 1)" class="row-action-btn" :title="tr('Move group down')"><span>↓</span></button>
+              <button @click="editingGroup = sec.group" class="row-action-btn"><span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span></button>
+              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span><Icon name="trash" /></span><span class="max-sm:hidden">{{ tr('Delete') }}</span></button>
             </span>
           </template>
         </div>
@@ -420,12 +421,12 @@ async function reorderGroupTo(id, target, pos) {
                  'shadow-[0_3px_0_0_rgb(245_158_11)]': isOverProblem(p, 'after'),
                }">
             <div class="flex items-start gap-2 min-w-0">
-              <span v-if="canReorder" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none mt-0.5" title="Drag to reorder">⠿</span>
+              <span v-if="canReorder" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none mt-0.5" :title="tr('Drag to reorder')">⠿</span>
               <div class="min-w-0">
                 <div class="font-medium flex items-center gap-2 flex-wrap">
                   {{ p.title }}
                   <LevelBadge :level="p.level" />
-                  <span v-if="p.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> hidden</span>
+                  <span v-if="p.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> {{ tr('hidden') }}</span>
                   <RouterLink v-if="isStaff && openReports[p.id]" :to="`/reports/problems?problem=${p.id}`"
                               class="text-[11px] px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
                               :title="`${openReports[p.id]} open report(s) — click to review`"><Icon name="flag" /> {{ openReports[p.id] }}</RouterLink>
@@ -439,8 +440,8 @@ async function reorderGroupTo(id, target, pos) {
                   <span class="whitespace-nowrap">{{ p.timeLimitMs }}ms</span>
                   <span class="whitespace-nowrap">{{ p.memoryLimitKb }}KB</span>
                   <template v-if="isStaff">
-                    <span class="whitespace-nowrap"><Icon name="check" /> {{ stats[p.id]?.solvedCount || 0 }}/{{ studentCount }} solved</span>
-                    <span class="whitespace-nowrap">{{ stats[p.id]?.submissions || 0 }} submissions</span>
+                    <span class="whitespace-nowrap"><Icon name="check" /> {{ tr('{a}/{b} solved', { a: stats[p.id]?.solvedCount || 0, b: studentCount }) }}</span>
+                    <span class="whitespace-nowrap">{{ tr('{n} submissions', { n: stats[p.id]?.submissions || 0 }) }}</span>
                     <span class="whitespace-nowrap">{{ Math.round((stats[p.id]?.acceptRate || 0) * 100) }}% AC</span>
                   </template>
                 </div>
@@ -448,37 +449,37 @@ async function reorderGroupTo(id, target, pos) {
             </div>
             <div class="flex items-center gap-1 flex-wrap sm:flex-nowrap sm:shrink-0">
               <select v-if="isStaff && groups.length" :value="p.groupId ?? ''" @change="moveProblem(p, $event.target.value === '' ? null : Number($event.target.value))"
-                  title="Move to group" class="text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem] min-w-0" aria-label="Ungrouped">
-            <option value="">Ungrouped</option>
+                  :title="tr('Move to group')" class="text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-1.5 py-1 max-w-[9rem] min-w-0" :aria-label="tr('Ungrouped')">
+            <option value="">{{ tr('Ungrouped') }}</option>
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.title }}</option>
           </select>
           <button v-if="bankUpdates[p.slug] !== undefined" @click="updateFromBank(p)" class="row-action-btn row-action-btn--accent"
-                  title="The bank problem this was copied from has changed since">
-                <span><Icon name="refresh" /></span><span class="max-sm:hidden">Update from bank</span>
+                  :title="tr('The bank problem this was copied from has changed since')">
+                <span><Icon name="refresh" /></span><span class="max-sm:hidden">{{ tr('Update from bank') }}</span>
               </button>
           <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
-                <span><Icon :name="p.hidden ? 'eyeoff' : 'eye'" /></span><span class="max-sm:hidden">{{ p.hidden ? 'Unhide' : 'Hide' }}</span>
+                <span><Icon :name="p.hidden ? 'eyeoff' : 'eye'" /></span><span class="max-sm:hidden">{{ p.hidden ? tr('Unhide') : tr('Hide') }}</span>
               </button>
               <button v-if="isStaff" @click="router.push({ path: `/boards/${slug}/plagiarism`, query: { problem: p.slug } })" class="row-action-btn"
-                      title="Compare students' latest submissions to this problem">
-                <span><Icon name="search" /></span><span class="max-sm:hidden">Similarity</span>
+                      :title="tr('Compare students\' latest submissions to this problem')">
+                <span><Icon name="search" /></span><span class="max-sm:hidden">{{ tr('Similarity') }}</span>
               </button>
               <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
-                <span><Icon name="pencil" /></span><span class="max-sm:hidden">Edit</span>
+                <span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span>
               </button>
               <ExportMenu v-if="isStaff" :slug="slug" :problem="p.slug" label="Download results and answers for this problem" @error="error = $event" />
               <RouterLink :to="`/boards/${slug}/problems/${p.slug}`" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 ml-auto sm:ml-1">
-                {{ isStaff ? 'View' : 'Solve' }}
+                {{ isStaff ? tr('View') : tr('Solve') }}
               </RouterLink>
             </div>
           </div>
           <p v-if="!sec.items.length && !q && groups.length" class="text-slate-500 dark:text-slate-400 text-sm px-1">
-            {{ sec.group ? (canReorder ? 'No problems in this group yet — drag a problem here, or use its group menu.' : 'No problems in this group yet.') : 'Every problem is in a group.' }}
+            {{ sec.group ? (canReorder ? tr('No problems in this group yet — drag a problem here, or use its group menu.') : tr('No problems in this group yet.')) : tr('Every problem is in a group.') }}
           </p>
         </div>
       </section>
-      <p v-if="!problems.length" class="text-slate-500 dark:text-slate-400 text-sm">No problems yet.</p>
-      <p v-else-if="!filtered.length" class="text-slate-500 dark:text-slate-400 text-sm">No problems match "{{ q }}".</p>
+      <p v-if="!problems.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No problems yet.') }}</p>
+      <p v-else-if="!filtered.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No problems match "{q}".', { q }) }}</p>
     </div>
 
     <GroupEditor v-if="editingGroup !== undefined" :group="editingGroup" @save="saveGroup" @cancel="editingGroup = undefined" />

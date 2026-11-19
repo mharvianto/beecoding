@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
@@ -109,13 +110,13 @@ const nameBusy = ref(false);
 async function saveName() {
   nameMsg.value = ''; nameErr.value = '';
   const v = name.value.trim();
-  if (v.length < 2) { nameErr.value = 'Display name must be at least 2 characters.'; return; }
+  if (v.length < 2) { nameErr.value = tr('Display name must be at least 2 characters.'); return; }
   if (v === auth.user?.displayName) { nameMsg.value = 'No change.'; return; }
   nameBusy.value = true;
   try {
     await auth.updateDisplayName(v);
     name.value = auth.user.displayName;
-    nameMsg.value = 'Display name updated.';
+    nameMsg.value = tr('Display name updated.');
   } catch (e) { nameErr.value = e.message; }
   finally { nameBusy.value = false; }
 }
@@ -130,8 +131,8 @@ const pwBusy = ref(false);
 
 async function changePassword() {
   pwMsg.value = ''; pwErr.value = '';
-  if (next.value.length < 8) { pwErr.value = 'New password must be at least 8 characters.'; return; }
-  if (next.value !== next2.value) { pwErr.value = 'New passwords do not match.'; return; }
+  if (next.value.length < 8) { pwErr.value = tr('New password must be at least 8 characters.'); return; }
+  if (next.value !== next2.value) { pwErr.value = tr('New passwords do not match.'); return; }
   pwBusy.value = true;
   try {
     await auth.changePassword(cur.value, next.value);
@@ -144,14 +145,14 @@ async function changePassword() {
 // first password for an account created through Google
 async function setPassword() {
   pwMsg.value = ''; pwErr.value = '';
-  if (next.value.length < 8) { pwErr.value = 'Password must be at least 8 characters.'; return; }
-  if (next.value !== next2.value) { pwErr.value = 'Passwords do not match.'; return; }
+  if (next.value.length < 8) { pwErr.value = tr('Password must be at least 8 characters.'); return; }
+  if (next.value !== next2.value) { pwErr.value = tr('Passwords do not match.'); return; }
   pwBusy.value = true;
   try {
     await api.post('/api/auth/set-password', { newPassword: next.value });
     await auth.fetchMe();
     next.value = next2.value = '';
-    pwMsg.value = 'Password set. You can now also sign in with your email and password.';
+    pwMsg.value = tr('Password set. You can now also sign in with your email and password.');
   } catch (e) { pwErr.value = e.message; }
   finally { pwBusy.value = false; }
 }
@@ -179,19 +180,19 @@ async function deleteAccount(force = false) {
 <template>
   <div class="max-w-7xl mx-auto px-4 py-10 space-y-8">
     <div>
-      <h1 class="text-xl font-bold mb-1">Account</h1>
+      <h1 class="text-xl font-bold mb-1">{{ tr('Account') }}</h1>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ auth.user?.displayName }} · {{ auth.user?.email }} · {{ auth.user?.role }}
+        {{ auth.user?.displayName }} · {{ auth.user?.email }} · {{ tr(auth.user?.role) }}
         <span v-if="auth.config.emailVerification" class="ml-1"
               :class="auth.user?.emailVerified ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
-          {{ auth.user?.emailVerified ? '✓ email verified' : '⚠ email not verified' }}
+          {{ auth.user?.emailVerified ? tr('✓ email verified') : tr('⚠ email not verified') }}
         </span>
       </p>
     </div>
 
     <div class="grid md:grid-cols-[13rem_minmax(0,1fr)] gap-x-10 gap-y-6 items-start">
       <!-- section menu: a sticky side column on desktop, scrollable tabs on mobile -->
-      <nav aria-label="Account sections"
+      <nav :aria-label="tr('Account sections')"
            class="flex flex-wrap md:flex-col md:flex-nowrap gap-1 md:sticky md:top-4 -mx-4 px-4 md:mx-0 md:px-0 pb-1 md:pb-0 border-b md:border-b-0 border-slate-200 dark:border-slate-800">
         <RouterLink v-for="item in sections" :key="item.key" :to="item.to"
                     class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm whitespace-nowrap transition-colors"
@@ -200,7 +201,7 @@ async function deleteAccount(force = false) {
                       : (item.key === 'danger' ? 'text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800')">
           <Icon :name="item.icon" />
           <span>{{ item.label }}</span>
-          <span v-if="item.key === 'security' && auth.user?.mfaEnabled === false" class="w-1.5 h-1.5 rounded-full bg-amber-500" title="Two-step verification is off"></span>
+          <span v-if="item.key === 'security' && auth.user?.mfaEnabled === false" class="w-1.5 h-1.5 rounded-full bg-amber-500" :title="tr('Two-step verification is off')"></span>
         </RouterLink>
       </nav>
 
@@ -210,59 +211,59 @@ async function deleteAccount(force = false) {
         <!-- personal dashboard: progress across every board + practice/bank -->
         <section class="space-y-5">
           <div class="flex items-center gap-2">
-            <h2 class="font-semibold text-sm">Progress</h2>
-            <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">↻ refresh</button>
+            <h2 class="font-semibold text-sm">{{ tr('Progress') }}</h2>
+            <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ tr('↻ refresh') }}</button>
           </div>
-          <p v-if="dashErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ dashErr }}</p>
+          <p v-if="dashErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(dashErr) }}</p>
 
           <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Level</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Level') }}</div>
               <div class="text-2xl font-bold">Lv {{ dashboard.level }}</div>
               <div class="mt-1.5 w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                 <span class="block h-full bg-amber-400" :style="{ width: (progress.pct * 100) + '%' }"></span>
               </div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ fmt(dashboard.xp) }} XP · {{ fmt(progress.toNext) }} to Lv {{ dashboard.level + 1 }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ tr('{xp} XP · {next} to Lv {lv}', { xp: fmt(dashboard.xp), next: fmt(progress.toNext), lv: dashboard.level + 1 }) }}</div>
             </div>
 
             <RouterLink to="/leaderboard" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Leaderboard rank</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Leaderboard rank') }}</div>
               <div class="text-2xl font-bold">{{ dashboard.rank > 0 ? `#${fmt(dashboard.rank)}` : '—' }}</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">of {{ fmt(dashboard.rankedUsers) }} ranked</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ tr('of {n} ranked', { n: fmt(dashboard.rankedUsers) }) }}</div>
             </RouterLink>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Problems solved</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Problems solved') }}</div>
               <div class="text-2xl font-bold">{{ fmt(dashboard.solvedCount) }}</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ fmt(dashboard.boardsJoined) }} board(s) joined</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ tr('{n} board(s) joined', { n: fmt(dashboard.boardsJoined) }) }}</div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Submissions') }}</div>
               <div class="text-2xl font-bold">{{ fmt(dashboard.totalAttempts) }}</div>
               <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {{ dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }}% accepted
+                {{ tr('{n}% accepted', { n: dashboard.totalAttempts ? Math.round(100 * dashboard.acceptedAttempts / dashboard.totalAttempts) : 0 }) }}
               </div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Practice streak</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Practice streak') }}</div>
               <div class="text-2xl font-bold">{{ dashboard.streak > 0 ? `🔥 ${fmt(dashboard.streak)}` : '—' }}</div>
               <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                {{ dashboard.streak > 0 ? 'day(s) in a row' : 'solve a practice problem to start one' }}
+                {{ dashboard.streak > 0 ? tr('day(s) in a row') : tr('solve a practice problem to start one') }}
               </div>
               <div v-if="dashboard.longestStreak > 0" class="text-[11px] text-slate-500 dark:text-slate-400">
-                🏆 longest: {{ fmt(dashboard.longestStreak) }} day(s)
+                {{ tr('🏆 longest: {n} day(s)', { n: fmt(dashboard.longestStreak) }) }}
               </div>
             </div>
 
             <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-              <div class="text-xs text-slate-500 dark:text-slate-400">Best day</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Best day') }}</div>
               <div class="text-2xl font-bold">{{ dashboard.maxSolvedInADay > 0 ? fmt(dashboard.maxSolvedInADay) : '—' }}</div>
-              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">solved in a single day</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ tr('solved in a single day') }}</div>
             </div>
           </div>
-          <p v-else-if="!dashErr" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
+          <p v-else-if="!dashErr" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
 
           <div>
             <div class="flex items-center gap-2 mb-2">
@@ -278,27 +279,27 @@ async function deleteAccount(force = false) {
               <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="attemptPoints()" />
               <MiniLineChart :title="`Problems solved / ${engagementGranularity}`" :points="solvedPoints()" />
             </div>
-            <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
+            <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity in this window yet.') }}</p>
           </div>
 
           <div v-if="topicStats?.length">
-            <h3 class="font-semibold text-sm mb-1.5">Topics you're struggling with</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">Lowest accept rate first, across boards and practice.</p>
+            <h3 class="font-semibold text-sm mb-1.5">{{ tr('Topics you\'re struggling with') }}</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">{{ tr('Lowest accept rate first, across boards and practice.') }}</p>
             <TopicBarChart :items="topicBarItems()" />
           </div>
         </section>
 
         <!-- AI usage -->
         <section v-if="aiUsage" class="space-y-2">
-          <h2 class="font-semibold text-sm">AI tutor usage</h2>
+          <h2 class="font-semibold text-sm">{{ tr('AI tutor usage') }}</h2>
 
           <div v-if="aiUsage.blocked" class="text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2">
-            <Icon name="ban" /> {{ aiUsage.blockedReason || 'AI access is currently unavailable.' }}
+            <Icon name="ban" /> {{ aiUsage.blockedReason || tr('AI access is currently unavailable.') }}
           </div>
           <div v-else-if="aiUsage.dailyQuota > 0">
             <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1">
-              <span>Daily quota</span>
-              <span>{{ fmt(aiUsage.today.calls) }} / {{ fmt(aiUsage.dailyQuota) }} requests used today</span>
+              <span>{{ tr('Daily quota') }}</span>
+              <span>{{ tr('{a} / {b} requests used today', { a: fmt(aiUsage.today.calls), b: fmt(aiUsage.dailyQuota) }) }}</span>
             </div>
             <div class="w-full h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
               <span class="block h-full bg-amber-400"
@@ -310,18 +311,18 @@ async function deleteAccount(force = false) {
           <table class="w-full text-sm min-w-[360px]">
             <thead>
               <tr class="text-xs text-slate-500 dark:text-slate-400 text-left">
-                <th class="font-normal py-1"></th><th class="font-normal">Calls</th>
-                <th class="font-normal">Prompt</th><th class="font-normal">Reply</th><th class="font-normal">Total tokens</th>
+                <th class="font-normal py-1"></th><th class="font-normal">{{ tr('Calls') }}</th>
+                <th class="font-normal">{{ tr('Prompt') }}</th><th class="font-normal">{{ tr('Reply') }}</th><th class="font-normal">{{ tr('Total tokens') }}</th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1 [&_td:not(:first-child)]:tabular-nums">
-              <tr><td class="text-slate-500 dark:text-slate-400">Today</td>
+              <tr><td class="text-slate-500 dark:text-slate-400">{{ tr('Today') }}</td>
                 <td>{{ fmt(aiUsage.today.calls) }}</td><td>{{ fmt(aiUsage.today.promptTokens) }}</td>
                 <td>{{ fmt(aiUsage.today.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.today.totalTokens) }}</td></tr>
-              <tr><td class="text-slate-500 dark:text-slate-400">This month</td>
+              <tr><td class="text-slate-500 dark:text-slate-400">{{ tr('This month') }}</td>
                 <td>{{ fmt(aiUsage.month.calls) }}</td><td>{{ fmt(aiUsage.month.promptTokens) }}</td>
                 <td>{{ fmt(aiUsage.month.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.month.totalTokens) }}</td></tr>
-              <tr><td class="text-slate-500 dark:text-slate-400">All time</td>
+              <tr><td class="text-slate-500 dark:text-slate-400">{{ tr('All time') }}</td>
                 <td>{{ fmt(aiUsage.allTime.calls) }}</td><td>{{ fmt(aiUsage.allTime.promptTokens) }}</td>
                 <td>{{ fmt(aiUsage.allTime.completionTokens) }}</td><td class="font-medium">{{ fmt(aiUsage.allTime.totalTokens) }}</td></tr>
             </tbody>
@@ -335,18 +336,18 @@ async function deleteAccount(force = false) {
         <OrganizationSettings />
         <!-- display name -->
         <section class="space-y-3">
-          <h2 class="font-semibold text-sm">Display name</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Shown on the board, wall cards and leaderboard.</p>
+          <h2 class="font-semibold text-sm">{{ tr('Display name') }}</h2>
+          <p class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Shown on the board, wall cards and leaderboard.') }}</p>
           <div class="flex gap-2">
-            <input v-model="name" maxlength="40" placeholder="Your name" aria-label="Your name" @keyup.enter="saveName"
+            <input v-model="name" maxlength="40" :placeholder="tr('Your name')" :aria-label="tr('Your name')" @keyup.enter="saveName"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
             <button @click="saveName" :disabled="nameBusy || !name.trim() || name.trim() === auth.user?.displayName"
                     class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-              {{ nameBusy ? '…' : 'Save' }}
+              {{ nameBusy ? '…' : tr('Save') }}
             </button>
           </div>
-          <p v-if="nameErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ nameErr }}</p>
-          <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ nameMsg }}</p>
+          <p v-if="nameErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(nameErr) }}</p>
+          <p v-if="nameMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ tr(nameMsg) }}</p>
         </section>
         <NotificationKindSettings />
         <BrowserNotificationSettings />
@@ -361,38 +362,38 @@ async function deleteAccount(force = false) {
         <div v-else-if="section === 'security'" class="max-w-xl space-y-10">
         <!-- change password -->
         <section v-if="auth.user?.hasPassword === false" class="space-y-3">
-          <h2 class="font-semibold text-sm">Set a password</h2>
+          <h2 class="font-semibold text-sm">{{ tr('Set a password') }}</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.
+            {{ tr('You signed up with Google, so this account has no password yet. Set one to sign in with your email too, and to confirm sensitive changes.') }}
           </p>
           <div class="space-y-3">
-            <input v-model="next" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" autocomplete="new-password"
+            <input v-model="next" type="password" :placeholder="tr('New password (min 8 chars)')" :aria-label="tr('New password (min 8 chars)')" autocomplete="new-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next2" type="password" placeholder="Repeat password" aria-label="Repeat password" autocomplete="new-password" @keyup.enter="setPassword"
+            <input v-model="next2" type="password" :placeholder="tr('Repeat password')" :aria-label="tr('Repeat password')" autocomplete="new-password" @keyup.enter="setPassword"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
-            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(pwErr) }}</p>
+            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ tr(pwMsg) }}</p>
             <button @click="setPassword" :disabled="pwBusy || !next"
                     class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-              {{ pwBusy ? '…' : 'Set password' }}
+              {{ pwBusy ? '…' : tr('Set password') }}
             </button>
           </div>
         </section>
         <section v-else class="space-y-3">
-          <h2 class="font-semibold text-sm">Change password</h2>
+          <h2 class="font-semibold text-sm">{{ tr('Change password') }}</h2>
           <div class="space-y-3">
-            <input v-model="cur" type="password" placeholder="Current password" aria-label="Current password" autocomplete="current-password"
+            <input v-model="cur" type="password" :placeholder="tr('Current password')" :aria-label="tr('Current password')" autocomplete="current-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next" type="password" placeholder="New password (min 8 chars)" aria-label="New password (min 8 chars)" autocomplete="new-password"
+            <input v-model="next" type="password" :placeholder="tr('New password (min 8 chars)')" :aria-label="tr('New password (min 8 chars)')" autocomplete="new-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <input v-model="next2" type="password" placeholder="Repeat new password" aria-label="Repeat new password" autocomplete="new-password"
+            <input v-model="next2" type="password" :placeholder="tr('Repeat new password')" :aria-label="tr('Repeat new password')" autocomplete="new-password"
                    @keyup.enter="changePassword"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ pwErr }}</p>
-            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ pwMsg }}</p>
+            <p v-if="pwErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(pwErr) }}</p>
+            <p v-if="pwMsg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ tr(pwMsg) }}</p>
             <button @click="changePassword" :disabled="pwBusy || !cur || !next"
                     class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-              {{ pwBusy ? '…' : 'Update password' }}
+              {{ pwBusy ? '…' : tr('Update password') }}
             </button>
           </div>
         </section>
@@ -408,39 +409,39 @@ async function deleteAccount(force = false) {
         <div v-else class="max-w-xl space-y-10">
         <!-- delete account -->
         <section class="space-y-3 border border-red-200 dark:border-red-500/30 rounded-xl p-4">
-          <h2 class="font-semibold text-sm text-red-600 dark:text-red-400">Delete account</h2>
+          <h2 class="font-semibold text-sm text-red-600 dark:text-red-400">{{ tr('Delete account') }}</h2>
           <p class="text-sm text-slate-500 dark:text-slate-400">
-            Permanently removes your account, your submissions, and your practice progress.
-            <span v-if="auth.isTeacher">Boards you own — and everyone's work on them — go too.</span>
-            This cannot be undone.
+            {{ tr('Permanently removes your account, your submissions, and your practice progress.') }}
+            <span v-if="auth.isTeacher">{{ tr('Boards you own — and everyone\'s work on them — go too.') }}</span>
+            {{ tr('This cannot be undone.') }}
           </p>
 
           <button v-if="!showDelete" @click="showDelete = true"
                   class="border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 rounded-lg px-4 py-2 text-sm font-medium">
-            Delete my account…
+            {{ tr('Delete my account…') }}
           </button>
 
           <template v-else>
-            <input v-model="delPw" type="password" placeholder="Confirm with your password" aria-label="Confirm with your password" autocomplete="current-password"
+            <input v-model="delPw" type="password" :placeholder="tr('Confirm with your password')" :aria-label="tr('Confirm with your password')" autocomplete="current-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
 
             <div v-if="ownedBoards" class="text-sm bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">
-              <p class="text-red-700 dark:text-red-300 font-medium">These boards will be deleted with all their submissions:</p>
+              <p class="text-red-700 dark:text-red-300 font-medium">{{ tr('These boards will be deleted with all their submissions:') }}</p>
               <ul class="list-disc pl-5 text-slate-600 dark:text-slate-300">
                 <li v-for="b in ownedBoards" :key="b.slug">{{ b.title }}</li>
               </ul>
             </div>
 
-            <p v-if="delErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ delErr }}</p>
+            <p v-if="delErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(delErr) }}</p>
 
             <div class="flex gap-2">
               <button @click="deleteAccount(!!ownedBoards)" :disabled="delBusy || !delPw"
                       class="bg-red-600 hover:bg-red-700 text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50">
-                {{ delBusy ? '…' : ownedBoards ? 'Yes, delete everything' : 'Delete account' }}
+                {{ delBusy ? '…' : ownedBoards ? tr('Yes, delete everything') : tr('Delete account') }}
               </button>
               <button @click="showDelete = false; ownedBoards = null; delPw = ''; delErr = ''"
                       class="text-slate-500 dark:text-slate-400 rounded-lg px-4 py-2 text-sm">
-                Cancel
+                {{ tr('Cancel') }}
               </button>
             </div>
           </template>

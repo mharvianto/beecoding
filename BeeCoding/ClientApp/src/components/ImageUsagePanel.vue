@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { computed } from 'vue';
 
 // Storage taken by statement pictures: totals, then the heaviest uploaders. Shared by Admin (platform-wide) and
@@ -17,7 +18,7 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
 <template>
   <div v-if="usage" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
     <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
-      {{ title }} <span class="font-normal text-slate-500 dark:text-slate-400">— kept in the database</span>
+      {{ title }} <span class="font-normal text-slate-500 dark:text-slate-400">{{ tr('— kept in the database') }}</span>
     </h3>
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
@@ -33,15 +34,15 @@ const widest = computed(() => Math.max(1, ...(props.usage?.top ?? []).map((u) =>
       </div>
     </div>
 
-    <p v-if="!usage.top.length" class="text-sm text-slate-500 dark:text-slate-400">No pictures uploaded yet.</p>
+    <p v-if="!usage.top.length" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No pictures uploaded yet.') }}</p>
     <div v-else class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-[11px] text-slate-500 dark:text-slate-400">
-            <th class="font-medium py-1 pr-3">Uploader</th>
-            <th class="font-medium py-1 pr-3 text-right">Pictures <span class="font-normal">/ limit {{ usage.limitPerUser }}</span></th>
-            <th class="font-medium py-1 pr-3 w-48">Size</th>
-            <th class="font-medium py-1 text-right">Unused</th>
+            <th class="font-medium py-1 pr-3">{{ tr('Uploader') }}</th>
+            <th class="font-medium py-1 pr-3 text-right">{{ tr('Pictures') }} <span class="font-normal">{{ tr('/ limit {n}', { n: usage.limitPerUser }) }}</span></th>
+            <th class="font-medium py-1 pr-3 w-48">{{ tr('Size') }}</th>
+            <th class="font-medium py-1 text-right">{{ tr('Unused') }}</th>
           </tr>
         </thead>
         <tbody>

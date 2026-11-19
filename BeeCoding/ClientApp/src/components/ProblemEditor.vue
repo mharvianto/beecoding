@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, watch, nextTick } from 'vue';
 import MarkdownBlock from './MarkdownBlock.vue';
@@ -215,67 +216,67 @@ function pickFormula(e) {
   <div class="text-slate-900 dark:text-slate-100">
     <div class="max-w-7xl mx-auto px-4 py-6">
       <div class="flex items-center gap-3 flex-wrap mb-4">
-        <h2 class="font-bold text-lg">{{ props.problem?.id ? 'Edit' : 'New' }} problem</h2>
+        <h2 class="font-bold text-lg">{{ props.problem?.id ? tr('Edit problem') : tr('New problem') }}</h2>
         <a :href="withBase('/guide/problems')" target="_blank" rel="noopener"
-           class="text-xs text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> Guide to writing problems</a>
+           class="text-xs text-amber-700 dark:text-amber-400 hover:underline"><Icon name="book" /> {{ tr('Guide to writing problems') }}</a>
         <span v-if="props.problem?.generatedByAi"
-              class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI-generated</span>
+              class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> {{ tr('AI-generated') }}</span>
         <span v-if="props.problem?.pendingReview"
               class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
-              title="An admin reviews AI-generated problems before they're shared with other teachers">
-          ⏳ pending review — not shared yet
+              :title="tr('An admin reviews AI-generated problems before they\'re shared with other teachers')">
+          {{ tr('⏳ pending review — not shared yet') }}
         </span>
         <div class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-sm">
           <button type="button" @click="tab = 'problem'" class="px-3 py-1"
-                  :class="tab === 'problem' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">Problem</button>
+                  :class="tab === 'problem' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">{{ tr('Problem') }}</button>
           <button type="button" @click="tab = 'tests'" class="px-3 py-1"
                   :class="tab === 'tests' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
-            Test cases · {{ form.testCases.length }}
+            {{ tr('Test cases · {n}', { n: form.testCases.length }) }}
           </button>
         </div>
       </div>
 
       <div v-show="tab === 'problem'" class="space-y-3">
-        <input v-model="form.title" placeholder="Title" aria-label="Title" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
+        <input v-model="form.title" :placeholder="tr('Title')" :aria-label="tr('Title')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <div>
           <div class="flex items-center gap-2 text-xs mb-1">
-            <span class="text-slate-500 dark:text-slate-400">Statement (Markdown)</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Statement (Markdown)') }}</span>
             <label class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 cursor-pointer"
-                   :class="{ 'opacity-50 pointer-events-none': imgBusy }" title="Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor">
-              <template v-if="!imgBusy"><Icon name="image" /> Add image</template><template v-else>Uploading…</template>
-              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" aria-label="Choose an image" class="hidden" @change="addImage" />
+                   :class="{ 'opacity-50 pointer-events-none': imgBusy }" :title="tr('Upload a PNG, JPEG, GIF or WebP (the admin sets the size limit; an accepted file is then compressed) and insert it at the cursor')">
+              <template v-if="!imgBusy"><Icon name="image" /> {{ tr('Add image') }}</template><template v-else>{{ tr('Uploading…') }}</template>
+              <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" :aria-label="tr('Choose an image')" class="hidden" @change="addImage" />
             </label>
             <button type="button" @click="toggleWrite"
                     class="ml-auto px-2 py-0.5 rounded border"
-                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="pencil" /> Write</button>
+                    :class="showWrite ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="pencil" /> {{ tr('Write') }}</button>
             <button type="button" @click="togglePreview"
                     class="px-2 py-0.5 rounded border"
-                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="eye" /> Preview</button>
+                    :class="showPreview ? 'border-amber-400 text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10' : 'border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400'"><Icon name="eye" /> {{ tr('Preview') }}</button>
           </div>
-          <p v-if="imgError" role="alert" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ imgError }}</p>
-          <div v-show="showWrite" class="flex flex-wrap items-center gap-1 mb-1 text-xs" role="toolbar" aria-label="Formatting">
+          <p v-if="imgError" role="alert" class="text-xs text-red-600 dark:text-red-400 mb-1">{{ tr(imgError) }}</p>
+          <div v-show="showWrite" class="flex flex-wrap items-center gap-1 mb-1 text-xs" role="toolbar" :aria-label="tr('Formatting')">
             <!-- mousedown.prevent: the box keeps its focus and selection while a button is pressed -->
-            <button type="button" @mousedown.prevent @click="wrap('**', '**', 'bold')" class="tb font-bold" title="Bold (Ctrl+B)">B</button>
-            <button type="button" @mousedown.prevent @click="wrap('*', '*', 'italic')" class="tb italic" title="Italic (Ctrl+I)">I</button>
-            <button type="button" @mousedown.prevent @click="wrap('`', '`', 'code')" class="tb font-mono" title="Code">&lt;/&gt;</button>
+            <button type="button" @mousedown.prevent @click="wrap('**', '**', 'bold')" class="tb font-bold" :title="tr('Bold (Ctrl+B)')">B</button>
+            <button type="button" @mousedown.prevent @click="wrap('*', '*', 'italic')" class="tb italic" :title="tr('Italic (Ctrl+I)')">I</button>
+            <button type="button" @mousedown.prevent @click="wrap('`', '`', 'code')" class="tb font-mono" :title="tr('Code')">&lt;/&gt;</button>
             <span class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></span>
-            <button type="button" @mousedown.prevent @click="prefixLines(() => '- ')" class="tb" title="Bulleted list">• List</button>
-            <button type="button" @mousedown.prevent @click="prefixLines((i) => `${i + 1}. `)" class="tb" title="Numbered list">1. List</button>
-            <button type="button" @mousedown.prevent @click="insertTable" class="tb" title="Insert a table">▦ Table</button>
+            <button type="button" @mousedown.prevent @click="prefixLines(() => '- ')" class="tb" :title="tr('Bulleted list')">{{ tr('• List') }}</button>
+            <button type="button" @mousedown.prevent @click="prefixLines((i) => `${i + 1}. `)" class="tb" :title="tr('Numbered list')">{{ tr('1. List') }}</button>
+            <button type="button" @mousedown.prevent @click="insertTable" class="tb" :title="tr('Insert a table')">{{ tr('▦ Table') }}</button>
             <span class="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1"></span>
-            <button type="button" @mousedown.prevent @click="inlineFormula" class="tb" title="Formula inside a sentence: $ ... $ (Ctrl+M)">$ x $</button>
-            <button type="button" @mousedown.prevent @click="blockFormula" class="tb" title="Formula on its own line: $$ ... $$">$$ ∑ $$</button>
-            <select @change="pickFormula" class="tb bg-transparent" title="Insert a common formula" aria-label="Insert a common formula">
-              <option value="">Formula ▾</option>
+            <button type="button" @mousedown.prevent @click="inlineFormula" class="tb" :title="tr('Formula inside a sentence: $ ... $ (Ctrl+M)')">$ x $</button>
+            <button type="button" @mousedown.prevent @click="blockFormula" class="tb" :title="tr('Formula on its own line: $$ ... $$')">$$ ∑ $$</button>
+            <select @change="pickFormula" class="tb bg-transparent" :title="tr('Insert a common formula')" :aria-label="tr('Insert a common formula')">
+              <option value="">{{ tr('Formula ▾') }}</option>
               <option v-for="(f, i) in FORMULAS" :key="i" :value="i">{{ f.label }}</option>
             </select>
             <button type="button" @mousedown.prevent @click="showFormulaHelp = !showFormulaHelp" class="tb" :class="showFormulaHelp ? '!border-amber-400 !text-amber-700 dark:!text-amber-300' : ''"
-                    title="Examples of formulas often used in problems" :aria-expanded="showFormulaHelp">? Formula help</button>
+                    :title="tr('Examples of formulas often used in problems')" :aria-expanded="showFormulaHelp">{{ tr('? Formula help') }}</button>
           </div>
           <div v-if="showWrite && showFormulaHelp" class="mb-2 border border-slate-300 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-900 text-xs">
             <div class="px-3 py-2 text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              Type the code between dollar signs: <code v-pre>$...$</code> inside a sentence, <code v-pre>$$...$$</code> on its own line.
-              Click <b>Insert</b> to put an example at the cursor. A plain dollar sign (<code v-pre>$5 and $10</code>) needs nothing special.
+              {{ tr('Type the code between dollar signs:') }} <code v-pre>$...$</code> inside a sentence, <code v-pre>$$...$$</code> on its own line.
+              Click <b>{{ tr('Insert') }}</b> to put an example at the cursor. A plain dollar sign (<code v-pre>$5 and $10</code>) needs nothing special.
             </div>
             <div class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
               <div v-for="(f, i) in FORMULAS" :key="i" class="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto] gap-3 items-center px-3 py-1.5">
@@ -284,12 +285,12 @@ function pickFormula(e) {
                   <code class="block font-mono text-[11px] text-slate-600 dark:text-slate-300 break-all">{{ f.tex }}</code>
                   <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ f.label }} · {{ f.hint }}</span>
                 </div>
-                <button type="button" @mousedown.prevent @click="insertFormula(f)" class="tb">Insert</button>
+                <button type="button" @mousedown.prevent @click="insertFormula(f)" class="tb">{{ tr('Insert') }}</button>
               </div>
             </div>
           </div>
           <div class="flex flex-col md:flex-row gap-2">
-            <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" placeholder="Statement (Markdown)" aria-label="Statement (Markdown)" rows="12"
+            <textarea ref="stmtEl" v-show="showWrite" v-model="form.statementMarkdown" :placeholder="tr('Statement (Markdown)')" :aria-label="tr('Statement (Markdown)')" rows="12"
                       @keydown.ctrl.b.prevent="wrap('**', '**', 'bold')" @keydown.meta.b.prevent="wrap('**', '**', 'bold')"
                       @keydown.ctrl.i.prevent="wrap('*', '*', 'italic')" @keydown.meta.i.prevent="wrap('*', '*', 'italic')"
                       @keydown.ctrl.m.prevent="inlineFormula" @keydown.meta.m.prevent="inlineFormula"
@@ -297,71 +298,70 @@ function pickFormula(e) {
             <div v-show="showPreview"
                  class="flex-1 min-w-0 h-[19rem] overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-slate-50 dark:bg-slate-800/40">
               <MarkdownBlock v-if="form.statementMarkdown.trim()" :text="form.statementMarkdown" />
-              <p v-else class="text-sm text-slate-500 dark:text-slate-400">Nothing to preview yet.</p>
+              <p v-else class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Nothing to preview yet.') }}</p>
             </div>
           </div>
         </div>
         <div class="flex gap-3 flex-wrap text-sm items-center">
-          <span class="flex items-center gap-2">Allowed languages
+          <span class="flex items-center gap-2">{{ tr('Allowed languages') }}
             <label class="flex items-center gap-1"><input type="checkbox" value="c" v-model="allowedLangsArr" /> C</label>
             <label class="flex items-center gap-1"><input type="checkbox" value="cpp" v-model="allowedLangsArr" /> C++</label>
-            <span class="text-[11px] text-slate-500 dark:text-slate-400">none checked = all languages</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('none checked = all languages') }}</span>
           </span>
-          <label class="flex items-center gap-1">Level
+          <label class="flex items-center gap-1">{{ tr('Level') }}
             <select v-model="form.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1">
-              <option>Easy</option><option>Medium</option><option>Hard</option>
+              <option>{{ tr('Easy') }}</option><option>{{ tr('Medium') }}</option><option>{{ tr('Hard') }}</option>
             </select>
           </label>
-          <label class="flex items-center gap-1">Time (ms)
+          <label class="flex items-center gap-1">{{ tr('Time (ms)') }}
             <input v-model.number="form.timeLimitMs" type="number" class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label class="flex items-center gap-1">Memory (KB)
+          <label class="flex items-center gap-1">{{ tr('Memory (KB)') }}
             <input v-model.number="form.memoryLimitKb" type="number" class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label v-if="!showBankFields" class="flex items-center gap-1">Position
+          <label v-if="!showBankFields" class="flex items-center gap-1">{{ tr('Position') }}
             <input v-model.number="form.position" type="number" class="w-16 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
         </div>
 
         <div class="space-y-2">
-          <label class="flex items-center gap-1 text-sm">Banned headers
-            <input v-model="form.bannedHeaders" placeholder="e.g. algorithm, numeric" aria-label="Tags"
+          <label class="flex items-center gap-1 text-sm">{{ tr('Banned headers') }}
+            <input v-model="form.bannedHeaders" :placeholder="tr('e.g. algorithm, numeric')" :aria-label="tr('Tags')"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label class="flex items-center gap-1 text-sm">Banned functions
-            <input v-model="form.bannedSymbols" placeholder="e.g. std::sort, qsort, stable_sort" aria-label="Banned names"
+          <label class="flex items-center gap-1 text-sm">{{ tr('Banned functions') }}
+            <input v-model="form.bannedSymbols" :placeholder="tr('e.g. std::sort, qsort, stable_sort')" :aria-label="tr('Banned names')"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
-            Comma-separated. <b>Headers</b>: names a submission may not <code>#include</code> (setting any also blocks
-            <code>&lt;bits/stdc++.h&gt;</code>). <b>Functions</b>: identifiers it may not use — <code>sort</code> also
+            {{ tr('Comma-separated.') }} <b>{{ tr('Headers') }}</b>: names a submission may not <code>#include</code> (setting any also blocks
+            <code>&lt;bits/stdc++.h&gt;</code>). <b>{{ tr('Functions') }}</b>: identifiers it may not use — <code>sort</code> also
             catches <code>std::sort</code>; write <code>std::sort</code> to match only the qualified call. A violation
             is reported as a Compile Error, on Run and Submit.
           </p>
         </div>
 
         <div>
-          <label class="flex items-center gap-1 text-sm">Input file (optional)
-            <input v-model="form.inputFileName" placeholder="e.g. input.txt — leave blank to read from stdin" aria-label="Input file name"
+          <label class="flex items-center gap-1 text-sm">{{ tr('Input file (optional)') }}
+            <input v-model="form.inputFileName" :placeholder="tr('e.g. input.txt — leave blank to read from stdin')" :aria-label="tr('Input file name')"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <p class="text-[11px] text-slate-500 dark:text-slate-400">
-            When set, each test's input is written to this filename in the program's working directory instead of
-            being piped to stdin — for problems that require <code>fopen()</code>-style file I/O. Leave blank for
+            {{ tr('When set, each test\'s input is written to this filename in the program\'s working directory instead of being piped to stdin — for problems that require') }} <code>fopen()</code>-style file I/O. Leave blank for
             the normal stdin/stdout behavior.
           </p>
         </div>
 
         <div class="flex gap-3 flex-wrap text-sm items-center">
-          <label class="flex items-center gap-1 flex-1 min-w-48">Tags
-            <input v-model="form.tags" placeholder="loop, array, dp" aria-label="loop, array, dp"
+          <label class="flex items-center gap-1 flex-1 min-w-48">{{ tr('Tags') }}
+            <input v-model="form.tags" :placeholder="tr('loop, array, dp')" :aria-label="tr('loop, array, dp')"
                    class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
           <TagSuggest class="w-full" :title="form.title" :statement="form.statementMarkdown" :current="form.tags" @add="addTag" />
           <label v-if="showBankFields && !studentMode" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
             <input type="checkbox" v-model="form.isPublic" :disabled="props.problem?.pendingReview" />
-            Share with other teachers
-            <span v-if="props.problem?.pendingReview" class="text-[11px] text-slate-400">(awaiting admin review)</span>
+            {{ tr('Share with other teachers') }}
+            <span v-if="props.problem?.pendingReview" class="text-[11px] text-slate-400">{{ tr('(awaiting admin review)') }}</span>
           </label>
         </div>
 
@@ -369,16 +369,16 @@ function pickFormula(e) {
 
       <div v-show="tab === 'tests'">
         <div class="flex items-center gap-3 mb-1 flex-wrap">
-          <h3 class="font-semibold text-sm">Test cases</h3>
+          <h3 class="font-semibold text-sm">{{ tr('Test cases') }}</h3>
           <button v-if="canRegenTests" @click="emit('regenerate-tests')" :disabled="regenBusy || addExtremeBusy"
                   class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-            <Icon name="sparkles" /> {{ regenBusy ? 'regenerating…' : 'regenerate hidden tests' }}
+            <Icon name="sparkles" /> {{ regenBusy ? tr('regenerating…') : tr('regenerate hidden tests') }}
           </button>
           <button v-if="canRegenTests" @click="emit('add-extreme-tests')" :disabled="regenBusy || addExtremeBusy"
                   class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-            <Icon name="sparkles" /> {{ addExtremeBusy ? 'adding…' : 'add extreme tests' }}
+            <Icon name="sparkles" /> {{ addExtremeBusy ? tr('adding…') : tr('add extreme tests') }}
           </button>
-          <button @click="addTest" class="text-xs text-amber-600 ml-auto">+ add test</button>
+          <button @click="addTest" class="text-xs text-amber-600 ml-auto">{{ tr('+ add test') }}</button>
         </div>
         <p v-if="canRegenTests" class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
           Regenerate keeps your statement &amp; samples but replaces the hidden tests with a
@@ -392,37 +392,37 @@ function pickFormula(e) {
                       dragFrom === i ? 'opacity-50' : '']">
           <div class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 mb-1">
             <span draggable="true" @dragstart="onDragStart($event, i)" @dragend="onDragEnd"
-                  class="cursor-grab active:cursor-grabbing select-none px-1 text-base leading-none" title="Drag to reorder">⠿</span>
+                  class="cursor-grab active:cursor-grabbing select-none px-1 text-base leading-none" :title="tr('Drag to reorder')">⠿</span>
             <span>#{{ i + 1 }}</span>
-            <button type="button" @click="moveTest(i, i - 1)" :disabled="i === 0" title="Move up" aria-label="Move test up"
+            <button type="button" @click="moveTest(i, i - 1)" :disabled="i === 0" :title="tr('Move up')" :aria-label="tr('Move test up')"
                     class="px-1.5 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30">▲</button>
-            <button type="button" @click="moveTest(i, i + 1)" :disabled="i === form.testCases.length - 1" title="Move down" aria-label="Move test down"
+            <button type="button" @click="moveTest(i, i + 1)" :disabled="i === form.testCases.length - 1" :title="tr('Move down')" :aria-label="tr('Move test down')"
                     class="px-1.5 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30">▼</button>
           </div>
           <div class="grid grid-cols-2 gap-2">
-            <textarea v-model="t.stdin" placeholder="stdin" aria-label="stdin" rows="2"
+            <textarea v-model="t.stdin" :placeholder="tr('stdin')" :aria-label="tr('stdin')" rows="2"
                       class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
-            <textarea v-model="t.expectedStdout" placeholder="expected stdout" aria-label="expected stdout" rows="2"
+            <textarea v-model="t.expectedStdout" :placeholder="tr('expected stdout')" :aria-label="tr('expected stdout')" rows="2"
                       class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 font-mono text-xs"></textarea>
           </div>
           <div class="flex items-center gap-3 text-xs mt-1">
-            <label class="flex items-center gap-1"><input type="checkbox" v-model="t.isSample" /> sample (visible to students)</label>
-            <label class="flex items-center gap-1">points <input v-model.number="t.points" type="number" class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1" /></label>
-            <button @click="removeTest(i)" class="text-red-500 ml-auto">remove</button>
+            <label class="flex items-center gap-1"><input type="checkbox" v-model="t.isSample" /> {{ tr('sample (visible to students)') }}</label>
+            <label class="flex items-center gap-1">{{ tr('points') }} <input v-model.number="t.points" type="number" class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1" /></label>
+            <button @click="removeTest(i)" class="text-red-500 ml-auto">{{ tr('remove') }}</button>
           </div>
         </div>
-        <p v-if="!form.testCases.length" class="text-sm text-slate-500 dark:text-slate-400">No test cases yet — add one, or generate with AI.</p>
+        <p v-if="!form.testCases.length" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No test cases yet — add one, or generate with AI.') }}</p>
       </div>
 
-      <pre v-if="error" class="mt-4 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-52 overflow-auto border border-red-200 dark:border-red-500/30 rounded-lg p-3">{{ error }}</pre>
+      <pre v-if="error" class="mt-4 text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap max-h-52 overflow-auto border border-red-200 dark:border-red-500/30 rounded-lg p-3">{{ tr(error) }}</pre>
 
       <div class="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center gap-2">
         <button @click="save" :disabled="busy"
                 class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 py-2 font-medium disabled:opacity-50">
-          {{ busy ? 'Saving…' : 'Save' }}
+          {{ busy ? tr('Saving…') : tr('Save') }}
         </button>
-        <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 px-3">Cancel</button>
-        <button v-if="props.problem?.id" @click="emit('delete')" class="text-red-600 dark:text-red-400 ml-auto px-3">Delete</button>
+        <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 px-3">{{ tr('Cancel') }}</button>
+        <button v-if="props.problem?.id" @click="emit('delete')" class="text-red-600 dark:text-red-400 ml-auto px-3">{{ tr('Delete') }}</button>
       </div>
     </div>
   </div>

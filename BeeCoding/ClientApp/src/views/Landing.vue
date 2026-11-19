@@ -1,7 +1,9 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import LogoMark from '../components/LogoMark.vue';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import DocLangToggle from '../components/DocLangToggle.vue';
 
 const features = [
   ['present', 'Teacher posts problems', 'Build problems with samples and hidden tests, or pull from a shared problem bank.', 'bg-amber-100 dark:bg-amber-500/15'],
@@ -77,10 +79,11 @@ const faqs = [
       <div class="max-w-6xl w-full mx-auto px-4 h-14 flex items-center justify-between">
         <span class="font-bold text-lg text-amber-700 dark:text-amber-400"><LogoMark />BeeCoding</span>
         <div class="flex items-center gap-3 text-sm">
+          <DocLangToggle />
           <ThemeToggle />
-          <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">Sign in</RouterLink>
+          <RouterLink to="/login" class="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100">{{ tr('Sign in') }}</RouterLink>
           <RouterLink to="/register" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1.5 font-medium">
-            Get started
+            {{ tr('Get started') }}
           </RouterLink>
         </div>
       </div>
@@ -93,31 +96,30 @@ const faqs = [
         <div class="relative max-w-6xl mx-auto px-4 pt-14 pb-16 sm:pt-20 grid lg:grid-cols-2 gap-12 items-center">
           <div class="text-center lg:text-left rise">
             <span class="inline-flex items-center gap-2 text-xs font-medium rounded-full px-3 py-1 bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">
-              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Live board · C &amp; C++ judge · runs in the browser
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> {{ tr('Live board · C & C++ judge · runs in the browser') }}
             </span>
             <h1 class="mt-5 text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.1]">
-              Teach C/C++ with a
-              <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">live board</span>
-              and an automatic judge
+              {{ tr('Teach C/C++ with a') }}
+              <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500">{{ tr('live board') }}</span>
+              {{ tr('and an automatic judge') }}
             </h1>
             <p class="mt-5 text-lg text-slate-500 dark:text-slate-400 max-w-xl mx-auto lg:mx-0">
-              Teachers post problems, students solve them in the browser and submit against a
-              sandboxed judge, and the whole class sees progress in real time.
+              {{ tr('Teachers post problems, students solve them in the browser and submit against a sandboxed judge, and the whole class sees progress in real time.') }}
             </p>
             <div class="mt-8 flex flex-wrap items-center justify-center lg:justify-start gap-3">
               <RouterLink to="/register"
                           class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-xl px-6 py-3 font-semibold shadow-lg shadow-amber-500/25 transition hover:-translate-y-0.5">
-                Create an account
+                {{ tr('Create an account') }}
               </RouterLink>
               <RouterLink to="/login"
                           class="border border-slate-300 dark:border-slate-700 rounded-xl px-6 py-3 font-semibold hover:border-amber-400 transition">
-                Sign in
+                {{ tr('Sign in') }}
               </RouterLink>
             </div>
             <ul class="mt-8 flex flex-wrap justify-center lg:justify-start gap-x-5 gap-y-2 text-sm text-slate-500 dark:text-slate-400">
-              <li>✓ No install for students</li>
-              <li>✓ Sandboxed judge</li>
-              <li>✓ Self-hosted, no ads</li>
+              <li>{{ tr('✓ No install for students') }}</li>
+              <li>{{ tr('✓ Sandboxed judge') }}</li>
+              <li>{{ tr('✓ Self-hosted, no ads') }}</li>
             </ul>
           </div>
 
@@ -129,7 +131,7 @@ const faqs = [
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
                 <span class="ml-3 text-xs text-slate-400">A + B · C++</span>
-                <span class="ml-auto text-[11px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Accepted · 10/10</span>
+                <span class="ml-auto text-[11px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">{{ tr('Accepted · 10/10') }}</span>
               </div>
               <pre class="px-4 py-3 text-[13px] leading-relaxed font-mono text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 overflow-hidden"><span class="text-violet-600 dark:text-violet-400">#include</span> <span class="text-emerald-600 dark:text-emerald-400">&lt;iostream&gt;</span>
 <span class="text-violet-600 dark:text-violet-400">int</span> <span class="text-sky-600 dark:text-sky-400">main</span>() {
@@ -141,8 +143,8 @@ const faqs = [
 
             <div class="float-slow mt-4 sm:absolute sm:-bottom-10 sm:-right-4 sm:mt-0 sm:w-64 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-black/40 p-3">
               <div class="flex items-center justify-between text-xs mb-2">
-                <span class="font-semibold text-slate-600 dark:text-slate-300">Live board</span>
-                <span class="text-emerald-600 dark:text-emerald-400">● 4 online</span>
+                <span class="font-semibold text-slate-600 dark:text-slate-300">{{ tr('Live board') }}</span>
+                <span class="text-emerald-600 dark:text-emerald-400">{{ tr('● 4 online') }}</span>
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <div v-for="[i, name, verdict, tone] in mockCards" :key="name"
@@ -161,25 +163,25 @@ const faqs = [
 
       <!-- how it works -->
       <section class="max-w-6xl mx-auto px-4 pt-6 sm:pt-12 pb-16">
-        <h2 class="text-2xl sm:text-3xl font-bold text-center">From problem to progress in three steps</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-center">{{ tr('From problem to progress in three steps') }}</h2>
         <div class="mt-10 grid gap-6 md:grid-cols-3">
           <div v-for="[n, title, body] in steps" :key="n" class="relative rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
             <span class="w-9 h-9 rounded-full bg-amber-500 text-slate-900 font-bold grid place-items-center shadow-md shadow-amber-500/30">{{ n }}</span>
-            <h3 class="mt-4 text-lg font-semibold">{{ title }}</h3>
-            <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ body }}</p>
+            <h3 class="mt-4 text-lg font-semibold">{{ tr(title) }}</h3>
+            <p class="mt-1.5 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ tr(body) }}</p>
           </div>
         </div>
       </section>
 
       <!-- features -->
       <section class="max-w-6xl mx-auto px-4 pb-16">
-        <h2 class="text-2xl sm:text-3xl font-bold text-center">Everything a programming class needs</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-center">{{ tr('Everything a programming class needs') }}</h2>
         <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div v-for="[icon, title, body, tint] in features" :key="title"
                class="group rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 transition hover:-translate-y-1 hover:shadow-lg hover:border-amber-300 dark:hover:border-amber-500/40">
             <div class="w-11 h-11 rounded-xl grid place-items-center text-2xl" :class="tint"><Icon :name="icon" /></div>
-            <h3 class="font-semibold mt-4">{{ title }}</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{{ body }}</p>
+            <h3 class="font-semibold mt-4">{{ tr(title) }}</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{{ tr(body) }}</p>
           </div>
         </div>
       </section>
@@ -187,30 +189,30 @@ const faqs = [
       <!-- teachers / students -->
       <section class="max-w-6xl mx-auto px-4 pb-16 grid gap-6 md:grid-cols-2">
         <div class="rounded-2xl p-6 sm:p-8 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-500/10 dark:to-orange-500/5 border border-amber-100 dark:border-amber-500/20">
-          <h3 class="text-xl font-bold">For teachers</h3>
+          <h3 class="text-xl font-bold">{{ tr('For teachers') }}</h3>
           <ul class="mt-4 space-y-2.5 text-sm">
-            <li v-for="t in teacher" :key="t" class="flex gap-2.5"><span class="text-amber-500 shrink-0">✓</span><span>{{ t }}</span></li>
+            <li v-for="t in teacher" :key="t" class="flex gap-2.5"><span class="text-amber-500 shrink-0">✓</span><span>{{ tr(t) }}</span></li>
           </ul>
         </div>
         <div class="rounded-2xl p-6 sm:p-8 bg-gradient-to-br from-sky-50 to-violet-50 dark:from-sky-500/10 dark:to-violet-500/5 border border-sky-100 dark:border-sky-500/20">
-          <h3 class="text-xl font-bold">For students</h3>
+          <h3 class="text-xl font-bold">{{ tr('For students') }}</h3>
           <ul class="mt-4 space-y-2.5 text-sm">
-            <li v-for="t in student" :key="t" class="flex gap-2.5"><span class="text-sky-500 shrink-0">✓</span><span>{{ t }}</span></li>
+            <li v-for="t in student" :key="t" class="flex gap-2.5"><span class="text-sky-500 shrink-0">✓</span><span>{{ tr(t) }}</span></li>
           </ul>
         </div>
       </section>
 
       <!-- faq -->
       <section class="max-w-3xl mx-auto px-4 pb-16">
-        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8">Frequently asked questions</h2>
+        <h2 class="text-2xl sm:text-3xl font-bold text-center mb-8">{{ tr('Frequently asked questions') }}</h2>
         <div class="divide-y divide-slate-200 dark:divide-slate-800 border-y border-slate-200 dark:border-slate-800">
           <details v-for="[q, a] in faqs" :key="q" class="group">
             <summary class="flex items-center justify-between gap-4 cursor-pointer list-none py-4 font-medium
                             [&::-webkit-details-marker]:hidden hover:text-amber-600 dark:hover:text-amber-400">
-              <span>{{ q }}</span>
+              <span>{{ tr(q) }}</span>
               <span class="shrink-0 text-slate-400 transition-transform group-open:rotate-45">+</span>
             </summary>
-            <p class="pb-4 -mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ a }}</p>
+            <p class="pb-4 -mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ tr(a) }}</p>
           </details>
         </div>
       </section>
@@ -218,14 +220,14 @@ const faqs = [
       <!-- final call to action -->
       <section class="max-w-6xl mx-auto px-4 pb-20">
         <div class="rounded-3xl px-6 py-12 sm:py-14 text-center bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-xl shadow-amber-500/20">
-          <h2 class="text-2xl sm:text-3xl font-extrabold">Ready to run your next class on BeeCoding?</h2>
-          <p class="mt-2 text-amber-50/90">Create an account and open your first board in a minute.</p>
+          <h2 class="text-2xl sm:text-3xl font-extrabold">{{ tr('Ready to run your next class on BeeCoding?') }}</h2>
+          <p class="mt-2 text-amber-50/90">{{ tr('Create an account and open your first board in a minute.') }}</p>
           <div class="mt-7 flex flex-wrap justify-center gap-3">
             <RouterLink to="/register" class="bg-white text-amber-700 hover:bg-amber-50 rounded-xl px-6 py-3 font-semibold transition hover:-translate-y-0.5">
-              Get started
+              {{ tr('Get started') }}
             </RouterLink>
             <RouterLink to="/login" class="border border-white/60 hover:bg-white/10 rounded-xl px-6 py-3 font-semibold transition">
-              Sign in
+              {{ tr('Sign in') }}
             </RouterLink>
           </div>
         </div>

@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, watch } from 'vue';
 import { api } from '../lib/api';
@@ -20,7 +21,7 @@ watch(() => [props.slug, props.solved], async ([slug, solved]) => {
 
 <template>
   <div v-if="items.length" class="mb-3 rounded-lg border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-500/5 px-3 py-2">
-    <div class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1.5"><Icon name="target" /> What next?</div>
+    <div class="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-1.5"><Icon name="target" /> {{ tr('What next?') }}</div>
     <ul class="space-y-1.5">
       <li v-for="p in items" :key="p.id" class="flex items-center gap-2 flex-wrap text-sm">
         <RouterLink :to="`/practice/${p.slug}`" class="font-medium hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ p.title }}</RouterLink>

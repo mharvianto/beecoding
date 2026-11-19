@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { runText } from '../lib/runText';
 import Icon from '../components/Icon.vue';
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
@@ -125,7 +126,7 @@ async function load() {
 function loadFromHistory(sub) {
   const here = code.value.trim();
   if (here && !isPristine(code.value) && !submissions.value.some((x) => (x.code || '').trim() === here)
-      && !confirm('Replace the code in the editor? It has not been submitted.')) return;
+      && !confirm(tr('Replace the code in the editor? It has not been submitted.'))) return;
   code.value = sub.code || '';
   if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }
@@ -234,50 +235,50 @@ onBeforeUnmount(async () => {
    <SplitPane direction="horizontal" storage-key="beecoding.split.solve-main" :initial="42" :initial-stacked="34" :min="260">
     <template #a>
     <div class="h-full overflow-y-auto p-5 border-r border-slate-200 dark:border-slate-800">
-      <RouterLink to="/practice" class="text-sm text-slate-500 dark:text-slate-400">&larr; back to Practice</RouterLink>
+      <RouterLink to="/practice" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to Practice') }}</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
         <LevelBadge :level="problem.level" />
-        <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">✓ solved</span>
+        <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ tr('✓ solved') }}</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         <span v-if="problem.isPublic" class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-        {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · limit {{ problem.timeLimitMs }} ms · {{ problem.memoryLimitKb }} KB
-        <span v-if="progress.streak > 0">· <Icon name="flame" /> {{ progress.streak }}-day streak</span>
+        {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · {{ tr('limit {ms} ms · {kb} KB', { ms: problem.timeLimitMs, kb: problem.memoryLimitKb }) }}
+        <span v-if="progress.streak > 0">· <Icon name="flame" /> {{ tr('{n}-day streak', { n: progress.streak }) }}</span>
       </div>
       <p v-if="problem.bannedHeaders || problem.bannedSymbols" class="mb-3 text-xs bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 rounded-lg px-3 py-2 space-y-0.5">
-        <span v-if="problem.bannedHeaders" class="block"><Icon name="ban" /> Banned headers: <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">bits/stdc++.h</span>).</span>
-        <span v-if="problem.bannedSymbols" class="block"><Icon name="ban" /> Banned functions: <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
-        <span class="block">Implement it yourself — a violation fails as a Compile Error, on Run and Submit.</span>
+        <span v-if="problem.bannedHeaders" class="block"><Icon name="ban" /> {{ tr('Banned headers:') }} <span class="font-mono">{{ problem.bannedHeaders }}</span> (and <span class="font-mono">{{ tr('bits/stdc++.h') }}</span>).</span>
+        <span v-if="problem.bannedSymbols" class="block"><Icon name="ban" /> {{ tr('Banned functions:') }} <span class="font-mono">{{ problem.bannedSymbols }}</span>.</span>
+        <span class="block">{{ tr('Implement it yourself — a violation fails as a Compile Error, on Run and Submit.') }}</span>
       </p>
       <p v-if="problem.inputFileName" class="mb-3 text-xs bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300 rounded-lg px-3 py-2">
-        <Icon name="file" /> This problem reads input from a file named <span class="font-mono">{{ problem.inputFileName }}</span> in the current directory — not from stdin.
+        <Icon name="file" /> {{ tr('This problem reads input from a file named') }} <span class="font-mono">{{ problem.inputFileName }}</span> {{ tr('in the current directory — not from stdin.') }}
       </p>
 
       <NextProblems :slug="props.slug" :solved="!!problem.solved" />
       <EasierProblems :slug="props.slug" :solved="!!problem.solved" :attempts="submissions.length" />
 
       <div v-if="restored" class="mb-3 text-xs bg-amber-100 dark:bg-amber-500/15 text-amber-800 dark:text-amber-200 rounded-lg px-3 py-2 flex items-center gap-2 flex-wrap">
-        <span>↩︎ Restored your unsaved code from {{ restoredAt }}.</span>
-        <button @click="useTemplate" class="underline hover:no-underline">Use the template instead</button>
-        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" title="Dismiss" aria-label="Dismiss">✕</button>
+        <span>{{ tr('↩︎ Restored your unsaved code from {when}.', { when: restoredAt }) }}</span>
+        <button @click="useTemplate" class="underline hover:no-underline">{{ tr('Use the template instead') }}</button>
+        <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
       </div>
 
 
       <p class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
-        <Icon name="lock" /> Protected problem — served as an encrypted image watermarked with your identity.
+        <Icon name="lock" /> {{ tr('Protected problem — served as an encrypted image watermarked with your identity.') }}
       </p>
       <ContentGuard :active="true" :watermark="''">
         <StatementImage :bank-id="pid" />
       </ContentGuard>
 
       <div v-if="problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
-        <span class="text-xs text-slate-500 dark:text-slate-400">Load sample input:</span>
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Load sample input:') }}</span>
         <button v-for="(t, i) in problem.sampleTests" :key="i" @click="stdin = t.stdin"
                 class="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400">
-          Sample {{ i + 1 }}
+          {{ tr('Sample {n}', { n: i + 1 }) }}
         </button>
       </div>
 
@@ -286,7 +287,7 @@ onBeforeUnmount(async () => {
               :compiler-output="runOut && !runOut.compileOk ? runOut.compilerOutput : (submissions[0]?.compilerOutput || '')"
               :stderr="runOut?.stderr || ''" />
 
-      <h3 class="font-semibold text-sm mt-5 mb-2">History</h3>
+      <h3 class="font-semibold text-sm mt-5 mb-2">{{ tr('History') }}</h3>
       <SubmissionHistory :submissions="submissions" :current-code="code" @load="loadFromHistory" />
     </div>
     </template>
@@ -301,11 +302,11 @@ onBeforeUnmount(async () => {
         <div class="flex gap-2 items-center">
           <button @click="run" :disabled="running || runCooldown > 0"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ running ? 'Running…' : runCooldown > 0 ? `Wait ${runCooldown}s` : 'Run' }}
+            {{ running ? tr('Running…') : runCooldown > 0 ? `Wait ${runCooldown}s` : tr('Run') }}
           </button>
           <button @click="submit" :disabled="submitting || submitCooldown > 0"
                   class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ submitting ? 'Submitting…' : submitCooldown > 0 ? `Wait ${submitCooldown}s` : 'Submit' }}
+            {{ submitting ? tr('Submitting…') : submitCooldown > 0 ? `Wait ${submitCooldown}s` : tr('Submit') }}
           </button>
           <span v-if="langs.length > 1" class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="l in langs" :key="l" @click="setLang(l)"
@@ -320,25 +321,25 @@ onBeforeUnmount(async () => {
             <span class="block h-full bg-amber-400 transition-all duration-300 ease-out"
                   :style="{ width: (testProgress.current / testProgress.total * 100) + '%' }"></span>
           </span>
-          <span class="tabular-nums">Testcase {{ testProgress.current }}/{{ testProgress.total }}</span>
+          <span class="tabular-nums">{{ tr('Testcase {a}/{b}', { a: testProgress.current, b: testProgress.total }) }}</span>
         </div>
         <div v-else-if="submittingId" class="text-xs text-slate-500 dark:text-slate-400 animate-pulse">
-          <template v-if="queuedAhead > 0">⏳ The judge is busy — {{ queuedAhead }} submission{{ queuedAhead === 1 ? '' : 's' }} ahead of yours. It will start on its own.</template>
-          <template v-else>Still checking your last submission…</template>
+          <template v-if="queuedAhead > 0">{{ tr(queuedAhead === 1 ? '⏳ The judge is busy — {n} submission ahead of yours. It will start on its own.' : '⏳ The judge is busy — {n} submissions ahead of yours. It will start on its own.', { n: queuedAhead }) }}</template>
+          <template v-else>{{ tr('Still checking your last submission…') }}</template>
         </div>
         <div class="grid grid-cols-2 gap-2">
           <div>
-            <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : 'stdin' }}</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">{{ problem.inputFileName ? `input — written to the file ${problem.inputFileName}` : tr('stdin') }}</label>
             <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                       class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
           </div>
           <div>
-            <label class="text-xs text-slate-500 dark:text-slate-400">output</label>
+            <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
             <pre :style="{ fontSize: editorFontSize + 'px' }"
                  class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
           </div>
         </div>
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
       </div>
       </template>
     </SplitPane>

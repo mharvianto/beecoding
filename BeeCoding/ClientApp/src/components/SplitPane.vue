@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 
 const props = defineProps({
@@ -86,7 +87,7 @@ onBeforeUnmount(() => {
          class="group shrink-0 z-10 flex items-center justify-center touch-none select-none
                 bg-slate-200 dark:bg-slate-800 hover:bg-amber-400 dark:hover:bg-amber-500 active:bg-amber-400 transition-colors"
          :class="isRow ? 'w-1.5 cursor-col-resize' : 'h-3 md:h-1.5 cursor-row-resize'"
-         title="Drag to resize">
+         :title="tr('Drag to resize')">
       <span class="rounded-full bg-slate-400/80 dark:bg-slate-500/80 group-hover:bg-white/90 group-active:bg-white/90"
             :class="isRow ? 'w-0.5 h-8' : 'h-0.5 w-10'"></span>
     </div>

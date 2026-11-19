@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 
-// Language of the long-form pages (privacy policy, terms, the problem-writing guide): English or Indonesian.
+// Language of the app: English or Indonesian (the interface through lib/i18n.js, plus the long-form pages: privacy policy, terms, the problem-writing guide).
 // English is the default. A synced preference (see lib/prefs.js), so it follows the user across devices.
 const KEY = 'beecoding.docLang';
 

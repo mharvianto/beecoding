@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted, computed } from 'vue';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
@@ -43,39 +44,38 @@ async function join() {
 
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
-    <h1 class="text-xl font-bold mb-1">Your boards</h1>
+    <h1 class="text-xl font-bold mb-1">{{ tr('Your boards') }}</h1>
     <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
-      A board is shared with a class via a join code — for a class you're not in yet, ask the
-      teacher for their code.
-      <template v-if="auth.isTeacher">Building a personal problem library instead? See
-        <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">Problem bank</RouterLink>.
+      {{ tr('A board is shared with a class via a join code — for a class you\'re not in yet, ask the teacher for their code.') }}
+      <template v-if="auth.isTeacher">{{ tr('Building a personal problem library instead? See') }}
+        <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('Problem bank') }}</RouterLink>.
       </template>
-      Just want to solve something for XP right now? Try
-      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">Practice</RouterLink>.
+      {{ tr('Just want to solve something for XP right now? Try') }}
+      <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('Practice') }}</RouterLink>.
     </p>
 
     <div class="grid sm:grid-cols-2 gap-4 mb-8">
       <div v-if="auth.isTeacher" class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">Create a board</h2>
+        <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">{{ tr('Create a board') }}</h2>
         <form @submit.prevent="createBoard" class="flex gap-2">
-          <input v-model="newTitle" placeholder="Board title" aria-label="Board title" required
+          <input v-model="newTitle" :placeholder="tr('Board title')" :aria-label="tr('Board title')" required
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
-          <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 font-medium">Create</button>
+          <button class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-4 font-medium">{{ tr('Create') }}</button>
         </form>
       </div>
       <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">Join a board</h2>
+        <h2 class="font-semibold mb-2 text-sm text-slate-600 dark:text-slate-300">{{ tr('Join a board') }}</h2>
         <form @submit.prevent="join" class="flex gap-2">
-          <input v-model="joinCode" placeholder="Join code" aria-label="Join code" required
+          <input v-model="joinCode" :placeholder="tr('Join code')" :aria-label="tr('Join code')" required
                  class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 uppercase" />
-          <button class="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg px-4 font-medium">Join</button>
+          <button class="bg-slate-800 hover:bg-slate-900 dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-lg px-4 font-medium">{{ tr('Join') }}</button>
         </form>
       </div>
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ tr(error) }}</p>
 
-    <input v-if="boards.length > 1" v-model="q" placeholder="Search by title or tag…"
+    <input v-if="boards.length > 1" v-model="q" :placeholder="tr('Search by title or tag…')"
            class="w-full sm:w-80 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-4" />
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -95,16 +95,16 @@ async function join() {
                 class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
         </div>
         <div class="text-sm text-slate-500 dark:text-slate-400 mt-2 flex gap-4">
-          <span>{{ b.problemCount }} problem{{ b.problemCount === 1 ? '' : 's' }}</span>
-          <span>{{ b.memberCount }} student{{ b.memberCount === 1 ? '' : 's' }}</span>
+          <span>{{ tr(b.problemCount === 1 ? '{n} problem' : '{n} problems', { n: b.problemCount }) }}</span>
+          <span>{{ tr(b.memberCount === 1 ? '{n} student' : '{n} students', { n: b.memberCount }) }}</span>
         </div>
         <div v-if="b.role !== 'Student'" class="text-xs text-slate-500 dark:text-slate-400 mt-2">
-          Code: <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ b.joinCode }}</span>
+          {{ tr('Code:') }} <span class="font-mono font-semibold text-slate-600 dark:text-slate-300">{{ b.joinCode }}</span>
         </div>
       </RouterLink>
     </div>
     <p v-if="boards.length && !filteredBoards.length" class="text-slate-500 dark:text-slate-400 text-sm">
-      No boards match "{{ q }}".
+      {{ tr('No boards match "{q}".', { q }) }}
     </p>
     <div v-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
       <p class="text-slate-500 dark:text-slate-400 text-sm">
@@ -112,14 +112,14 @@ async function join() {
       </p>
       <p class="text-slate-500 dark:text-slate-400 text-sm mt-1">
         <template v-if="auth.isTeacher">
-          Create one above to start a class, or
-          <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">build a problem bank</RouterLink>
-          first so you have problems ready to add.
+          {{ tr('Create one above to start a class, or') }}
+          <RouterLink to="/bank" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('build a problem bank') }}</RouterLink>
+          {{ tr('first so you have problems ready to add.') }}
         </template>
         <template v-else>
-          Ask your teacher for a join code, or
-          <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">start practicing for XP</RouterLink>
-          on your own in the meantime.
+          {{ tr('Ask your teacher for a join code, or') }}
+          <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 hover:underline">{{ tr('start practicing for XP') }}</RouterLink>
+          {{ tr('on your own in the meantime.') }}
         </template>
       </p>
     </div>

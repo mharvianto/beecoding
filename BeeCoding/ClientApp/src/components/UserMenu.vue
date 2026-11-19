@@ -1,9 +1,11 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 import { useProblemReports } from '../stores/problemReports';
 import { useAuth } from '../stores/auth';
 import { theme, setTheme } from '../lib/theme';
+import DocLangToggle from './DocLangToggle.vue';
 import { vClickOutside } from '../lib/clickOutside';
 
 // Name + role chip collapse into one dropdown holding Account, Theme and Sign out — keeps the
@@ -21,13 +23,13 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
 <template>
   <div class="relative" v-click-outside="() => (open = false)">
     <button @click="open = !open" class="flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-            title="Account menu" aria-label="Account menu">
+            :title="tr('Account menu')" :aria-label="tr('Account menu')">
       <span class="w-7 h-7 rounded-full bg-amber-400 text-white text-xs font-bold grid place-items-center shrink-0 sm:hidden">{{ initial() }}</span>
       <span class="hidden sm:block truncate max-w-[9rem]">{{ auth.user.displayName }}</span>
       <span class="hidden sm:inline px-2 py-0.5 rounded-full text-xs shrink-0"
             :class="auth.isTeacher
               ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
-              : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'">{{ auth.user.role }}</span>
+              : 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'">{{ tr(auth.user.role) }}</span>
       <span v-if="auth.isTeacher && reports.open > 0" class="w-2 h-2 rounded-full bg-rose-500 -ml-1" :title="`${reports.open} open problem report(s)`"></span>
       <svg class="w-4 h-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"/></svg>
     </button>
@@ -36,31 +38,31 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
       <div class="absolute right-0 z-50 mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1">
         <div class="px-3 py-2 border-b border-slate-100 dark:border-slate-800">
           <div class="text-sm font-semibold truncate">{{ auth.user.displayName }}</div>
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ auth.user.email }} · {{ auth.user.role }}</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ auth.user.email }} · {{ tr(auth.user.role) }}</div>
         </div>
         <RouterLink to="/account" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Icon name="settings" /> Account settings
+          <Icon name="settings" /> {{ tr('Account settings') }}
         </RouterLink>
         <RouterLink to="/survey" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Icon name="message" /> Feedback survey
+          <Icon name="message" /> {{ tr('Feedback survey') }}
         </RouterLink>
         <RouterLink v-if="auth.isTeacher" to="/reports/problems" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Icon name="flag" /> Problem reports
+          <Icon name="flag" /> {{ tr('Problem reports') }}
           <span v-if="reports.open > 0" class="ml-auto text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 tabular-nums">{{ reports.open }}</span>
         </RouterLink>
         <RouterLink v-if="auth.user.hasOrgAdmin" to="/org-admin" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-violet-600 dark:text-violet-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Icon name="building" /> Organization
+          <Icon name="building" /> {{ tr('Organization') }}
         </RouterLink>
         <RouterLink v-if="auth.user.isAdmin" to="/admin" @click="open = false"
                     class="flex items-center gap-2 px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-slate-50 dark:hover:bg-slate-800">
-          <Icon name="shield" /> Admin
+          <Icon name="shield" /> {{ tr('Admin') }}
         </RouterLink>
         <div class="px-3 py-2">
-          <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">Theme</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">{{ tr('Theme') }}</div>
           <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="[key, icon, label] in THEMES" :key="key" @click="setTheme(key)" :title="label"
                     class="flex-1 px-2 py-1" :class="theme === key ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400'">
@@ -68,10 +70,14 @@ const initial = () => (auth.user?.displayName || '?').trim()[0]?.toUpperCase() |
             </button>
           </div>
         </div>
+        <div class="px-3 pb-2 sm:hidden">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1">{{ tr('Language') }}</div>
+          <DocLangToggle />
+        </div>
         <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
         <button @click="open = false; emit('logout')"
                 class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
-          Sign out
+          {{ tr('Sign out') }}
         </button>
       </div>
     </template>

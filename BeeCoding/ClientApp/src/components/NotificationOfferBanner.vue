@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref } from 'vue';
 import { api } from '../lib/api';
@@ -42,10 +43,10 @@ async function turnOn() {
     // Web Push works with the tab closed (needs the server's VAPID keys); otherwise a desktop notification while the tab is in the background.
     const r = pushSupported() && cfg?.enabled ? await subscribePush(api, cfg.publicKey) : await setBrowserNotify(true);
     if (r === 'on') {
-      message.value = 'Notifications are on for this browser. You can change that any time under Account.';
+      message.value = tr('Notifications are on for this browser. You can change that any time under Account.');
       setTimeout(() => { shown.value = false; }, 4000);
     } else {
-      message.value = 'Your browser blocked notifications. Allow them in the site settings if you change your mind.';
+      message.value = tr('Your browser blocked notifications. Allow them in the site settings if you change your mind.');
       hide(false);
       setTimeout(() => { shown.value = false; }, 6000);
       shown.value = true;
@@ -57,16 +58,16 @@ async function turnOn() {
 <template>
   <div v-if="shown" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
-      <span v-if="message">{{ message }}</span>
+      <span v-if="message">{{ tr(message) }}</span>
       <template v-else>
         <span>
-          <Icon name="bell" /> Turn on notifications
-          <span class="hidden sm:inline">— hear about comments, reactions and reviews even when this tab is in the background.</span>
+          <Icon name="bell" /> {{ tr('Turn on notifications') }}
+          <span class="hidden sm:inline">{{ tr('— hear about comments, reactions and reviews even when this tab is in the background.') }}</span>
         </span>
-        <button @click="turnOn" :disabled="busy" class="font-semibold underline hover:no-underline disabled:opacity-50">{{ busy ? '…' : 'Turn on' }}</button>
+        <button @click="turnOn" :disabled="busy" class="font-semibold underline hover:no-underline disabled:opacity-50">{{ busy ? '…' : tr('Turn on') }}</button>
         <span class="ml-auto flex items-center gap-3 text-xs text-amber-700 dark:text-amber-300">
-          <button @click="hide(false)" class="hover:underline">Not now</button>
-          <button @click="hide(true)" class="hover:underline">Don't ask again</button>
+          <button @click="hide(false)" class="hover:underline">{{ tr('Not now') }}</button>
+          <button @click="hide(true)" class="hover:underline">{{ tr('Don\'t ask again') }}</button>
         </span>
       </template>
     </div>

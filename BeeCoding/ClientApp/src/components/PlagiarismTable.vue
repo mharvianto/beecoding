@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Chevron from './Chevron.vue';
 import { computed, ref } from 'vue';
 
@@ -36,13 +37,11 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
 <template>
   <div>
     <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-      Token-similarity between students' latest submissions to the same problem — a spot-check signal, not proof of copying.
-      Three or more students linked at 65% or more are shown as one group (A~B and B~C put A, B and C together, so check the lowest
-      figure: a low one means some members are only linked through another). Short/boilerplate submissions and pairs below 50% are left out.
+      {{ tr('Token-similarity between students\' latest submissions to the same problem — a spot-check signal, not proof of copying. Three or more students linked at 65% or more are shown as one group (A~B and B~C put A, B and C together, so check the lowest figure: a low one means some members are only linked through another). Short/boilerplate submissions and pairs below 50% are left out.') }}
     </p>
-    <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">Loading…</div>
-    <div v-else-if="idle" class="text-sm text-slate-500 dark:text-slate-400">Pick a board above to compare its students' code.</div>
-    <div v-else-if="!sections.length" class="text-sm text-slate-500 dark:text-slate-400">No similar pairs found.</div>
+    <div v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</div>
+    <div v-else-if="idle" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Pick a board above to compare its students\' code.') }}</div>
+    <div v-else-if="!sections.length" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No similar pairs found.') }}</div>
     <div v-else class="space-y-5">
       <section v-for="s in sections" :key="s.id">
         <h3 v-if="sections.length > 1" class="text-sm font-semibold mb-2">{{ s.title }}</h3>
@@ -50,14 +49,14 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
         <div v-for="g in s.groups" :key="groupKey(g)"
              class="border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900 p-3 mb-2 text-sm">
           <div class="flex items-center gap-3 flex-wrap">
-            <span class="font-semibold">{{ g.members.length }} students</span>
+            <span class="font-semibold">{{ tr('{n} students', { n: g.members.length }) }}</span>
             <span class="text-xs text-slate-500 dark:text-slate-400">
-              highest <span :class="tier(g.maxSimilarity)">{{ pct(g.maxSimilarity) }}</span> ·
+              {{ tr('highest') }} <span :class="tier(g.maxSimilarity)">{{ pct(g.maxSimilarity) }}</span> ·
               average {{ pct(g.avgSimilarity) }} ·
               lowest <span :class="tier(g.minSimilarity)">{{ pct(g.minSimilarity) }}</span>
             </span>
             <button class="row-action-btn ml-auto" @click="toggle(g)">
-              <Chevron :open="!!opened[groupKey(g)]" size="1rem" /><span>Strongest pairs</span>
+              <Chevron :open="!!opened[groupKey(g)]" size="1rem" /><span>{{ tr('Strongest pairs') }}</span>
             </button>
           </div>
           <div class="flex flex-wrap gap-1.5 mt-2">
@@ -72,7 +71,7 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
               <span class="font-medium">{{ p.userAName }}</span>
               <span class="text-slate-300 dark:text-slate-600">↔</span>
               <span class="font-medium">{{ p.userBName }}</span>
-              <button class="row-action-btn ml-auto" @click="emit('compare', p)"><span>⇄</span><span>Compare</span></button>
+              <button class="row-action-btn ml-auto" @click="emit('compare', p)"><span>⇄</span><span>{{ tr('Compare') }}</span></button>
             </div>
           </div>
         </div>
@@ -89,7 +88,7 @@ const toggle = (g) => { opened.value[groupKey(g)] = !opened.value[groupKey(g)]; 
               {{ p.userBName }}
             </button>
             <button class="row-action-btn ml-auto" @click="emit('compare', p)">
-              <span>⇄</span><span>Compare</span>
+              <span>⇄</span><span>{{ tr('Compare') }}</span>
             </button>
           </div>
         </div>

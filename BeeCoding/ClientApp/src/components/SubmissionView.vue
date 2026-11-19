@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Chevron from './Chevron.vue';
 import { ref, watch } from 'vue';
 import { api } from '../lib/api';
@@ -43,30 +44,30 @@ function goTo(id) {
 </script>
 
 <template>
-  <div role="dialog" aria-modal="true" aria-label="Submission" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
+  <div role="dialog" aria-modal="true" :aria-label="tr('Submission')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 80vh">
       <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center justify-between gap-2 px-4 pt-3">
           <div class="flex items-center gap-1.5 min-w-0">
             <button v-if="sub?.previousSubmissionId" @click="goTo(sub.previousSubmissionId)"
-                    class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Older attempt by the same author">◀</button>
+                    class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Older attempt by the same author')">◀</button>
             <span v-if="sub" class="font-semibold text-sm truncate">{{ authorName || sub.authorName }}</span>
             <VerdictBadge v-if="sub" :verdict="sub.status === 'Done' ? sub.verdict : sub.status" small />
             <button v-if="sub?.nextSubmissionId" @click="goTo(sub.nextSubmissionId)"
-                    class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" title="Newer attempt by the same author">▶</button>
+                    class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Newer attempt by the same author')">▶</button>
           </div>
-          <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" title="Close" aria-label="Close">✕</button>
+          <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" :title="tr('Close')" :aria-label="tr('Close')">✕</button>
         </div>
         <div v-if="sub" class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
           <span v-if="sub.status === 'Done'">{{ sub.runtimeMs }}ms · {{ sub.memoryKb }}KB · {{ Math.round(sub.score * 100) }}%</span>
           <button v-if="sub.previousSubmissionId" @click="comparingPrevious = true" class="row-action-btn shrink-0">
-            <span>⇄</span><span>Compare with previous</span>
+            <span>⇄</span><span>{{ tr('Compare with previous') }}</span>
           </button>
         </div>
       </div>
 
-      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ error }}</p>
-      <div v-else-if="!sub" class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">Loading…</div>
+      <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ tr(error) }}</p>
+      <div v-else-if="!sub" class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</div>
       <template v-else>
         <div class="flex-1 min-h-0">
           <MonacoEditor :model-value="sub.code || ''" :language="sub.language" :read-only="true"
@@ -76,8 +77,8 @@ function goTo(id) {
         <div v-if="sub.failedTest" class="shrink-0 border-t border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10">
           <button @click="showFailedTest = !showFailedTest"
                   class="w-full flex items-center justify-between px-4 py-2 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-            <span>Failed test detail — staff only</span>
-            <span class="inline-flex items-center gap-1">{{ showFailedTest ? 'hide' : 'show' }} <Chevron :open="showFailedTest" size="1rem" /></span>
+            <span>{{ tr('Failed test detail — staff only') }}</span>
+            <span class="inline-flex items-center gap-1">{{ showFailedTest ? tr('hide') : tr('show') }} <Chevron :open="showFailedTest" size="1rem" /></span>
           </button>
           <pre v-if="showFailedTest" class="max-h-48 overflow-auto text-xs font-mono text-slate-700 dark:text-slate-200 whitespace-pre-wrap px-4 pb-2">{{ sub.failedTest }}</pre>
         </div>

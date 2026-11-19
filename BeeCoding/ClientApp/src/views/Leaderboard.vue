@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -125,30 +126,30 @@ const showHowItWorks = ref(false);
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center gap-2 mb-4">
-      <h1 class="text-xl font-bold">Leaderboard</h1>
+      <h1 class="text-xl font-bold">{{ tr('Leaderboard') }}</h1>
       <button @click="showHowItWorks = !showHowItWorks"
               class="text-xs text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 underline decoration-dotted">
-        How is ranking calculated?
+        {{ tr('How is ranking calculated?') }}
       </button>
     </div>
     <div class="flex gap-1.5 text-sm mb-3">
       <button @click="setTab('ranking')" class="rounded-lg px-3 py-1.5"
-              :class="tab === 'ranking' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">Ranking</button>
+              :class="tab === 'ranking' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">{{ tr('Ranking') }}</button>
       <button @click="setTab('recent')" class="rounded-lg px-3 py-1.5"
-              :class="tab === 'recent' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">Recent solves</button>
+              :class="tab === 'recent' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">{{ tr('Recent solves') }}</button>
     </div>
     <div v-if="showHowItWorks && tab === 'ranking'" class="text-xs text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-4 space-y-1">
-      <p>Ranked by total XP earned in the selected scope and period, highest first.</p>
-      <p>XP comes from your <em>first</em> Accepted solve of each problem: Easy = 10 XP, Medium = 20 XP, Hard = 40 XP. Solving it again, or an unsuccessful attempt, earns no extra XP.</p>
-      <p>Equal XP shares the same rank (e.g. two people tied for #2 are both "#2"; the next distinct XP total is "#4", not "#3").</p>
-      <p>On "All time", the ▲/▼ next to your rank and the "+N" under your XP total both show the change since yesterday — neither is shown on "1 month" since a rolling window isn't comparable day to day.</p>
+      <p>{{ tr('Ranked by total XP earned in the selected scope and period, highest first.') }}</p>
+      <p>{{ tr('XP comes from your') }} <em>{{ tr('first') }}</em> {{ tr('Accepted solve of each problem: Easy = 10 XP, Medium = 20 XP, Hard = 40 XP. Solving it again, or an unsuccessful attempt, earns no extra XP.') }}</p>
+      <p>{{ tr('Equal XP shares the same rank (e.g. two people tied for #2 are both "#2"; the next distinct XP total is "#4", not "#3").') }}</p>
+      <p>{{ tr('On "All time", the ▲/▼ next to your rank and the "+N" under your XP total both show the change since yesterday — neither is shown on "1 month" since a rolling window isn\'t comparable day to day.') }}</p>
     </div>
 
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
       <div class="flex flex-wrap gap-1.5 text-sm">
         <button @click="setScope('global')" class="rounded-lg px-3 py-1.5"
                 :class="scope === 'global' ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
-          Global
+          {{ tr('Global') }}
         </button>
         <button v-for="o in orgs" :key="o.id" @click="setScope(`org:${o.slug}`)"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
@@ -156,8 +157,8 @@ const showHowItWorks = ref(false);
           {{ o.name }}
         </button>
         <select v-if="boards.length" :value="scope.startsWith('board:') ? scope.slice(6) : ''" @change="setBoardScope"
-                class="rounded-lg px-2 py-1.5 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 text-sm max-w-[10rem] sm:max-w-none" aria-label="This board…">
-          <option value="">This board…</option>
+                class="rounded-lg px-2 py-1.5 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 text-sm max-w-[10rem] sm:max-w-none" :aria-label="tr('This board…')">
+          <option value="">{{ tr('This board…') }}</option>
           <option v-for="b in boards" :key="b.id" :value="b.slug">{{ b.title }}</option>
         </select>
       </div>
@@ -165,7 +166,7 @@ const showHowItWorks = ref(false);
         <button v-for="p in periods" :key="p[0]" @click="setPeriod(p[0])"
                 class="rounded-lg px-3 py-1.5 whitespace-nowrap"
                 :class="period === p[0] ? 'bg-amber-500 text-slate-900' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
-          {{ p[1] }}
+          {{ tr(p[1]) }}
         </button>
       </div>
     </div>
@@ -173,7 +174,7 @@ const showHowItWorks = ref(false);
     <RecentSolves v-if="tab === 'recent'" :organization-id="scopeIds.organizationId" :board-id="scopeIds.boardId" />
 
     <template v-else>
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ tr(error) }}</p>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading }">
@@ -190,44 +191,44 @@ const showHowItWorks = ref(false);
         </span>
         <div class="min-w-0 flex-1 sm:flex-none sm:w-64">
           <div class="flex items-center gap-1.5 min-w-0">
-            <span class="text-sm font-medium truncate">{{ r.displayName?.trim() || 'Anonymous' }}</span>
-            <span v-if="r.me" class="text-xs text-amber-700 dark:text-amber-400 shrink-0">(you)</span>
-            <span v-if="r.role === 'Teacher'" class="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">teacher</span>
+            <span class="text-sm font-medium truncate">{{ r.displayName?.trim() || tr('Anonymous') }}</span>
+            <span v-if="r.me" class="text-xs text-amber-700 dark:text-amber-400 shrink-0">{{ tr('(you)') }}</span>
+            <span v-if="r.role === 'Teacher'" class="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ tr('teacher') }}</span>
           </div>
           <div class="sm:hidden text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-            {{ r.solvedCount }} solved · Lv {{ r.level }}
+            {{ tr('{n} solved · Lv {lv}', { n: r.solvedCount, lv: r.level }) }}
           </div>
         </div>
         <div class="hidden sm:flex flex-1 items-center gap-8 text-sm text-slate-500 dark:text-slate-400">
-          <span class="tabular-nums">{{ r.solvedCount }} solved</span>
+          <span class="tabular-nums">{{ tr('{n} solved', { n: r.solvedCount }) }}</span>
           <span>Lv {{ r.level }}</span>
         </div>
         <div v-if="r.xpDelta" class="hidden sm:block shrink-0 w-16 text-right text-sm text-emerald-600 dark:text-emerald-400 tabular-nums"
-             title="XP gained since yesterday">
+             :title="tr('XP gained since yesterday')">
           +{{ r.xpDelta }}
         </div>
         <div v-else class="hidden sm:block shrink-0 w-16"></div>
         <div class="text-right shrink-0 sm:w-20">
           <span class="text-sm font-semibold text-amber-700 dark:text-amber-400">{{ r.xp }} XP</span>
-          <div v-if="r.xpDelta" class="sm:hidden text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums" title="XP gained since yesterday">
+          <div v-if="r.xpDelta" class="sm:hidden text-[11px] text-emerald-600 dark:text-emerald-400 tabular-nums" :title="tr('XP gained since yesterday')">
             +{{ r.xpDelta }}
           </div>
         </div>
       </div>
       <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
-        No XP earned{{ period === 'all' ? ' yet' : ' in this period' }}.
-        <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> some problems.
+        {{ period === 'all' ? tr('No XP earned yet.') : tr('No XP earned in this period.') }}
+        <RouterLink to="/practice" class="text-amber-600">{{ tr('Practice') }}</RouterLink> {{ tr('some problems.') }}
       </p>
     </div>
     <div v-if="total" class="flex items-center gap-3 mt-3 text-sm">
       <span class="text-slate-500 dark:text-slate-400">
-        {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, total) }} of {{ total }}
+        {{ tr('{a}–{b} of {c}', { a: (page - 1) * pageSize + 1, b: Math.min(page * pageSize, total), c: total }) }}
       </span>
       <div class="ml-auto flex gap-2">
         <button @click="prevPage" :disabled="page === 1"
-                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
         <button @click="nextPage" :disabled="page * pageSize >= total"
-                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
       </div>
     </div>
     </template>

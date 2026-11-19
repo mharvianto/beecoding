@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
 
@@ -30,15 +31,15 @@ function dismiss() { visible.value = false; }
                 text-sm max-w-[calc(100vw-2rem)] sm:max-w-sm">
       <div class="flex items-center gap-3">
         <button @click="expanded = !expanded" class="text-left flex-1 hover:underline">
-          <Icon name="sparkles" /> Animasi dikurangi sesuai pengaturan perangkatmu
+          <Icon name="sparkles" /> {{ tr('Animations are reduced, following your device setting') }}
         </button>
-        <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss" aria-label="Dismiss">✕</button>
+        <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
       </div>
       <div v-if="expanded" class="mt-2 pt-2 border-t border-slate-600 dark:border-slate-500 text-xs text-slate-300 dark:text-slate-200 space-y-1">
-        <p><strong>Windows 11:</strong> Settings → Accessibility → Visual effects → aktifkan "Animation effects"</p>
-        <p><strong>Windows 10:</strong> Settings → Ease of Access → Display → aktifkan "Show animations in Windows"</p>
-        <p><strong>macOS:</strong> System Settings → Accessibility → Display → matikan "Reduce motion"</p>
-        <p class="text-slate-500 dark:text-slate-300">Ini pengaturan aksesibilitas perangkatmu — cuma info, bukan wajib diubah.</p>
+        <p><strong>Windows 11:</strong> {{ tr('Settings → Accessibility → Visual effects → turn on "Animation effects"') }}</p>
+        <p><strong>Windows 10:</strong> {{ tr('Settings → Ease of Access → Display → turn on "Show animations in Windows"') }}</p>
+        <p><strong>macOS:</strong> {{ tr('System Settings → Accessibility → Display → turn off "Reduce motion"') }}</p>
+        <p class="text-slate-500 dark:text-slate-300">{{ tr('This is an accessibility setting on your device — just for information, nothing you must change.') }}</p>
       </div>
     </div>
   </Transition>

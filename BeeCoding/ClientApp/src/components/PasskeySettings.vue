@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../lib/api';
@@ -52,51 +53,50 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
 
 <template>
   <section v-if="status?.available" id="passkeys" class="space-y-3 scroll-mt-4">
-    <h2 class="font-semibold text-sm">Passkeys</h2>
+    <h2 class="font-semibold text-sm">{{ tr('Passkeys') }}</h2>
     <p class="text-sm text-slate-500 dark:text-slate-400">
-      Sign in with your fingerprint, face or device PIN, with no email or password to type. A passkey stays on your
-      device, can't be phished, and is already two-factor, so it skips the authenticator-app step.
+      {{ tr('Sign in with your fingerprint, face or device PIN, with no email or password to type. A passkey stays on your device, can\'t be phished, and is already two-factor, so it skips the authenticator-app step.') }}
     </p>
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <p v-if="!supported" class="text-sm text-slate-500 dark:text-slate-400">
-        This browser can't use passkeys here. Passkeys need a secure (HTTPS) connection and a browser that supports WebAuthn.
+        {{ tr('This browser can\'t use passkeys here. Passkeys need a secure (HTTPS) connection and a browser that supports WebAuthn.') }}
       </p>
       <ul v-if="status.passkeys.length" class="divide-y divide-slate-100 dark:divide-slate-800">
         <li v-for="k in status.passkeys" :key="k.id" class="py-2 flex items-center gap-2 flex-wrap">
           <template v-if="renaming?.id === k.id">
             <input v-model="renaming.name" maxlength="80" @keyup.enter="saveRename" :class="[inputCls, 'flex-1 min-w-0']" />
-            <button @click="saveRename" :disabled="busy" class="row-action-btn row-action-btn--success">Save</button>
-            <button @click="renaming = null" class="row-action-btn">Cancel</button>
+            <button @click="saveRename" :disabled="busy" class="row-action-btn row-action-btn--success">{{ tr('Save') }}</button>
+            <button @click="renaming = null" class="row-action-btn">{{ tr('Cancel') }}</button>
           </template>
           <template v-else>
             <div class="min-w-0 flex-1">
               <div class="text-sm font-medium truncate"><Icon name="key" /> {{ k.name }}</div>
               <div class="text-xs text-slate-500 dark:text-slate-400">
-                Added {{ when(k.createdAt) }} · {{ k.lastUsedAt ? `last used ${when(k.lastUsedAt)}` : 'not used yet' }}
+                {{ tr('Added {when}', { when: when(k.createdAt) }) }} · {{ k.lastUsedAt ? tr('last used {when}', { when: when(k.lastUsedAt) }) : tr('not used yet') }}
               </div>
             </div>
-            <button @click="renaming = { id: k.id, name: k.name }" class="row-action-btn">Rename</button>
-            <button @click="removing = k.id; password = ''; error = ''" class="row-action-btn row-action-btn--danger">Remove</button>
+            <button @click="renaming = { id: k.id, name: k.name }" class="row-action-btn">{{ tr('Rename') }}</button>
+            <button @click="removing = k.id; password = ''; error = ''" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
           </template>
         </li>
       </ul>
-      <p v-else-if="supported" class="text-sm text-slate-500 dark:text-slate-400">No passkeys yet.</p>
+      <p v-else-if="supported" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No passkeys yet.') }}</p>
 
       <div v-if="removing" class="rounded-lg bg-amber-50/60 dark:bg-amber-500/5 border border-amber-200 dark:border-amber-500/30 p-3 space-y-2">
-        <p class="text-sm">Enter your password to remove this passkey.</p>
+        <p class="text-sm">{{ tr('Enter your password to remove this passkey.') }}</p>
         <div class="flex flex-wrap gap-2">
-          <input v-model="password" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password" @keyup.enter="confirmRemove" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-          <button @click="confirmRemove" :disabled="busy || !password" :class="primaryBtn">Remove</button>
-          <button @click="removing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">Cancel</button>
+          <input v-model="password" type="password" autocomplete="current-password" :placeholder="tr('Password')" :aria-label="tr('Password')" @keyup.enter="confirmRemove" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+          <button @click="confirmRemove" :disabled="busy || !password" :class="primaryBtn">{{ tr('Remove') }}</button>
+          <button @click="removing = null" class="text-sm text-slate-500 dark:text-slate-400 px-2">{{ tr('Cancel') }}</button>
         </div>
       </div>
 
       <div v-if="supported" class="flex flex-wrap gap-2">
-        <input v-model="name" maxlength="80" placeholder="Name, e.g. My phone" aria-label="Name" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-        <input v-model="addPassword" type="password" autocomplete="current-password" placeholder="Your password" aria-label="Your password" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
-        <button @click="add" :disabled="busy || !addPassword" :class="primaryBtn">Add a passkey</button>
+        <input v-model="name" maxlength="80" :placeholder="tr('Name, e.g. My phone')" :aria-label="tr('Name')" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <input v-model="addPassword" type="password" autocomplete="current-password" :placeholder="tr('Your password')" :aria-label="tr('Your password')" @keyup.enter="add" :class="[inputCls, 'flex-1 min-w-[10rem]']" />
+        <button @click="add" :disabled="busy || !addPassword" :class="primaryBtn">{{ tr('Add a passkey') }}</button>
       </div>
     </div>
   </section>

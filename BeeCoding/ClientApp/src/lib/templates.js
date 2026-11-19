@@ -1,3 +1,4 @@
+import { tr } from './i18n';
 // Generic starter templates per language, dropped into a fresh editor.
 export const CODE_TEMPLATES = {
   cpp: `#include <bits/stdc++.h>
@@ -48,6 +49,6 @@ export function langLabel(csv) {
     .map((s) => s.trim().toLowerCase())
     .map((s) => (s === 'c++' ? 'cpp' : s))
     .filter((s) => SUPPORTED_LANGS.includes(s));
-  if (!set.length) return 'Any';
+  if (!set.length) return tr('Any');
   return [...new Set(set)].map((s) => (s === 'c' ? 'C' : 'C++')).join('/');
 }

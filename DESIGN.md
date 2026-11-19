@@ -125,7 +125,14 @@ Mode gelap memakai kelas `.dark` pada `<html>` (`lib/theme.js`), **bukan** `pref
 
 ## 10. Bahasa
 
-Antarmuka berbahasa Inggris. Halaman dokumen (privasi, syarat, panduan menulis soal, survei) dua bahasa (Inggris dan Indonesia): pilihan di `lib/docLang.js`, tombol `DocLangToggle.vue`, kedua teks ditulis berdampingan dengan `v-if`. **Mengubah satu bahasa berarti mengubah yang lain.**
+Antarmuka dua bahasa: Inggris (bawaan) dan Indonesia. Pilihannya satu (`lib/docLang.js`, preferensi tersinkron), diganti lewat `DocLangToggle.vue` (header, menu pengguna, halaman masuk/daftar/landing).
+- Teks antarmuka: `{{ tr('Save') }}` dari `lib/i18n.js`. **Teks Inggris adalah kuncinya**; terjemahan Indonesia ada di `lib/i18n/id.js`. Teks tanpa entri tetap Inggris.
+- Satu kalimat = satu kunci, dengan `{nama}` untuk bagian yang berubah. Jangan memotong kalimat di sekitar `{{ }}`.
+- Daftar teks yang didefinisikan sekali di `<script setup>` diterjemahkan saat ditampilkan (`tr(item.title)`), bukan saat didefinisikan.
+- Halaman dokumen (privasi, syarat, panduan soal, survei) memakai dua teks berdampingan dengan `v-if="docLang === ..."`. **Mengubah satu bahasa berarti mengubah yang lain.**
+- Teks baru wajib masuk `id.js` pada perubahan yang sama; `npm run check:i18n` menampilkan yang belum.
+- Pesan error dari server diterjemahkan di browser (`lib/api.js` → `lib/i18n/id-server.js`); email, push, dan kalimat notifikasi memakai `Services/Text.cs` sesuai bahasa pilihan pengguna.
+- Belum diterjemahkan: Admin, Org-admin, data prosa dari API (mis. alasan rekomendasi), dan isi buatan pengguna.
 
 ## 11. Aksesibilitas (minimal)
 

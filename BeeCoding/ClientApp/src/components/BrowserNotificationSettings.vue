@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted } from 'vue';
 import { api } from '../lib/api';
 import {
@@ -35,7 +36,7 @@ async function togglePush() {
 const TEST_DELAY_S = 5;
 const countdown = ref(0);
 const testMsg = ref('');
-const HELP = 'If nothing appeared, check the operating system\'s Do Not Disturb / Focus mode and the browser\'s notification settings.';
+const HELP = tr('If nothing appeared, check the operating system\'s Do Not Disturb / Focus mode and the browser\'s notification settings.');
 
 // Fires a real notification after a short delay so you can switch to another tab/window (or close this one) and see it arrive.
 async function test() {
@@ -54,10 +55,10 @@ async function test() {
     if (pushOn.value) {
       try {
         const { sent } = await api.post('/api/me/push/test');
-        testMsg.value = sent > 0 ? `Push sent to ${sent} device${sent === 1 ? '' : 's'}. ${HELP}` : 'The server has no working push subscription for you. Turn push off and on again.';
-      } catch (e) { testMsg.value = `Could not send the push: ${e.message}`; }
+        testMsg.value = sent > 0 ? `Push sent to ${sent} device${sent === 1 ? '' : 's'}. ${HELP}` : tr('The server has no working push subscription for you. Turn push off and on again.');
+      } catch (e) { testMsg.value = tr('Could not send the push: {p0}', { p0: e.message }); }
     } else {
-      showBrowserNotification({ id: 'test', title: 'BeeCoding', body: 'Test notification: browser notifications work on this device.', force: true });
+      showBrowserNotification({ id: 'test', title: 'BeeCoding', body: tr('Test notification: browser notifications work on this device.'), force: true });
       testMsg.value = `Sent. ${HELP}`;
     }
   }, 1000);
@@ -66,39 +67,38 @@ async function test() {
 
 <template>
   <section class="space-y-3">
-    <h2 class="font-semibold text-sm">Browser notifications</h2>
-    <p v-if="!supported" class="text-sm text-slate-500 dark:text-slate-400">This browser does not support desktop notifications.</p>
+    <h2 class="font-semibold text-sm">{{ tr('Browser notifications') }}</h2>
+    <p v-if="!supported" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('This browser does not support desktop notifications.') }}</p>
     <template v-else>
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        Show a desktop notification for new bell items while this tab is in the background. Applies to this browser only.
+        {{ tr('Show a desktop notification for new bell items while this tab is in the background. Applies to this browser only.') }}
       </p>
       <button @click="toggle" :disabled="pushOn"
               class="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
               :class="on ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-500 hover:bg-amber-400 text-slate-900'">
-        {{ on ? 'Turn off' : 'Turn on' }}
+        {{ on ? tr('Turn off') : tr('Turn on') }}
       </button>
 
       <div v-if="canPush()" class="pt-2 space-y-2">
-        <h3 class="font-medium text-sm">Push notifications</h3>
+        <h3 class="font-medium text-sm">{{ tr('Push notifications') }}</h3>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Also receive them when BeeCoding is closed. This browser registers with its push service; turn it off here to stop.
-          On iPhone/iPad, add BeeCoding to the Home Screen first.
+          {{ tr('Also receive them when BeeCoding is closed. This browser registers with its push service; turn it off here to stop. On iPhone/iPad, add BeeCoding to the Home Screen first.') }}
         </p>
         <button @click="togglePush" :disabled="pushBusy"
                 class="rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
                 :class="pushOn ? 'bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600' : 'bg-amber-500 hover:bg-amber-400 text-slate-900'">
-          {{ pushBusy ? '…' : pushOn ? 'Turn off push' : 'Turn on push' }}
+          {{ pushBusy ? '…' : pushOn ? tr('Turn off push') : tr('Turn on push') }}
         </button>
       </div>
 
       <div>
         <button @click="test" :disabled="countdown > 0"
                 class="rounded-lg px-4 py-2 text-sm font-medium bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 disabled:opacity-50">
-          {{ countdown > 0 ? `Sending in ${countdown}s… switch to another tab` : 'Send test notification' }}
+          {{ countdown > 0 ? `Sending in ${countdown}s… switch to another tab` : tr('Send test notification') }}
         </button>
       </div>
-      <p v-if="testMsg" class="text-sm text-slate-500 dark:text-slate-400">{{ testMsg }}</p>
-      <p v-if="denied" class="text-sm text-red-600 dark:text-red-400">Notifications are blocked for this site. Allow them in the browser's site settings, then try again.</p>
+      <p v-if="testMsg" class="text-sm text-slate-500 dark:text-slate-400">{{ tr(testMsg) }}</p>
+      <p v-if="denied" class="text-sm text-red-600 dark:text-red-400">{{ tr('Notifications are blocked for this site. Allow them in the browser\'s site settings, then try again.') }}</p>
     </template>
   </section>
 </template>

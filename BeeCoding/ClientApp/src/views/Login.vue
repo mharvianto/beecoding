@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import LogoMark from '../components/LogoMark.vue';
 import Icon from '../components/Icon.vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
@@ -6,6 +7,7 @@ import { api } from '../lib/api';
 import { useRouter, useRoute } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import ThemeToggle from '../components/ThemeToggle.vue';
+import DocLangToggle from '../components/DocLangToggle.vue';
 import GoogleButton from '../components/GoogleButton.vue';
 import TurnstileWidget from '../components/TurnstileWidget.vue';
 import { passkeysSupported } from '../lib/webauthn';
@@ -156,77 +158,76 @@ function backToPassword(clearError = true) {
 
 <template>
   <div class="min-h-[80vh] relative flex items-center justify-center px-4">
-    <div class="absolute right-4 top-4"><ThemeToggle /></div>
+    <div class="absolute right-4 top-4 flex items-center gap-2"><DocLangToggle /><ThemeToggle /></div>
     <div class="max-w-sm w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm p-6">
       <h1 class="text-2xl font-bold text-amber-700 dark:text-amber-400 mb-1"><LogoMark />BeeCoding</h1>
-      <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">{{ challenge ? 'Two-step verification' : linkInfo ? 'Connect Google' : 'Sign in to your account' }}</p>
+      <p class="text-slate-500 dark:text-slate-400 mb-6 text-sm">{{ challenge ? tr('Two-step verification') : linkInfo ? tr('Connect Google') : tr('Sign in to your account') }}</p>
       <p v-if="justReset" class="mb-3 text-sm bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300 rounded-lg px-3 py-2">
-        Your password was changed. Sign in with the new one.
+        {{ tr('Your password was changed. Sign in with the new one.') }}
       </p>
       <form v-if="challenge" @submit.prevent="submitCode" class="space-y-3">
         <template v-if="mfaMode === 'totp'">
-          <p class="text-sm text-slate-600 dark:text-slate-300">Enter the 6-digit code from your authenticator app.</p>
-          <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code" required autofocus
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('Enter the 6-digit code from your authenticator app.') }}</p>
+          <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" :aria-label="tr('Verification code')" required autofocus
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
         </template>
         <template v-else-if="mfaMode === 'email'">
           <template v-if="!emailSent">
-            <p class="text-sm text-slate-600 dark:text-slate-300">We'll email a 6-digit code to <b>{{ challenge.emailHint }}</b>.</p>
+            <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('We\'ll email a 6-digit code to') }} <b>{{ challenge.emailHint }}</b>.</p>
             <button type="button" @click="sendEmailCode" :disabled="busy"
                     class="w-full border border-amber-500 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg py-2 font-medium disabled:opacity-50">
-              {{ busy ? '…' : 'Send code' }}
+              {{ busy ? '…' : tr('Send code') }}
             </button>
           </template>
           <template v-else>
-            <p class="text-sm text-slate-600 dark:text-slate-300">Enter the code we sent to <b>{{ challenge.emailHint }}</b>. It expires in 10 minutes.</p>
-            <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" aria-label="Verification code" required autofocus
+            <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('Enter the code we sent to') }} <b>{{ challenge.emailHint }}</b>. It expires in 10 minutes.</p>
+            <input v-model="mfaCode" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="123456" :aria-label="tr('Verification code')" required autofocus
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-widest text-center text-lg" />
             <button type="button" @click="sendEmailCode" :disabled="busy || resendIn > 0" class="text-sm text-amber-700 dark:text-amber-400 disabled:text-slate-400 disabled:dark:text-slate-500">
-              {{ resendIn > 0 ? `Send again in ${resendIn}s` : 'Send a new code' }}
+              {{ resendIn > 0 ? `Send again in ${resendIn}s` : tr('Send a new code') }}
             </button>
           </template>
         </template>
         <template v-else-if="mfaMode === 'recovery'">
-          <p class="text-sm text-slate-600 dark:text-slate-300">Enter one of your recovery codes. Each code works once.</p>
-          <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" aria-label="Recovery code" required autofocus
+          <p class="text-sm text-slate-600 dark:text-slate-300">{{ tr('Enter one of your recovery codes. Each code works once.') }}</p>
+          <input v-model="mfaCode" autocomplete="off" maxlength="11" placeholder="xxxxx-xxxxx" :aria-label="tr('Recovery code')" required autofocus
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 tracking-wider text-center font-mono" />
         </template>
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
         <button v-if="mfaMode !== 'email' || emailSent" :disabled="busy || !mfaCode"
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
-          {{ busy ? '…' : 'Verify' }}
+          {{ busy ? '…' : tr('Verify') }}
         </button>
         <div class="text-sm flex flex-col gap-1.5 text-amber-700 dark:text-amber-400">
           <template v-for="m in challenge.methods" :key="m">
-            <button v-if="m !== mfaMode" type="button" @click="switchMode(m)" class="text-left">{{ MODE_LABEL[m] }}</button>
+            <button v-if="m !== mfaMode" type="button" @click="switchMode(m)" class="text-left">{{ tr(MODE_LABEL[m]) }}</button>
           </template>
-          <button type="button" @click="backToPassword()" class="text-left text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
+          <button type="button" @click="backToPassword()" class="text-left text-slate-500 dark:text-slate-400">← {{ tr('Back to sign in') }}</button>
         </div>
       </form>
       <form v-else-if="linkInfo" @submit.prevent="submitLink" class="space-y-3">
         <p class="text-sm text-slate-600 dark:text-slate-300">
-          <b>{{ linkInfo.email }}</b> already has a BeeCoding account. Enter its password once to connect your Google account;
-          after that you can sign in with Google.
+          <b>{{ linkInfo.email }}</b> {{ tr('already has a BeeCoding account. Enter its password once to connect your Google account; after that you can sign in with Google.') }}
         </p>
-        <input v-model="password" type="password" placeholder="BeeCoding password" aria-label="BeeCoding password" autocomplete="current-password" required autofocus
+        <input v-model="password" type="password" :placeholder="tr('BeeCoding password')" :aria-label="tr('BeeCoding password')" autocomplete="current-password" required autofocus
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
         <button :disabled="busy || !password"
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
-          {{ busy ? '…' : 'Connect and sign in' }}
+          {{ busy ? '…' : tr('Connect and sign in') }}
         </button>
-        <button type="button" @click="linkInfo = null; password = ''; error = ''" class="text-sm text-slate-500 dark:text-slate-400">&larr; Back to sign in</button>
+        <button type="button" @click="linkInfo = null; password = ''; error = ''" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('Back to sign in') }}</button>
       </form>
       <form v-else @submit.prevent="submit" class="space-y-3">
-        <input v-model="email" type="email" placeholder="Email" aria-label="Email" required
+        <input v-model="email" type="email" :placeholder="tr('Email')" :aria-label="tr('Email')" required
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
-        <input v-model="password" type="password" placeholder="Password" aria-label="Password" required
+        <input v-model="password" type="password" :placeholder="tr('Password')" :aria-label="tr('Password')" required
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />
         <TurnstileWidget ref="turnstile" action="login" v-model:token="human" />
-        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+        <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
         <button :disabled="busy || (!!auth.config.turnstileSiteKey && !human)"
                 class="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg py-2 font-medium disabled:opacity-50">
-          {{ busy ? '…' : 'Sign in' }}
+          {{ busy ? '…' : tr('Sign in') }}
         </button>
       </form>
       <div v-if="(googleOn || passkeysOn) && !challenge && !linkInfo" class="mt-4 space-y-3">
@@ -235,15 +236,15 @@ function backToPassword(clearError = true) {
         </div>
         <button v-if="passkeysOn" type="button" @click="usePasskey" :disabled="busy"
                 class="w-full flex items-center justify-center gap-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg py-2 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-50">
-          <Icon name="key" /> Sign in with a passkey
+          <Icon name="key" /> {{ tr('Sign in with a passkey') }}
         </button>
         <GoogleButton v-if="googleOn" :return-to="route.query.r ? String(route.query.r) : ''" />
       </div>
       <p v-if="canReset && !challenge && !linkInfo" class="text-sm mt-3">
-        <RouterLink to="/forgot-password" class="text-amber-700 dark:text-amber-400">Forgot your password?</RouterLink>
+        <RouterLink to="/forgot-password" class="text-amber-700 dark:text-amber-400">{{ tr('Forgot your password?') }}</RouterLink>
       </p>
       <p v-if="!challenge && !linkInfo" class="text-sm text-slate-500 dark:text-slate-400 mt-4">
-        No account? <RouterLink :to="{ path: '/register', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-700 dark:text-amber-400">Register</RouterLink>
+        {{ tr('No account?') }} <RouterLink :to="{ path: '/register', query: route.query.r ? { r: route.query.r } : {} }" class="text-amber-700 dark:text-amber-400">{{ tr('Register') }}</RouterLink>
       </p>
     </div>
   </div>

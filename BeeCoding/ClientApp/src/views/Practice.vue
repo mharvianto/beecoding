@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -169,29 +170,28 @@ onMounted(() => {
 <template>
   <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
     <div class="flex items-baseline justify-between gap-x-3 gap-y-1 flex-wrap mb-1">
-      <h1 class="text-xl font-bold">Practice</h1>
+      <h1 class="text-xl font-bold">{{ tr('Practice') }}</h1>
       <div class="text-sm text-slate-500 dark:text-slate-400">
-        <span v-if="progress.streak > 0"><Icon name="flame" /> {{ progress.streak }}-day streak ·</span>
-        Lv {{ progress.level }} · {{ progress.xp }} XP · {{ progress.toNext }} XP to next level
+        <span v-if="progress.streak > 0"><Icon name="flame" /> {{ tr('{n}-day streak', { n: progress.streak }) }} ·</span>
+        {{ tr('Lv {lv} · {xp} XP · {next} XP to next level', { lv: progress.level, xp: progress.xp, next: progress.toNext }) }}
       </div>
     </div>
     <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
-      Solve anything from the public problem bank, independent of any class board. Your first
-      full solve of a problem earns XP (Easy 10 · Medium 20 · Hard 40).
+      {{ tr('Solve anything from the public problem bank, independent of any class board. Your first full solve of a problem earns XP (Easy 10 · Medium 20 · Hard 40).') }}
     </p>
 
     <!-- what to do next -->
     <div v-if="guide.recommended.length" class="mb-5">
       <div class="flex items-center gap-2 mb-2">
-        <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Recommended for you</h2>
-        <span v-if="guide.source === 'ai'" class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI-picked</span>
+        <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ tr('Recommended for you') }}</h2>
+        <span v-if="guide.source === 'ai'" class="text-[11px] px-1.5 py-0.5 rounded bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> {{ tr('AI-picked') }}</span>
         <span class="ml-auto"></span>
         <button v-if="guide.aiAvailable && guide.source !== 'ai'" @click="loadGuide(true)" :disabled="aiBusy"
                 class="text-xs text-violet-600 dark:text-violet-400 disabled:opacity-50">
-          <template v-if="aiBusy">Thinking… {{ aiElapsed }}s</template><template v-else><Icon name="sparkles" /> Let AI pick</template>
+          <template v-if="aiBusy">{{ tr('Thinking… {n}s', { n: aiElapsed }) }}</template><template v-else><Icon name="sparkles" /> {{ tr('Let AI pick') }}</template>
         </button>
         <button v-else-if="guide.source === 'ai'" @click="loadGuide(false)"
-                class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600">use heuristic</button>
+                class="text-xs text-slate-500 dark:text-slate-400 hover:text-slate-600">{{ tr('use heuristic') }}</button>
       </div>
       <div class="grid gap-2 sm:grid-cols-3">
         <RouterLink v-for="r in guide.recommended" :key="r.id" :to="`/practice/${r.slug}`"
@@ -201,7 +201,7 @@ onMounted(() => {
             <span class="text-sm font-medium truncate flex-1">{{ r.title }}</span>
             <LevelBadge :level="r.level" />
           </div>
-          <span class="text-[11px] text-amber-700 dark:text-amber-400">{{ r.reason }}</span>
+          <span class="text-[11px] text-amber-700 dark:text-amber-400">{{ tr(r.reason) }}</span>
           <span v-if="r.tags" class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ r.tags }}</span>
         </RouterLink>
       </div>
@@ -210,16 +210,16 @@ onMounted(() => {
     <!-- topic progress -->
     <div v-if="guide.topics.length" class="mb-5">
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">Your topics</h2>
+        <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ tr('Your topics') }}</h2>
         <button v-if="guide.topics.length > 6" @click="showAllTopics = !showAllTopics"
                 class="text-xs text-amber-700 dark:text-amber-400">
-          {{ showAllTopics ? 'Show less' : `Show all (${guide.topics.length})` }}
+          {{ showAllTopics ? tr('Show less') : tr('Show all ({n})', { n: guide.topics.length }) }}
         </button>
       </div>
       <div class="grid gap-x-6 gap-y-2 sm:grid-cols-2">
         <button v-for="t in shownTopics" :key="t.tag" type="button" @click="searchTopic(t.tag)"
                 class="flex items-center gap-2 text-xs text-left hover:text-amber-600 dark:hover:text-amber-400 group"
-                :title="`Search problems tagged '${t.tag}'`">
+                :title="tr('Search problems tagged \'{tag}\'', { tag: t.tag })">
           <span class="w-24 shrink-0 truncate text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 group-hover:underline">{{ t.tag }}</span>
           <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
             <span class="block h-full bg-amber-400" :style="{ width: (t.total ? t.solved / t.total * 100 : 0) + '%' }"></span>
@@ -230,39 +230,39 @@ onMounted(() => {
     </div>
 
     <div class="flex gap-2 mb-4 flex-wrap">
-      <input v-model="q" @keyup.enter="search" placeholder="Search title or tag…" aria-label="Search title or tag…"
+      <input v-model="q" @keyup.enter="search" :placeholder="tr('Search title or tag…')" :aria-label="tr('Search title or tag…')"
              class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       <select v-model="level" @change="search"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" aria-label="All levels">
-        <option value="">All levels</option>
-        <option>Easy</option><option>Medium</option><option>Hard</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" :aria-label="tr('All levels')">
+        <option value="">{{ tr('All levels') }}</option>
+        <option>{{ tr('Easy') }}</option><option>{{ tr('Medium') }}</option><option>{{ tr('Hard') }}</option>
       </select>
       <select v-model="status" @change="search"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" aria-label="All statuses">
-        <option value="">All statuses</option>
-        <option value="unsolved">Unsolved</option>
-        <option value="attempted">Attempted</option>
-        <option value="solved">Solved</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" :aria-label="tr('All statuses')">
+        <option value="">{{ tr('All statuses') }}</option>
+        <option value="unsolved">{{ tr('Unsolved') }}</option>
+        <option value="attempted">{{ tr('Attempted') }}</option>
+        <option value="solved">{{ tr('Solved') }}</option>
       </select>
       <select v-model="sort" @change="search"
-              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" aria-label="Sort: default">
-        <option value="">Sort: default</option>
-        <option value="likes">Most liked</option>
-        <option value="submissions">Most submissions</option>
-        <option value="acrate">Highest AC rate</option>
-        <option value="acrate_asc">Lowest AC rate</option>
+              class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm" :aria-label="tr('Sort: default')">
+        <option value="">{{ tr('Sort: default') }}</option>
+        <option value="likes">{{ tr('Most liked') }}</option>
+        <option value="submissions">{{ tr('Most submissions') }}</option>
+        <option value="acrate">{{ tr('Highest AC rate') }}</option>
+        <option value="acrate_asc">{{ tr('Lowest AC rate') }}</option>
       </select>
-      <button @click="search" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+      <button @click="search" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
       <button v-if="hasFilters" @click="clearFilters"
               class="text-sm border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg px-3 py-2"
-              title="Reset search, level, status and sort">✕ Clear filters</button>
+              :title="tr('Reset search, level, status and sort')">{{ tr('✕ Clear filters') }}</button>
     </div>
 
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ tr(error) }}</p>
     <div class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-      <span>{{ total }} problems · {{ solvedTotal }} solved</span>
+      <span>{{ tr('{a} problems · {b} solved', { a: total, b: solvedTotal }) }}</span>
       <span v-if="total">
-        Showing {{ (page - 1) * pageSize + 1 }}–{{ Math.min(page * pageSize, total) }}
+        {{ tr('Showing {a}–{b}', { a: (page - 1) * pageSize + 1, b: Math.min(page * pageSize, total) }) }}
       </span>
     </div>
 
@@ -277,26 +277,26 @@ onMounted(() => {
           <span class="text-sm font-medium truncate block">{{ p.title }}</span>
           <span v-if="p.tags" class="md:hidden text-[11px] text-slate-500 dark:text-slate-400 truncate block">{{ p.tags }}</span>
           <span class="sm:hidden text-[11px] text-slate-500 dark:text-slate-400 truncate block">
-            {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
+            {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : tr('no attempts yet') }}
             <span v-if="p.likes" :class="p.liked ? 'text-rose-500' : ''"> · ♥ {{ p.likes }}</span>
           </span>
         </div>
         <VerdictBadge v-if="p.myVerdict !== 'None' && !p.solved" :verdict="p.myVerdict" small />
         <span v-if="p.tags" class="hidden md:block text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[14rem]">{{ p.tags }}</span>
         <span class="hidden sm:block text-[11px] text-slate-500 dark:text-slate-400 w-36 whitespace-nowrap text-right tabular-nums"
-              :title="`${p.submissionCount} submission(s) across every user`">
-          {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : 'no attempts yet' }}
+              :title="tr('{n} submission(s) across every user', { n: p.submissionCount })">
+          {{ p.submissionCount ? `${p.submissionCount} subs · ${Math.round(p.acRate * 100)}% AC` : tr('no attempts yet') }}
         </span>
         <span class="hidden sm:block text-[11px] w-9 text-right tabular-nums" :class="p.liked ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400'"
-              :title="`${p.likes} like(s)`">{{ p.likes ? `♥ ${p.likes}` : '' }}</span>
+              :title="tr('{n} like(s)', { n: p.likes })">{{ p.likes ? `♥ ${p.likes}` : '' }}</span>
         <LevelBadge :level="p.level" />
         <span class="text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>
-      <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">No problems.</p>
+      <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">{{ tr('No problems.') }}</p>
     </div>
 
     <div v-if="suggestions.length" class="mt-4">
-      <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">You might be looking for</h2>
+      <h2 class="text-sm font-semibold text-slate-500 dark:text-slate-400 mb-2">{{ tr('You might be looking for') }}</h2>
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800">
         <RouterLink v-for="s in suggestions" :key="s.id" :to="`/practice/${s.slug}`"
                     class="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800/60">
@@ -306,17 +306,17 @@ onMounted(() => {
           <span class="text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right">{{ langLabel(s.allowedLanguages) }}</span>
         </RouterLink>
       </div>
-      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Matched by meaning, so some may be off.</p>
+      <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{{ tr('Matched by meaning, so some may be off.') }}</p>
     </div>
 
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-1 mt-4 text-sm">
       <button @click="go(1)" :disabled="page === 1"
               class="px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">«</button>
       <button @click="go(page - 1)" :disabled="page === 1"
-              class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
-      <span class="px-3 text-slate-500 dark:text-slate-400">Page {{ page }} / {{ totalPages }}</span>
+              class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
+      <span class="px-3 text-slate-500 dark:text-slate-400">{{ tr('Page {a} / {b}', { a: page, b: totalPages }) }}</span>
       <button @click="go(page + 1)" :disabled="page === totalPages"
-              class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+              class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
       <button @click="go(totalPages)" :disabled="page === totalPages"
               class="px-2 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">»</button>
     </div>

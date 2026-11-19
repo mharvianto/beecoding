@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { useUndoToast } from '../stores/undoToast';
 
@@ -29,9 +30,9 @@ const secondsLeft = computed(() => Math.max(0, Math.ceil((toast.deadline - now.v
       <span class="truncate">{{ toast.message }}</span>
       <button v-if="toast.onUndo" @click="toast.undo()"
               class="shrink-0 font-semibold text-amber-300 hover:text-amber-200 underline underline-offset-2">
-        Undo ({{ secondsLeft }}s)
+        {{ tr('Undo ({n}s)', { n: secondsLeft }) }}
       </button>
-      <button @click="toast.dismiss()" class="shrink-0 text-slate-400 hover:text-slate-200" title="Dismiss" aria-label="Dismiss">✕</button>
+      <button @click="toast.dismiss()" class="shrink-0 text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
     </div>
   </Transition>
 </template>

@@ -1,4 +1,6 @@
 <script setup>
+import { agoShort as ago } from '../lib/timeAgo';
+import { tr } from '../lib/i18n';
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { api } from '../lib/api';
 import LevelBadge from './LevelBadge.vue';
@@ -24,27 +26,18 @@ async function load() {
   finally { if (mine === seq) loading.value = false; }
 }
 
-const now = ref(Date.now());
-function ago(iso) {
-  const t = Date.parse(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + 'Z');
-  const s = Math.max(1, Math.floor((now.value - t) / 1000));
-  if (s < 60) return 'just now';
-  if (s < 3600) return Math.floor(s / 60) + 'm ago';
-  if (s < 86400) return Math.floor(s / 3600) + 'h ago';
-  return Math.floor(s / 86400) + 'd ago';
-}
 
 watch(() => [props.organizationId, props.boardId], load);
 onMounted(() => {
   load();
-  timer = setInterval(() => { now.value = Date.now(); if (!document.hidden) load(); }, 30_000);
+  timer = setInterval(() => { if (!document.hidden) load(); }, 30_000);
 });
 onBeforeUnmount(() => clearInterval(timer));
 </script>
 
 <template>
   <div>
-    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ error }}</p>
+    <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ tr(error) }}</p>
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading && !rows.length }">
       <div v-for="r in rows" :key="r.userId + '-' + r.problemSlug"
@@ -53,7 +46,7 @@ onBeforeUnmount(() => clearInterval(timer));
         <!-- narrow screens: who and when on top, the whole problem title below (it wraps instead of being cut to a few letters) -->
         <div class="sm:hidden">
           <div class="flex items-baseline gap-2">
-            <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> (you)</span></span>
+            <span class="text-sm font-medium truncate min-w-0">{{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> {{ tr('(you)') }}</span></span>
             <span class="ml-auto text-[11px] text-slate-500 dark:text-slate-400 shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
           </div>
           <div class="flex items-start gap-2 mt-0.5">
@@ -64,20 +57,20 @@ onBeforeUnmount(() => clearInterval(timer));
         <!-- wider screens: one row -->
         <div class="hidden sm:flex items-center gap-3">
           <span class="text-sm font-medium truncate w-56 shrink-0">
-            {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> (you)</span>
+            {{ r.displayName }}<span v-if="r.me" class="text-xs font-normal text-amber-700 dark:text-amber-400"> {{ tr('(you)') }}</span>
           </span>
-          <span class="text-xs text-slate-500 dark:text-slate-400 shrink-0">solved</span>
+          <span class="text-xs text-slate-500 dark:text-slate-400 shrink-0">{{ tr('solved') }}</span>
           <RouterLink :to="`/practice/${r.problemSlug}`" class="text-sm hover:underline hover:text-amber-600 dark:hover:text-amber-400 truncate min-w-0 flex-1">{{ r.problemTitle }}</RouterLink>
           <LevelBadge :level="r.level" />
           <span class="text-[11px] text-slate-500 dark:text-slate-400 w-16 text-right shrink-0 tabular-nums">{{ ago(r.solvedAt) }}</span>
         </div>
       </div>
       <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
-        Nothing solved yet. <RouterLink to="/practice" class="text-amber-600">Practice</RouterLink> a problem to be first.
+        {{ tr('Nothing solved yet.') }} <RouterLink to="/practice" class="text-amber-600">{{ tr('Practice') }}</RouterLink> {{ tr('a problem to be first.') }}
       </p>
     </div>
     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-      The latest Practice solves (each person's first solve of a problem). Problems on a board are not listed here.
+      {{ tr('The latest Practice solves (each person\'s first solve of a problem). Problems on a board are not listed here.') }}
     </p>
   </div>
 </template>

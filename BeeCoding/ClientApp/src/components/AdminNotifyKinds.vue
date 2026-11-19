@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted } from 'vue';
 import { api } from '../lib/api';
 
@@ -21,24 +22,24 @@ async function save() {
 
 <template>
   <section v-if="s" class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-3">
-    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Notification kinds</h4>
+    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Notification kinds') }}</h4>
     <p class="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400">
-      “Locked” = everyone gets it in the bell and cannot mute it. “On” = created at all (off: nobody gets it, not in the bell, push or email). “Email” = people may choose to get it by email
-      <template v-if="!s.emailConfigured">— needs the <code>Email</code> settings (SMTP) in appsettings, so it has no effect yet</template>.
+      {{ tr('“Locked” = everyone gets it in the bell and cannot mute it. “On” = created at all (off: nobody gets it, not in the bell, push or email). “Email” = people may choose to get it by email') }}
+      <template v-if="!s.emailConfigured">{{ tr('— needs the') }} <code>Email</code> settings (SMTP) in appsettings, so it has no effect yet</template>.
       Email goes only to verified addresses and only to people who turned it on in their account.
     </p>
     <div class="mt-2 divide-y divide-slate-100 dark:divide-slate-800">
       <div v-for="k in s.kinds" :key="k.kind" class="flex items-center gap-3 py-2">
-        <span class="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200">{{ k.label }}</span>
+        <span class="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200">{{ tr(k.label) }}</span>
         <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.enabled" /> On</label>
-        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.email" :disabled="!k.enabled" /> Email</label>
-        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.locked" :disabled="!k.enabled" /> Locked</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.email" :disabled="!k.enabled" /> {{ tr('Email') }}</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.locked" :disabled="!k.enabled" /> {{ tr('Locked') }}</label>
       </div>
     </div>
     <div class="mt-3 flex items-center gap-3">
-      <button @click="save" :disabled="saving" class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">{{ saving ? 'Saving…' : 'Save' }}</button>
-      <span v-if="msg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ msg }}</span>
-      <span v-if="err" class="text-sm text-red-600 dark:text-red-400">{{ err }}</span>
+      <button @click="save" :disabled="saving" class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">{{ saving ? tr('Saving…') : tr('Save') }}</button>
+      <span v-if="msg" class="text-sm text-emerald-600 dark:text-emerald-400">{{ tr(msg) }}</span>
+      <span v-if="err" class="text-sm text-red-600 dark:text-red-400">{{ tr(err) }}</span>
     </div>
   </section>
 </template>
