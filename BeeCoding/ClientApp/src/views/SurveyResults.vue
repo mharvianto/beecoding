@@ -14,13 +14,15 @@ const view = ref((() => { try { return localStorage.getItem(VIEW_KEY) === 'bars'
 function setView(v) { view.value = v; try { localStorage.setItem(VIEW_KEY, v); } catch { /* the choice just does not persist */ } }
 
 const COLORS = ['#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6', '#f43f5e', '#64748b'];
-const R_ = 36, CIRC = 2 * Math.PI * R_;
-// one ring segment per option: dash length = its share of the circle, offset = the share before it
+const R_ = 36;
+// one ring segment per option, on a circle of pathLength 100: dash = its percent, offset = the percent before it.
+// The last non-empty segment ends exactly at 100 (float error otherwise wraps a sliver of it onto the start).
 function segs(c) {
   let before = 0;
+  const last = c.bars.reduce((m, b, i) => (b.n ? i : m), -1);
   return c.bars.map((b, i) => {
-    const len = c.n ? (b.n / c.n) * CIRC : 0;
-    const seg = { ...b, color: COLORS[i % COLORS.length], dash: `${len} ${CIRC - len}`, offset: -before };
+    const len = !c.n || !b.n ? 0 : i === last ? 100 - before : (b.n / c.n) * 100;
+    const seg = { ...b, color: COLORS[i % COLORS.length], dash: `${len} ${100 - len}`, offset: -before };
     before += len;
     return seg;
   });
@@ -98,7 +100,7 @@ function exportCsv() {
               <svg viewBox="0 0 100 100" class="w-28 h-28 shrink-0" role="img" :aria-label="c.q.q.en">
                 <circle cx="50" cy="50" :r="R_" fill="none" stroke-width="14" class="stroke-slate-100 dark:stroke-slate-800" />
                 <g transform="rotate(-90 50 50)">
-                  <circle v-for="g in segs(c)" :key="g.label" v-show="g.n" cx="50" cy="50" :r="R_" fill="none" stroke-width="14"
+                  <circle v-for="g in segs(c)" :key="g.label" v-show="g.n" cx="50" cy="50" :r="R_" fill="none" stroke-width="14" pathLength="100"
                           :stroke="g.color" :stroke-dasharray="g.dash" :stroke-dashoffset="g.offset" />
                 </g>
                 <text x="50" y="50" text-anchor="middle" dominant-baseline="central" class="fill-slate-700 dark:fill-slate-200 text-[16px] font-semibold">{{ c.n }}</text>
