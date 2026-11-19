@@ -116,8 +116,20 @@ const settingsOpen = ref(false);
 // Staff downloads: results workbook (verdict + score) and the students' source code as a ZIP.
 const exportOpen = ref(false);
 const exporting = ref(false);
+// What the Download menu covers: everything, one group (0 = ungrouped) or one problem. The three downloads share it (?group= / ?problem=).
+const exportScope = ref('');
+const exportGroups = ref([]);
+async function toggleExport() {
+  exportOpen.value = !exportOpen.value;
+  if (exportOpen.value && hasGroups.value && !exportGroups.value.length) {
+    try { exportGroups.value = await api.get(`/api/boards/${props.slug}/groups`); } catch { /* the group choices just stay out */ }
+  }
+}
 async function exportFile(path, fallbackName) {
   exportOpen.value = false;
+  const [kind, id] = exportScope.value.split(':');
+  const scope = kind === 'g' ? `group=${id}` : kind === 'p' ? `problem=${encodeURIComponent(id)}` : '';
+  if (scope) path += (path.includes('?') ? '&' : '?') + scope;
   exporting.value = true;
   try { await downloadFile(`/api/boards/${props.slug}/export/${path}`, fallbackName); }
   catch (e) { error.value = e.message; }
@@ -239,12 +251,24 @@ onBeforeUnmount(async () => {
         <Icon name="file" /> {{ tr('Submissions') }}
       </RouterLink>
       <div class="sm:relative" v-click-outside="() => (exportOpen = false)">
-        <button @click="exportOpen = !exportOpen" :disabled="exporting" :aria-expanded="exportOpen"
+        <button @click="toggleExport" :disabled="exporting" :aria-expanded="exportOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700 disabled:opacity-60">
           <template v-if="exporting">{{ tr('Preparing…') }}</template><template v-else><Icon name="download" /> {{ tr('Download') }}</template>
         </button>
         <div v-if="exportOpen"
              class="absolute inset-x-0 sm:inset-x-auto sm:left-0 z-50 mt-1 sm:w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
+          <label class="block px-3 pt-1.5 pb-2 text-[11px] text-slate-500 dark:text-slate-400">{{ tr('Download') }}
+            <select v-model="exportScope" class="mt-0.5 w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-slate-700 dark:text-slate-200">
+              <option value="">{{ tr('All problems') }}</option>
+              <optgroup v-if="exportGroups.length" :label="tr('Group')">
+                <option v-for="g in exportGroups" :key="g.id" :value="'g:' + g.id">{{ g.title }}</option>
+                <option value="g:0">{{ tr('Problems without a group') }}</option>
+              </optgroup>
+              <optgroup :label="tr('Problem')">
+                <option v-for="p in problems" :key="p.id" :value="'p:' + p.slug">{{ p.title }}</option>
+              </optgroup>
+            </select>
+          </label>
           <button @click="exportFile('results.xlsx', 'results.xlsx')"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
             <Icon name="table" /> {{ tr('Results (Excel)') }}
@@ -258,6 +282,11 @@ onBeforeUnmount(async () => {
           <button @click="exportFile('answers.zip?pick=latest', 'answers.zip')"
                   class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
             <Icon name="folder" /> {{ tr('Answers (ZIP) — latest attempt') }}
+          </button>
+          <button @click="exportFile('answers.zip?pick=all', 'answers.zip')"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="folder" /> {{ tr('Answers (ZIP) — all attempts') }}
+            <span class="block text-[11px] text-slate-500 dark:text-slate-400">{{ tr('Every attempt as its own file: problem / student / 03-WA.cpp') }}</span>
           </button>
         </div>
       </div>

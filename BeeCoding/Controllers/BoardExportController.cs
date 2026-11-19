@@ -235,7 +235,8 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
     }
 
     /// <summary>ZIP of the students' source code: one folder per problem, one file per student. <c>pick</c> is
-    /// <c>best</c> (default: highest score, then newest) or <c>latest</c>.</summary>
+    /// <c>best</c> (default: highest score, then newest), <c>latest</c>, or <c>all</c>: every attempt, as
+    /// <c>problem/student/NN-AC.cpp</c> (NN = attempt number, then the short verdict).</summary>
     [HttpGet("answers.zip")]
     public async Task<IActionResult> Answers(string slug, [FromQuery] string? pick = "best", [FromQuery] string? problem = null, [FromQuery] int? group = null)
     {
@@ -243,6 +244,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         if (data is null) return failure!;
         var (board, students, problems) = (data.Board, data.Students, data.Problems);
         var latest = string.Equals(pick, "latest", StringComparison.OrdinalIgnoreCase);
+        var all = string.Equals(pick, "all", StringComparison.OrdinalIgnoreCase);
         var offset = await LocalOffsetAsync();
 
         var studentIds = students.Select(s => s.UserId).ToList();
@@ -251,8 +253,9 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
         // reading every attempt's source (100 students x 10 problems x 20 attempts) would sit in memory for nothing.
         var light = await _db.Submissions.AsNoTracking()
             .Where(s => problemIds.Contains(s.ProblemId) && studentIds.Contains(s.UserId))
-            .Select(s => new Submission { Id = s.Id, ProblemId = s.ProblemId, UserId = s.UserId, Language = s.Language, Score = s.Score, CreatedAt = s.CreatedAt })
+            .Select(s => new Submission { Id = s.Id, ProblemId = s.ProblemId, UserId = s.UserId, Language = s.Language, Score = s.Score, Verdict = s.Verdict, CreatedAt = s.CreatedAt })
             .ToListAsync();
+        if (all) return await AllAttempts(data, light, offset);
         var chosen = light.GroupBy(s => (s.UserId, s.ProblemId))
             .ToDictionary(g => g.Key, g => latest ? Latest(g) : Best(g));
         var chosenIds = chosen.Values.Select(s => s.Id).ToList();
@@ -284,6 +287,52 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
 
         await _audit.RecordAsync(UserId, ActorEmail, "export", "Board", board.Id, $"{board.Title}: answers.zip ({(latest ? "latest" : "best")}, {data.ScopeNote})");
         return File(ms.ToArray(), "application/zip", $"{board.Slug}-jawaban-{(latest ? "terakhir" : "terbaik")}-{Scoped(data)}{DateTime.UtcNow + offset:yyyyMMdd-HHmm}.zip");
+    }
+
+    private static string ShortVerdict(Verdict v) => v switch
+    {
+        Verdict.Accepted => "AC", Verdict.WrongAnswer => "WA", Verdict.TimeLimit => "TLE", Verdict.MemoryLimit => "MLE",
+        Verdict.RuntimeError => "RE", Verdict.CompileError => "CE", _ => "PENDING",
+    };
+
+    /// <summary>Every attempt as its own file: <c>problem/student/03-WA.cpp</c>, numbered oldest first per student and problem.
+    /// The code is read one problem at a time so a big board never holds every attempt's source at once (the ZIP itself is still built in memory).</summary>
+    private async Task<IActionResult> AllAttempts(Export data, List<Submission> light, TimeSpan offset)
+    {
+        var (board, students, problems) = (data.Board, data.Students, data.Problems);
+        using var ms = new MemoryStream();
+        using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var p in problems)
+            {
+                var label = data.Labels[p.Id];
+                var folder = label == "-" ? $"{Safe(p.Title)} (tersembunyi)" : $"{(label.All(char.IsDigit) ? label.PadLeft(2, '0') : label)}. {Safe(p.Title)}";
+                var mine = light.Where(s => s.ProblemId == p.Id).ToList();
+                var ids = mine.Select(s => s.Id).ToList();
+                var codes = await _db.Submissions.AsNoTracking().Where(s => ids.Contains(s.Id))
+                    .Select(s => new { s.Id, s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
+                foreach (var m in students)
+                {
+                    var attempts = mine.Where(s => s.UserId == m.UserId).OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).ToList();
+                    var width = Math.Max(2, attempts.Count.ToString().Length);
+                    for (var i = 0; i < attempts.Count; i++)
+                    {
+                        var s = attempts[i];
+                        var lang = string.IsNullOrEmpty(s.Language) ? Languages.Default(p.AllowedLanguages) : s.Language;
+                        var path = $"{folder}/{Safe(m.User!.DisplayName)}_{m.UserId}/{(i + 1).ToString().PadLeft(width, '0')}-{ShortVerdict(s.Verdict)}.{(lang == "c" ? "c" : "cpp")}";
+                        if (!used.Add(path)) continue;
+                        var entry = zip.CreateEntry(path, CompressionLevel.Optimal);
+                        var stamp = new DateTimeOffset(DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc));
+                        entry.LastWriteTime = stamp.Year < 1980 ? new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero) : stamp;
+                        await using var w = entry.Open();
+                        await w.WriteAsync(new UTF8Encoding(false).GetBytes(codes.GetValueOrDefault(s.Id) ?? ""));
+                    }
+                }
+            }
+        }
+        await _audit.RecordAsync(UserId, ActorEmail, "export", "Board", board.Id, $"{board.Title}: answers.zip (all attempts, {data.ScopeNote})");
+        return File(ms.ToArray(), "application/zip", $"{board.Slug}-jawaban-semua-percobaan-{Scoped(data)}{DateTime.UtcNow + offset:yyyyMMdd-HHmm}.zip");
     }
 
     /// <summary>"Sesi 1: dasar / tes" becomes "sesi-1-dasar-tes": lower case, letters and digits only, joined by hyphens.</summary>
