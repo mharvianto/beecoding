@@ -42,7 +42,7 @@ onMounted(() => {
 watch(() => props.original, (v) => a?.setValue(v));
 watch(() => props.modified, (v) => b?.setValue(v));
 watch(appTheme, () => monaco.editor.setTheme(resolveEditorTheme(dark())));
-onBeforeUnmount(() => { diff?.dispose(); a?.dispose(); b?.dispose(); });
+onBeforeUnmount(() => { diff?.setModel(null); diff?.dispose(); a?.dispose(); b?.dispose(); });
 </script>
 
 <template>

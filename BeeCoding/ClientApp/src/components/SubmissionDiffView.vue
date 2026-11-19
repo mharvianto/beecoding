@@ -77,10 +77,12 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   resizeObserver?.disconnect();
+  // The widget must let go of its models before they are disposed, or Monaco throws "TextModel got disposed before DiffEditorWidget model got reset".
   const model = diffEditor?.getModel();
+  diffEditor?.setModel(null);
+  diffEditor?.dispose();
   model?.original?.dispose();
   model?.modified?.dispose();
-  diffEditor?.dispose();
 });
 </script>
 
