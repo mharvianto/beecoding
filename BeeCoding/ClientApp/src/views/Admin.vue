@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
 import { ref, reactive, toRef, onMounted, watch } from 'vue';
@@ -268,7 +269,7 @@ async function saveAiExtras() {
   finally { aiExtrasSaving.value = false; }
 }
 async function clearAiProviderKey() {
-  if (!(await confirmDialog.ask('Clear the saved API key? AI will fall back to appsettings.json\'s key (if any).', { confirmLabel: 'Clear' }))) return;
+  if (!(await confirmDialog.ask(tr('Clear the saved API key? AI will fall back to appsettings.json\'s key (if any).'), { confirmLabel: tr('Clear') }))) return;
   err.value = '';
   try { await api.del('/api/admin-ui/ai-provider/api-key'); await loadAiProvider(); }
   catch (e) { err.value = e.message; }
@@ -321,7 +322,7 @@ async function approveAiReview(row) {
   } catch (e) { err.value = e.message; }
 }
 async function deleteAiReview(row) {
-  if (!(await confirmDialog.ask(`Delete “${row.title}”? It moves to Trash, where you can restore or purge it.`, { confirmLabel: 'Delete' }))) return;
+  if (!(await confirmDialog.ask(tr('Delete “{p0}”? It moves to Trash, where you can restore or purge it.', { p0: row.title }), { confirmLabel: tr('Delete') }))) return;
   err.value = '';
   try {
     await api.del(`/api/bank/${row.slug}`);
@@ -399,8 +400,8 @@ async function toggleMfaPolicy(g) {
   const turningOn = !p[g.key];
   if (turningOn && p[g.without] > 0
       && !(await confirmDialog.ask(
-        `${p[g.without]} ${g.label.toLowerCase()} don't have two-step verification yet. They will be held on their Account page until they turn it on. Continue?`,
-        { confirmLabel: 'Require it', danger: false }))) return;
+        tr('{p0} {p1} don\'t have two-step verification yet. They will be held on their Account page until they turn it on. Continue?', { p0: p[g.without], p1: g.label.toLowerCase() }),
+        { confirmLabel: tr('Require it'), danger: false }))) return;
   err.value = '';
   mfaPolicyBusy.value = true;
   try {
@@ -411,7 +412,7 @@ async function toggleMfaPolicy(g) {
 // ---- remove a user's second factor (lost device + lost recovery codes) ----
 async function resetMfa(u) {
   err.value = '';
-  if (!(await confirmDialog.ask(`Remove two-step verification for ${u.email}? They will sign in with just their password.`, { confirmLabel: 'Reset 2FA' }))) return;
+  if (!(await confirmDialog.ask(tr('Remove two-step verification for {p0}? They will sign in with just their password.', { p0: u.email }), { confirmLabel: tr('Reset 2FA') }))) return;
   try { await api.post(`/api/admin-ui/users/${u.id}/reset-mfa`); u.mfaEnabled = false; } catch (e) { err.value = e.message; }
 }
 
@@ -458,13 +459,13 @@ const userDeleteResultMsg = ref('');
 async function deleteSelectedUsers() {
   const ids = [...selectedUsers.value];
   if (!ids.length) return;
-  if (!(await confirmDialog.ask(`Delete ${ids.length} user(s)? They'll move to Trash and can be restored there.`, { confirmLabel: 'Delete' }))) return;
+  if (!(await confirmDialog.ask(tr('Delete {p0} user(s)? They\'ll move to Trash and can be restored there.', { p0: ids.length }), { confirmLabel: tr('Delete') }))) return;
   err.value = ''; userDeleteResultMsg.value = '';
   try {
     const result = await api.post('/api/admin-ui/users/bulk-delete', { ids });
     selectedUsers.value = new Set();
     await loadUsers();
-    userDeleteResultMsg.value = `Deleted ${result.deleted} user(s).` + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
+    userDeleteResultMsg.value = tr('Deleted {p0} user(s).', { p0: result.deleted }) + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
   } catch (e) { err.value = e.message; }
 }
 
@@ -473,14 +474,14 @@ const recalcBusy = ref(false);
 const recalcResultMsg = ref('');
 async function recalculateProgress() {
   if (!(await confirmDialog.ask(
-    "Recalculate every user's streak, longest streak and best-day-solved from their raw submission history? This overwrites the current values.",
-    { confirmLabel: 'Recalculate' }
+    tr('Recalculate every user\'s streak, longest streak and best-day-solved from their raw submission history? This overwrites the current values.'),
+    { confirmLabel: tr('Recalculate') }
   ))) return;
   err.value = ''; recalcResultMsg.value = ''; recalcBusy.value = true;
   try {
     const result = await api.post('/api/admin-ui/users/recalculate-progress');
     await loadUsers();
-    recalcResultMsg.value = `Recalculated ${result.updated} user(s).`;
+    recalcResultMsg.value = tr('Recalculated {p0} user(s).', { p0: result.updated });
   } catch (e) { err.value = e.message; }
   finally { recalcBusy.value = false; }
 }
@@ -594,13 +595,13 @@ const bulkAdding = ref(false);
 async function archiveSelectedBoards() {
   const slugs = [...selectedBoards.value];
   if (!slugs.length) return;
-  if (!(await confirmDialog.ask(`Archive ${slugs.length} board(s)? They'll move to Trash and can be restored there (no 30s limit for admins).`, { confirmLabel: 'Archive' }))) return;
+  if (!(await confirmDialog.ask(tr('Archive {p0} board(s)? They\'ll move to Trash and can be restored there (no 30s limit for admins).', { p0: slugs.length }), { confirmLabel: tr('Archive') }))) return;
   err.value = ''; archiveResultMsg.value = '';
   try {
     const result = await api.post('/api/admin-ui/boards/archive', { slugs });
     selectedBoards.value = new Set();
     await loadBoards();
-    archiveResultMsg.value = `Archived ${result.archived} board(s).` + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
+    archiveResultMsg.value = tr('Archived {p0} board(s).', { p0: result.archived }) + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
   } catch (e) { err.value = e.message; }
 }
 
@@ -657,7 +658,7 @@ async function restoreTrash(kind, row) {
   } catch (e) { err.value = e.message; }
 }
 async function purge(kind, row, label) {
-  if (!(await confirmDialog.ask(`Permanently delete "${label}"? This cannot be undone.`, { confirmLabel: 'Delete forever' }))) return;
+  if (!(await confirmDialog.ask(tr('Permanently delete "{p0}"? This cannot be undone.', { p0: label }), { confirmLabel: tr('Delete forever') }))) return;
   err.value = '';
   try {
     await api.del(`/api/admin-ui/trash/${kind}/${kind === 'users' ? row.id : row.slug}`);
@@ -678,7 +679,7 @@ async function restoreSelectedTrash(kind) {
 async function purgeSelectedTrash(kind) {
   const ids = [...trash[kind].selected];
   if (!ids.length) return;
-  if (!(await confirmDialog.ask(`Permanently delete ${ids.length} item(s)? This cannot be undone.`, { confirmLabel: 'Delete forever' }))) return;
+  if (!(await confirmDialog.ask(tr('Permanently delete {p0} item(s)? This cannot be undone.', { p0: ids.length }), { confirmLabel: tr('Delete forever') }))) return;
   err.value = ''; trash[kind].msg = '';
   try {
     const result = await api.post(`/api/admin-ui/trash/${kind}/purge`, { ids });
@@ -775,7 +776,7 @@ async function saveOrgEdit() {
   } catch (x) { err.value = x.message; }
 }
 async function deleteOrganization(o) {
-  if (!(await confirmDialog.ask(`Delete organization "${o.name}"? Its boards/LTI platforms stay but become unaffiliated; members lose Org Admin access to it.`, { confirmLabel: 'Delete' }))) return;
+  if (!(await confirmDialog.ask(tr('Delete organization "{p0}"? Its boards/LTI platforms stay but become unaffiliated; members lose Org Admin access to it.', { p0: o.name }), { confirmLabel: tr('Delete') }))) return;
   err.value = '';
   try { await api.del(`/api/admin-ui/organizations/${o.id}`); await loadOrganizations(); }
   catch (e) { err.value = e.message; }
@@ -812,7 +813,7 @@ async function saveLtiPlatform() {
   } catch (e) { err.value = e.message; }
 }
 async function deleteLtiPlatform(p) {
-  if (!(await confirmDialog.ask(`Remove platform "${p.name}"? Existing linked users/boards stay, but it can no longer launch.`, { confirmLabel: 'Remove' }))) return;
+  if (!(await confirmDialog.ask(tr('Remove platform "{p0}"? Existing linked users/boards stay, but it can no longer launch.', { p0: p.name }), { confirmLabel: tr('Remove') }))) return;
   err.value = '';
   try { await api.del(`/api/admin-ui/lti-platforms/${p.id}`); await loadLtiPlatforms(); }
   catch (e) { err.value = e.message; }
@@ -847,7 +848,7 @@ async function copyReviewJson(row) {
     await navigator.clipboard.writeText(reviewJson(row));
     reviewJsonCopied.value = row.slug;
     setTimeout(() => { if (reviewJsonCopied.value === row.slug) reviewJsonCopied.value = null; }, 1500);
-  } catch { err.value = 'Could not copy — use Download JSON instead.'; }
+  } catch { err.value = tr('Could not copy — use Download JSON instead.'); }
 }
 function downloadReviewJson(row) {
   const a = document.createElement('a');
@@ -921,7 +922,7 @@ async function loadSysstat() {
 }
 const sysstatDaily = ref(null);
 // how far back each bucket size reaches (hours of data are many points, so fewer days)
-const SYSSTAT_BUCKETS = [['hour', 'Per hour', 3], ['6h', 'Per 6 hours', 7], ['day', 'Per day', 30]];
+const SYSSTAT_BUCKETS = [['hour', 'Per hour', 3], ['6h', tr('Per 6 hours'), 7], ['day', 'Per day', 30]];
 const SYSSTAT_BUCKET_KEY = 'beecoding.admin.sysstatBucket';
 const sysstatBucket = ref((() => { try { return localStorage.getItem(SYSSTAT_BUCKET_KEY) || 'day'; } catch { return 'day'; } })());
 async function loadSysstatDaily() {
@@ -951,7 +952,7 @@ async function saveRuntimeConfig() {
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
     if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; }
-    runtimeConfigMsg.value = 'Saved — takes effect immediately, no restart needed.';
+    runtimeConfigMsg.value = tr('Saved — takes effect immediately, no restart needed.');
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
 }
@@ -1005,7 +1006,7 @@ onMounted(async () => {
 <template>
   <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-center gap-3 mb-4">
-      <h1 class="text-xl font-bold">Admin</h1>
+      <h1 class="text-xl font-bold">{{ tr('Admin') }}</h1>
       <TableViewToggle class="ml-auto" />
     </div>
 
@@ -1013,7 +1014,7 @@ onMounted(async () => {
     <div class="mb-4">
       <button @click="mobileTabsOpen = !mobileTabsOpen"
               class="md:hidden w-full flex items-center justify-between gap-2 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium">
-        {{ tabDefs.find((t) => t[0] === tab)?.[1] }}
+        {{ tr(tabDefs.find((t) => t[0] === tab)?.[1]) }}
         <svg viewBox="0 0 24 24" class="w-4 h-4 shrink-0 transition-transform" :class="{ 'rotate-180': mobileTabsOpen }"
              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6" /></svg>
       </button>
@@ -1022,7 +1023,7 @@ onMounted(async () => {
         <button v-for="t in tabDefs" :key="t[0]" @click="switchTab(t[0])"
                 class="whitespace-nowrap text-left md:text-center rounded-lg px-3 py-1.5"
                 :class="tab === t[0] ? 'bg-slate-800 text-white dark:bg-slate-600' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60'">
-          {{ t[1] }}
+          {{ tr(t[1]) }}
         </button>
       </div>
     </div>
@@ -1031,35 +1032,35 @@ onMounted(async () => {
 
     <!-- Dashboard: at-a-glance overview -->
     <section v-show="tab === 'dashboard'" class="space-y-5">
-      <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+      <button @click="loadDashboard" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
 
       <div v-if="dashboard" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <button type="button" @click="switchTab('users')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Users</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Users') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalUsers) }}</div>
           <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ dashboard.teacherCount }} teacher · {{ dashboard.studentCount }} student · {{ dashboard.adminCount }} admin
+            {{ tr('{t} teacher · {s} student · {a} admin', { t: dashboard.teacherCount, s: dashboard.studentCount, a: dashboard.adminCount }) }}
           </div>
         </button>
 
         <button type="button" @click="switchTab('boards')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Boards</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Boards') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalBoards) }}</div>
         </button>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Problems</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Problems') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalProblems + dashboard.totalBankProblems) }}</div>
           <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ fmt(dashboard.totalProblems) }} on boards · {{ fmt(dashboard.totalBankProblems) }} in bank
+            {{ tr('{a} on boards · {b} in bank', { a: fmt(dashboard.totalProblems), b: fmt(dashboard.totalBankProblems) }) }}
           </div>
         </div>
 
         <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Submissions</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Submissions') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.totalSubmissions) }}</div>
           <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ dashboard.totalSubmissions ? Math.round(100 * dashboard.acceptedSubmissions / dashboard.totalSubmissions) : 0 }}% accepted
+            {{ tr('{n}% accepted', { n: dashboard.totalSubmissions ? Math.round(100 * dashboard.acceptedSubmissions / dashboard.totalSubmissions) : 0 }) }}
           </div>
         </div>
 
@@ -1067,7 +1068,7 @@ onMounted(async () => {
                 :class="dashboard.pendingAiReview
                   ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50/50 dark:bg-amber-500/5 hover:border-amber-400'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'">
-          <div class="text-xs text-slate-500 dark:text-slate-400">Pending problem review</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Pending problem review') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.pendingAiReview) }}</div>
         </button>
 
@@ -1075,23 +1076,23 @@ onMounted(async () => {
                 :class="dashboard.trashCount
                   ? 'border-rose-300 dark:border-rose-500/40 bg-rose-50/50 dark:bg-rose-500/5 hover:border-rose-400'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'">
-          <div class="text-xs text-slate-500 dark:text-slate-400">In trash</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('In trash') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.trashCount) }}</div>
         </button>
 
         <button type="button" @click="switchTab('ai')" class="text-left border border-slate-200 dark:border-slate-800 rounded-xl p-4 hover:border-slate-300 dark:hover:border-slate-700">
-          <div class="text-xs text-slate-500 dark:text-slate-400">AI calls today / this month</div>
+          <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('AI calls today / this month') }}</div>
           <div class="text-2xl font-bold">{{ fmt(dashboard.aiToday.calls) }} / {{ fmt(dashboard.aiMonth.calls) }}</div>
           <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            {{ fmt(dashboard.aiToday.totalTokens) }} / {{ fmt(dashboard.aiMonth.totalTokens) }} tokens
+            {{ tr('{a} / {b} tokens', { a: fmt(dashboard.aiToday.totalTokens), b: fmt(dashboard.aiMonth.totalTokens) }) }}
           </div>
         </button>
       </div>
-      <p v-else-if="!dashboard" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
+      <p v-else-if="!dashboard" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h3 class="font-semibold text-sm">Engagement</h3>
+          <h3 class="font-semibold text-sm">{{ tr('Engagement') }}</h3>
           <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="g in [['hour', 'Hourly'], ['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                     @click="setEngagementGranularity(g[0])" class="px-2.5 py-1"
@@ -1101,15 +1102,15 @@ onMounted(async () => {
           </span>
         </div>
         <div v-if="hasData(engagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`Active users / ${engagementGranularity}`" :points="activeUserPoints()" />
-          <MiniLineChart :title="`Submissions / ${engagementGranularity}`" :points="submissionPoints()" />
+          <MiniLineChart :title="tr('Active users / {g}', { g: tr(engagementGranularity) })" :points="activeUserPoints()" />
+          <MiniLineChart :title="tr('Submissions / {g}', { g: tr(engagementGranularity) })" :points="submissionPoints()" />
         </div>
-        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No activity in this window yet.</p>
+        <p v-else-if="engagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity in this window yet.') }}</p>
       </div>
 
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h3 class="font-semibold text-sm">AI usage</h3>
+          <h3 class="font-semibold text-sm">{{ tr('AI usage') }}</h3>
           <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
             <button v-for="g in [['day', 'Daily'], ['week', 'Weekly']]" :key="g[0]"
                     @click="setAiGranularity(g[0])" class="px-2.5 py-1"
@@ -1119,21 +1120,21 @@ onMounted(async () => {
           </span>
         </div>
         <div v-if="hasData(aiEngagementStats)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <MiniLineChart :title="`AI calls / ${aiGranularity}`" :points="aiCallPoints()" />
-          <MiniLineChart :title="`AI tokens / ${aiGranularity}`" :points="aiTokenPoints()" />
+          <MiniLineChart :title="tr('AI calls / {g}', { g: tr(aiGranularity) })" :points="aiCallPoints()" />
+          <MiniLineChart :title="tr('AI tokens / {g}', { g: tr(aiGranularity) })" :points="aiTokenPoints()" />
         </div>
-        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage yet.</p>
+        <p v-else-if="aiEngagementStats" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No AI usage yet.') }}</p>
       </div>
 
       <div v-if="topicStats">
-        <h2 class="font-semibold text-sm mb-1.5">Top topics by attempts</h2>
+        <h2 class="font-semibold text-sm mb-1.5">{{ tr('Top topics by attempts') }}</h2>
         <TopicBarChart :items="topicBarItems()" />
       </div>
 
       <div v-if="dashboard">
         <div class="flex items-center gap-2 mb-1.5">
-          <h2 class="font-semibold text-sm">Recent activity</h2>
-          <button @click="switchTab('audit')" class="row-action-btn">view all</button>
+          <h2 class="font-semibold text-sm">{{ tr('Recent activity') }}</h2>
+          <button @click="switchTab('audit')" class="row-action-btn">{{ tr('view all') }}</button>
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
@@ -1145,7 +1146,7 @@ onMounted(async () => {
             <div class="text-xs">{{ r.actorEmail }}</div>
             <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
           </div>
-          <p v-if="!dashboard.recentActivity.length" class="text-slate-500 dark:text-slate-400 text-sm">No activity yet.</p>
+          <p v-if="!dashboard.recentActivity.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity yet.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -1158,7 +1159,7 @@ onMounted(async () => {
                 <td><span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span></td>
                 <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
               </tr>
-              <tr v-if="!dashboard.recentActivity.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No activity yet.</td></tr>
+              <tr v-if="!dashboard.recentActivity.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No activity yet.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -1169,175 +1170,171 @@ onMounted(async () => {
     <section v-show="tab === 'ai'" class="space-y-5">
       <!-- Kill-switch + default daily quotas -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiSettings">
-        <h2 class="font-semibold text-sm mb-2">Global AI settings</h2>
+        <h2 class="font-semibold text-sm mb-2">{{ tr('Global AI settings') }}</h2>
         <label class="flex items-center gap-2 text-sm mb-2">
           <input type="checkbox" v-model="aiSettings.paused" />
           <span :class="aiSettings.paused ? 'text-rose-600 dark:text-rose-400 font-medium' : ''">
-            Pause AI platform-wide {{ aiSettings.paused ? '(paused — no AI feature works right now)' : '' }}
+            {{ tr('Pause AI platform-wide') }} {{ aiSettings.paused ? tr('(paused — no AI feature works right now)') : '' }}
           </span>
         </label>
-        <input v-model="aiSettings.pausedReason" placeholder="Reason (shown in the audit log only)" aria-label="Reason (shown in the audit log only)"
+        <input v-model="aiSettings.pausedReason" :placeholder="tr('Reason (shown in the audit log only)')" :aria-label="tr('Reason (shown in the audit log only)')"
                class="w-full mb-3 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
         <div class="flex flex-wrap gap-4 mb-3 text-sm">
-          <label class="flex items-center gap-2">Daily quota · students
+          <label class="flex items-center gap-2">{{ tr('Daily quota · students') }}
             <input v-model.number="aiSettings.dailyQuotaStudent" type="number" min="0"
                    class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
-          <label class="flex items-center gap-2">Daily quota · teachers
+          <label class="flex items-center gap-2">{{ tr('Daily quota · teachers') }}
             <input v-model.number="aiSettings.dailyQuotaTeacher" type="number" min="0"
                    class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1" />
           </label>
         </div>
         <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-3">
-          Requests per user per calendar day (UTC), across hints + problem generation combined.
-          Takes effect on the next AI request platform-wide — no restart needed.
+          {{ tr('Requests per user per calendar day (UTC), across hints + problem generation combined. Takes effect on the next AI request platform-wide — no restart needed.') }}
         </p>
         <button @click="saveAiSettings" :disabled="aiSettingsSaving"
                 class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ aiSettingsSaving ? 'Saving…' : 'Save' }}
+          {{ aiSettingsSaving ? tr('Saving…') : tr('Save') }}
         </button>
       </div>
 
       <!-- Which AI provider/credential is billed -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiProvider">
-        <h2 class="font-semibold text-sm mb-1">AI provider (platform default)</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('AI provider (platform default)') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-          Overrides appsettings.json's <code>Ai:*</code> at runtime. An organization can set
-          its own key/model in <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
-          → AI settings, which takes priority over this for that organization only.
+          {{ tr('Overrides appsettings.json\'s') }} <code>Ai:*</code> {{ tr('at runtime. An organization can set its own key/model in') }} <RouterLink to="/org-admin" class="underline">{{ tr('Organization') }}</RouterLink>
+          {{ tr('→ AI settings, which takes priority over this for that organization only.') }}
         </p>
         <div class="space-y-2 text-sm max-w-md">
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">
-              API key {{ aiProvider.hasApiKey ? `(saved: ${aiProvider.apiKeyPreview})` : '(none saved — using appsettings.json, if any)' }}
+              {{ tr('API key') }} {{ aiProvider.hasApiKey ? tr('(saved: {p})', { p: aiProvider.apiKeyPreview }) : tr('(none saved — using appsettings.json, if any)') }}
             </span>
             <div class="flex gap-2">
-              <input v-model="aiProviderForm.apiKey" type="password" placeholder="Leave blank to keep the saved key" aria-label="Leave blank to keep the saved key"
+              <input v-model="aiProviderForm.apiKey" type="password" :placeholder="tr('Leave blank to keep the saved key')" :aria-label="tr('Leave blank to keep the saved key')"
                      class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-              <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">Clear</button>
+              <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">{{ tr('Clear') }}</button>
             </div>
           </label>
-          <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Base URL</label>
-          <input id="ai-base-url" v-model="aiProviderForm.baseUrl" placeholder="Base URL (blank = appsettings.json default)" aria-label="Base URL (blank = appsettings.json default)"
+          <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Base URL') }}</label>
+          <input id="ai-base-url" v-model="aiProviderForm.baseUrl" :placeholder="tr('Base URL (blank = appsettings.json default)')" :aria-label="tr('Base URL (blank = appsettings.json default)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model</label>
-          <input id="ai-model" v-model="aiProviderForm.model" placeholder="Model (blank = appsettings.json default)" aria-label="Model (blank = appsettings.json default)"
+          <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model') }}</label>
+          <input id="ai-model" v-model="aiProviderForm.model" :placeholder="tr('Model (blank = appsettings.json default)')" :aria-label="tr('Model (blank = appsettings.json default)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">Model for generating problems</label>
-          <input id="ai-generate-model" v-model="aiProviderForm.generateModel" placeholder="Generate-problem model (blank = same as above)" aria-label="Generate-problem model (blank = same as above)"
+          <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model for generating problems') }}</label>
+          <input id="ai-generate-model" v-model="aiProviderForm.generateModel" :placeholder="tr('Generate-problem model (blank = same as above)')" :aria-label="tr('Generate-problem model (blank = same as above)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
         <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiProviderMsg }}</p>
         <button @click="saveAiProvider" :disabled="aiProviderSaving"
                 class="mt-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-          {{ aiProviderSaving ? 'Saving…' : 'Save' }}
+          {{ aiProviderSaving ? tr('Saving…') : tr('Save') }}
         </button>
       </div>
 
       <!-- Are hints helping? -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="hintEffect">
         <div class="flex items-center gap-2 mb-1">
-          <h2 class="font-semibold text-sm">Are AI hints helping?</h2>
-          <select v-model.number="hintEffectDays" @change="loadHintEffect" aria-label="Time window"
+          <h2 class="font-semibold text-sm">{{ tr('Are AI hints helping?') }}</h2>
+          <select v-model.number="hintEffectDays" @change="loadHintEffect" :aria-label="tr('Time window')"
                   class="ml-auto border border-slate-400 dark:border-slate-500 rounded-lg px-2 py-1 text-xs dark:bg-slate-800">
-            <option :value="7">Last 7 days</option><option :value="30">Last 30 days</option><option :value="90">Last 90 days</option>
+            <option :value="7">{{ tr('Last 7 days') }}</option><option :value="30">{{ tr('Last 30 days') }}</option><option :value="90">{{ tr('Last 90 days') }}</option>
           </select>
         </div>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-          Per student and problem that asked for a hint (hints are logged from the release that added this, with no text).
-          Pairs already solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is
-          not a fair comparison — trust the speed numbers more.
+          {{ tr('Per student and problem that asked for a hint (hints are logged from the release that added this, with no text). Pairs already solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.') }}
         </p>
-        <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">No hints logged in this period yet.</p>
+        <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints logged in this period yet.') }}</p>
         <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <div><dt class="text-xs text-slate-500">Student–problem pairs</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.students }} students)</span></dd></div>
-          <div><dt class="text-xs text-slate-500">Solved after a hint</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Solved within 30 min</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Median time to solve</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
-          <div><dt class="text-xs text-slate-500">Deep hints (level 3+), never solved</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-          <div><dt class="text-xs text-slate-500">No hint, same problems: solved</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
         </dl>
       </div>
 
       <!-- Tuning + backup providers -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4" v-if="aiExtras">
-        <h2 class="font-semibold text-sm mb-1">AI tuning and backup providers</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('AI tuning and backup providers') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-          Blank fields use appsettings.json's <code>Ai:*</code>. Backups are tried in order when the provider above fails
+          {{ tr('Blank fields use appsettings.json\'s') }} <code>Ai:*</code>. Backups are tried in order when the provider above fails
           (timeout, 429, 5xx, 401/403, empty reply — not for a 400/422). A hint only moves to a backup before its first word is shown.
           An organization with its own key never falls back to these.
         </p>
         <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Max tokens per hint (100–16000)</span>
-            <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" placeholder="appsettings" aria-label="appsettings"
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Max tokens per hint (100–16000)') }}</span>
+            <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" :placeholder="tr('appsettings')" :aria-label="tr('appsettings')"
                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           </label>
           <label class="flex flex-col gap-1">
-            <span class="text-xs text-slate-500 dark:text-slate-400">Reasoning effort</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Reasoning effort') }}</span>
             <select v-model="aiExtrasForm.reasoningEffort"
-                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" aria-label="appsettings / don't send">
-              <option value="">appsettings / don't send</option>
-              <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+                    class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" :aria-label="tr('appsettings / don\'t send')">
+              <option value="">{{ tr('appsettings / don\'t send') }}</option>
+              <option value="low">{{ tr('low') }}</option><option value="medium">{{ tr('medium') }}</option><option value="high">{{ tr('high') }}</option>
             </select>
           </label>
         </div>
         <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
-          <span class="text-xs text-slate-500 dark:text-slate-400">Review model (AI check + report triage; blank = the generate-problem model)</span>
-          <input v-model="aiExtrasForm.reviewModel" placeholder="e.g. mistralai/mistral-large-4-1t-a52b" aria-label="Model"
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Review model (AI check + report triage; blank = the generate-problem model)') }}</span>
+          <input v-model="aiExtrasForm.reviewModel" :placeholder="tr('e.g. mistralai/mistral-large-4-1t-a52b')" :aria-label="tr('Model')"
                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </label>
         <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
-          <span class="text-xs text-slate-500 dark:text-slate-400">Effort for problem generation + AI review (turns thinking on; blank = quiet and fast: low, no thinking)</span>
-          <select v-model="aiExtrasForm.jobEffort" aria-label="Effort for generation and review"
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Effort for problem generation + AI review (turns thinking on; blank = quiet and fast: low, no thinking)') }}</span>
+          <select v-model="aiExtrasForm.jobEffort" :aria-label="tr('Effort for generation and review')"
                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
-            <option value="">quiet default (low, no thinking)</option>
-            <option value="low">low</option><option value="medium">medium</option><option value="high">high</option>
+            <option value="">{{ tr('quiet default (low, no thinking)') }}</option>
+            <option value="low">{{ tr('low') }}</option><option value="medium">{{ tr('medium') }}</option><option value="high">{{ tr('high') }}</option>
           </select>
         </label>
         <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">Backup {{ i + 1 }}</span>
-            <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">Remove</button>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ tr('Backup {n}', { n: i + 1 }) }}</span>
+            <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">{{ tr('Remove') }}</button>
           </div>
-          <input v-model="f.model" placeholder="Model, e.g. moonshotai/kimi-k3.1-pro" aria-label="Model"
+          <input v-model="f.model" :placeholder="tr('Model, e.g. moonshotai/kimi-k3.1-pro')" :aria-label="tr('Model')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? `API key (saved: ${f.keyPreview}) — blank keeps it` : 'API key (blank = same as the main provider)'"
+          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="f.baseUrl" placeholder="Base URL (blank = same as the main provider)" aria-label="Base URL (blank = same as the main provider)"
+          <input v-model="f.baseUrl" :placeholder="tr('Base URL (blank = same as the main provider)')" :aria-label="tr('Base URL (blank = same as the main provider)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
-        <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">+ Add backup provider</button>
+        <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">{{ tr('+ Add backup provider') }}</button>
         <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
         <div>
           <button @click="saveAiExtras" :disabled="aiExtrasSaving"
                   class="mt-3 bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            {{ aiExtrasSaving ? 'Saving…' : 'Save' }}
+            {{ aiExtrasSaving ? tr('Saving…') : tr('Save') }}
           </button>
         </div>
       </div>
 
       <!-- Per-user overrides / bans -->
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-2">Per-user overrides</h2>
+        <h2 class="font-semibold text-sm mb-2">{{ tr('Per-user overrides') }}</h2>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2 mb-3">
           <div v-for="row in aiOverrides" :key="row.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ row.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-2">{{ row.email }}</div>
             <div class="flex items-center gap-3 flex-wrap text-xs">
-              <label class="flex items-center gap-1.5">Quota
-                <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default" aria-label="role default"
+              <label class="flex items-center gap-1.5">{{ tr('Quota') }}
+                <input v-model.number="row.dailyQuotaOverride" type="number" min="0" :placeholder="tr('role default')" :aria-label="tr('role default')"
                        class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
               </label>
-              <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> Banned</label>
+              <label class="flex items-center gap-1.5"><input type="checkbox" v-model="row.banned" /> {{ tr('Banned') }}</label>
             </div>
             <div class="mt-2 flex gap-3">
-              <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success">Save</button>
-              <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
+              <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success">{{ tr('Save') }}</button>
+              <button @click="clearOverride(row)" class="row-action-btn">{{ tr('Clear') }}</button>
             </div>
           </div>
-          <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-500 dark:text-slate-400 text-sm">No overrides set.</p>
+          <p v-if="aiOverrides && !aiOverrides.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No overrides set.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -1345,40 +1342,40 @@ onMounted(async () => {
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th class="font-normal py-1.5 pr-3">User</th><th class="font-normal pr-3">Daily quota</th>
-                <th class="font-normal pr-3">Banned</th><th class="font-normal pr-3"></th>
+                <th class="font-normal py-1.5 pr-3">{{ tr('User') }}</th><th class="font-normal pr-3">{{ tr('Daily quota') }}</th>
+                <th class="font-normal pr-3">{{ tr('Banned') }}</th><th class="font-normal pr-3"></th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="row in aiOverrides" :key="row.userId" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td><div class="font-medium">{{ row.displayName }}</div><div class="text-[11px] text-slate-400">{{ row.email }}</div></td>
                 <td>
-                  <input v-model.number="row.dailyQuotaOverride" type="number" min="0" placeholder="role default" aria-label="role default"
+                  <input v-model.number="row.dailyQuotaOverride" type="number" min="0" :placeholder="tr('role default')" :aria-label="tr('role default')"
                          class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
                 </td>
                 <td><input type="checkbox" v-model="row.banned" /></td>
                 <td class="whitespace-nowrap">
-                  <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success mr-1">Save</button>
-                  <button @click="clearOverride(row)" class="row-action-btn">Clear</button>
+                  <button @click="saveOverride(row)" class="row-action-btn row-action-btn--success mr-1">{{ tr('Save') }}</button>
+                  <button @click="clearOverride(row)" class="row-action-btn">{{ tr('Clear') }}</button>
                 </td>
               </tr>
-              <tr v-if="aiOverrides && !aiOverrides.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No overrides set.</td></tr>
+              <tr v-if="aiOverrides && !aiOverrides.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No overrides set.') }}</td></tr>
             </tbody>
           </table>
         </div>
         <div class="flex flex-wrap items-end gap-2 text-sm">
-          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">User ID
-            <input v-model.number="newOverride.userId" type="number" placeholder="see Users tab" aria-label="see Users tab"
+          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">{{ tr('User ID') }}
+            <input v-model.number="newOverride.userId" type="number" :placeholder="tr('see Users tab')" :aria-label="tr('see Users tab')"
                    class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
-          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">Daily quota
-            <input v-model.number="newOverride.quota" type="number" min="0" placeholder="role default" aria-label="role default"
+          <label class="flex flex-col text-xs text-slate-500 dark:text-slate-400">{{ tr('Daily quota') }}
+            <input v-model.number="newOverride.quota" type="number" min="0" :placeholder="tr('role default')" :aria-label="tr('role default')"
                    class="w-28 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
           </label>
-          <label class="flex items-center gap-1.5"><input type="checkbox" v-model="newOverride.banned" /> Banned</label>
+          <label class="flex items-center gap-1.5"><input type="checkbox" v-model="newOverride.banned" /> {{ tr('Banned') }}</label>
           <button @click="addOverride" :disabled="!newOverride.userId"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-            Add / update
+            {{ tr('Add / update') }}
           </button>
         </div>
       </div>
@@ -1386,32 +1383,32 @@ onMounted(async () => {
       <!-- Usage -->
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">Usage</h2>
-          <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+          <h2 class="font-semibold text-sm">{{ tr('Usage') }}</h2>
+          <button @click="loadAi" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
           <button @click="downloadFile('/api/admin-ui/analytics/ai-usage.csv', 'ai-usage.csv')"
-                  class="text-xs text-slate-500 dark:text-slate-400 ml-auto"><Icon name="download" /> export CSV</button>
+                  class="text-xs text-slate-500 dark:text-slate-400 ml-auto"><Icon name="download" /> {{ tr('export CSV') }}</button>
         </div>
         <!-- mobile: cards -->
         <div v-if="tableView === 'card'" class="space-y-2">
           <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-            <label for="ai-sort">Sort by</label>
+            <label for="ai-sort">{{ tr('Sort by') }}</label>
             <select id="ai-sort" :value="aiSort" @change="aiSort = $event.target.value; aiDir = firstDir(aiSort, false); aiPage = 1; loadAi()"
                     class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1.5 py-1">
               <option v-for="[k, l] in AI_SORTS" :key="k" :value="k">{{ l }}</option>
             </select>
             <button type="button" @click="aiDir = aiDir === 'asc' ? 'desc' : 'asc'; aiPage = 1; loadAi()" class="row-action-btn"
-                    :title="aiDir === 'asc' ? 'Ascending' : 'Descending'">{{ aiDir === 'asc' ? '▲' : '▼' }}</button>
+                    :title="aiDir === 'asc' ? tr('Ascending') : tr('Descending')">{{ aiDir === 'asc' ? '▲' : '▼' }}</button>
           </div>
           <div v-for="r in aiRows" :key="r.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ r.displayName }}</div>
             <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
             <div class="text-xs grid grid-cols-3 gap-2 tabular-nums">
-              <div><div class="text-[11px] text-slate-400">Today</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
-              <div><div class="text-[11px] text-slate-400">Month</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
-              <div><div class="text-[11px] text-slate-400">All time</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
+              <div><div class="text-[11px] text-slate-400">{{ tr('Today') }}</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-400">{{ tr('Month') }}</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-400">{{ tr('All time') }}</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
             </div>
           </div>
-          <p v-if="aiRows && !aiRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No AI usage yet.</p>
+          <p v-if="aiRows && !aiRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No AI usage yet.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -1432,7 +1429,7 @@ onMounted(async () => {
                 <td class="tabular-nums">{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</td>
                 <td class="tabular-nums font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</td>
               </tr>
-              <tr v-if="aiRows && !aiRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No AI usage yet.</td></tr>
+              <tr v-if="aiRows && !aiRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No AI usage yet.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -1442,9 +1439,9 @@ onMounted(async () => {
           </span>
           <div class="ml-auto flex gap-2">
             <button @click="aiPrevPage" :disabled="aiPage === 1"
-                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
             <button @click="aiNextPage" :disabled="aiPage * aiPageSize >= aiTotal"
-                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
           </div>
         </div>
       </div>
@@ -1455,15 +1452,15 @@ onMounted(async () => {
       <!-- two-step verification policy -->
       <div v-if="mfaPolicy" class="mb-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-2">
         <div class="flex flex-col sm:flex-row sm:items-center gap-x-3 gap-y-1">
-          <h2 class="font-semibold text-sm whitespace-nowrap"><Icon name="lock" /> Require two-step verification</h2>
-          <span class="text-xs text-slate-500 dark:text-slate-400">Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.</span>
+          <h2 class="font-semibold text-sm whitespace-nowrap"><Icon name="lock" /> {{ tr('Require two-step verification') }}</h2>
+          <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Off by default. Accounts in a switched-on group are held on their Account page until they turn on an authenticator app or email code.') }}</span>
         </div>
         <div class="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5 pt-1">
           <label v-for="g in MFA_GROUPS" :key="g.key" class="flex items-center gap-2 text-sm cursor-pointer">
             <input type="checkbox" :checked="mfaPolicy[g.key]" :disabled="mfaPolicyBusy" @click.prevent="toggleMfaPolicy(g)" class="accent-amber-500 w-4 h-4" />
-            <span>{{ g.label }}</span>
+            <span>{{ tr(g.label) }}</span>
             <span class="text-xs tabular-nums" :class="mfaPolicy[g.without] > 0 ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'"
-                  :title="mfaPolicy[g.without] + ' without two-step verification'">· {{ mfaPolicy[g.without] }} without</span>
+                  :title="tr('{n} without two-step verification', { n: mfaPolicy[g.without] })">· {{ tr('{n} without', { n: mfaPolicy[g.without] }) }}</span>
           </label>
         </div>
       </div>
@@ -1472,29 +1469,29 @@ onMounted(async () => {
           <button @click="setUserFilter(c.key)" :aria-pressed="userFilter === c.key"
                   class="px-2.5 py-1 tabular-nums"
                   :class="userFilter === c.key ? 'bg-emerald-500 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'"
-                  :title="`Show only users with: ${c.label}`">
-            {{ c.label }} <b>{{ userStats[c.stat] }}</b><span class="text-slate-400" :class="{ 'text-white/80': userFilter === c.key }"> / {{ userStats.users }}</span>
+                  :title="tr('Show only users with: {label}', { label: tr(c.label) })">
+            {{ tr(c.label) }} <b>{{ userStats[c.stat] }}</b><span class="text-slate-400" :class="{ 'text-white/80': userFilter === c.key }"> / {{ userStats.users }}</span>
           </button>
           <button v-if="c.miss" @click="setUserFilter(c.miss)" :aria-pressed="userFilter === c.miss"
                   class="px-2 py-1 tabular-nums border-l border-slate-200 dark:border-slate-800"
                   :class="userFilter === c.miss ? 'bg-amber-500 text-slate-900' : 'text-amber-700 dark:text-amber-400 hover:bg-slate-100 dark:hover:bg-slate-800'"
-                  :title="`Show only users ${c.missLabel}`">{{ userStats.users - userStats[c.stat] }} {{ c.missLabel }}</button>
+                  :title="tr('Show only users {label}', { label: tr(c.missLabel) })">{{ userStats.users - userStats[c.stat] }} {{ tr(c.missLabel) }}</button>
         </div>
       </div>
       <div class="flex gap-2 mb-3 flex-wrap items-center">
-        <input v-model="userQ" @keyup.enter="searchUsers" placeholder="Search name or email…" aria-label="Search name or email…"
+        <input v-model="userQ" @keyup.enter="searchUsers" :placeholder="tr('Search name or email…')" :aria-label="tr('Search name or email…')"
                class="flex-1 min-w-[10rem] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="searchUsers" class="self-stretch text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
+        <button @click="searchUsers" class="self-stretch text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
         <button @click="recalculateProgress" :disabled="recalcBusy"
                 class="row-action-btn row-action-btn--accent shrink-0 disabled:opacity-50"
-                title="Rebuild everyone's streak / longest streak / best-day-solved from raw submission history">
-          {{ recalcBusy ? 'Recalculating…' : '↻ Recalculate progress' }}
+                :title="tr('Rebuild everyone\'s streak / longest streak / best-day-solved from raw submission history')">
+          {{ recalcBusy ? tr('Recalculating…') : tr('↻ Recalculate progress') }}
         </button>
       </div>
       <div v-if="selectedUsers.size" class="flex items-center gap-2 mb-2 text-sm">
-        <span>{{ selectedUsers.size }} selected</span>
+        <span>{{ tr('{n} selected', { n: selectedUsers.size }) }}</span>
         <button @click="deleteSelectedUsers" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1 text-xs font-medium">
-          Delete selected
+          {{ tr('Delete selected') }}
         </button>
       </div>
       <p v-if="userDeleteResultMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mb-2">{{ userDeleteResultMsg }}</p>
@@ -1503,17 +1500,17 @@ onMounted(async () => {
       <!-- mobile: cards -->
       <div v-if="tableView === 'card'" class="space-y-2">
         <div class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-          <label for="users-sort">Sort by</label>
+          <label for="users-sort">{{ tr('Sort by') }}</label>
           <select id="users-sort" :value="usersSort" @change="usersSort = $event.target.value; usersDir = firstDir(usersSort, true); usersPage = 1; loadUsers()"
                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1.5 py-1">
             <option v-for="[k, l] in USER_SORTS" :key="k" :value="k">{{ l }}</option>
           </select>
           <button type="button" @click="usersDir = usersDir === 'asc' ? 'desc' : 'asc'; usersPage = 1; loadUsers()" class="row-action-btn"
-                  :title="usersDir === 'asc' ? 'Ascending' : 'Descending'">{{ usersDir === 'asc' ? '▲' : '▼' }}</button>
+                  :title="usersDir === 'asc' ? tr('Ascending') : tr('Descending')">{{ usersDir === 'asc' ? '▲' : '▼' }}</button>
         </div>
         <label v-if="users?.length" class="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 px-1">
           <input type="checkbox" :checked="selectedUsers.size === users.filter((u) => u.id !== auth.user?.id).length"
-                 @change="selectAllUsers($event.target.checked)" /> Select all
+                 @change="selectAllUsers($event.target.checked)" /> {{ tr('Select all') }}
         </label>
         <div v-for="u in users" :key="u.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-start gap-2">
@@ -1530,19 +1527,19 @@ onMounted(async () => {
           <div class="flex items-center gap-2 flex-wrap mt-2">
             <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
                     class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
-              <option value="Student">Student</option>
-              <option value="Teacher">Teacher</option>
+              <option value="Student">{{ tr('Student') }}</option>
+              <option value="Teacher">{{ tr('Teacher') }}</option>
             </select>
             <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
-            <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
-            <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified"><Icon name="message" /> unverified</span>
-            <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on"><Icon name="lock" /> 2FA</span>
-            <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in"><Icon name="key" /> passkey</span>
-            <span class="text-[11px] text-slate-400 tabular-nums">{{ fmt(u.xp) }} XP · {{ u.ownedBoards }} boards · {{ u.submissions }} subs</span>
+            <span v-if="u.isAdmin" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">{{ tr('admin') }}</span>
+            <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" :title="tr('Email not verified')"><Icon name="message" /> {{ tr('unverified') }}</span>
+            <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" :title="tr('Two-step verification is on')"><Icon name="lock" /> 2FA</span>
+            <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" :title="tr('Has a passkey for passwordless sign-in')"><Icon name="key" /> {{ tr('passkey') }}</span>
+            <span class="text-[11px] text-slate-400 tabular-nums">{{ tr('{xp} XP · {b} boards · {s} subs', { xp: fmt(u.xp), b: u.ownedBoards, s: u.submissions }) }}</span>
           </div>
-          <div class="text-[11px] text-slate-400 mt-1">Joined {{ new Date(u.createdAt).toLocaleDateString() }}</div>
+          <div class="text-[11px] text-slate-400 mt-1">{{ tr('Joined {when}', { when: new Date(u.createdAt).toLocaleDateString() }) }}</div>
         </div>
-        <p v-if="users && !users.length" class="text-slate-500 dark:text-slate-400 text-sm">No users.</p>
+        <p v-if="users && !users.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No users.') }}</p>
       </div>
 
       <!-- desktop: table -->
@@ -1572,14 +1569,14 @@ onMounted(async () => {
               <td>
                 <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
                         class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
-                  <option value="Student">Student</option>
-                  <option value="Teacher">Teacher</option>
+                  <option value="Student">{{ tr('Student') }}</option>
+                  <option value="Teacher">{{ tr('Teacher') }}</option>
                 </select>
                 <span v-else class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">{{ u.role }}</span>
-                <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">admin</span>
-                <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" title="Email not verified"><Icon name="message" /> unverified</span>
-                <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" title="Two-step verification is on"><Icon name="lock" /> 2FA</span>
-                <span v-if="u.hasPasskey" class="ml-1 inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" title="Has a passkey for passwordless sign-in"><Icon name="key" /> passkey</span>
+                <span v-if="u.isAdmin" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">{{ tr('admin') }}</span>
+                <span v-if="!u.emailVerified" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" :title="tr('Email not verified')"><Icon name="message" /> {{ tr('unverified') }}</span>
+                <span v-if="u.mfaEnabled" class="ml-1 text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" :title="tr('Two-step verification is on')"><Icon name="lock" /> 2FA</span>
+                <span v-if="u.hasPasskey" class="ml-1 inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" :title="tr('Has a passkey for passwordless sign-in')"><Icon name="key" /> {{ tr('passkey') }}</span>
               </td>
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
@@ -1590,7 +1587,7 @@ onMounted(async () => {
                                   @reset-mfa="resetMfa(u)" @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
               </td>
             </tr>
-            <tr v-if="users && !users.length"><td colspan="9" class="text-slate-500 dark:text-slate-400 py-3">No users.</td></tr>
+            <tr v-if="users && !users.length"><td colspan="9" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No users.') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -1600,42 +1597,41 @@ onMounted(async () => {
         </span>
         <div class="ml-auto flex gap-2">
           <button @click="usersPrevPage" :disabled="usersPage === 1"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
           <button @click="usersNextPage" :disabled="usersPage * usersPageSize >= usersTotal"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
         </div>
       </div>
 
       <div class="mt-5 border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-1">Bulk import (CSV)</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('Bulk import (CSV)') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          Header row required — at least <code>email</code> and <code>name</code> (or
+          {{ tr('Header row required — at least') }} <code>email</code> and <code>name</code> (or
           <code>displayname</code>); optional <code>role</code> and <code>password</code>
-          columns. An email that already exists is left alone (just optionally added to the
-          board below). A missing password is auto-generated and shown once — copy it down.
+          {{ tr('columns. An email that already exists is left alone (just optionally added to the board below). A missing password is auto-generated and shown once — copy it down.') }}
         </p>
         <div class="flex flex-wrap gap-2 mb-2 text-sm">
           <select v-model="importDefaultRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
-            <option value="Student">Default role: Student</option>
-            <option value="Teacher">Default role: Teacher</option>
+            <option value="Student">{{ tr('Default role: Student') }}</option>
+            <option value="Teacher">{{ tr('Default role: Teacher') }}</option>
           </select>
-          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" aria-label="Don't assign to a board">
-            <option value="">Don't assign to a board</option>
-            <option v-for="b in boards" :key="b.slug" :value="b.slug">Add to: {{ b.title }}</option>
+          <select v-model="importBoardSlug" class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" :aria-label="tr('Don\'t assign to a board')">
+            <option value="">{{ tr('Don\'t assign to a board') }}</option>
+            <option v-for="b in boards" :key="b.slug" :value="b.slug">{{ tr('Add to: {title}', { title: b.title }) }}</option>
           </select>
         </div>
-        <input type="file" accept="text/csv,.csv" aria-label="CSV file of users" @change="importUsersCsv" :disabled="importingUsers" class="text-sm" />
-        <p v-if="importingUsers" class="text-xs text-slate-400 mt-2">Importing…</p>
+        <input type="file" accept="text/csv,.csv" :aria-label="tr('CSV file of users')" @change="importUsersCsv" :disabled="importingUsers" class="text-sm" />
+        <p v-if="importingUsers" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
         <div v-if="userImportResult" class="mt-3 text-sm">
           <p class="text-emerald-600 dark:text-emerald-400">
-            Created {{ userImportResult.created }} · Already existed {{ userImportResult.existing }} · Errors {{ userImportResult.errors }}
+            {{ tr('Created {a} · Already existed {b} · Errors {c}', { a: userImportResult.created, b: userImportResult.existing, c: userImportResult.errors }) }}
           </p>
           <div class="overflow-x-auto mt-2">
             <table class="w-full text-xs">
               <thead>
                 <tr class="text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                  <th class="font-normal py-1 pr-3">Email</th><th class="font-normal pr-3">Name</th>
-                  <th class="font-normal pr-3">Password</th><th class="font-normal pr-3">Note</th>
+                  <th class="font-normal py-1 pr-3">{{ tr('Email') }}</th><th class="font-normal pr-3">{{ tr('Name') }}</th>
+                  <th class="font-normal pr-3">{{ tr('Password') }}</th><th class="font-normal pr-3">{{ tr('Note') }}</th>
                 </tr>
               </thead>
               <tbody class="[&_td]:py-1 [&_td]:pr-3">
@@ -1644,7 +1640,7 @@ onMounted(async () => {
                   <td>{{ row.displayName }}</td>
                   <td class="font-mono">{{ row.generatedPassword || '—' }}</td>
                   <td :class="row.error ? 'text-red-600 dark:text-red-400' : 'text-slate-400'">
-                    {{ row.error || (row.addedToBoard ? 'added to board' : (row.created ? 'created' : 'already existed')) }}
+                    {{ row.error || (row.addedToBoard ? tr('added to board') : (row.created ? tr('created') : tr('already existed'))) }}
                   </td>
                 </tr>
               </tbody>
@@ -1657,22 +1653,22 @@ onMounted(async () => {
     <!-- Boards (browse all, across every teacher) -->
     <section v-show="tab === 'boards'">
       <div class="flex flex-wrap gap-2 mb-3 items-center">
-        <input v-model="boardQ" @keyup.enter="loadBoards" placeholder="Search title or slug…" aria-label="Search title or slug…"
+        <input v-model="boardQ" @keyup.enter="loadBoards" :placeholder="tr('Search title or slug…')" :aria-label="tr('Search title or slug…')"
                class="flex-1 min-w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="loadBoards" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-2">Search</button>
+        <button @click="loadBoards" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-2">{{ tr('Search') }}</button>
         <span class="text-slate-300 dark:text-slate-700">|</span>
-        <label class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">Select boards created before
+        <label class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">{{ tr('Select boards created before') }}
           <input type="date" v-model="archiveBeforeDate" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm" />
         </label>
-        <button @click="selectBoardsBeforeDate" class="row-action-btn">select</button>
+        <button @click="selectBoardsBeforeDate" class="row-action-btn">{{ tr('select') }}</button>
       </div>
       <div v-if="selectedBoards.size" class="flex items-center gap-2 mb-2 text-sm">
-        <span>{{ selectedBoards.size }} selected</span>
+        <span>{{ tr('{n} selected', { n: selectedBoards.size }) }}</span>
         <button @click="bulkAdding = true" class="bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px-3 py-1 text-xs font-medium">
-          <Icon name="plus" /> Add groups / problems
+          <Icon name="plus" /> {{ tr('Add groups / problems') }}
         </button>
         <button @click="archiveSelectedBoards" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1 text-xs font-medium">
-          <Icon name="archive" /> Archive selected
+          <Icon name="archive" /> {{ tr('Archive selected') }}
         </button>
       </div>
       <BulkAddPanel v-if="bulkAdding" :slugs="[...selectedBoards]" bank-url="/api/admin-ui/bank" add-url="/api/admin-ui/boards/bulk-add"
@@ -1688,14 +1684,14 @@ onMounted(async () => {
               <RouterLink :to="`/boards/${b.slug}`" class="font-medium text-sm hover:underline">{{ b.title }}</RouterLink>
               <div class="text-[11px] text-slate-400 font-mono">{{ b.slug }}</div>
             </div>
-            <button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger shrink-0">Delete</button>
+            <button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger shrink-0">{{ tr('Delete') }}</button>
           </div>
           <div class="text-[11px] text-slate-400 mt-1.5">{{ b.ownerName }} ({{ b.ownerEmail }})</div>
           <div class="text-[11px] text-slate-400 mt-0.5">
-            {{ b.memberCount }} student(s) · {{ b.problemCount }} problem(s) · created {{ new Date(b.createdAt).toLocaleDateString() }}
+            {{ tr('{a} student(s) · {b} problem(s) · created {when}', { a: b.memberCount, b: b.problemCount, when: new Date(b.createdAt).toLocaleDateString() }) }}
           </div>
         </div>
-        <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">No boards.</p>
+        <p v-if="boards && !boards.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No boards.') }}</p>
       </div>
 
       <!-- desktop: table -->
@@ -1707,9 +1703,9 @@ onMounted(async () => {
                 <input type="checkbox" :checked="!!boards?.length && selectedBoards.size === boards.length"
                        @change="selectAllBoards($event.target.checked)" />
               </th>
-              <th class="font-normal pr-3">Title</th><th class="font-normal pr-3">Owner</th>
-              <th class="font-normal pr-3">Students</th><th class="font-normal pr-3">Problems</th>
-              <th class="font-normal pr-3">Created</th><th class="font-normal pr-3"></th>
+              <th class="font-normal pr-3">{{ tr('Title') }}</th><th class="font-normal pr-3">{{ tr('Owner') }}</th>
+              <th class="font-normal pr-3">{{ tr('Students') }}</th><th class="font-normal pr-3">{{ tr('Problems') }}</th>
+              <th class="font-normal pr-3">{{ tr('Created') }}</th><th class="font-normal pr-3"></th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -1721,9 +1717,9 @@ onMounted(async () => {
               <td class="tabular-nums">{{ b.memberCount }}</td>
               <td class="tabular-nums">{{ b.problemCount }}</td>
               <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
-              <td><button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger">Delete</button></td>
+              <td><button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button></td>
             </tr>
-            <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">No boards.</td></tr>
+            <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No boards.') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -1732,30 +1728,30 @@ onMounted(async () => {
     <!-- Problems -->
     <section v-show="tab === 'problems'" class="space-y-4">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-1">Export</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('Export') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          Downloads every bank problem (all owners) with its test cases as a JSON file.
+          {{ tr('Downloads every bank problem (all owners) with its test cases as a JSON file.') }}
         </p>
         <button @click="exportProblems"
                 class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-          Download problems.json
+          {{ tr('Download problems.json') }}
         </button>
       </div>
 
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-1">Import</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('Import') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-          Upserts by (owner email, title). Owner resolved by email, falling back to the first teacher.
+          {{ tr('Upserts by (owner email, title). Owner resolved by email, falling back to the first teacher.') }}
         </p>
         <label class="flex items-center gap-2 text-xs mb-2">
-          <input type="checkbox" v-model="replaceExisting" /> Replace existing (overwrite a problem with the same owner + title)
+          <input type="checkbox" v-model="replaceExisting" /> {{ tr('Replace existing (overwrite a problem with the same owner + title)') }}
         </label>
-        <input type="file" accept="application/json,.json" aria-label="problems.json file" @change="importProblems" :disabled="importing"
+        <input type="file" accept="application/json,.json" :aria-label="tr('problems.json file')" @change="importProblems" :disabled="importing"
                class="text-sm" />
-        <p v-if="importing" class="text-xs text-slate-400 mt-2">Importing…</p>
+        <p v-if="importing" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
         <div v-if="importResult" class="mt-3 text-sm">
           <p class="text-emerald-600 dark:text-emerald-400">
-            Created {{ importResult.created }} · Updated {{ importResult.updated }} · Skipped {{ importResult.skipped }}
+            {{ tr('Created {a} · Updated {b} · Skipped {c}', { a: importResult.created, b: importResult.updated, c: importResult.skipped }) }}
           </p>
           <ul v-if="importResult.errors?.length" class="mt-1 text-xs text-red-600 dark:text-red-400 list-disc pl-5">
             <li v-for="(e, i) in importResult.errors" :key="i">{{ e }}</li>
@@ -1767,26 +1763,26 @@ onMounted(async () => {
     <!-- Submissions: every submission platform-wide — board (not just ones the admin owns/joined) AND practice -->
     <section v-show="tab === 'submissions'">
       <div class="flex flex-wrap gap-2 mb-3">
-        <input v-model="submissionQ" @keyup.enter="searchSubmissions" placeholder="Search student, email, problem, or board…" aria-label="Search student, email, problem, or board…"
+        <input v-model="submissionQ" @keyup.enter="searchSubmissions" :placeholder="tr('Search student, email, problem, or board…')" :aria-label="tr('Search student, email, problem, or board…')"
                class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
         <select v-model="submissionSource" @change="searchSubmissions"
-                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Board + Practice">
-          <option value="">Board + Practice</option>
-          <option value="board">Board only</option>
-          <option value="practice">Practice only</option>
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('Board + Practice')">
+          <option value="">{{ tr('Board + Practice') }}</option>
+          <option value="board">{{ tr('Board only') }}</option>
+          <option value="practice">{{ tr('Practice only') }}</option>
         </select>
         <select v-model="submissionVerdict" @change="searchSubmissions"
-                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" aria-label="Any verdict">
-          <option value="">Any verdict</option>
-          <option value="Accepted">Accepted</option>
-          <option value="WrongAnswer">Wrong answer</option>
-          <option value="TimeLimit">Time limit</option>
-          <option value="MemoryLimit">Memory limit</option>
-          <option value="RuntimeError">Runtime error</option>
-          <option value="CompileError">Compile error</option>
+                class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm" :aria-label="tr('Any verdict')">
+          <option value="">{{ tr('Any verdict') }}</option>
+          <option value="Accepted">{{ tr('Accepted') }}</option>
+          <option value="WrongAnswer">{{ tr('Wrong answer') }}</option>
+          <option value="TimeLimit">{{ tr('Time limit') }}</option>
+          <option value="MemoryLimit">{{ tr('Memory limit') }}</option>
+          <option value="RuntimeError">{{ tr('Runtime error') }}</option>
+          <option value="CompileError">{{ tr('Compile error') }}</option>
         </select>
-        <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
-        <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+        <button @click="searchSubmissions" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
+        <button @click="loadSubmissions" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
       </div>
 
       <!-- mobile: cards -->
@@ -1803,10 +1799,10 @@ onMounted(async () => {
             <template v-else>{{ s.problemTitle }}</template>
           </div>
           <div class="text-[11px] text-slate-400 mt-0.5">
-            {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : 'Practice' }}
+            {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}
           </div>
         </button>
-        <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No submissions.</p>
+        <p v-if="submissionRows && !submissionRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No submissions.') }}</p>
       </div>
 
       <!-- desktop: table -->
@@ -1814,10 +1810,10 @@ onMounted(async () => {
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Student</th>
-              <th class="font-normal pr-3">Problem</th><th class="font-normal pr-3">Board / Source</th>
-              <th class="font-normal pr-3">Verdict</th><th class="font-normal pr-3">Score</th>
-              <th class="font-normal pr-3">Runtime</th><th class="font-normal pr-3">Lang</th>
+              <th class="font-normal py-1.5 pr-3">{{ tr('When') }}</th><th class="font-normal pr-3">{{ tr('Student') }}</th>
+              <th class="font-normal pr-3">{{ tr('Problem') }}</th><th class="font-normal pr-3">{{ tr('Board / Source') }}</th>
+              <th class="font-normal pr-3">{{ tr('Verdict') }}</th><th class="font-normal pr-3">{{ tr('Score') }}</th>
+              <th class="font-normal pr-3">{{ tr('Runtime') }}</th><th class="font-normal pr-3">{{ tr('Lang') }}</th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -1830,13 +1826,13 @@ onMounted(async () => {
                             class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
                 <template v-else>{{ s.problemTitle }}</template>
               </td>
-              <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : 'Practice' }}</td>
+              <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
               <td><VerdictBadge :verdict="s.verdict" small /></td>
               <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
               <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
               <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
             </tr>
-            <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">No submissions.</td></tr>
+            <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No submissions.') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -1846,9 +1842,9 @@ onMounted(async () => {
         </span>
         <div class="ml-auto flex gap-2">
           <button @click="submissionsPrevPage" :disabled="submissionsPage === 1"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
           <button @click="submissionsNextPage" :disabled="submissionsPage * submissionsPageSize >= submissionsTotal"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
         </div>
       </div>
 
@@ -1861,12 +1857,12 @@ onMounted(async () => {
       <div class="flex items-center gap-2 mb-3">
         <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
-          <option :value="null">Pick a board…</option>
+          <option :value="null">{{ tr('Pick a board…') }}</option>
           <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
         </select>
         <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
-          <option :value="null">All problems</option>
+          <option :value="null">{{ tr('All problems') }}</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
         </select>
       </div>
@@ -1882,8 +1878,8 @@ onMounted(async () => {
     <!-- Problem review: AI-generated and student-submitted bank problems held back until approved -->
     <section v-show="tab === 'review'">
       <div class="flex items-center gap-2 mb-3">
-        <button @click="loadAiReview" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
-        <span class="text-xs text-slate-500 dark:text-slate-400">{{ aiReview?.length ?? 0 }} waiting</span>
+        <button @click="loadAiReview" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('{n} waiting', { n: aiReview?.length ?? 0 }) }}</span>
       </div>
       <article v-for="row in aiReview" :key="row.slug" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3">
         <header class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -1900,36 +1896,36 @@ onMounted(async () => {
           </div>
           <div class="flex items-center gap-2 flex-wrap lg:justify-end lg:shrink-0">
             <button @click="expandedReview = expandedReview === row.slug ? null : row.slug" class="row-action-btn">
-              {{ expandedReview === row.slug ? 'hide' : 'view' }} statement &amp; tests
+              {{ expandedReview === row.slug ? tr('hide statement & tests') : tr('view statement & tests') }}
             </button>
-            <button @click="copyReviewJson(row)" class="row-action-btn" title="Copy this problem as JSON (same format as Problems export/import)">
-              {{ reviewJsonCopied === row.slug ? '✓ copied' : '⧉ copy JSON' }}
+            <button @click="copyReviewJson(row)" class="row-action-btn" :title="tr('Copy this problem as JSON (same format as Problems export/import)')">
+              {{ reviewJsonCopied === row.slug ? tr('✓ copied') : tr('⧉ copy JSON') }}
             </button>
-            <button @click="downloadReviewJson(row)" class="row-action-btn" title="Download this problem as a .json file"><Icon name="download" /> JSON</button>
-            <button @click="deleteAiReview(row)" class="row-action-btn row-action-btn--danger" title="Move this problem to Trash"><span><Icon name="trash" /></span><span>Delete</span></button>
+            <button @click="downloadReviewJson(row)" class="row-action-btn" :title="tr('Download this problem as a .json file')"><Icon name="download" /> JSON</button>
+            <button @click="deleteAiReview(row)" class="row-action-btn row-action-btn--danger" :title="tr('Move this problem to Trash')"><span><Icon name="trash" /></span><span>{{ tr('Delete') }}</span></button>
             <button @click="approveAiReview(row)" class="text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-3 py-1.5 font-medium">
-              ✓ Approve &amp; share
+              {{ tr('✓ Approve & share') }}
             </button>
           </div>
         </header>
 
         <div class="mt-2.5 flex flex-wrap items-center gap-1.5 text-[11px]">
           <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-            {{ row.allowedLanguages ? row.allowedLanguages.split(',').map((l) => (l === 'cpp' ? 'C++' : l.toUpperCase())).join(' · ') : 'Any language' }}
+            {{ row.allowedLanguages ? row.allowedLanguages.split(',').map((l) => (l === 'cpp' ? 'C++' : l.toUpperCase())).join(' · ') : tr('Any language') }}
           </span>
           <span v-for="tag in (row.tags || '').split(',').filter(Boolean)" :key="tag"
                 class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">#{{ tag.trim() }}</span>
-          <span v-if="!row.tags" class="text-slate-500 dark:text-slate-400">no tags</span>
+          <span v-if="!row.tags" class="text-slate-500 dark:text-slate-400">{{ tr('no tags') }}</span>
           <span class="text-slate-300 dark:text-slate-600">|</span>
-          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ row.tests.length }} tests</span>
+          <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">{{ tr('{n} tests', { n: row.tests.length }) }}</span>
           <span class="rounded px-2 py-0.5 bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"><Icon name="eye" /> {{ row.tests.filter((t) => t.isSample).length }} visible</span>
           <span class="rounded px-2 py-0.5 bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><Icon name="lock" /> {{ row.tests.filter((t) => !t.isSample).length }} hidden</span>
           <span v-if="!row.tests.some((t) => !t.isSample)" class="rounded px-2 py-0.5 bg-amber-50 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300 font-medium">
-            <Icon name="alert" /> no hidden test — a solution could just print the samples
+            <Icon name="alert" /> {{ tr('no hidden test — a solution could just print the samples') }}
           </span>
-          <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> reads <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
-          <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> headers: <span class="font-mono">{{ row.bannedHeaders }}</span></span>
-          <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> functions: <span class="font-mono">{{ row.bannedSymbols }}</span></span>
+          <span v-if="row.inputFileName" class="rounded px-2 py-0.5 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-300"><Icon name="file" /> {{ tr('reads') }} <span class="font-mono">{{ row.inputFileName }}</span>, not stdin</span>
+          <span v-if="row.bannedHeaders" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> {{ tr('headers:') }} <span class="font-mono">{{ row.bannedHeaders }}</span></span>
+          <span v-if="row.bannedSymbols" class="rounded px-2 py-0.5 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300"><Icon name="ban" /> {{ tr('functions:') }} <span class="font-mono">{{ row.bannedSymbols }}</span></span>
         </div>
 
         <div v-if="row.id" class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-start gap-x-4 gap-y-2">
@@ -1944,75 +1940,75 @@ onMounted(async () => {
           <div class="grid sm:grid-cols-2 gap-2">
             <div v-for="(t, i) in row.tests" :key="i" class="text-xs border border-slate-100 dark:border-slate-800 rounded-lg p-2">
               <div class="text-slate-400 mb-1 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
-                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> visible to students (sample)</span>
-                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> hidden from students (graded)</span>
+                <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> {{ tr('visible to students (sample)') }}</span>
+                <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> {{ tr('hidden from students (graded)') }}</span>
               </div>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto">stdin: {{ t.stdin }}</pre>
               <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto mt-1">expected: {{ t.expectedStdout }}</pre>
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap">
-            <input v-model="rejectReasonDraft[row.slug]" placeholder="Reason (optional, goes in the audit log)" aria-label="Reason (optional, goes in the audit log)"
+            <input v-model="rejectReasonDraft[row.slug]" :placeholder="tr('Reason (optional, goes in the audit log)')" :aria-label="tr('Reason (optional, goes in the audit log)')"
                    class="flex-1 min-w-48 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
             <button @click="rejectAiReview(row)" class="text-xs bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-3 py-1.5 font-medium">
-              ✕ Reject (stays private)
+              {{ tr('✕ Reject (stays private)') }}
             </button>
           </div>
         </div>
       </article>
-      <p v-if="aiReview && !aiReview.length" class="text-slate-500 dark:text-slate-400 text-sm">Nothing waiting for review.</p>
+      <p v-if="aiReview && !aiReview.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Nothing waiting for review.') }}</p>
     </section>
 
     <!-- Reports: analytics export + system status -->
     <section v-show="tab === 'reports'" class="space-y-4">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-1">Analytics export</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('Analytics export') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-          CSV, ready to open in a spreadsheet — also useful as evidence for an impact/grant report.
+          {{ tr('CSV, ready to open in a spreadsheet — also useful as evidence for an impact/grant report.') }}
         </p>
         <div class="flex flex-wrap gap-2">
           <button @click="downloadFile('/api/admin-ui/analytics/topics.csv', 'topic-stats.csv')"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-            Topic solve rates
+            {{ tr('Topic solve rates') }}
           </button>
           <button @click="downloadFile('/api/admin-ui/analytics/users.csv', 'user-xp.csv')"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-            User XP
+            {{ tr('User XP') }}
           </button>
           <button @click="downloadFile('/api/admin-ui/analytics/engagement.csv', 'weekly-engagement.csv')"
                   class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-            Weekly engagement
+            {{ tr('Weekly engagement') }}
           </button>
         </div>
         <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
           <button @click="downloadFile('/api/admin-ui/analytics/report.xlsx', 'beecoding-report.xlsx')"
                   class="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium">
-            <Icon name="chart" /> Export all as Excel (.xlsx)
+            <Icon name="chart" /> {{ tr('Export all as Excel (.xlsx)') }}
           </button>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-            One workbook, three sheets — Topics, Users, Weekly engagement.
+            {{ tr('One workbook, three sheets — Topics, Users, Weekly engagement.') }}
           </p>
         </div>
       </div>
 
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
         <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">System status</h2>
-          <button @click="loadSystemStatus" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+          <h2 class="font-semibold text-sm">{{ tr('System status') }}</h2>
+          <button @click="loadSystemStatus" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
         </div>
         <div v-if="systemStatus" class="grid sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Judge sandbox</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Judge sandbox') }}</span>
             <span :class="systemStatus.bwrapUsable ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400'">
               {{ systemStatus.sandboxMode }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Sandbox required (fail closed)</span>
-            <span>{{ systemStatus.sandboxRequired ? 'yes' : 'no' }}</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Sandbox required (fail closed)') }}</span>
+            <span>{{ systemStatus.sandboxRequired ? tr('yes') : 'no' }}</span>
           </div>
           <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400 shrink-0">gcc (C)</span>
+            <span class="text-slate-500 dark:text-slate-400 shrink-0">{{ tr('gcc (C)') }}</span>
             <span class="text-right font-mono text-xs">{{ systemStatus.gccVersion }}</span>
           </div>
           <div class="sm:col-span-2 flex justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 py-1">
@@ -2020,66 +2016,66 @@ onMounted(async () => {
             <span class="text-right font-mono text-xs">{{ systemStatus.gppVersion }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Judge queue backend</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Judge queue backend') }}</span>
             <span>{{ systemStatus.judgeQueueBackend }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Pending judge jobs</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Pending judge jobs') }}</span>
             <span>{{ systemStatus.pendingJudgeJobs ?? 'n/a' }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Judge max concurrent</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Judge max concurrent') }}</span>
             <span>{{ systemStatus.judgeMaxConcurrent }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Judge compile timeout</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Judge compile timeout') }}</span>
             <span>{{ systemStatus.judgeCompileTimeoutMs }}ms</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Judge queue capacity</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Judge queue capacity') }}</span>
             <span>{{ systemStatus.judgeQueueCapacity }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Realtime backend</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Realtime backend') }}</span>
             <span>{{ systemStatus.realtimeBackend }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Redis</span>
-            <span v-if="!systemStatus.redisConfigured" class="text-slate-400">not used</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Redis') }}</span>
+            <span v-if="!systemStatus.redisConfigured" class="text-slate-400">{{ tr('not used') }}</span>
             <span v-else :class="systemStatus.redisConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
-              {{ systemStatus.redisConnected ? 'connected' : 'disconnected' }}
+              {{ systemStatus.redisConnected ? tr('connected') : tr('disconnected') }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Database</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Database') }}</span>
             <span :class="systemStatus.databaseOk ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
-              {{ systemStatus.databaseOk ? 'reachable' : 'unreachable' }}
+              {{ systemStatus.databaseOk ? tr('reachable') : tr('unreachable') }}
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">LSP max concurrent sessions</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP max concurrent sessions') }}</span>
             <span>{{ systemStatus.lspMaxConcurrent }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">LSP idle timeout</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP idle timeout') }}</span>
             <span>{{ systemStatus.lspIdleTimeoutSeconds }}s</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">LSP memory limit</span>
-            <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : 'unset' }}</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP memory limit') }}</span>
+            <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : tr('unset') }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">Host (this instance)</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Host (this instance)') }}</span>
             <span class="font-mono text-xs">{{ systemStatus.hostname }}</span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">sysstat (sar)</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('sysstat (sar)') }}</span>
             <span :class="systemStatus.sysstatInstalled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'">
-              {{ systemStatus.sysstatInstalled ? 'installed' : 'not installed' }}
+              {{ systemStatus.sysstatInstalled ? tr('installed') : tr('not installed') }}
             </span>
           </div>
           <div class="flex justify-between py-1">
-            <span class="text-slate-500 dark:text-slate-400">Checked</span>
+            <span class="text-slate-500 dark:text-slate-400">{{ tr('Checked') }}</span>
             <span class="text-[11px] text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
           </div>
         </div>
@@ -2087,11 +2083,11 @@ onMounted(async () => {
         <div v-if="systemStatus?.sysstatInstalled" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 mb-2 flex-wrap">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
-              CPU / memory — {{ sysstatDaysAgo ? sysstatDaysAgo + ' day(s) ago' : 'today' }}, host <span class="font-mono">{{ sysstatResult?.hostname }}</span> only
+              {{ tr('CPU / memory — {when}, host', { when: sysstatDaysAgo ? tr('{n} day(s) ago', { n: sysstatDaysAgo }) : tr('today') }) }} <span class="font-mono">{{ sysstatResult?.hostname }}</span> {{ tr('only') }}
             </h3>
             <select v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
-              <option :value="0">Today</option>
-              <option v-for="d in 30" :key="d" :value="d">{{ d }} day(s) ago</option>
+              <option :value="0">{{ tr('Today') }}</option>
+              <option v-for="d in 30" :key="d" :value="d">{{ tr('{n} day(s) ago', { n: d }) }}</option>
             </select>
             <span class="inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
               <button v-for="m in [['cpu', 'CPU'], ['mem', 'Memory']]" :key="m[0]"
@@ -2102,18 +2098,16 @@ onMounted(async () => {
             </span>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
-            Host-local only — a load-balanced or split (web/judge) deployment has more than one
-            machine, and this only ever shows whichever one answered this request. For a
-            fleet-wide view, use a dedicated stack (e.g. Prometheus + node_exporter + Grafana).
+            {{ tr('Host-local only — a load-balanced or split (web/judge) deployment has more than one machine, and this only ever shows whichever one answered this request. For a fleet-wide view, use a dedicated stack (e.g. Prometheus + node_exporter + Grafana).') }}
           </p>
           <p v-if="sysstatErr" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ sysstatErr }}</p>
           <MiniLineChart v-else-if="sysstatResult?.points?.length"
-                         :title="sysstatMetric === 'cpu' ? 'CPU used %' : 'Memory used %'" :points="sysstatPoints()" />
-          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">No data for this day.</p>
+                         :title="sysstatMetric === 'cpu' ? tr('CPU used %') : tr('Memory used %')" :points="sysstatPoints()" />
+          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No data for this day.') }}</p>
           <div class="flex items-center gap-2 mt-4 mb-2 flex-wrap">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
-              {{ sysstatMetric === 'cpu' ? 'CPU' : 'Memory' }} used % — average vs peak
-              <span class="font-normal">(periods without saved data are skipped)</span>
+              {{ sysstatMetric === 'cpu' ? tr('CPU used % — average vs peak') : tr('Memory used % — average vs peak') }}
+              <span class="font-normal">{{ tr('(periods without saved data are skipped)') }}</span>
             </h3>
             <span class="ml-auto inline-flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
               <button v-for="b in SYSSTAT_BUCKETS" :key="b[0]" @click="setSysstatBucket(b[0])" class="px-2.5 py-1"
@@ -2122,50 +2116,50 @@ onMounted(async () => {
               </button>
             </span>
           </div>
-          <MiniLineChart v-if="sysstatDaily?.days?.length" title="Average vs peak %" name="Avg" :points="dailyPoints('avg')"
+          <MiniLineChart v-if="sysstatDaily?.days?.length" :title="tr('Average vs peak %')" name="Avg" :points="dailyPoints('avg')"
                          :second="{ name: 'Peak', color: '#ef4444', points: dailyPoints('max') }" />
-          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">No saved data yet.</p>
+          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No saved data yet.') }}</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-2">
-            Live settings <span class="font-normal text-slate-500 dark:text-slate-400">— live, no restart needed</span>
+            {{ tr('Live settings') }} <span class="font-normal text-slate-500 dark:text-slate-400">{{ tr('— live, no restart needed') }}</span>
           </h3>
           <div class="grid gap-4 md:grid-cols-2">
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">IntelliSense (clangd)</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('IntelliSense (clangd)') }}</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">C/C++ IntelliSense enabled</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Autocomplete, hover and diagnostics in the editor. Off = word-based completion only.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('C/C++ IntelliSense enabled') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Autocomplete, hover and diagnostics in the editor. Off = word-based completion only.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspEnabled" class="w-4 h-4" /></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Share one clangd between students <span v-if="systemStatus?.lspShared" class="text-xs text-slate-500 dark:text-slate-400">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Share one clangd between students') }} <span v-if="systemStatus?.lspShared" class="text-xs text-slate-500 dark:text-slate-400">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspShared" class="w-4 h-4" /></span>
               </label>
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Judge &amp; problems</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Judge & problems') }}</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Submit / run cooldown</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Minimum gap between one user's runs or submissions.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Submit / run cooldown') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Minimum gap between one user\'s runs or submissions.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="60000" step="100" v-model.number="runtimeConfigForm.judgeRateLimitMs"
                        class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">ms</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max problems per student</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">In a student's own bank. 0 stops students creating problems.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Max problems per student') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('In a student\'s own bank. 0 stops students creating problems.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="1000" step="1" v-model.number="runtimeConfigForm.studentMaxProblems"
                        class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
@@ -2173,20 +2167,20 @@ onMounted(async () => {
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Statement images</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Statement images') }}</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max image upload</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">Larger files are refused; accepted ones are compressed (≤1200 px wide).</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Max image upload') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Larger files are refused; accepted ones are compressed (≤1200 px wide).') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="50" max="3000" step="50" v-model.number="runtimeConfigForm.imageMaxKb"
                        class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">KB</span></span>
               </label>
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Max images per user</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 turns picture uploads off.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Max images per user') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('0 turns picture uploads off.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="5000" step="10" v-model.number="runtimeConfigForm.imageMaxPerUser"
                        class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /></span>
@@ -2194,15 +2188,15 @@ onMounted(async () => {
               </div>
             </section>
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
-              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">Notifications</h4>
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Notifications') }}</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
-                  <span class="block text-sm text-slate-700 dark:text-slate-200">Delete read notifications after</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.</span>
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Delete read notifications after') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('0 keeps them until the 30-day sweep. Unread ones: 30 days, newest 200 per person.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="365" step="1" v-model.number="runtimeConfigForm.notificationReadRetentionDays"
-                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">days</span></span>
+                       class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">{{ tr('days') }}</span></span>
               </label>
               </div>
             </section>
@@ -2210,12 +2204,12 @@ onMounted(async () => {
           <div class="mt-3 flex items-center gap-3">
             <button @click="saveRuntimeConfig" :disabled="runtimeConfigSaving"
                     class="bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4 py-1.5 text-sm font-medium disabled:opacity-50">
-              {{ runtimeConfigSaving ? 'Saving…' : 'Save' }}
+              {{ runtimeConfigSaving ? tr('Saving…') : tr('Save') }}
             </button>
             <span v-if="runtimeConfigMsg" class="text-xs text-emerald-600 dark:text-emerald-400">{{ runtimeConfigMsg }}</span>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-            Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.
+            {{ tr('Everything else above (sandbox mode, queue backend, gcc/g++) is fixed at deploy time.') }}
           </p>
         </div>
 
@@ -2226,7 +2220,7 @@ onMounted(async () => {
         <div v-if="latency" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 flex-wrap mb-2">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
-              Judging time <span class="font-normal text-slate-500 dark:text-slate-400">— submit → verdict, queue wait included</span>
+              {{ tr('Judging time') }} <span class="font-normal text-slate-500 dark:text-slate-400">{{ tr('— submit → verdict, queue wait included') }}</span>
             </h3>
             <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs ml-auto">
               <button v-for="h in [24, 48, 168]" :key="h" @click="setLatencyHours(h)" class="px-2.5 py-1"
@@ -2237,21 +2231,19 @@ onMounted(async () => {
             <button @click="loadLatency" class="text-xs text-slate-500 dark:text-slate-400">↻</button>
           </div>
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
-            {{ latency.total }} submissions · p95 <span :class="latencyTone(latency.p95Seconds)">{{ latency.p95Seconds }}s</span>
-            · {{ latency.slots }} judge slot{{ latency.slots === 1 ? '' : 's' }}
-            <template v-if="latency.pendingNow != null"> · {{ latency.pendingNow }} waiting now</template>
+            {{ tr('{n} submissions · p95', { n: latency.total }) }} <span :class="latencyTone(latency.p95Seconds)">{{ latency.p95Seconds }}s</span>
+            · {{ tr(latency.slots === 1 ? '{n} judge slot' : '{n} judge slots', { n: latency.slots }) }}
+            <template v-if="latency.pendingNow != null"> · {{ tr('{n} waiting now', { n: latency.pendingNow }) }}</template>
           </p>
           <p v-if="latency.unfinished > 0" class="text-xs text-rose-600 dark:text-rose-400 mb-2">
-            <Icon name="alert" /> {{ latency.unfinished }} submission{{ latency.unfinished === 1 ? ' has' : 's have' }} been waiting for more than 2 minutes
-            (oldest {{ Math.round(latency.oldestUnfinishedSeconds / 60) }} min). Judging normally takes under a second, so these jobs were
-            most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.
+            <Icon name="alert" /> {{ tr(latency.unfinished === 1 ? '{n} submission has been waiting for more than 2 minutes (oldest {min} min). Judging normally takes under a second, so these jobs were most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.' : '{n} submissions have been waiting for more than 2 minutes (oldest {min} min). Judging normally takes under a second, so these jobs were most likely lost when the app restarted; those students keep seeing “still checking” until they submit again.', { n: latency.unfinished, min: Math.round(latency.oldestUnfinishedSeconds / 60) }) }}
           </p>
-          <p v-if="!latency.buckets.length" class="text-xs text-slate-500 dark:text-slate-400">No judged submissions in this window.</p>
+          <p v-if="!latency.buckets.length" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('No judged submissions in this window.') }}</p>
           <div v-else class="overflow-x-auto">
             <table class="w-full text-xs">
               <thead class="text-left text-slate-500 dark:text-slate-400">
-                <tr><th class="py-1 pr-3 font-normal">Hour</th><th class="pr-3 font-normal text-right">Submissions</th>
-                    <th class="pr-3 font-normal text-right">Avg</th><th class="pr-3 font-normal text-right">p95</th><th class="font-normal text-right">Max</th></tr>
+                <tr><th class="py-1 pr-3 font-normal">{{ tr('Hour') }}</th><th class="pr-3 font-normal text-right">{{ tr('Submissions') }}</th>
+                    <th class="pr-3 font-normal text-right">{{ tr('Avg') }}</th><th class="pr-3 font-normal text-right">p95</th><th class="font-normal text-right">{{ tr('Max') }}</th></tr>
               </thead>
               <tbody>
                 <tr v-for="b in latency.buckets.slice().reverse()" :key="b.hourUtc" class="border-t border-slate-100 dark:border-slate-800 tabular-nums">
@@ -2265,7 +2257,7 @@ onMounted(async () => {
             </table>
           </div>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
-            A high p95 in a busy hour means submissions queued behind each other: raise <code>Judge:MaxConcurrent</code> (default is half the CPUs) or add CPU.
+            {{ tr('A high p95 in a busy hour means submissions queued behind each other: raise') }} <code>Judge:MaxConcurrent</code> (default is half the CPUs) or add CPU.
             Amber ≥ 10s, red ≥ 30s.
           </p>
         </div>
@@ -2274,15 +2266,15 @@ onMounted(async () => {
 
     <!-- Trash: soft-deleted rows. Restore has no time limit here; Purge is permanent. -->
     <section v-show="tab === 'trash'" class="space-y-5">
-      <button @click="loadTrash" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+      <button @click="loadTrash" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
 
       <div v-for="[kind, label, labelFn] in TRASH_KINDS" :key="kind">
         <div class="flex items-center gap-3 mb-1.5 flex-wrap">
           <h2 class="font-semibold text-sm">{{ label }} · {{ trash[kind].total }}</h2>
           <div v-if="trash[kind].selected.size" class="flex items-center gap-2 text-xs">
-            <span>{{ trash[kind].selected.size }} selected</span>
-            <button @click="restoreSelectedTrash(kind)" class="row-action-btn row-action-btn--success">Restore selected</button>
-            <button @click="purgeSelectedTrash(kind)" class="row-action-btn row-action-btn--danger">Purge selected</button>
+            <span>{{ tr('{n} selected', { n: trash[kind].selected.size }) }}</span>
+            <button @click="restoreSelectedTrash(kind)" class="row-action-btn row-action-btn--success">{{ tr('Restore selected') }}</button>
+            <button @click="purgeSelectedTrash(kind)" class="row-action-btn row-action-btn--danger">{{ tr('Purge selected') }}</button>
           </div>
         </div>
         <p v-if="trash[kind].msg" class="text-[11px] text-emerald-600 dark:text-emerald-400 mb-1">{{ trash[kind].msg }}</p>
@@ -2291,22 +2283,22 @@ onMounted(async () => {
         <div v-if="tableView === 'card'" class="space-y-1.5">
           <label v-if="trash[kind].rows?.length" class="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 px-1">
             <input type="checkbox" :checked="trash[kind].selected.size === trash[kind].rows.length"
-                   @change="selectAllTrash(kind, $event.target.checked)" /> Select all
+                   @change="selectAllTrash(kind, $event.target.checked)" /> {{ tr('Select all') }}
           </label>
           <div v-for="row in trash[kind].rows" :key="trashKey(kind, row)" class="border border-slate-200 dark:border-slate-800 rounded-lg p-2.5">
             <div class="flex items-start gap-2">
               <input type="checkbox" :checked="trash[kind].selected.has(trashKey(kind, row))" @change="toggleTrashSelect(kind, row)" class="mt-1 shrink-0" />
               <div class="min-w-0 flex-1">
                 <div class="font-medium text-sm truncate">{{ labelFn(row) }}</div>
-                <div class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }} · deleted {{ when(row.deletedAt) }}</div>
+                <div class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }} · {{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</div>
               </div>
             </div>
             <div class="mt-1.5 flex gap-3">
-              <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success">Restore</button>
-              <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
+              <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success">{{ tr('Restore') }}</button>
+              <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">{{ tr('Purge') }}</button>
             </div>
           </div>
-          <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-500 dark:text-slate-400 text-xs px-1">Empty.</p>
+          <p v-if="trash[kind].rows && !trash[kind].rows.length" class="text-slate-500 dark:text-slate-400 text-xs px-1">{{ tr('Empty.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -2326,13 +2318,13 @@ onMounted(async () => {
                 <td><input type="checkbox" :checked="trash[kind].selected.has(trashKey(kind, row))" @change="toggleTrashSelect(kind, row)" /></td>
                 <td class="font-medium">{{ labelFn(row) }}</td>
                 <td class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }}</td>
-                <td class="text-[11px] text-slate-400">deleted {{ when(row.deletedAt) }}</td>
+                <td class="text-[11px] text-slate-400">{{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</td>
                 <td class="text-right">
-                  <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success mr-1">Restore</button>
-                  <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">Purge</button>
+                  <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success mr-1">{{ tr('Restore') }}</button>
+                  <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">{{ tr('Purge') }}</button>
                 </td>
               </tr>
-              <tr v-if="trash[kind].rows && !trash[kind].rows.length"><td colspan="5" class="text-slate-500 dark:text-slate-400 py-1.5 text-xs">Empty.</td></tr>
+              <tr v-if="trash[kind].rows && !trash[kind].rows.length"><td colspan="5" class="text-slate-500 dark:text-slate-400 py-1.5 text-xs">{{ tr('Empty.') }}</td></tr>
             </tbody>
           </table>
         </div>
@@ -2342,22 +2334,22 @@ onMounted(async () => {
           </span>
           <div class="ml-auto flex gap-2">
             <button @click="trashPrevPage(kind)" :disabled="trash[kind].page === 1"
-                    class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                    class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
             <button @click="trashNextPage(kind)" :disabled="trash[kind].page * trash[kind].pageSize >= trash[kind].total"
-                    class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                    class="px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
           </div>
         </div>
       </div>
-      <p v-if="TRASH_KINDS.every(([kind]) => trash[kind].rows === null)" class="text-slate-500 dark:text-slate-400 text-sm">Loading…</p>
+      <p v-if="TRASH_KINDS.every(([kind]) => trash[kind].rows === null)" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
     </section>
 
     <!-- Audit log -->
     <section v-show="tab === 'audit'">
       <div class="flex flex-wrap gap-2 mb-3">
-        <input v-model="auditQ" @keyup.enter="searchAudit" placeholder="Search actor, action, or target…" aria-label="Search actor, action, or target…"
+        <input v-model="auditQ" @keyup.enter="searchAudit" :placeholder="tr('Search actor, action, or target…')" :aria-label="tr('Search actor, action, or target…')"
                class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="searchAudit" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">Search</button>
-        <button @click="loadAudit" class="text-xs text-slate-500 dark:text-slate-400">↻ refresh</button>
+        <button @click="searchAudit" class="text-sm bg-slate-800 dark:bg-slate-700 text-white rounded-lg px-4">{{ tr('Search') }}</button>
+        <button @click="loadAudit" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('↻ refresh') }}</button>
       </div>
 
       <!-- mobile: cards -->
@@ -2370,7 +2362,7 @@ onMounted(async () => {
           <div class="text-xs">{{ r.actorEmail }}</div>
           <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
         </div>
-        <p v-if="auditRows && !auditRows.length" class="text-slate-500 dark:text-slate-400 text-sm">No activity yet.</p>
+        <p v-if="auditRows && !auditRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity yet.') }}</p>
       </div>
 
       <!-- desktop: table -->
@@ -2378,8 +2370,8 @@ onMounted(async () => {
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th class="font-normal py-1.5 pr-3">When</th><th class="font-normal pr-3">Actor</th>
-              <th class="font-normal pr-3">Action</th><th class="font-normal pr-3">Target</th>
+              <th class="font-normal py-1.5 pr-3">{{ tr('When') }}</th><th class="font-normal pr-3">{{ tr('Actor') }}</th>
+              <th class="font-normal pr-3">{{ tr('Action') }}</th><th class="font-normal pr-3">{{ tr('Target') }}</th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -2391,7 +2383,7 @@ onMounted(async () => {
               </td>
               <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
             </tr>
-            <tr v-if="auditRows && !auditRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No activity yet.</td></tr>
+            <tr v-if="auditRows && !auditRows.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No activity yet.') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -2401,9 +2393,9 @@ onMounted(async () => {
         </span>
         <div class="ml-auto flex gap-2">
           <button @click="auditPrevPage" :disabled="auditPage === 1"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Prev</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Prev') }}</button>
           <button @click="auditNextPage" :disabled="auditPage * auditPageSize >= auditTotal"
-                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">Next</button>
+                  class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-700 disabled:opacity-40">{{ tr('Next') }}</button>
         </div>
       </div>
     </section>
@@ -2411,16 +2403,15 @@ onMounted(async () => {
     <!-- Organizations: multi-tenant (separate universities/institutions) -->
     <section v-show="tab === 'organizations'" class="space-y-5">
       <p class="text-xs text-slate-500 dark:text-slate-400">
-        Each organization gets its own boards, members, and AI quota — manage members/boards
-        for one via <RouterLink to="/org-admin" class="underline">Organization</RouterLink>
+        {{ tr('Each organization gets its own boards, members, and AI quota — manage members/boards for one via') }} <RouterLink to="/org-admin" class="underline">{{ tr('Organization') }}</RouterLink>
         (this page only creates, renames and removes the organization itself).
       </p>
       <div class="flex flex-col sm:flex-row gap-2">
-        <input v-model="orgForm.name" @keyup.enter="createOrganization" placeholder="Name (e.g. BINUS University)" aria-label="Name"
+        <input v-model="orgForm.name" @keyup.enter="createOrganization" :placeholder="tr('Name (e.g. BINUS University)')" :aria-label="tr('Name')"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <input v-model="orgForm.slug" @keyup.enter="createOrganization" placeholder="slug (e.g. binus)" aria-label="slug"
+        <input v-model="orgForm.slug" @keyup.enter="createOrganization" :placeholder="tr('slug (e.g. binus)')" :aria-label="tr('slug')"
                class="sm:w-40 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <button @click="createOrganization" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 py-2 sm:py-0 font-medium">Add</button>
+        <button @click="createOrganization" class="text-sm bg-amber-500 text-slate-900 rounded-lg px-4 py-2 sm:py-0 font-medium">{{ tr('Add') }}</button>
       </div>
 
       <!-- mobile: cards -->
@@ -2428,15 +2419,15 @@ onMounted(async () => {
         <div v-for="o in organizations" :key="o.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <template v-if="orgEdit?.id === o.id">
             <div class="space-y-2">
-              <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="Name" aria-label="Name"
+              <input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" :placeholder="tr('Name')" :aria-label="tr('Name')"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-              <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="slug" aria-label="slug"
+              <input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" :placeholder="tr('slug')" :aria-label="tr('slug')"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
-              <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="auto-accept email domains, e.g. univ.ac.id, univ.edu" aria-label="auto-accept email domains"
+              <input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" :placeholder="tr('auto-accept email domains, e.g. univ.ac.id, univ.edu')" :aria-label="tr('auto-accept email domains')"
                      class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5 text-sm" />
               <div class="flex gap-2">
-                <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">Save</button>
-                <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
+                <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">{{ tr('Save') }}</button>
+                <button @click="orgEdit = null" class="row-action-btn">{{ tr('Cancel') }}</button>
               </div>
             </div>
           </template>
@@ -2444,15 +2435,15 @@ onMounted(async () => {
             <div class="flex items-start justify-between gap-2">
               <div class="font-medium text-sm">{{ o.name }}</div>
               <div class="flex gap-1 shrink-0">
-                <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent">Edit</button>
-                <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button>
+                <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent">{{ tr('Edit') }}</button>
+                <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button>
               </div>
             </div>
-            <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · created {{ new Date(o.createdAt).toLocaleDateString() }}</div>
-            <div class="text-[11px] text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : 'always invites' }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · {{ tr('created {when}', { when: new Date(o.createdAt).toLocaleDateString() }) }}</div>
+            <div class="text-[11px] text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : tr('always invites') }}</div>
           </template>
         </div>
-        <p v-if="organizations && !organizations.length" class="text-slate-500 dark:text-slate-400 text-sm">No organizations yet.</p>
+        <p v-if="organizations && !organizations.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No organizations yet.') }}</p>
       </div>
 
       <!-- desktop: table -->
@@ -2460,8 +2451,8 @@ onMounted(async () => {
         <table class="w-full text-sm">
           <thead>
             <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-              <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Slug</th>
-              <th class="font-normal pr-3">Auto-accept domains</th><th class="font-normal pr-3">Created</th><th class="font-normal pr-3"></th>
+              <th class="font-normal py-1.5 pr-3">{{ tr('Name') }}</th><th class="font-normal pr-3">{{ tr('Slug') }}</th>
+              <th class="font-normal pr-3">{{ tr('Auto-accept domains') }}</th><th class="font-normal pr-3">{{ tr('Created') }}</th><th class="font-normal pr-3"></th>
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -2471,12 +2462,12 @@ onMounted(async () => {
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
-                <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" placeholder="univ.ac.id, univ.edu" aria-label="univ.ac.id, univ.edu"
+                <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" :placeholder="tr('univ.ac.id, univ.edu')" :aria-label="tr('univ.ac.id, univ.edu')"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td></td>
                 <td class="whitespace-nowrap">
-                  <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium mr-1">Save</button>
-                  <button @click="orgEdit = null" class="row-action-btn">Cancel</button>
+                  <button @click="saveOrgEdit" class="text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium mr-1">{{ tr('Save') }}</button>
+                  <button @click="orgEdit = null" class="row-action-btn">{{ tr('Cancel') }}</button>
                 </td>
               </template>
               <template v-else>
@@ -2485,12 +2476,12 @@ onMounted(async () => {
                 <td class="text-[11px] text-slate-400">{{ o.emailDomains || '—' }}</td>
                 <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
                 <td class="whitespace-nowrap">
-                  <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
-                  <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">Delete</button>
+                  <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent mr-1">{{ tr('Edit') }}</button>
+                  <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button>
                 </td>
               </template>
             </tr>
-            <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">No organizations yet.</td></tr>
+            <tr v-if="organizations && !organizations.length"><td colspan="4" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No organizations yet.') }}</td></tr>
           </tbody>
         </table>
       </div>
@@ -2499,11 +2490,9 @@ onMounted(async () => {
     <!-- LTI 1.3: register LMS platforms as tool consumers -->
     <section v-show="tab === 'lti'" class="space-y-5">
       <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4">
-        <h2 class="font-semibold text-sm mb-1">Tool configuration</h2>
+        <h2 class="font-semibold text-sm mb-1">{{ tr('Tool configuration') }}</h2>
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
-          Give these to whoever registers BeeCoding as an external tool in the LMS. The
-          LMS gives back an issuer, a client ID, and its own login/token/JWKS URLs —
-          register the platform below with those.
+          {{ tr('Give these to whoever registers BeeCoding as an external tool in the LMS. The LMS gives back an issuer, a client ID, and its own login/token/JWKS URLs — register the platform below with those.') }}
         </p>
         <div v-if="ltiToolConfig" class="space-y-1.5 text-xs">
           <div v-for="[label, value] in [
@@ -2514,7 +2503,7 @@ onMounted(async () => {
           ]" :key="label" class="flex items-center gap-2">
             <span class="w-40 shrink-0 text-slate-500 dark:text-slate-400">{{ label }}</span>
             <code class="flex-1 min-w-0 truncate bg-slate-100 dark:bg-slate-800 rounded px-2 py-1">{{ value }}</code>
-            <button @click="copyLtiValue(value)" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Copy">⧉</button>
+            <button @click="copyLtiValue(value)" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :title="tr('Copy')">⧉</button>
           </div>
           <p v-if="ltiCopyMsg" class="text-emerald-600 dark:text-emerald-400">{{ ltiCopyMsg }}</p>
         </div>
@@ -2522,30 +2511,30 @@ onMounted(async () => {
 
       <div>
         <div class="flex items-center gap-2 mb-2">
-          <h2 class="font-semibold text-sm">Registered platforms</h2>
-          <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">+ Add platform</button>
+          <h2 class="font-semibold text-sm">{{ tr('Registered platforms') }}</h2>
+          <button @click="startNewLtiPlatform" class="ml-auto text-xs bg-amber-500 text-slate-900 rounded-lg px-3 py-1 font-medium">{{ tr('+ Add platform') }}</button>
         </div>
 
         <div v-if="ltiEditing" class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-3 space-y-2 text-sm">
-          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? 'New platform' : 'Edit platform' }}</h3>
-          <input v-model="ltiForm.name" placeholder="Name (e.g. BINUS Moodle)" aria-label="Name" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.issuer" placeholder="Issuer (iss)" aria-label="Issuer (iss)" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.clientId" placeholder="Client ID" aria-label="Client ID" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.deploymentIds" placeholder="Deployment ID(s), comma-separated" aria-label="Deployment ID(s), comma-separated" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authLoginUrl" placeholder="Auth login URL" aria-label="Auth login URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.authTokenUrl" placeholder="Auth token URL" aria-label="Auth token URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="ltiForm.jwksUrl" placeholder="JWKS (key set) URL" aria-label="JWKS (key set) URL" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ ltiEditing === 'new' ? tr('New platform') : tr('Edit platform') }}</h3>
+          <input v-model="ltiForm.name" :placeholder="tr('Name (e.g. BINUS Moodle)')" :aria-label="tr('Name')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.issuer" :placeholder="tr('Issuer (iss)')" :aria-label="tr('Issuer (iss)')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.clientId" :placeholder="tr('Client ID')" :aria-label="tr('Client ID')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.deploymentIds" :placeholder="tr('Deployment ID(s), comma-separated')" :aria-label="tr('Deployment ID(s), comma-separated')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authLoginUrl" :placeholder="tr('Auth login URL')" :aria-label="tr('Auth login URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.authTokenUrl" :placeholder="tr('Auth token URL')" :aria-label="tr('Auth token URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <input v-model="ltiForm.jwksUrl" :placeholder="tr('JWKS (key set) URL')" :aria-label="tr('JWKS (key set) URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <select v-model="ltiForm.organizationId" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
-            <option :value="null">No organization (unaffiliated)</option>
+            <option :value="null">{{ tr('No organization (unaffiliated)') }}</option>
             <option v-for="o in organizations" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
           <p class="text-[11px] text-slate-500 dark:text-slate-400 -mt-1">
-            Launches through this platform auto-join the organization and auto-assign new boards to it.
+            {{ tr('Launches through this platform auto-join the organization and auto-assign new boards to it.') }}
           </p>
-          <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> Enabled</label>
+          <label class="flex items-center gap-2 text-xs"><input type="checkbox" v-model="ltiForm.enabled" /> {{ tr('Enabled') }}</label>
           <div class="flex gap-2 pt-1">
-            <button @click="saveLtiPlatform" class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium">Save</button>
-            <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">Cancel</button>
+            <button @click="saveLtiPlatform" class="bg-amber-500 text-slate-900 rounded-lg px-4 py-1.5 text-sm font-medium">{{ tr('Save') }}</button>
+            <button @click="cancelLtiEdit" class="text-slate-500 dark:text-slate-400 px-3 text-sm">{{ tr('Cancel') }}</button>
           </div>
         </div>
 
@@ -2556,18 +2545,18 @@ onMounted(async () => {
               <div class="font-medium text-sm">{{ p.name }}</div>
               <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap shrink-0"
                     :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
-                {{ p.enabled ? 'enabled' : 'disabled' }}
+                {{ p.enabled ? tr('enabled') : tr('disabled') }}
               </span>
             </div>
             <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
             <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">{{ p.organizationName || 'unaffiliated' }}</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">{{ p.organizationName || tr('unaffiliated') }}</div>
             <div class="mt-2 flex gap-3">
-              <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">Edit</button>
-              <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
+              <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">{{ tr('Edit') }}</button>
+              <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
             </div>
           </div>
-          <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-500 dark:text-slate-400 text-sm">No platforms registered yet.</p>
+          <p v-if="ltiPlatforms && !ltiPlatforms.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No platforms registered yet.') }}</p>
         </div>
 
         <!-- desktop: table -->
@@ -2575,9 +2564,9 @@ onMounted(async () => {
           <table class="w-full text-sm">
             <thead>
               <tr class="text-xs text-left text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
-                <th class="font-normal py-1.5 pr-3">Name</th><th class="font-normal pr-3">Issuer</th>
-                <th class="font-normal pr-3">Client ID</th><th class="font-normal pr-3">Organization</th>
-                <th class="font-normal pr-3">Status</th><th class="font-normal pr-3"></th>
+                <th class="font-normal py-1.5 pr-3">{{ tr('Name') }}</th><th class="font-normal pr-3">{{ tr('Issuer') }}</th>
+                <th class="font-normal pr-3">{{ tr('Client ID') }}</th><th class="font-normal pr-3">{{ tr('Organization') }}</th>
+                <th class="font-normal pr-3">{{ tr('Status') }}</th><th class="font-normal pr-3"></th>
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
@@ -2589,35 +2578,33 @@ onMounted(async () => {
                 <td>
                   <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                         :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
-                    {{ p.enabled ? 'enabled' : 'disabled' }}
+                    {{ p.enabled ? tr('enabled') : tr('disabled') }}
                   </span>
                 </td>
                 <td class="whitespace-nowrap">
-                  <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">Edit</button>
-                  <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">Remove</button>
+                  <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent mr-1">{{ tr('Edit') }}</button>
+                  <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
                 </td>
               </tr>
-              <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="6" class="text-slate-500 dark:text-slate-400 py-3">No platforms registered yet.</td></tr>
+              <tr v-if="ltiPlatforms && !ltiPlatforms.length"><td colspan="6" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No platforms registered yet.') }}</td></tr>
             </tbody>
           </table>
         </div>
       </div>
     </section>
       <!-- one-off password-reset link -->
-    <div v-if="resetLink" role="dialog" aria-modal="true" aria-label="Password reset link" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
+    <div v-if="resetLink" role="dialog" aria-modal="true" :aria-label="tr('Password reset link')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-lg p-5 shadow-lg space-y-3">
-        <h2 class="font-semibold">Reset link for {{ resetLink.user.displayName }}</h2>
+        <h2 class="font-semibold">{{ tr('Reset link for {name}', { name: resetLink.user.displayName }) }}</h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">
-          Send this to {{ resetLink.user.email }} yourself. It works once and expires
-          {{ new Date(resetLink.expiresAt.endsWith('Z') ? resetLink.expiresAt : resetLink.expiresAt + 'Z').toLocaleString() }}.
-          Anyone with the link can set a new password — share it privately.
+          {{ tr('Send this to {email} yourself. It works once and expires {when}. Anyone with the link can set a new password — share it privately.', { email: resetLink.user.email, when: new Date(resetLink.expiresAt.endsWith('Z') ? resetLink.expiresAt : resetLink.expiresAt + 'Z').toLocaleString() }) }}
         </p>
         <input :value="resetLink.url" readonly @focus="$event.target.select()"
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono" />
         <div class="flex justify-end gap-2">
-          <button @click="resetLink = null" class="px-3 py-1.5 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">Close</button>
+          <button @click="resetLink = null" class="px-3 py-1.5 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">{{ tr('Close') }}</button>
           <button @click="copyResetLink" class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-amber-500 hover:bg-amber-600">
-            {{ resetLinkCopied ? 'Copied ✓' : 'Copy link' }}
+            {{ resetLinkCopied ? tr('Copied ✓') : tr('Copy link') }}
           </button>
         </div>
       </div>

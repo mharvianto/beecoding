@@ -1,6 +1,19 @@
 // Indonesian for the messages the SERVER sends as plain English (API errors). {p0}, {p1}... stand for a value inside the
 // message, so one entry matches "Please wait 3s ..." and "Please wait 5s ..." (see lib/i18n.js). Keep the key exactly as the server writes it.
 export default {
+  "You can't delete your own account here.": "Anda tidak bisa menghapus akun Anda sendiri di sini.",
+  "You can't change your own role here.": "Anda tidak bisa mengubah peran Anda sendiri di sini.",
+  "Role must be 'Teacher' or 'Student'.": "Peran harus 'Teacher' atau 'Student'.",
+  "You already have admin access.": "Anda sudah punya akses admin.",
+  "You can't revoke your own admin access here.": "Anda tidak bisa mencabut akses admin Anda sendiri di sini.",
+  "This admin is granted via the Admin:Emails server config — change it there.": "Admin ini diberikan lewat konfigurasi server Admin:Emails — ubah di sana.",
+  "The CSV needs a header row and at least one data row.": "CSV butuh baris judul dan minimal satu baris data.",
+  "The CSV header must include at least 'email' and 'name' (or 'displayname') columns.": "Baris judul CSV harus memuat minimal kolom 'email' dan 'name' (atau 'displayname').",
+  "Select at least one board.": "Pilih minimal satu board.",
+  "Nothing to add.": "Tidak ada yang ditambahkan.",
+  "sysstat is not installed on this host.": "sysstat tidak terpasang di host ini.",
+  "sysstat's output didn't match the expected shape (version mismatch?).": "Keluaran sysstat tidak sesuai bentuk yang diharapkan (versi berbeda?).",
+  "This would apply to your own account, which has no two-step verification yet. Turn it on under Account > Security first, then switch this on.": "Ini akan berlaku untuk akun Anda sendiri, yang belum punya verifikasi dua langkah. Aktifkan dulu di Akun > Keamanan, lalu nyalakan ini.",
   "Pick what is wrong.": "Pilih apa yang salah.",
   "Please describe the problem in at least {p0} characters.": "Mohon jelaskan masalahnya minimal {p0} karakter.",
   "Please keep it under {p0} characters.": "Mohon tidak lebih dari {p0} karakter.",
