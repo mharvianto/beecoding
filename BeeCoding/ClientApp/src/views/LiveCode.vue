@@ -1,7 +1,7 @@
 <script setup>
 import { agoShort as ago } from '../lib/timeAgo';
 import { tr } from '../lib/i18n';
-import { runText } from '../lib/runText';
+import RunOutput from '../components/RunOutput.vue';
 import Icon from '../components/Icon.vue';
 import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
 import { RouterLink } from 'vue-router';
@@ -315,9 +315,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
-                    <pre :style="{ fontSize: editorFontSize + 'px' }"
-                         class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
+                    <RunOutput :result="runOut" :font-size="editorFontSize" :running="running" @run="run" />
                   </div>
                 </div>
                 <AiHint :board-slug="props.slug" :language="liveLang" :code="code" :stdin="stdin"
@@ -425,9 +423,7 @@ onBeforeUnmount(async () => {
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
-                    <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
-                    <pre :style="{ fontSize: editorFontSize + 'px' }"
-                         class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ runText(runOut) }}</pre>
+                    <RunOutput :result="runOut" :font-size="editorFontSize" :running="running" @run="run" />
                   </div>
                 </div>
               </div>

@@ -1364,4 +1364,7 @@ export default {
   "Replace existing (overwrite a problem with the same slug, or owner + title)": "Ganti yang ada (timpa soal dengan slug yang sama, atau pemilik + judul yang sama)",
   "That is not a valid ZIP file.": "Itu bukan berkas ZIP yang valid.",
   "The ZIP is too large once unpacked.": "ZIP terlalu besar setelah dibuka.",
+  "Open the output in a large window": "Buka output di jendela besar",
+  "Wrap lines": "Bungkus baris",
+  "Nothing yet — run your code.": "Belum ada — jalankan kode Anda.",
 };
