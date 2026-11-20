@@ -28,6 +28,11 @@ import { localDayKey } from '../lib/localDay';
 import { editorFontSize } from '../lib/editorFont';
 
 const props = defineProps({ slug: { type: String, required: true } });
+const linkCopied = ref(false);
+async function copyLink() {
+  try { await navigator.clipboard.writeText(location.origin + location.pathname); linkCopied.value = true; setTimeout(() => { linkCopied.value = false; }, 1500); }
+  catch { /* clipboard blocked: the address bar still has the link */ }
+}
 const auth = useAuth();
 const progress = useProgress();
 const celebrationToast = useCelebrationToast();
@@ -243,7 +248,10 @@ onBeforeUnmount(async () => {
         <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ tr('✓ solved') }}</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
-        <span v-if="problem.isPublic" class="ml-auto"><ProblemFeedback kind="practice" :slug="props.slug" /></span>
+        <span v-if="problem.isPublic" class="ml-auto flex items-center gap-2">
+          <button type="button" class="row-action-btn" @click="copyLink"><Icon name="copy" /> {{ linkCopied ? tr('Copied ✓') : tr('Copy link') }}</button>
+          <ProblemFeedback kind="practice" :slug="props.slug" />
+        </span>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
         {{ langNote || (solveLang === 'c' ? 'C' : 'C++') }} · {{ tr('limit {ms} ms · {kb} KB', { ms: problem.timeLimitMs, kb: problem.memoryLimitKb }) }}
