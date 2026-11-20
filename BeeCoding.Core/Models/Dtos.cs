@@ -146,7 +146,7 @@ public record BulkAddResult(int BoardsUpdated, int BoardsFailed, List<BulkAddBoa
 public record BankSummaryDto(
     int Id, string Slug, string Title, string AllowedLanguages, string Level, string Tags, bool IsPublic,
     bool Mine, string OwnerName, int TestCount, int SampleCount, DateTime UpdatedAt, bool GeneratedByAi,
-    bool PendingReview, string? ReviewNote = null);
+    bool PendingReview, string? ReviewNote = null, int? RevisionOfId = null, string? RevisionSlug = null);
 
 public record BankProblemDto(
     int Id, string Slug, string Title, string StatementMarkdown, string AllowedLanguages,
@@ -362,7 +362,8 @@ public record AdminAiReviewRow(
     string Slug, string Title, string OwnerEmail, string OwnerName, string Level, string Tags,
     string AllowedLanguages, string StatementMarkdown, int TimeLimitMs, int MemoryLimitKb,
     List<AdminAiReviewTest> Tests, DateTime CreatedAt, int Id = 0,
-    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null, bool GeneratedByAi = false);
+    string? InputFileName = null, string? BannedHeaders = null, string? BannedSymbols = null, bool GeneratedByAi = false,
+    string? RevisionOfSlug = null, string? RevisionOfTitle = null);
 public record AdminAiReviewActionDto(string? Reason);
 
 // ---- Admin: AI kill-switch, quotas, per-user overrides ----

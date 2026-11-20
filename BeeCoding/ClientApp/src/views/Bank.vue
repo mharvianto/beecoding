@@ -153,6 +153,12 @@ async function withdrawProposal(r) {
   catch (e) { error.value = e.message; }
 }
 
+async function revise(b) {
+  error.value = ''; notice.value = '';
+  try { const v = await api.post(`/api/bank/${b.slug}/revise`); router.push(`/bank/${v.slug}/edit`); }
+  catch (e) { error.value = e.message; }
+}
+
 async function submitPractice(b) {
   error.value = ''; notice.value = '';
   if (!(await confirmDialog.ask(tr('Send “{p0}” to an admin for review? Once it is approved it appears in Practice for everyone, and you can no longer edit it.', { p0: b.title }),
@@ -290,6 +296,8 @@ onBeforeUnmount(() => { pollStopped = true; });
                         class="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
                         :title="`${openReports[b.id]} open report(s) — click to review`"><Icon name="flag" /> {{ openReports[b.id] }}</RouterLink>
             <span v-if="b.generatedByAi" class="text-[11px] px-1.5 py-0.5 rounded-full bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300"><Icon name="sparkles" /> AI</span>
+            <span v-if="b.revisionOfId" class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                  :title="tr('A copy for revising a live problem; approval replaces it')">{{ tr('revision') }}</span>
             <span v-if="b.pendingReview" class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
                   :title="tr('An admin reviews AI-generated problems before they\'re shared with other teachers')">
               {{ tr('⏳ pending review') }}
@@ -322,6 +330,10 @@ onBeforeUnmount(() => { pollStopped = true; });
             <span><Icon :name="student && (b.pendingReview || b.isPublic) ? 'eye' : 'pencil'" /></span>
             <span>{{ student && (b.pendingReview || b.isPublic) ? tr('View') : tr('Edit') }}</span>
           </RouterLink>
+          <template v-if="student && b.isPublic">
+            <RouterLink v-if="b.revisionSlug" :to="`/bank/${b.revisionSlug}/edit`" class="row-action-btn row-action-btn--accent"><span><Icon name="pencil" /></span><span>{{ tr('Continue revision') }}</span></RouterLink>
+            <button v-else @click="revise(b)" class="row-action-btn row-action-btn--accent" :title="tr('Edit a private copy; once an admin approves it, it replaces the live problem')"><span><Icon name="pencil" /></span><span>{{ tr('Revise') }}</span></button>
+          </template>
           <template v-if="student && !b.isPublic && !b.pendingReview">
             <button @click="submitPractice(b)" class="row-action-btn row-action-btn--accent"><span><Icon name="upload" /></span><span>{{ tr('Submit to Practice') }}</span></button>
             <button @click="openPropose(b)" class="row-action-btn"><span><Icon name="bulb" /></span><span>{{ tr('Propose to a board') }}</span></button>

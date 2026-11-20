@@ -275,22 +275,47 @@ public class AdminAiController(NotificationService notifications, AppDbContext d
             .Where(b => b.PendingReview)
             .OrderBy(b => b.CreatedAt)
             .ToListAsync();
+        var origIds = rows.Where(b => b.RevisionOfId != null).Select(b => b.RevisionOfId!.Value).ToList();
+        var originals = await _db.BankProblems.Where(x => origIds.Contains(x.Id)).Select(x => new { x.Id, x.Slug, x.Title }).ToDictionaryAsync(x => x.Id);
 
         return rows.Select(b => new AdminAiReviewRow(
             b.Slug, b.Title, b.Owner?.Email ?? "?", b.Owner?.DisplayName ?? "?", b.Level.ToString(), b.Tags,
             b.AllowedLanguages, b.StatementMarkdown, b.TimeLimitMs, b.MemoryLimitKb,
             b.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => new AdminAiReviewTest(t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position)).ToList(),
-            b.CreatedAt, b.Id, b.InputFileName, b.BannedHeaders, b.BannedSymbols, b.GeneratedByAi)).ToList();
+            b.CreatedAt, b.Id, b.InputFileName, b.BannedHeaders, b.BannedSymbols, b.GeneratedByAi,
+            originals.GetValueOrDefault(b.RevisionOfId ?? 0)?.Slug, originals.GetValueOrDefault(b.RevisionOfId ?? 0)?.Title)).ToList();
     }
 
     /// <summary>Approve: publish it to the shared bank, as originally intended.</summary>
     [HttpPost("ai-review/{slug}/approve")]
     public async Task<IActionResult> ApproveAiReview(string slug)
     {
-        var b = await _db.BankProblems.FirstOrDefaultAsync(x => x.Slug == slug);
+        var b = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
         if (b is null) return NotFound();
         if (!b.PendingReview) return NoContent();
+
+        if (b.RevisionOfId is int origId)
+        {
+            var orig = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == origId && x.OwnerId == b.OwnerId && x.IsPublic);
+            if (orig is not null)
+            {
+                // The revision replaces the live problem's content in place (slug, likes, solves stay); the draft is retired.
+                orig.Title = b.Title; orig.StatementMarkdown = b.StatementMarkdown; orig.AllowedLanguages = b.AllowedLanguages;
+                orig.BannedHeaders = b.BannedHeaders; orig.BannedSymbols = b.BannedSymbols; orig.InputFileName = b.InputFileName;
+                orig.TimeLimitMs = b.TimeLimitMs; orig.MemoryLimitKb = b.MemoryLimitKb; orig.Level = b.Level; orig.Tags = b.Tags;
+                orig.ReviewNote = null; orig.UpdatedAt = DateTime.UtcNow;
+                _db.BankTestCases.RemoveRange(orig.TestCases);
+                orig.TestCases = b.TestCases.Select(t => new BankTestCase { Stdin = t.Stdin, ExpectedStdout = t.ExpectedStdout, IsSample = t.IsSample, Points = t.Points, Position = t.Position }).ToList();
+                b.PendingReview = false;
+                b.DeletedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+                await _audit.RecordAsync(UserId, ActorEmail, "problem-review-approve", "BankProblem", orig.Id, $"{orig.Title} (revision)");
+                await NotifyOwnerAsync(orig, approved: true, note: null);
+                return NoContent();
+            }
+            b.RevisionOfId = null;   // the live problem is gone or no longer public: the draft stands on its own
+        }
 
         b.PendingReview = false;
         b.IsPublic = true;

@@ -377,6 +377,11 @@ public class BankProblem : IHasSlug
     [MaxLength(300)]
     public string? ReviewNote { get; set; }
 
+    /// <summary>Set on a student's private draft that revises one of their published problems (a plain id, no FK). Approving
+    /// the draft writes its content into that problem (same slug, likes, solves) and retires the draft; the published
+    /// problem stays untouched until then.</summary>
+    public int? RevisionOfId { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

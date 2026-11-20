@@ -1925,6 +1925,8 @@ onMounted(async () => {
             <div class="flex items-center gap-2 flex-wrap">
               <h3 class="font-semibold text-sm break-words">{{ row.title }}</h3>
               <LevelBadge :level="row.level" />
+              <RouterLink v-if="row.revisionOfSlug" :to="`/practice/${row.revisionOfSlug}`" class="text-[11px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 hover:underline"
+                          :title="tr('Approving replaces the live problem with this version')">{{ tr('Revision of “{p0}”', { p0: row.revisionOfTitle }) }}</RouterLink>
             </div>
             <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">
               by <span class="font-medium text-slate-700 dark:text-slate-200">{{ row.ownerName }}</span>

@@ -49,10 +49,11 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     [HttpGet("api/bank/{slug}/similar")]
     public async Task<ActionResult<SimilarProblemsDto>> Similar(string slug, [FromServices] SimilarProblemFinder finder, [FromServices] SimilarCooldown cooldown)
     {
-        var b = await Readable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown }).FirstOrDefaultAsync();
+        var b = await Readable().Where(x => x.Slug == slug).Select(x => new { x.Id, x.Title, x.StatementMarkdown, x.RevisionOfId }).FirstOrDefaultAsync();
         if (b is null) return NotFound();
         if (!cooldown.TryAcquire(UserId, "check", TimeSpan.FromSeconds(3))) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait a few seconds before checking again.");
-        var others = (await _db.BankProblems.Where(x => x.Id != b.Id && (x.IsPublic || (x.PendingReview && x.OwnerId == UserId)))
+        // a problem and its own revision are the same problem, not duplicates
+        var others = (await _db.BankProblems.Where(x => x.Id != b.Id && x.Id != b.RevisionOfId && x.RevisionOfId != b.Id && (x.IsPublic || (x.PendingReview && x.OwnerId == UserId)))
             .Select(x => new { x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId }).ToListAsync())
             .Select(x => new SimilarProblemFinder.Candidate(x.Id, x.Slug, x.Title, x.StatementMarkdown, x.IsPublic, x.OwnerId)).ToList();
         return await finder.FindAsync(b.Title, b.StatementMarkdown, others, UserId, 5);
@@ -94,7 +95,10 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
             .Take(200)
             .ToListAsync();
 
-        return rows.Select(b => Mapping.ToSummary(b, UserId)).ToList();
+        var ids = rows.Where(b => b.OwnerId == UserId).Select(b => b.Id).ToList();
+        var revisions = await _db.BankProblems.Where(x => x.RevisionOfId != null && ids.Contains(x.RevisionOfId.Value))
+            .Select(x => new { Of = x.RevisionOfId!.Value, x.Slug }).ToDictionaryAsync(x => x.Of, x => x.Slug);
+        return rows.Select(b => Mapping.ToSummary(b, UserId, revisions.GetValueOrDefault(b.Id))).ToList();
     }
 
     [HttpGet("api/bank/{slug}")]
@@ -166,6 +170,34 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         var fresh = await _db.BankProblems.Include(x => x.Owner).Include(x => x.TestCases)
             .FirstAsync(x => x.Id == b.Id);
         return Mapping.ToDto(fresh, UserId);
+    }
+
+    /// <summary>A student cannot edit a problem that is live in practice (others may have solved it), so they revise a private
+    /// copy instead: it goes through the same review, and approval writes it into the live problem (AdminAiController).</summary>
+    [HttpPost("api/bank/{slug}/revise")]
+    public async Task<ActionResult<BankProblemDto>> Revise(string slug)
+    {
+        var b = await _db.BankProblems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Slug == slug);
+        if (b is null) return NotFound();
+        if (b.OwnerId != UserId) return Forbid();
+        if (!IsStudent) return Conflict("You can edit your own problem directly.");
+        if (!b.IsPublic) return Conflict("This problem isn't published, so you can edit it directly.");
+        if (await _db.BankProblems.AnyAsync(x => x.RevisionOfId == b.Id)) return Conflict("This problem already has a revision in progress.");
+        var max = _runtimeConfig.StudentMaxProblems;
+        if (await _db.BankProblems.CountAsync(x => x.OwnerId == UserId) >= max)
+            return Conflict(max == 0 ? "Students can't create problems right now." : $"You can keep up to {max} problems in your bank — delete one first.");
+
+        var copy = new BankProblem
+        {
+            OwnerId = UserId, RevisionOfId = b.Id, Title = b.Title, StatementMarkdown = b.StatementMarkdown,
+            AllowedLanguages = b.AllowedLanguages, BannedHeaders = b.BannedHeaders, BannedSymbols = b.BannedSymbols,
+            InputFileName = b.InputFileName, TimeLimitMs = b.TimeLimitMs, MemoryLimitKb = b.MemoryLimitKb, Level = b.Level, Tags = b.Tags,
+            TestCases = b.TestCases.Select(t => new BankTestCase { Stdin = t.Stdin, ExpectedStdout = t.ExpectedStdout, IsSample = t.IsSample, Points = t.Points, Position = t.Position }).ToList(),
+        };
+        _db.BankProblems.Add(copy);
+        await _db.SaveChangesAsync();
+        await _db.Entry(copy).Reference(x => x.Owner).LoadAsync();
+        return Mapping.ToDto(copy, UserId);
     }
 
     /// <summary>Soft-delete (owner or admin — admin need not be a Teacher). Undo-able for

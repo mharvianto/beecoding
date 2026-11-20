@@ -50,11 +50,12 @@ public static class Mapping
     public static TestCaseDto ToDto(BankTestCase t) =>
         new(t.Id, t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position);
 
-    public static BankSummaryDto ToSummary(BankProblem b, int viewerUserId) => new(
+    public static BankSummaryDto ToSummary(BankProblem b, int viewerUserId, string? revisionSlug = null) => new(
         b.Id, b.Slug, b.Title, b.AllowedLanguages, b.Level.ToString(), b.Tags, b.IsPublic,
         b.OwnerId == viewerUserId, b.Owner?.DisplayName ?? "teacher",
         b.TestCases.Count, b.TestCases.Count(t => t.IsSample), b.UpdatedAt, b.GeneratedByAi, b.PendingReview,
-        b.OwnerId == viewerUserId ? b.ReviewNote : null);
+        b.OwnerId == viewerUserId ? b.ReviewNote : null,
+        b.OwnerId == viewerUserId ? b.RevisionOfId : null, revisionSlug);
 
     /// <summary>Hidden test cases are only exposed to the bank problem's owner.</summary>
     public static BankProblemDto ToDto(BankProblem b, int viewerUserId)
