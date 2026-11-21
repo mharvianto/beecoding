@@ -79,8 +79,8 @@ export const useAuth = defineStore('auth', {
     async updateDisplayName(displayName) {
       this.user = await api.patch('/api/auth/profile', { displayName });
     },
-    async deleteAccount(password, deleteOwnedBoards = false) {
-      await api.del('/api/auth/account', { password, deleteOwnedBoards });
+    async deleteAccount(password, deleteOwnedBoards = false, keepPublicProblems = true) {
+      await api.del('/api/auth/account', { password, deleteOwnedBoards, keepPublicProblems });
       this.user = null;
     },
   },

@@ -168,6 +168,21 @@ a single unread row (`Count`). The bell pages 30 at a time (`GET /api/notificati
 
 `NotificationKinds` lists the kinds (reaction, comment, report, report-update, proposal, proposal-update, practice-review, review-submitted). Every creator in `NotificationService` asks `ChannelsAsync(user, kind)` first: a kind the platform switched off (Admin → System → "Notification kinds", `PlatformRuntimeSettings.NotifyOffKinds`, cached in `PlatformRuntimeConfig`) or the user muted (Account → "What to notify me about", `User.NotifyOffKinds`) creates no row, no push and no email. Email is opt-in per user (`User.NotifyEmailKinds`, only for kinds that stay in the bell), allowed per kind by the platform (`NotifyEmailKinds`, null = all but reaction/comment), and sent only when `Email` (SMTP) and `App:PublicUrl` are set and the address is verified. An admin can also lock a kind (`NotifyLockedKinds`): the user's mute is then ignored (switching it off for everyone still wins). More kinds are board-less rows (`ProposalId = 0`, `Link` says where they lead): `org-invite` (`OrgAdminController` when an invite, not a direct add, is made), `group-opens`/`group-closing` (`GroupScheduleNotifier`, every 2 min, claims a group with a conditional UPDATE on `ProblemGroup.OpenNotifiedAt`/`CloseNotifiedAt`; editing a date clears the marker), `problem-new` (`ProblemsController` create / unhide, only for what a student can open now, one unread pile per board), `lti-sync-failed` (`LtiGradeSyncService`, board staff, one pile per board; practice-problem sync failures are only logged) and `security` (password change/reset, two-step verification turned off: emailed without the per-user opt-in, because the point is to alert). Reactions/comments email once per unread pile (a bump does not mail again). Sent in the background; a failure is only logged.
 
+### What survives an account (`AccountErasure`)
+
+Deleting an account (self: `AuthController.DeleteAccount`; admin: Trash purge, bulk purge, or `DeletedUserJanitor`) hard-deletes the user row, which cascades to
+their submissions, solve records, private drafts and every `BankProblem` they own. Unless told otherwise (`DeleteAccountDto.KeepPublicProblems`, default true;
+`?keepProblems=` on the purge endpoints) their PUBLIC non-board-only problems are first handed to the placeholder `User.IsSystem` ("Deleted user", email
+`deleted-user@system.invalid`, created on first use, soft-deleted from the start so it cannot sign in, hidden from the Trash and never purged), so other students keep their
+attempts at them. Shares of those problems are dropped. Run it inside the caller's transaction before removing the user. The admin "delete user" is a soft delete
+(restorable); `DeletedUserJanitor` purges it after `PlatformRuntimeSettings.DeletedUserRetentionDays` (Admin → System → Privacy; 0 = never; existing installs migrate to 0, new ones 90).
+
+### Submission code lifetime
+
+`SubmissionCodeJanitor` (every 12 h) blanks `Code`, `CompilerOutput` and `FailedTest` of FINISHED submissions older than `BoardCodeRetentionDays` / `PracticeCodeRetentionDays`
+(Admin → System → Privacy; 0 = keep; existing installs migrate to 0, new ones 365 / 180) and sets `CodePurgedAt`. The row stays (verdicts, scores, XP never read the code); DTOs carry `CodePurged` and a null `Code`;
+plagiarism, the ZIP export and the wall preview skip or mark purged ones.
+
 ### Audit log lifetime
 
 `AuditLogJanitor` (daily) deletes audit-log rows older than `Audit:RetentionDays` (365; 0 = keep forever).

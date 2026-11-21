@@ -1203,6 +1203,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("BoardCodeRetentionDays")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("DeletedUserRetentionDays")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ImageMaxKb")
                         .HasColumnType("INTEGER");
 
@@ -1846,6 +1849,9 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsAdmin")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsSystem")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("LongestStreak")

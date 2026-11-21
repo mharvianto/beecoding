@@ -1425,4 +1425,8 @@ export default {
   "Only the code and compiler output are blanked, once, for good; verdicts, scores and XP stay. 0 keeps the code forever.": "Hanya kode dan keluaran kompilator yang dikosongkan, sekali dan permanen; hasil, skor, dan XP tetap. 0 menyimpan kode selamanya.",
   "The source code of this submission was removed after the retention period. The verdict and score are kept.": "Kode sumber kiriman ini dihapus setelah masa simpan. Hasil dan skor tetap tersimpan.",
   "code removed": "kode dihapus",
+  "Keep my public practice problems for other students. They stay without your name, shown as “Deleted user”. Private drafts are always deleted.": "Pertahankan soal latihan publik saya untuk siswa lain. Soal tetap ada tanpa nama Anda, ditampilkan sebagai “Deleted user”. Draf privat selalu dihapus.",
+  "When purging, keep their public problems (as “Deleted user”)": "Saat purge, pertahankan soal publik mereka (sebagai “Deleted user”)",
+  "Purge accounts deleted by an admin after": "Purge akun yang dihapus admin setelah",
+  "Until then the account can be restored from Trash. Purging removes the person's data; their public problems stay as “Deleted user”. 0 never purges automatically.": "Selama itu akun masih bisa dipulihkan dari Trash. Purge menghapus data orangnya; soal publiknya tetap ada sebagai “Deleted user”. 0 tidak pernah purge otomatis.",
 };

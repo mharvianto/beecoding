@@ -14,7 +14,7 @@ namespace BeeCoding.Controllers;
 public class AuthController(AppDbContext db, PasswordService pw, IConfiguration cfg, AdminAccess admin, LoginThrottle throttle,
     EmailService email, PasswordResetService resets, ResetRequestThrottle resetThrottle, EmailVerificationService verification,
     MfaService mfa, PasskeyService passkeys, GoogleAuthService google, MeDtoBuilder me, TurnstileService turnstile,
-    Microsoft.Extensions.Caching.Memory.IMemoryCache cache, NotificationService notifications) : ApiControllerBase
+    Microsoft.Extensions.Caching.Memory.IMemoryCache cache, NotificationService notifications, AccountErasure erasure) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly PasswordService _pw = pw;
@@ -297,10 +297,16 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
                 boards = ownedBoards.Select(b => new { b.Slug, b.Title }),
             });
 
-        if (ownedBoards.Count > 0)
-            _db.Boards.RemoveRange(_db.Boards.Where(x => x.OwnerId == UserId));
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();   // cascades memberships, submissions, posts, bank problems, solve records
+        await using (var tx = await _db.Database.BeginTransactionAsync())
+        {
+            // Public practice problems outlive the account (as "Deleted user") unless the person chose otherwise; the cascade below removes all the rest.
+            if (dto.KeepPublicProblems) await erasure.KeepPublicProblemsAsync(UserId);
+            if (ownedBoards.Count > 0)
+                _db.Boards.RemoveRange(_db.Boards.Where(x => x.OwnerId == UserId));
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();   // cascades memberships, submissions, posts, remaining bank problems, solve records
+            await tx.CommitAsync();
+        }
 
         await CookieSignIn.SignOutAsync(HttpContext);
         return NoContent();

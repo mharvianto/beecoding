@@ -36,6 +36,10 @@ public class User
 
     public string PasswordHash { get; set; } = "";
 
+    /// <summary>The one placeholder account ("Deleted user") that takes over the public problems of a deleted account (see AccountErasure).
+    /// It is created soft-deleted, so nobody can sign in as it; it is never listed in the Trash and never purged.</summary>
+    public bool IsSystem { get; set; }
+
     /// <summary>False for accounts created through "Sign in with Google": <see cref="PasswordHash"/> is
     /// then a random value nobody knows, until the user sets a password themselves.</summary>
     public bool HasPassword { get; set; } = true;
@@ -1116,6 +1120,9 @@ public class PlatformRuntimeSettings
     /// <summary>Days after a submission its source code is blanked (board / practice). 0 = keep forever. See SubmissionCodeJanitor.</summary>
     public int BoardCodeRetentionDays { get; set; } = 365;
     public int PracticeCodeRetentionDays { get; set; } = 180;
+
+    /// <summary>Days an admin-deleted (trashed) account stays restorable before it is purged for good (0 = never). See DeletedUserJanitor.</summary>
+    public int DeletedUserRetentionDays { get; set; } = 90;
 
     /// <summary>Notification kinds switched off for everyone, and the kinds that may be emailed at all (comma-separated, see NotificationKinds). Null email list = the built-in default.</summary>
     public string? NotifyOffKinds { get; set; }

@@ -80,7 +80,7 @@ public class AdminUiController(
 
         var pendingAiReview = await _db.BankProblems.CountAsync(b => b.PendingReview);
 
-        var trashCount = await _db.Users.CountAsync(u => u.DeletedAt != null)
+        var trashCount = await _db.Users.CountAsync(u => u.DeletedAt != null && !u.IsSystem)
             + await _db.Boards.IgnoreQueryFilters().CountAsync(b => b.DeletedAt != null)
             + await _db.Problems.IgnoreQueryFilters().CountAsync(p => p.DeletedAt != null)
             + await _db.BankProblems.IgnoreQueryFilters().CountAsync(b => b.DeletedAt != null);
@@ -601,7 +601,7 @@ public class AdminUiController(
             _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
             _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, Math.Min(_sharedLsp.TotalCap, _lspOpt.SharedMaxSessions * Math.Max(1, _lspOpt.SharedMaxProcesses) * 2),
             _sharedLsp.Processes, Math.Max(1, _lspOpt.SharedMaxProcesses),
-            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays);
+            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays, _runtimeConfig.DeletedUserRetentionDays);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -790,6 +790,7 @@ public class AdminUiController(
         var readDays = Math.Clamp(dto.NotificationReadRetentionDays, 0, 365);
         var boardCodeDays = Math.Clamp(dto.BoardCodeRetentionDays, 0, 3650);
         var practiceCodeDays = Math.Clamp(dto.PracticeCodeRetentionDays, 0, 3650);
+        var deletedUserDays = Math.Clamp(dto.DeletedUserRetentionDays, 0, 3650);
 
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
@@ -802,6 +803,7 @@ public class AdminUiController(
         row.NotificationReadRetentionDays = readDays;
         row.BoardCodeRetentionDays = boardCodeDays;
         row.PracticeCodeRetentionDays = practiceCodeDays;
+        row.DeletedUserRetentionDays = deletedUserDays;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -811,9 +813,10 @@ public class AdminUiController(
         _runtimeConfig.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
         _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
         _runtimeConfig.SetCodeRetention(row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays);
+        _runtimeConfig.SetDeletedUserRetention(row.DeletedUserRetentionDays);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, lspShared={row.LspShared}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, lspShared={row.LspShared}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays);
     }
 
     /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>

@@ -40,6 +40,7 @@ const tabDefs = [
 ];
 // Deep-linkable: /admin/users etc. — reload/share/bookmark lands on the same tab.
 const tab = ref(tabDefs.some((t) => t[0] === route.params.tab) ? route.params.tab : 'dashboard');
+const trashKeepProblems = ref(true);   // purging an account: keep its public practice problems as "Deleted user"
 const err = ref('');
 
 const aiRows = ref(null);
@@ -661,7 +662,7 @@ async function purge(kind, row, label) {
   if (!(await confirmDialog.ask(tr('Permanently delete "{p0}"? This cannot be undone.', { p0: label }), { confirmLabel: tr('Delete forever') }))) return;
   err.value = '';
   try {
-    await api.del(`/api/admin-ui/trash/${kind}/${kind === 'users' ? row.id : row.slug}`);
+    await api.del(`/api/admin-ui/trash/${kind}/${kind === 'users' ? row.id + '?keepProblems=' + trashKeepProblems.value : row.slug}`);
     await loadTrashKind(kind);
   } catch (e) { err.value = e.message; }
 }
@@ -682,7 +683,7 @@ async function purgeSelectedTrash(kind) {
   if (!(await confirmDialog.ask(tr('Permanently delete {p0} item(s)? This cannot be undone.', { p0: ids.length }), { confirmLabel: tr('Delete forever') }))) return;
   err.value = ''; trash[kind].msg = '';
   try {
-    const result = await api.post(`/api/admin-ui/trash/${kind}/purge`, { ids });
+    const result = await api.post(`/api/admin-ui/trash/${kind}/purge${kind === 'users' ? '?keepProblems=' + trashKeepProblems.value : ''}`, { ids });
     await loadTrashKind(kind);
     trash[kind].msg = `Purged ${result.count}.` + (result.errors.length ? ` Errors: ${result.errors.join(', ')}` : '');
   } catch (e) { err.value = e.message; }
@@ -956,17 +957,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180 });
+const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180, deletedUserRetentionDays: 90 });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays, deletedUserRetentionDays: s.deletedUserRetentionDays };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; systemStatus.value.deletedUserRetentionDays = r.deletedUserRetentionDays; }
     runtimeConfigMsg.value = tr('Saved — takes effect immediately, no restart needed.');
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -2243,10 +2244,10 @@ onMounted(async () => {
             <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
               <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Privacy') }}</h4>
               <div class="divide-y divide-slate-100 dark:divide-slate-800">
-              <label v-for="f in [['boardCodeRetentionDays', 'Remove source code of board submissions after'], ['practiceCodeRetentionDays', 'Remove source code of practice submissions after']]" :key="f[0]" class="flex items-center justify-between gap-4 py-2.5">
+              <label v-for="f in [['boardCodeRetentionDays', 'Remove source code of board submissions after', 'Only the code and compiler output are blanked, once, for good; verdicts, scores and XP stay. 0 keeps the code forever.'], ['practiceCodeRetentionDays', 'Remove source code of practice submissions after', 'Only the code and compiler output are blanked, once, for good; verdicts, scores and XP stay. 0 keeps the code forever.'], ['deletedUserRetentionDays', 'Purge accounts deleted by an admin after', 'Until then the account can be restored from Trash. Purging removes the person\'s data; their public problems stay as “Deleted user”. 0 never purges automatically.']]" :key="f[0]" class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr(f[1]) }}</span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Only the code and compiler output are blanked, once, for good; verdicts, scores and XP stay. 0 keeps the code forever.') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr(f[2]) }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="number" min="0" max="3650" step="1" v-model.number="runtimeConfigForm[f[0]]"
                        class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">{{ tr('days') }}</span></span>
@@ -2324,6 +2325,9 @@ onMounted(async () => {
       <div v-for="[kind, label, labelFn] in TRASH_KINDS" :key="kind">
         <div class="flex items-center gap-3 mb-1.5 flex-wrap">
           <h2 class="font-semibold text-sm">{{ label }} · {{ trash[kind].total }}</h2>
+          <label v-if="kind === 'users'" class="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+            <input type="checkbox" v-model="trashKeepProblems"> {{ tr('When purging, keep their public problems (as “Deleted user”)') }}
+          </label>
           <div v-if="trash[kind].selected.size" class="flex items-center gap-2 text-xs">
             <span>{{ tr('{n} selected', { n: trash[kind].selected.size }) }}</span>
             <button @click="restoreSelectedTrash(kind)" class="row-action-btn row-action-btn--success">{{ tr('Restore selected') }}</button>

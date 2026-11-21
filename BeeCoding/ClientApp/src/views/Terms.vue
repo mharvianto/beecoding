@@ -4,7 +4,7 @@ import { docLang } from '../lib/docLang';
 </script>
 
 <template>
-  <LegalPage :title="docLang === 'id' ? 'Syarat & Ketentuan' : 'Terms & Agreement'" updated="7 September 2026">
+  <LegalPage :title="docLang === 'id' ? 'Syarat & Ketentuan' : 'Terms & Agreement'" updated="21 November 2026">
     <template v-if="docLang === 'en'">
     <p>
       By creating an account or using this BeeCoding instance you agree to these terms. The
@@ -40,6 +40,13 @@ import { docLang } from '../lib/docLang';
       permission needed to store, compile, run, display and grade that content for the
       purpose of operating the class. Teachers can view submissions from students in their
       classes.
+    </p>
+    <p>
+      A practice problem you publish becomes part of the shared problem bank, and other students
+      keep their solving history on it. If you delete your account you can choose to let your
+      published problems stay for the others. They then lose your name and any link to your account
+      and are shown as written by “Deleted user”; if you choose otherwise they are deleted with
+      your account. Do not put personal data in a problem you publish.
     </p>
 
     <h2>4. The AI tutor</h2>
@@ -115,6 +122,14 @@ import { docLang } from '../lib/docLang';
       Anda tetap memegang hak atas kode dan teks yang Anda buat. Anda memberi Operator izin yang
       diperlukan untuk menyimpan, mengompilasi, menjalankan, menampilkan, dan menilai konten itu demi
       menjalankan kelas. Guru dapat melihat pengumpulan siswa di kelas mereka.
+    </p>
+    <p>
+      Soal latihan yang Anda terbitkan menjadi bagian dari bank soal bersama, dan siswa lain
+      menyimpan riwayat pengerjaannya. Jika Anda menghapus akun, Anda dapat memilih agar soal yang
+      sudah Anda terbitkan tetap ada untuk yang lain. Soal itu kehilangan nama Anda dan setiap
+      tautan ke akun Anda, lalu ditampilkan sebagai buatan “Deleted user”; jika Anda memilih
+      sebaliknya, soal ikut terhapus bersama akun Anda. Jangan menaruh data pribadi dalam soal
+      yang Anda terbitkan.
     </p>
 
     <h2>4. Tutor AI</h2>

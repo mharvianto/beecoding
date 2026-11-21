@@ -21,8 +21,9 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [Authorize(Policy = "Admin")]
 [Route("api/admin-ui")]
-public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess admin) : ApiControllerBase
+public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess admin, AccountErasure erasure) : ApiControllerBase
 {
+    private readonly AccountErasure _erasure = erasure;
     private readonly AppDbContext _db = db;
     private readonly AuditLog _audit = audit;
     private readonly AdminAccess _admin = admin;
@@ -41,7 +42,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
         {
             case "users":
             {
-                var query = _db.Users.Where(u => u.DeletedAt != null);
+                var query = _db.Users.Where(u => u.DeletedAt != null && !u.IsSystem);
                 if (n is not null)
                     query = query.Where(u => EF.Functions.Like(u.Email.ToLower(), $"%{n}%".ToLower()) || EF.Functions.Like(u.DisplayName.ToLower(), $"%{n}%".ToLower()));
                 var total = await query.CountAsync();
@@ -112,7 +113,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
                 {
                     case "users":
                         if (!int.TryParse(id, out var uid)) { errors.Add($"{id}: invalid id"); continue; }
-                        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid);
+                        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == uid && !u.IsSystem);
                         if (user is null) { errors.Add($"{id}: not found"); continue; }
                         if (user.DeletedAt is null) continue;
                         user.DeletedAt = null;
@@ -153,7 +154,7 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
 
     /// <summary>Bulk permanent purge, one trash category at a time.</summary>
     [HttpPost("trash/{kind}/purge")]
-    public async Task<ActionResult<AdminTrashBulkResult>> BulkPurgeTrash(string kind, AdminTrashBulkDto dto)
+    public async Task<ActionResult<AdminTrashBulkResult>> BulkPurgeTrash(string kind, AdminTrashBulkDto dto, [FromQuery] bool keepProblems = true)
     {
         if (!TrashKinds.Contains(kind)) return BadRequest("kind must be users, boards, problems, or bank.");
 
@@ -173,8 +174,13 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
                         if (await _db.Boards.IgnoreQueryFilters().AnyAsync(b => b.OwnerId == uid))
                         { errors.Add($"{user.Email}: still owns board(s)"); continue; }
                         if (_admin.IsAdminEmail(user.Email)) { errors.Add($"{user.Email}: admin address, revoke admin first"); continue; }
-                        _db.Users.Remove(user);
-                        await _db.SaveChangesAsync();
+                        await using (var tx = await _db.Database.BeginTransactionAsync())
+                        {
+                            if (keepProblems) await _erasure.KeepPublicProblemsAsync(uid);
+                            _db.Users.Remove(user);
+                            await _db.SaveChangesAsync();
+                            await tx.CommitAsync();
+                        }
                         await _audit.RecordAsync(UserId, ActorEmail, "purge", "User", uid, $"{user.Email} (bulk)");
                         break;
                     case "boards":
@@ -210,9 +216,9 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
     }
 
     [HttpDelete("trash/users/{id:int}")]
-    public async Task<IActionResult> PurgeUser(int id)
+    public async Task<IActionResult> PurgeUser(int id, [FromQuery] bool keepProblems = true)
     {
-        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsSystem);
         if (user is null) return NotFound();
         if (user.DeletedAt is null) return BadRequest("Delete it first — purge only removes trashed rows.");
         if (await _db.Boards.IgnoreQueryFilters().AnyAsync(b => b.OwnerId == id))
@@ -220,9 +226,14 @@ public class AdminTrashController(AppDbContext db, AuditLog audit, AdminAccess a
         if (_admin.IsAdminEmail(user.Email))
             return Conflict("This is an admin address — purging it would let anyone register it and become admin. Revoke admin first.");
 
-        _db.Users.Remove(user);
-        await _db.SaveChangesAsync();
-        await _audit.RecordAsync(UserId, ActorEmail, "purge", "User", id, user.Email);
+        await using (var tx = await _db.Database.BeginTransactionAsync())
+        {
+            if (keepProblems) await _erasure.KeepPublicProblemsAsync(id);
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+            await tx.CommitAsync();
+        }
+        await _audit.RecordAsync(UserId, ActorEmail, "purge", "User", id, keepProblems ? user.Email : user.Email + " (problems removed too)");
         return NoContent();
     }
 

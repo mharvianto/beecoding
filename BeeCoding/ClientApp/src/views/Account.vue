@@ -163,11 +163,12 @@ const delPw = ref('');
 const delErr = ref('');
 const delBusy = ref(false);
 const ownedBoards = ref(null);   // set when the server asks for confirmation
+const keepProblems = ref(true);   // leave my public practice problems for others, as "Deleted user"
 
 async function deleteAccount(force = false) {
   delErr.value = ''; delBusy.value = true;
   try {
-    await auth.deleteAccount(delPw.value, force);
+    await auth.deleteAccount(delPw.value, force, keepProblems.value);
     progress.reset();
     router.push('/register');
   } catch (e) {
@@ -424,6 +425,11 @@ async function deleteAccount(force = false) {
           <template v-else>
             <input v-model="delPw" type="password" :placeholder="tr('Confirm with your password')" :aria-label="tr('Confirm with your password')" autocomplete="current-password"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
+
+            <label class="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+              <input v-model="keepProblems" type="checkbox" class="mt-0.5">
+              <span>{{ tr('Keep my public practice problems for other students. They stay without your name, shown as “Deleted user”. Private drafts are always deleted.') }}</span>
+            </label>
 
             <div v-if="ownedBoards" class="text-sm bg-red-50 dark:bg-red-500/10 rounded-lg p-3 space-y-1">
               <p class="text-red-700 dark:text-red-300 font-medium">{{ tr('These boards will be deleted with all their submissions:') }}</p>

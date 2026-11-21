@@ -61,7 +61,11 @@ import { docLang } from '../lib/docLang';
       <li>Your data is kept for as long as your account exists on this instance.</li>
       <li>You can delete your account from <strong>Account settings</strong>. This
         permanently removes your profile, submissions and practice progress; if you are a
-        teacher it also deletes boards you own and the work submitted to them.</li>
+        teacher it also deletes boards you own and the work submitted to them. Practice problems you
+        published stay for other students without your name (shown as “Deleted user”) unless you
+        untick that option; your private drafts are always deleted.</li>
+      <li>An account deleted by an administrator can be restored for a period the Operator sets (90 days
+        by default on a new installation); after that it is purged the same way.</li>
       <li>The source code of your submissions is removed automatically after a retention period that the
         Operator sets (the default for a new installation is one year for board submissions and six
         months for practice). Only the code and compiler output are removed; the verdict, score and XP
@@ -150,7 +154,11 @@ import { docLang } from '../lib/docLang';
       <li>Data Anda disimpan selama akun Anda ada di instans ini.</li>
       <li>Anda dapat menghapus akun dari <strong>pengaturan Akun</strong>. Ini menghapus permanen
         profil, kiriman, dan kemajuan latihan Anda; jika Anda guru, board milik Anda beserta
-        pekerjaan yang dikumpulkan ke dalamnya juga ikut terhapus.</li>
+        pekerjaan yang dikumpulkan ke dalamnya juga ikut terhapus. Soal latihan yang Anda terbitkan
+        tetap ada untuk siswa lain tanpa nama Anda (ditampilkan sebagai “Deleted user”) kecuali Anda
+        mematikan pilihan itu; draf privat Anda selalu dihapus.</li>
+      <li>Akun yang dihapus oleh administrator dapat dipulihkan selama masa yang ditetapkan Operator
+        (bawaan 90 hari untuk instalasi baru); setelah itu akun di-purge dengan cara yang sama.</li>
       <li>Kode sumber kiriman Anda dihapus otomatis setelah masa simpan yang ditetapkan Operator
         (bawaan untuk instalasi baru: satu tahun untuk kiriman board dan enam bulan untuk latihan).
         Yang dihapus hanya kode dan keluaran kompilator; hasil penilaian, skor, dan XP tetap

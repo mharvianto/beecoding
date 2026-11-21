@@ -64,7 +64,8 @@ public record ForgotPasswordDto(string Email, string? TurnstileToken = null);
 public record ResetPasswordDto(string Token, string NewPassword);
 public record AdminResetLinkDto(string Url, DateTime ExpiresAt);
 public record UpdateProfileDto(string DisplayName);
-public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false);
+/// <summary>KeepPublicProblems: the account's public practice problems stay, under "Deleted user" (everything else of theirs goes).</summary>
+public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false, bool KeepPublicProblems = true);
 
 // ---- Boards ----
 public record CreateBoardDto(string Title, int? OrganizationId = null);
@@ -326,7 +327,7 @@ public record AdminSystemStatusDto(
     bool SysstatInstalled, string Hostname,
     int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7,
     bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40, int LspSharedProcesses = 0, int LspSharedMaxProcesses = 1,
-    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180);
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
@@ -351,7 +352,7 @@ public record AdminNotifyKindDto(string Kind, string Label, bool Enabled, bool E
 public record AdminNotifyKindsDto(List<AdminNotifyKindDto> Kinds, bool EmailConfigured);
 
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false,
-    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180);
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>

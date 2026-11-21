@@ -33,6 +33,8 @@ public class PlatformRuntimeConfig
     /// <summary>Days before a submission's source code is blanked (0 = keep) — see SubmissionCodeJanitor.</summary>
     public int BoardCodeRetentionDays { get; private set; } = 365;
     public int PracticeCodeRetentionDays { get; private set; } = 180;
+    public int DeletedUserRetentionDays { get; private set; } = 90;
+    public void SetDeletedUserRetention(int days) => DeletedUserRetentionDays = Math.Max(0, days);
     public void SetCodeRetention(int boardDays, int practiceDays) { BoardCodeRetentionDays = Math.Max(0, boardDays); PracticeCodeRetentionDays = Math.Max(0, practiceDays); }
 
     /// <summary>Kinds off for everyone, and kinds that may be emailed (null in the database = NotificationKinds.DefaultEmail).</summary>
