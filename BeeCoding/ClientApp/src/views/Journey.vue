@@ -53,12 +53,12 @@ watch(() => props.id, () => { map.value = null; defeated.value = []; load(); });
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex items-baseline justify-between gap-3 flex-wrap mb-4">
-      <h1 class="text-2xl font-semibold">{{ map ? map.title : tr('Journey') }}</h1>
+  <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    <div class="flex items-baseline justify-between gap-x-3 gap-y-1 flex-wrap mb-1">
+      <h1 class="text-xl font-bold">{{ map ? map.title : tr('Journey') }}</h1>
       <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="row-action-btn"><Icon name="pencil" /> {{ tr('Edit journeys') }}</RouterLink>
     </div>
-    <p class="text-sm text-slate-600 dark:text-slate-300 max-w-3xl mb-4">{{ tr('A guided path through Practice. Problems come in order, from easy to hard, grouped into worlds. You can skip any problem and come back to it later. Finish enough problems in a world to unlock its boss: beat it for bonus XP and a badge. Your progress comes from problems you have already solved.') }}</p>
+    <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">{{ tr('A guided path through Practice: problems in order from easy to hard, grouped into worlds. Skip any problem and come back later; finish enough of a world to unlock its boss, and beat it for bonus XP and a badge.') }}</p>
     <p v-if="error" class="text-sm text-rose-600 mb-3">{{ error }}</p>
     <div class="max-w-3xl">
     <p v-if="loading" class="text-sm text-slate-500">{{ tr('Loading…') }}</p>

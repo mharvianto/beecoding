@@ -1417,6 +1417,6 @@ export default {
   "Add from the bank": "Tambah dari bank",
   "Goes into the world you last clicked: World {n}": "Masuk ke dunia yang terakhir Anda klik: Dunia {n}",
   "Only public problems can be used. A problem can appear once in a journey.": "Hanya soal publik yang bisa dipakai. Satu soal hanya boleh muncul sekali dalam perjalanan.",
-  "A guided path through Practice. Problems come in order, from easy to hard, grouped into worlds. You can skip any problem and come back to it later. Finish enough problems in a world to unlock its boss: beat it for bonus XP and a badge. Your progress comes from problems you have already solved.": "Jalur terpandu di Practice. Soal berurutan dari mudah ke sulit, dikelompokkan dalam dunia. Anda boleh melewati soal mana pun dan kembali nanti. Selesaikan cukup banyak soal dalam satu dunia untuk membuka bosnya: kalahkan bos untuk bonus XP dan lencana. Progres Anda dibaca dari soal yang sudah Anda selesaikan.",
+  "A guided path through Practice: problems in order from easy to hard, grouped into worlds. Skip any problem and come back later; finish enough of a world to unlock its boss, and beat it for bonus XP and a badge.": "Jalur terpandu di Practice: soal berurutan dari mudah ke sulit, dikelompokkan dalam dunia. Lewati soal mana pun dan kembali nanti; selesaikan cukup banyak soal satu dunia untuk membuka bosnya, kalahkan untuk bonus XP dan lencana.",
   "Create one": "Buat satu",
 };
