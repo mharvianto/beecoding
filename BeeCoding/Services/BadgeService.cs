@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Services;
 
-public record BadgeDto(string Key, string Name, string Description, string Group, int Target, int Value, bool Earned, DateTime? EarnedAt);
+public record BadgeDto(string Key, string Name, string Description, string Group, string Icon, string Tier, int Target, int Value, bool Earned, DateTime? EarnedAt);
 
 /// <summary>
 /// Practice badges. The rules are code (below), the earned ones are rows (<see cref="UserBadge"/>): once earned a badge stays, with the day it
@@ -15,24 +15,37 @@ public record BadgeDto(string Key, string Name, string Description, string Group
 public sealed class BadgeService(AppDbContext db, ILogger<BadgeService> log)
 {
     private record Stats(int Solved, int Medium, int Hard, int LongestStreak, int MaxDay, int Level);
-    private record Def(string Key, string Name, string Description, string Group, int Target, Func<Stats, int> Value);
+    /// <summary>Icon = the group's icon name in the browser's Icon.vue; Tier = bronze | silver | gold | platinum (colour in the browser).</summary>
+    private record Def(string Key, string Name, string Description, string Group, string Icon, string Tier, int Target, Func<Stats, int> Value);
 
     public const string BossKeyPrefix = "journey-boss:";
 
     private static readonly Def[] Defs =
     [
-        new("first_solve", "First Solve", "Solve your first problem", "Problems solved", 1, s => s.Solved),
-        new("solver_10", "Getting Started", "Solve 10 problems", "Problems solved", 10, s => s.Solved),
-        new("solver_50", "Problem Solver", "Solve 50 problems", "Problems solved", 50, s => s.Solved),
-        new("solver_100", "Centurion", "Solve 100 problems", "Problems solved", 100, s => s.Solved),
-        new("streak_3", "On a Roll", "Practice 3 days in a row", "Streaks", 3, s => s.LongestStreak),
-        new("streak_7", "Week Warrior", "Practice 7 days in a row", "Streaks", 7, s => s.LongestStreak),
-        new("streak_30", "Month Master", "Practice 30 days in a row", "Streaks", 30, s => s.LongestStreak),
-        new("medium_10", "Medium Master", "Solve 10 Medium problems", "Difficulty", 10, s => s.Medium),
-        new("hard_5", "Hard Hitter", "Solve 5 Hard problems", "Difficulty", 5, s => s.Hard),
-        new("day_5", "Power Day", "Solve 5 problems in one day", "Intensity", 5, s => s.MaxDay),
-        new("level_5", "Level 5", "Reach level 5", "Levels", 5, s => s.Level),
-        new("level_10", "Level 10", "Reach level 10", "Levels", 10, s => s.Level),
+        new("first_solve", "First Solve", "Solve your first problem", "Problems solved", "check", "bronze", 1, s => s.Solved),
+        new("solver_10", "Getting Started", "Solve 10 problems", "Problems solved", "check", "bronze", 10, s => s.Solved),
+        new("solver_50", "Problem Solver", "Solve 50 problems", "Problems solved", "check", "silver", 50, s => s.Solved),
+        new("solver_100", "Centurion", "Solve 100 problems", "Problems solved", "check", "gold", 100, s => s.Solved),
+        new("solver_250", "Legend", "Solve 250 problems", "Problems solved", "check", "platinum", 250, s => s.Solved),
+        new("streak_3", "On a Roll", "Practice 3 days in a row", "Streaks", "flame", "bronze", 3, s => s.LongestStreak),
+        new("streak_7", "Week Warrior", "Practice 7 days in a row", "Streaks", "flame", "silver", 7, s => s.LongestStreak),
+        new("streak_14", "Fortnight Fighter", "Practice 14 days in a row", "Streaks", "flame", "gold", 14, s => s.LongestStreak),
+        new("streak_30", "Month Master", "Practice 30 days in a row", "Streaks", "flame", "platinum", 30, s => s.LongestStreak),
+        new("streak_100", "Unstoppable", "Practice 100 days in a row", "Streaks", "flame", "platinum", 100, s => s.LongestStreak),
+        new("medium_10", "Medium Master", "Solve 10 Medium problems", "Medium problems", "target", "bronze", 10, s => s.Medium),
+        new("medium_20", "Medium Expert", "Solve 20 Medium problems", "Medium problems", "target", "silver", 20, s => s.Medium),
+        new("medium_50", "Medium Champion", "Solve 50 Medium problems", "Medium problems", "target", "gold", 50, s => s.Medium),
+        new("hard_5", "Hard Hitter", "Solve 5 Hard problems", "Hard problems", "mountain", "bronze", 5, s => s.Hard),
+        new("hard_10", "Tough Cookie", "Solve 10 Hard problems", "Hard problems", "mountain", "silver", 10, s => s.Hard),
+        new("hard_25", "Hard Crusher", "Solve 25 Hard problems", "Hard problems", "mountain", "gold", 25, s => s.Hard),
+        new("hard_50", "Peak Performer", "Solve 50 Hard problems", "Hard problems", "mountain", "platinum", 50, s => s.Hard),
+        new("day_5", "Power Day", "Solve 5 problems in one day", "Intensity", "zap", "bronze", 5, s => s.MaxDay),
+        new("day_10", "Double Digits", "Solve 10 problems in one day", "Intensity", "zap", "silver", 10, s => s.MaxDay),
+        new("day_20", "Marathon Day", "Solve 20 problems in one day", "Intensity", "zap", "gold", 20, s => s.MaxDay),
+        new("level_5", "Level 5", "Reach level 5", "Levels", "trophy", "bronze", 5, s => s.Level),
+        new("level_10", "Level 10", "Reach level 10", "Levels", "trophy", "silver", 10, s => s.Level),
+        new("level_15", "Level 15", "Reach level 15", "Levels", "trophy", "gold", 15, s => s.Level),
+        new("level_20", "Level 20", "Reach level 20", "Levels", "trophy", "platinum", 20, s => s.Level),
     ];
 
     private async Task<Stats> StatsAsync(int userId, CancellationToken ct)
@@ -80,7 +93,7 @@ public sealed class BadgeService(AppDbContext db, ILogger<BadgeService> log)
         await EvaluateAsync(userId, ct: ct);
         var stats = await StatsAsync(userId, ct);
         var earned = await db.UserBadges.Where(b => b.UserId == userId).ToDictionaryAsync(b => b.Key, b => b.EarnedAt, ct);
-        return Defs.Select(d => new BadgeDto(d.Key, d.Name, d.Description, d.Group, d.Target, Math.Min(d.Value(stats), d.Target),
+        return Defs.Select(d => new BadgeDto(d.Key, d.Name, d.Description, d.Group, d.Icon, d.Tier, d.Target, Math.Min(d.Value(stats), d.Target),
             earned.ContainsKey(d.Key), earned.TryGetValue(d.Key, out var at) ? at : null)).ToList();
     }
 
@@ -92,7 +105,7 @@ public sealed class BadgeService(AppDbContext db, ILogger<BadgeService> log)
         var now = DateTime.UtcNow;
         foreach (var b in fresh) b.SeenAt = now;
         await db.SaveChangesAsync(ct);
-        return fresh.Join(Defs, b => b.Key, d => d.Key, (b, d) => new BadgeDto(d.Key, d.Name, d.Description, d.Group, d.Target, d.Target, true, b.EarnedAt)).ToList();
+        return fresh.Join(Defs, b => b.Key, d => d.Key, (b, d) => new BadgeDto(d.Key, d.Name, d.Description, d.Group, d.Icon, d.Tier, d.Target, d.Target, true, b.EarnedAt)).ToList();
     }
 }
 

@@ -3,6 +3,7 @@ import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../lib/api';
+import { tierOf } from '../lib/badgeTier';
 
 /** My practice badges: earned ones in colour with the day they were earned, the rest greyed with how far along I am. */
 const badges = ref(null);
@@ -31,12 +32,13 @@ const day = (iso) => new Date(iso).toLocaleDateString();
       <h3 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr(group) }}</h3>
       <div class="grid gap-2 sm:grid-cols-2">
         <div v-for="b in items" :key="b.key" class="flex items-center gap-3 rounded-xl border px-3 py-2.5"
-             :class="b.earned ? 'border-amber-300 dark:border-amber-500/40 bg-amber-50/60 dark:bg-amber-500/5' : 'border-slate-200 dark:border-slate-800'">
-          <Icon name="award" class="text-3xl shrink-0" :class="b.earned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'" />
+             :class="b.earned ? tierOf(b.tier).card : 'border-slate-200 dark:border-slate-800'">
+          <Icon :name="b.icon" class="text-3xl shrink-0" :class="b.earned ? tierOf(b.tier).icon : 'text-slate-300 dark:text-slate-600'" />
           <div class="min-w-0 flex-1">
-            <div class="text-sm font-semibold" :class="b.earned ? '' : 'text-slate-500 dark:text-slate-400'">{{ tr(b.name) }}</div>
+            <div class="text-sm font-semibold" :class="b.earned ? '' : 'text-slate-500 dark:text-slate-400'">{{ tr(b.name) }}
+              <span class="ml-1 text-[10px] font-medium uppercase tracking-wide" :class="b.earned ? tierOf(b.tier).note : 'text-slate-400 dark:text-slate-500'">{{ tr(tierOf(b.tier).label) }}</span></div>
             <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr(b.description) }}</div>
-            <div v-if="b.earned" class="text-[11px] text-amber-700 dark:text-amber-400 mt-0.5">{{ tr('Earned {date}', { date: day(b.earnedAt) }) }}</div>
+            <div v-if="b.earned" class="text-[11px] mt-0.5" :class="tierOf(b.tier).note">{{ tr('Earned {date}', { date: day(b.earnedAt) }) }}</div>
             <div v-else class="mt-1 flex items-center gap-2">
               <span class="flex-1 h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><span class="block h-full bg-amber-400" :style="{ width: (b.value / b.target * 100) + '%' }"></span></span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{{ b.value }}/{{ b.target }}</span>
