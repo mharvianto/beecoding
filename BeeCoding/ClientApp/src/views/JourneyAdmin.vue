@@ -68,7 +68,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
 </script>
 
 <template>
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-baseline justify-between gap-3 flex-wrap mb-4">
       <h1 class="text-2xl font-semibold">{{ tr('Edit journeys') }}</h1>
       <RouterLink to="/journey" class="text-sm hover:underline">{{ tr('Back to the journey') }}</RouterLink>

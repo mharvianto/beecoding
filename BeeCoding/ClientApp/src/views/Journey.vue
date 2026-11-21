@@ -53,12 +53,13 @@ watch(() => props.id, () => { map.value = null; defeated.value = []; load(); });
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto">
+  <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="flex items-baseline justify-between gap-3 flex-wrap mb-4">
       <h1 class="text-2xl font-semibold">{{ map ? map.title : tr('Journey') }}</h1>
       <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="row-action-btn"><Icon name="pencil" /> {{ tr('Edit journeys') }}</RouterLink>
     </div>
     <p v-if="error" class="text-sm text-rose-600 mb-3">{{ error }}</p>
+    <div class="max-w-3xl">
     <p v-if="loading" class="text-sm text-slate-500">{{ tr('Loading…') }}</p>
 
     <!-- list (only when there is more than one journey) -->
@@ -116,5 +117,6 @@ watch(() => props.id, () => { map.value = null; defeated.value = []; load(); });
         </div>
       </section>
     </template>
+    </div>
   </div>
 </template>
