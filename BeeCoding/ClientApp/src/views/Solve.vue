@@ -37,8 +37,9 @@ const board = ref(null);
 const problem = ref(null);
 // internal id of the loaded problem — used for API calls / SignalR that key by int id
 const pid = computed(() => problem.value?.id);
-// Content protection is always on for students — there's no longer a per-board opt-out.
-const protectOn = computed(() => auth.user?.role === 'Student');
+// Content protection follows the person's role ON THIS BOARD, not their account role: a teacher who solves problems as a student of someone
+// else's board gets the protected image too. Always on for students — there's no per-board opt-out.
+const protectOn = computed(() => auth.user?.role === 'Student' || board.value?.role === 'Student');
 const watermark = computed(() =>
   `${auth.user?.email || auth.user?.displayName || ''} · ${new Date().toLocaleString()}`);
 const code = ref('');
@@ -374,7 +375,15 @@ onBeforeUnmount(async () => {
         <StatementImage :problem-id="pid" />
       </ContentGuard>
 
-      <template v-else>
+      <div v-if="protectOn && problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Load sample input:') }}</span>
+        <button v-for="(t, i) in problem.sampleTests" :key="i" @click="stdin = t.stdin"
+                class="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400">
+          {{ tr('Sample {n}', { n: i + 1 }) }}
+        </button>
+      </div>
+
+      <template v-else-if="!protectOn">
         <MarkdownBlock :text="problem.statementMarkdown" />
         <div v-if="problem.sampleTests?.length" class="mt-4">
           <h3 class="font-semibold text-sm mb-1">{{ tr('Samples') }}</h3>
