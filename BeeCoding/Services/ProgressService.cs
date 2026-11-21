@@ -37,12 +37,12 @@ public class ProgressService(AppDbContext db)
     /// <summary>
     /// Record a solve if it's the user's first for this problem key; returns XP added (0 if already solved).
     /// </summary>
-    public async Task<int> AwardSolveAsync(int userId, string problemKey, ProblemLevel level, CancellationToken ct = default)
+    public async Task<int> AwardSolveAsync(int userId, string problemKey, ProblemLevel level, CancellationToken ct = default, int? xpOverride = null)
     {
         if (await _db.SolveRecords.AnyAsync(r => r.UserId == userId && r.ProblemKey == problemKey, ct))
             return 0;
 
-        int xp = XpFor(level);
+        int xp = xpOverride ?? XpFor(level);
         _db.SolveRecords.Add(new SolveRecord
         {
             UserId = userId,

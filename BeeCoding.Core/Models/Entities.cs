@@ -1162,3 +1162,57 @@ public class SurveyResponse
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>A guided path through Practice: worlds of ordered public bank problems, each ending in a boss. Built by platform admins.</summary>
+public class Journey
+{
+    public int Id { get; set; }
+
+    [MaxLength(120)]
+    public string Title { get; set; } = "";
+
+    /// <summary>Students see only published journeys.</summary>
+    public bool Published { get; set; }
+
+    public List<JourneyWorld> Worlds { get; set; } = [];
+}
+
+public class JourneyWorld
+{
+    public int Id { get; set; }
+    public int JourneyId { get; set; }
+    public Journey? Journey { get; set; }
+    public int Position { get; set; }
+
+    [MaxLength(120)]
+    public string Name { get; set; } = "";
+
+    /// <summary>The boss opens once this many of the world's problems are solved (skipped ones don't count).</summary>
+    public int UnlockAfter { get; set; }
+
+    /// <summary>A public bank problem (plain id, like <c>BankProblem.RevisionOfId</c>); null = a world with no boss.</summary>
+    public int? BossBankProblemId { get; set; }
+    public int BossXp { get; set; } = 100;
+
+    [MaxLength(60)]
+    public string BadgeName { get; set; } = "";
+
+    public List<JourneyItem> Items { get; set; } = [];
+}
+
+public class JourneyItem
+{
+    public int Id { get; set; }
+    public int WorldId { get; set; }
+    public JourneyWorld? World { get; set; }
+    public int Position { get; set; }
+    public int BankProblemId { get; set; }
+}
+
+/// <summary>"Skip for now": the student passes over a problem of a journey; it stays on the map and can still be solved.</summary>
+public class JourneySkip
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public int BankProblemId { get; set; }
+}

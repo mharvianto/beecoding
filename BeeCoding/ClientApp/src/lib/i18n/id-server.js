@@ -191,4 +191,10 @@ export default {
   "Problem not found.": "Soal tidak ditemukan.",
   "Board not found.": "Board tidak ditemukan.",
   "Pick a board or a problem first.": "Pilih board atau soal dulu.",
+  "Give the journey a title (up to 120 characters).": "Beri judul perjalanan (maksimal 120 karakter).",
+  "Every world needs a name (up to 120 characters).": "Setiap dunia perlu nama (maksimal 120 karakter).",
+  "A problem can appear only once in a journey.": "Satu soal hanya boleh muncul sekali dalam perjalanan.",
+  "A journey has at most {p0} worlds.": "Satu perjalanan paling banyak {p0} dunia.",
+  "A world has at most {p0} problems.": "Satu dunia paling banyak {p0} soal.",
+  "Not a public problem: {p0}": "Bukan soal publik: {p0}",
 };

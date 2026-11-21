@@ -696,6 +696,105 @@ namespace BeeCoding.Migrations
                     b.ToTable("ExternalLogins");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.Journey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("Published")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Journeys");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.JourneyItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("WorldId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WorldId");
+
+                    b.ToTable("JourneyItems");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.JourneySkip", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "BankProblemId")
+                        .IsUnique();
+
+                    b.ToTable("JourneySkips");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.JourneyWorld", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("BadgeName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("BossBankProblemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BossXp")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("JourneyId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnlockAfter")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JourneyId");
+
+                    b.ToTable("JourneyWorlds");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.LtiPlatform", b =>
                 {
                     b.Property<int>("Id")
@@ -2055,6 +2154,28 @@ namespace BeeCoding.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.JourneyItem", b =>
+                {
+                    b.HasOne("BeeCoding.Models.JourneyWorld", "World")
+                        .WithMany("Items")
+                        .HasForeignKey("WorldId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("World");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.JourneyWorld", b =>
+                {
+                    b.HasOne("BeeCoding.Models.Journey", "Journey")
+                        .WithMany("Worlds")
+                        .HasForeignKey("JourneyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Journey");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.LtiPlatform", b =>
                 {
                     b.HasOne("BeeCoding.Models.Organization", "Organization")
@@ -2409,6 +2530,16 @@ namespace BeeCoding.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Problems");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.Journey", b =>
+                {
+                    b.Navigation("Worlds");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.JourneyWorld", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.Post", b =>

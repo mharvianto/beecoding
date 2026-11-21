@@ -140,6 +140,7 @@ onBeforeUnmount(() => {
                     border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">
           <RouterLink to="/boards" @click="mobileNavOpen = false">{{ tr('Boards') }}</RouterLink>
           <RouterLink to="/practice" @click="mobileNavOpen = false">{{ tr('Practice') }}</RouterLink>
+          <RouterLink to="/journey" @click="mobileNavOpen = false">{{ tr('Journey') }}</RouterLink>
           <RouterLink to="/playground" @click="mobileNavOpen = false">{{ tr('Playground') }}</RouterLink>
           <RouterLink to="/leaderboard" @click="mobileNavOpen = false">{{ tr('Leaderboard') }}</RouterLink>
           <RouterLink to="/bank" @click="mobileNavOpen = false">{{ auth.isTeacher ? tr('Problem bank') : tr('My problems') }}</RouterLink>

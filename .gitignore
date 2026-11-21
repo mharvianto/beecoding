@@ -23,3 +23,4 @@ BeeCoding/appsettings.*.local.json
 *.secrets.json
 .env
 .env.*
+beecoding-*.db.gz
