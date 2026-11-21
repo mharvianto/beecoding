@@ -13,6 +13,9 @@ const tab = ref(route.query.tab === 'recent' ? 'recent' : 'ranking');
 const rows = ref([]);
 const error = ref('');
 const loading = ref(false);
+// The caller's own row and page in this scope/period (null when unranked there), for the jump bar.
+const mine = ref(null);
+const myPage = ref(null);
 
 const orgs = ref([]);
 const boards = ref([]);
@@ -67,6 +70,8 @@ async function load() {
     const result = await api.get(`/api/leaderboard?${params}`);
     rows.value = result.rows;
     total.value = result.total;
+    mine.value = result.mine ?? null;
+    myPage.value = result.myPage ?? null;
     // A stale/hand-edited ?page= past the end: fall back to the last page that exists.
     const lastPage = Math.max(1, Math.ceil(result.total / pageSize));
     if (page.value > lastPage) { page.value = lastPage; syncQuery(); await load(); return; }
@@ -83,6 +88,7 @@ function syncQuery() {
 function setScope(s) { scope.value = s; page.value = 1; syncQuery(); load(); }
 function setBoardScope(e) { setScope(e.target.value ? `board:${e.target.value}` : 'global'); }
 function setPeriod(p) { period.value = p; page.value = 1; syncQuery(); load(); }
+function goMine() { if (myPage.value) { page.value = myPage.value; syncQuery(); load(); } }
 function prevPage() { if (page.value > 1) { page.value--; syncQuery(); load(); } }
 function nextPage() { if (page.value * pageSize < total.value) { page.value++; syncQuery(); load(); } }
 
@@ -175,6 +181,13 @@ const showHowItWorks = ref(false);
 
     <template v-else>
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-3">{{ tr(error) }}</p>
+
+    <div v-if="mine && myPage !== page" class="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3 px-4 py-2 rounded-xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-sm">
+      <span class="font-semibold tabular-nums">#{{ mine.rank }}</span>
+      <span class="font-medium truncate min-w-0">{{ mine.displayName?.trim() || tr('Anonymous') }} <span class="text-xs text-amber-700 dark:text-amber-400">{{ tr('(you)') }}</span></span>
+      <span class="ml-auto font-semibold text-amber-700 dark:text-amber-400">{{ mine.xp }} XP</span>
+      <button type="button" @click="goMine" class="row-action-btn row-action-btn--accent">{{ tr('Go to my rank') }}</button>
+    </div>
 
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y divide-slate-100 dark:divide-slate-800"
          :class="{ 'opacity-50': loading }">

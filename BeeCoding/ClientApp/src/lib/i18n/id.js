@@ -1336,6 +1336,7 @@ export default {
   "Reset link for {name}": "Tautan reset untuk {name}",
   "Send this to {email} yourself. It works once and expires {when}. Anyone with the link can set a new password — share it privately.": "Kirim ini ke {email} sendiri. Hanya berlaku sekali dan kedaluwarsa {when}. Siapa pun dengan tautan ini bisa mengatur kata sandi baru — bagikan secara pribadi.",
   "Copy link": "Salin tautan",
+  "Go to my rank": "Ke peringkat saya",
   "Continue revision": "Lanjutkan revisi",
   "Revise": "Revisi",
   "Edit a private copy; once an admin approves it, it replaces the live problem": "Edit salinan pribadi; setelah admin menyetujuinya, salinan itu menggantikan soal yang tayang",

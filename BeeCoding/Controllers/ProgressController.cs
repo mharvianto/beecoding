@@ -13,7 +13,9 @@ namespace BeeCoding.Controllers;
 // down, null = not computed (a windowed period) or the user has no solves before today.
 public record LeaderRowDto(int Rank, int UserId, string DisplayName, string Role, int Xp, int Level, bool Me, int? RankDelta = null, int SolvedCount = 0, int? XpDelta = null);
 public record RecentSolveDto(int UserId, string DisplayName, string ProblemSlug, string ProblemTitle, string Level, DateTime SolvedAt, bool Me);
-public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize);
+/// <summary>Mine/MyPage: the caller's own row and the page it is on in this scope and period (null when they are not ranked there),
+/// so the browser can pin it or jump to it without paging through the list.</summary>
+public record LeaderboardPageDto(List<LeaderRowDto> Rows, int Total, int Page, int PageSize, LeaderRowDto? Mine = null, int? MyPage = null);
 public record MyOrgDto(int Id, string Name, string Slug);
 public record MyBoardDto(int Id, string Slug, string Title);
 
@@ -212,7 +214,7 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         }
 
         var pageSlice = ordered.Skip(skip).Take(pageSize).ToList();
-        var userIds = pageSlice.Select(x => x.UserId).ToList();
+        var userIds = pageSlice.Select(x => x.UserId).Append(UserId).ToList();
         var users2 = await _db.Users.Where(u => userIds.Contains(u.Id))
             .Select(u => new { u.Id, u.DisplayName, u.Role }).ToDictionaryAsync(u => u.Id);
 
@@ -222,17 +224,20 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         // Falls back to UTC midnight for an older client build or a non-browser caller.
         var yesterdayCutoff = localMidnight?.ToUniversalTime() ?? DateTime.UtcNow.Date;
         var yesterday = period == "all" ? await GetYesterdayRanksAsync(organizationId, boardId, yesterdayCutoff) : null;
-        var rows = pageSlice.Select(x =>
+        LeaderRowDto Row(int userId, int xp, int solved)
         {
-            int rank = rankByUser[x.UserId];
-            int? delta = yesterday is not null && yesterday.TryGetValue(x.UserId, out var y) ? y.Rank - rank : null;
+            int rank = rankByUser[userId];
+            int? delta = yesterday is not null && yesterday.TryGetValue(userId, out var y) ? y.Rank - rank : null;
             int? xpDelta = yesterday is not null
-                ? x.Xp - (yesterday.TryGetValue(x.UserId, out var y2) ? y2.Xp : 0)
+                ? xp - (yesterday.TryGetValue(userId, out var y2) ? y2.Xp : 0)
                 : null;
-            return new LeaderRowDto(rank, x.UserId, users2[x.UserId].DisplayName, users2[x.UserId].Role.ToString(), x.Xp,
-                ProgressService.LevelForXp(x.Xp), x.UserId == UserId, delta, x.Solved, xpDelta);
-        }).ToList();
-        return new LeaderboardPageDto(rows, total, page, pageSize);
+            return new LeaderRowDto(rank, userId, users2[userId].DisplayName, users2[userId].Role.ToString(), xp,
+                ProgressService.LevelForXp(xp), userId == UserId, delta, solved, xpDelta);
+        }
+        var rows = pageSlice.Select(x => Row(x.UserId, x.Xp, x.Solved)).ToList();
+        var myIdx = ordered.FindIndex(x => x.UserId == UserId);
+        var mine = myIdx < 0 ? null : Row(UserId, ordered[myIdx].Xp, ordered[myIdx].Solved);
+        return new LeaderboardPageDto(rows, total, page, pageSize, mine, myIdx < 0 ? null : myIdx / pageSize + 1);
     }
 
     private sealed record RecentSolveRow(int UserId, string DisplayName, string ProblemSlug, string ProblemTitle, string Level, DateTime SolvedAt);
