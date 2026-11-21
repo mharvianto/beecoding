@@ -260,7 +260,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
             .ToDictionary(g => g.Key, g => latest ? Latest(g) : Best(g));
         var chosenIds = chosen.Values.Select(s => s.Id).ToList();
         var codes = await _db.Submissions.AsNoTracking().Where(s => chosenIds.Contains(s.Id))
-            .Select(s => new { s.Id, s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
+            .Select(s => new { s.Id, Code = s.CodePurgedAt != null ? "// source code removed after the retention period\n" : s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
 
         using var ms = new MemoryStream();
         using (var zip = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
@@ -311,7 +311,7 @@ public class BoardExportController(AppDbContext db, AdminAccess admin, AuditLog 
                 var mine = light.Where(s => s.ProblemId == p.Id).ToList();
                 var ids = mine.Select(s => s.Id).ToList();
                 var codes = await _db.Submissions.AsNoTracking().Where(s => ids.Contains(s.Id))
-                    .Select(s => new { s.Id, s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
+                    .Select(s => new { s.Id, Code = s.CodePurgedAt != null ? "// source code removed after the retention period\n" : s.Code }).ToDictionaryAsync(s => s.Id, s => s.Code);
                 foreach (var m in students)
                 {
                     var attempts = mine.Where(s => s.UserId == m.UserId).OrderBy(s => s.CreatedAt).ThenBy(s => s.Id).ToList();

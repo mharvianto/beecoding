@@ -144,7 +144,7 @@ public class WallService(AppDbContext db, VisibilityService vis)
                 RuntimeMs: full ? (latest?.RuntimeMs ?? 0) : 0,
                 MemoryKb: full ? (latest?.MemoryKb ?? 0) : 0,
                 Language: langByProblem.GetValueOrDefault(post.ProblemId, "cpp"),
-                CodePreview: full && latest is not null ? CodePreview(latest.Code) : null,
+                CodePreview: full && latest is not null && latest.CodePurgedAt is null ? CodePreview(latest.Code) : null,
                 LatestSubmissionId: full && latest is not null ? latest.Id : null,
                 UpdatedAt: post.UpdatedAt,
                 Reactions: full ? reactions : new List<ReactionDto>(),

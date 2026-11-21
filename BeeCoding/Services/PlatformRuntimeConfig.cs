@@ -30,6 +30,11 @@ public class PlatformRuntimeConfig
     public int NotificationReadRetentionDays { get; private set; } = 7;
     public void SetNotificationReadRetentionDays(int days) => NotificationReadRetentionDays = Math.Max(0, days);
 
+    /// <summary>Days before a submission's source code is blanked (0 = keep) — see SubmissionCodeJanitor.</summary>
+    public int BoardCodeRetentionDays { get; private set; } = 365;
+    public int PracticeCodeRetentionDays { get; private set; } = 180;
+    public void SetCodeRetention(int boardDays, int practiceDays) { BoardCodeRetentionDays = Math.Max(0, boardDays); PracticeCodeRetentionDays = Math.Max(0, practiceDays); }
+
     /// <summary>Kinds off for everyone, and kinds that may be emailed (null in the database = NotificationKinds.DefaultEmail).</summary>
     public HashSet<string> NotifyOffKinds { get; private set; } = [];
     public HashSet<string> NotifyEmailKinds { get; private set; } = [.. NotificationKinds.DefaultEmail];

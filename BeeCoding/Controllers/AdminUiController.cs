@@ -600,7 +600,8 @@ public class AdminUiController(
             sysstatInstalled, Environment.MachineName,
             _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
             _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, Math.Min(_sharedLsp.TotalCap, _lspOpt.SharedMaxSessions * Math.Max(1, _lspOpt.SharedMaxProcesses) * 2),
-            _sharedLsp.Processes, Math.Max(1, _lspOpt.SharedMaxProcesses));
+            _sharedLsp.Processes, Math.Max(1, _lspOpt.SharedMaxProcesses),
+            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -787,6 +788,8 @@ public class AdminUiController(
         var imageKb = Math.Clamp(dto.ImageMaxKb, 50, 3000);   // the upload itself is capped at 3 MB
         var imagesPerUser = Math.Clamp(dto.ImageMaxPerUser, 0, 5000);
         var readDays = Math.Clamp(dto.NotificationReadRetentionDays, 0, 365);
+        var boardCodeDays = Math.Clamp(dto.BoardCodeRetentionDays, 0, 3650);
+        var practiceCodeDays = Math.Clamp(dto.PracticeCodeRetentionDays, 0, 3650);
 
         var row = await _db.PlatformRuntimeSettings.FindAsync(1);
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
@@ -797,6 +800,8 @@ public class AdminUiController(
         row.ImageMaxKb = imageKb;
         row.ImageMaxPerUser = imagesPerUser;
         row.NotificationReadRetentionDays = readDays;
+        row.BoardCodeRetentionDays = boardCodeDays;
+        row.PracticeCodeRetentionDays = practiceCodeDays;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -805,9 +810,10 @@ public class AdminUiController(
         _runtimeConfig.SetStudentMaxProblems(row.StudentMaxProblems);
         _runtimeConfig.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
         _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
+        _runtimeConfig.SetCodeRetention(row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, lspShared={row.LspShared}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, lspShared={row.LspShared}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays);
     }
 
     /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>

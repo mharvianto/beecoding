@@ -4,7 +4,7 @@ import { docLang } from '../lib/docLang';
 </script>
 
 <template>
-  <LegalPage :title="docLang === 'id' ? 'Kebijakan Privasi' : 'Privacy Policy'" updated="7 September 2026">
+  <LegalPage :title="docLang === 'id' ? 'Kebijakan Privasi' : 'Privacy Policy'" updated="21 November 2026">
     <template v-if="docLang === 'en'">
     <p>
       BeeCoding is a self-hosted classroom platform. This instance is operated by your
@@ -62,6 +62,10 @@ import { docLang } from '../lib/docLang';
       <li>You can delete your account from <strong>Account settings</strong>. This
         permanently removes your profile, submissions and practice progress; if you are a
         teacher it also deletes boards you own and the work submitted to them.</li>
+      <li>The source code of your submissions is removed automatically after a retention period that the
+        Operator sets (the default for a new installation is one year for board submissions and six
+        months for practice). Only the code and compiler output are removed; the verdict, score and XP
+        are kept.</li>
       <li>The Operator may also remove data as part of end-of-term or backup policies.</li>
     </ul>
 
@@ -147,6 +151,10 @@ import { docLang } from '../lib/docLang';
       <li>Anda dapat menghapus akun dari <strong>pengaturan Akun</strong>. Ini menghapus permanen
         profil, kiriman, dan kemajuan latihan Anda; jika Anda guru, board milik Anda beserta
         pekerjaan yang dikumpulkan ke dalamnya juga ikut terhapus.</li>
+      <li>Kode sumber kiriman Anda dihapus otomatis setelah masa simpan yang ditetapkan Operator
+        (bawaan untuk instalasi baru: satu tahun untuk kiriman board dan enam bulan untuk latihan).
+        Yang dihapus hanya kode dan keluaran kompilator; hasil penilaian, skor, dan XP tetap
+        tersimpan.</li>
       <li>Operator juga dapat menghapus data sebagai bagian dari kebijakan akhir semester atau
         pencadangan.</li>
     </ul>

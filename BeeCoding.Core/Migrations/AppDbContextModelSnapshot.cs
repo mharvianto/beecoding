@@ -406,6 +406,9 @@ namespace BeeCoding.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("CodePurgedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CompilerOutput")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -1197,6 +1200,9 @@ namespace BeeCoding.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("BoardCodeRetentionDays")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ImageMaxKb")
                         .HasColumnType("INTEGER");
 
@@ -1232,6 +1238,9 @@ namespace BeeCoding.Migrations
 
                     b.Property<string>("NotifyOffKinds")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("PracticeCodeRetentionDays")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("StudentMaxProblems")
                         .HasColumnType("INTEGER");
@@ -1677,6 +1686,9 @@ namespace BeeCoding.Migrations
 
                     b.Property<string>("Code")
                         .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CodePurgedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CompilerOutput")

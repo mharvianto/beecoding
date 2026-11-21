@@ -506,6 +506,9 @@ public class Submission
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? JudgedAt { get; set; }
+
+    /// <summary>Set when the retention sweep blanked <c>Code</c>, <c>CompilerOutput</c> and <c>FailedTest</c> (SubmissionCodeJanitor). The verdict, score and times stay: grades and XP never depend on the code.</summary>
+    public DateTime? CodePurgedAt { get; set; }
 }
 
 /// <summary>
@@ -866,6 +869,9 @@ public class BankSubmission
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? JudgedAt { get; set; }
+
+    /// <summary>Set when the retention sweep blanked <c>Code</c>, <c>CompilerOutput</c> and <c>FailedTest</c> (SubmissionCodeJanitor). The verdict, score and times stay: grades and XP never depend on the code.</summary>
+    public DateTime? CodePurgedAt { get; set; }
 }
 
 /// <summary>Per-day rollup of a user's AI usage (hint + recommendation calls).</summary>
@@ -1106,6 +1112,10 @@ public class PlatformRuntimeSettings
 
     /// <summary>Days a notification stays in the bell after it was read, then it is deleted (0 = never; read ones then go with the 30-day sweep).</summary>
     public int NotificationReadRetentionDays { get; set; } = 7;
+
+    /// <summary>Days after a submission its source code is blanked (board / practice). 0 = keep forever. See SubmissionCodeJanitor.</summary>
+    public int BoardCodeRetentionDays { get; set; } = 365;
+    public int PracticeCodeRetentionDays { get; set; } = 180;
 
     /// <summary>Notification kinds switched off for everyone, and the kinds that may be emailed at all (comma-separated, see NotificationKinds). Null email list = the built-in default.</summary>
     public string? NotifyOffKinds { get; set; }

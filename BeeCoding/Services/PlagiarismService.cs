@@ -80,7 +80,7 @@ public class PlagiarismService(AppDbContext db)
     {
         // newest attempt per (problem, student) picked in SQL, so only that code is loaded, not every attempt
         var latestIds = await _db.Submissions
-            .Where(s => s.Problem!.BoardId == boardId && (problemId == null || s.ProblemId == problemId))
+            .Where(s => s.Problem!.BoardId == boardId && s.CodePurgedAt == null && (problemId == null || s.ProblemId == problemId))
             .GroupBy(s => new { s.ProblemId, s.UserId })
             .Select(g => g.OrderByDescending(s => s.CreatedAt).ThenByDescending(s => s.Id).Select(s => s.Id).First())
             .ToListAsync();

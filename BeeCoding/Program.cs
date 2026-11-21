@@ -305,6 +305,7 @@ if (!judgeOpt.Queue.UseRedis)
 }
 builder.Services.AddHostedService<JudgeJanitor>();
 builder.Services.AddHostedService<NotificationJanitor>();
+builder.Services.AddHostedService<SubmissionCodeJanitor>();
 builder.Services.AddHostedService<GroupScheduleNotifier>();
 builder.Services.AddHostedService<StatementImageJanitor>();
 builder.Services.AddHostedService<AuditLogJanitor>();
@@ -493,6 +494,7 @@ using (var scope = app.Services.CreateScope())
     runtimeConfig.SetStudentMaxProblems(platformRuntime.StudentMaxProblems);
     runtimeConfig.SetImageLimits(platformRuntime.ImageMaxKb, platformRuntime.ImageMaxPerUser);
     runtimeConfig.SetNotificationReadRetentionDays(platformRuntime.NotificationReadRetentionDays);
+    runtimeConfig.SetCodeRetention(platformRuntime.BoardCodeRetentionDays, platformRuntime.PracticeCodeRetentionDays);
     runtimeConfig.SetNotifyKinds(platformRuntime.NotifyOffKinds, platformRuntime.NotifyEmailKinds, platformRuntime.NotifyLockedKinds);
     runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }

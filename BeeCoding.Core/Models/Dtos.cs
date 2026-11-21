@@ -325,7 +325,8 @@ public record AdminSystemStatusDto(
     // Host-local only — see SysstatService's doc comment on the multi-instance caveat.
     bool SysstatInstalled, string Hostname,
     int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7,
-    bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40, int LspSharedProcesses = 0, int LspSharedMaxProcesses = 1);
+    bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40, int LspSharedProcesses = 0, int LspSharedMaxProcesses = 1,
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
@@ -349,7 +350,8 @@ public record NotifyChoiceDto(string Kind, bool Bell, bool Email);
 public record AdminNotifyKindDto(string Kind, string Label, bool Enabled, bool Email, bool Locked = false);
 public record AdminNotifyKindsDto(List<AdminNotifyKindDto> Kinds, bool EmailConfigured);
 
-public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false);
+public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false,
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>
@@ -418,7 +420,8 @@ public record BankSubmissionDto(
     DateTime CreatedAt, DateTime? JudgedAt, string? Code, string Language, int XpAwarded = 0,
     string? FailedTest = null,   // staff-only — see Mapping.ToDto
     int? PreviousSubmissionId = null,   // this author's previous attempt at the same problem, if any
-    int? NextSubmissionId = null);      // ...and the one right after this one, if any
+    int? NextSubmissionId = null,       // ...and the one right after this one, if any
+    bool CodePurged = false);           // the retention sweep removed the code (Code is null then)
 
 // ---- Submissions ----
 // Language: "c" | "cpp" override. LocalDay: client's local calendar day ("yyyy-MM-dd"), for daily-streak bucketing.
@@ -432,7 +435,8 @@ public record SubmissionDto(
     string? FailedTest = null,   // staff-only — see Mapping.ToDto
     int XpAwarded = 0,
     int? PreviousSubmissionId = null,   // this author's previous attempt at the same problem, if any
-    int? NextSubmissionId = null);      // ...and the one right after this one, if any
+    int? NextSubmissionId = null,       // ...and the one right after this one, if any
+    bool CodePurged = false);           // the retention sweep removed the code (Code is null then)
 
 // ---- Live board / progress grid ----
 public record ProgressCellDto(

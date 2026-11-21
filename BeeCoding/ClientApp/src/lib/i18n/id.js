@@ -1419,4 +1419,10 @@ export default {
   "Only public problems can be used. A problem can appear once in a journey.": "Hanya soal publik yang bisa dipakai. Satu soal hanya boleh muncul sekali dalam perjalanan.",
   "A guided path through Practice: problems in order from easy to hard, grouped into worlds. Skip any problem and come back later; finish enough of a world to unlock its boss, and beat it for bonus XP and a badge.": "Jalur terpandu di Practice: soal berurutan dari mudah ke sulit, dikelompokkan dalam dunia. Lewati soal mana pun dan kembali nanti; selesaikan cukup banyak soal satu dunia untuk membuka bosnya, kalahkan untuk bonus XP dan lencana.",
   "Create one": "Buat satu",
+  "Privacy": "Privasi",
+  "Remove source code of board submissions after": "Hapus kode sumber kiriman board setelah",
+  "Remove source code of practice submissions after": "Hapus kode sumber kiriman latihan setelah",
+  "Only the code and compiler output are blanked, once, for good; verdicts, scores and XP stay. 0 keeps the code forever.": "Hanya kode dan keluaran kompilator yang dikosongkan, sekali dan permanen; hasil, skor, dan XP tetap. 0 menyimpan kode selamanya.",
+  "The source code of this submission was removed after the retention period. The verdict and score are kept.": "Kode sumber kiriman ini dihapus setelah masa simpan. Hasil dan skor tetap tersimpan.",
+  "code removed": "kode dihapus",
 };

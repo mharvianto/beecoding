@@ -51,6 +51,7 @@ function load() { emit('load', open.value); close(); }
       <span v-if="s.status === 'Done'" class="text-xs text-slate-500 dark:text-slate-400">
         {{ s.runtimeMs }}ms · {{ s.memoryKb }}KB · {{ Math.round(s.score * 100) }}%
       </span>
+      <span v-if="s.codePurged" class="text-[11px] text-slate-500 dark:text-slate-400" :title="tr('The source code of this submission was removed after the retention period. The verdict and score are kept.')">{{ tr('code removed') }}</span>
       <time :datetime="s.createdAt" :title="fullTime(s.createdAt)" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ timeAgo(s.createdAt) }}</time>
       <Chevron v-if="canOpen(s)" :open="false" size="1rem" class="text-slate-400" />
     </component>

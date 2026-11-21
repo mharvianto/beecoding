@@ -69,6 +69,7 @@ function goTo(id) {
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ tr(error) }}</p>
       <div v-else-if="!sub" class="px-5 py-3 text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</div>
       <template v-else>
+        <p v-if="sub.codePurged" class="shrink-0 px-5 py-2 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-500/10">{{ tr('The source code of this submission was removed after the retention period. The verdict and score are kept.') }}</p>
         <div class="flex-1 min-h-0">
           <MonacoEditor :model-value="sub.code || ''" :language="sub.language" :read-only="true"
                          :filename="`${authorName || sub.authorName || 'submission'}-${sub.id}`" />
