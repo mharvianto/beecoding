@@ -24,3 +24,4 @@ BeeCoding/appsettings.*.local.json
 .env
 .env.*
 beecoding-*.db.gz
+graphify-out/
