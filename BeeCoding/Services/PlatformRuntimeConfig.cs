@@ -34,6 +34,8 @@ public class PlatformRuntimeConfig
     public int BoardCodeRetentionDays { get; private set; } = 365;
     public int PracticeCodeRetentionDays { get; private set; } = 180;
     public int DeletedUserRetentionDays { get; private set; } = 90;
+    public bool JourneyEnabled { get; private set; } = true;
+    public void SetJourneyEnabled(bool on) => JourneyEnabled = on;
     public void SetDeletedUserRetention(int days) => DeletedUserRetentionDays = Math.Max(0, days);
     public void SetCodeRetention(int boardDays, int practiceDays) { BoardCodeRetentionDays = Math.Max(0, boardDays); PracticeCodeRetentionDays = Math.Max(0, practiceDays); }
 

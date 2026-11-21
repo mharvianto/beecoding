@@ -1494,4 +1494,7 @@ export default {
   "Level 20": "Level 20",
   "Reach level 20": "Capai level 20",
   "Automated browsers cannot open protected problems. Use a regular browser window.": "Browser otomatis tidak dapat membuka soal terproteksi. Gunakan jendela browser biasa.",
+  "Features": "Fitur",
+  "Off hides Journey for everyone: no menu, no map, no boss bonus. Journeys and progress are kept, and the editor at /journey/edit still works.": "Mati menyembunyikan Journey untuk semua orang: tanpa menu, peta, dan bonus bos. Journey dan progres tetap tersimpan, dan editor di /journey/edit tetap bisa dipakai.",
+  "The Journey feature is switched off.": "Fitur Journey sedang dimatikan.",
 };

@@ -197,4 +197,5 @@ export default {
   "A journey has at most {p0} worlds.": "Satu perjalanan paling banyak {p0} dunia.",
   "A world has at most {p0} problems.": "Satu dunia paling banyak {p0} soal.",
   "Not a public problem: {p0}": "Bukan soal publik: {p0}",
+  "The Journey feature is switched off.": "Fitur Journey sedang dimatikan.",
 };

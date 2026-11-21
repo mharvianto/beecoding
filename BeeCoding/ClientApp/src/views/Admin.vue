@@ -957,17 +957,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180, deletedUserRetentionDays: 90 });
+const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180, deletedUserRetentionDays: 90, journeyEnabled: true });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays, deletedUserRetentionDays: s.deletedUserRetentionDays };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays, deletedUserRetentionDays: s.deletedUserRetentionDays, journeyEnabled: s.journeyEnabled };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; systemStatus.value.deletedUserRetentionDays = r.deletedUserRetentionDays; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; systemStatus.value.deletedUserRetentionDays = r.deletedUserRetentionDays; systemStatus.value.journeyEnabled = r.journeyEnabled; }
     runtimeConfigMsg.value = tr('Saved — takes effect immediately, no restart needed.');
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -2253,6 +2253,16 @@ onMounted(async () => {
                        class="w-20 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-sm text-right" /><span class="w-7 text-xs text-slate-500 dark:text-slate-400">{{ tr('days') }}</span></span>
               </label>
               </div>
+            </section>
+            <section class="rounded-xl border border-slate-200 dark:border-slate-800 px-4 pt-3 pb-1">
+              <h4 class="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Features') }}</h4>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Journey') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Off hides Journey for everyone: no menu, no map, no boss bonus. Journeys and progress are kept, and the editor at /journey/edit still works.') }}</span>
+                </span>
+                <input type="checkbox" v-model="runtimeConfigForm.journeyEnabled" class="shrink-0">
+              </label>
             </section>
           </div>
           <div class="mt-3 flex items-center gap-3">

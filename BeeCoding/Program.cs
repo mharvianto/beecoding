@@ -500,6 +500,7 @@ using (var scope = app.Services.CreateScope())
     runtimeConfig.SetNotificationReadRetentionDays(platformRuntime.NotificationReadRetentionDays);
     runtimeConfig.SetCodeRetention(platformRuntime.BoardCodeRetentionDays, platformRuntime.PracticeCodeRetentionDays);
     runtimeConfig.SetDeletedUserRetention(platformRuntime.DeletedUserRetentionDays);
+    runtimeConfig.SetJourneyEnabled(platformRuntime.JourneyEnabled);
     runtimeConfig.SetNotifyKinds(platformRuntime.NotifyOffKinds, platformRuntime.NotifyEmailKinds, platformRuntime.NotifyLockedKinds);
     runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
 }

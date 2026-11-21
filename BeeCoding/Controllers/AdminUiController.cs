@@ -601,7 +601,7 @@ public class AdminUiController(
             _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
             _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, Math.Min(_sharedLsp.TotalCap, _lspOpt.SharedMaxSessions * Math.Max(1, _lspOpt.SharedMaxProcesses) * 2),
             _sharedLsp.Processes, Math.Max(1, _lspOpt.SharedMaxProcesses),
-            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays, _runtimeConfig.DeletedUserRetentionDays);
+            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays, _runtimeConfig.DeletedUserRetentionDays, _runtimeConfig.JourneyEnabled);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -804,6 +804,7 @@ public class AdminUiController(
         row.BoardCodeRetentionDays = boardCodeDays;
         row.PracticeCodeRetentionDays = practiceCodeDays;
         row.DeletedUserRetentionDays = deletedUserDays;
+        row.JourneyEnabled = dto.JourneyEnabled;
         row.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
@@ -814,9 +815,10 @@ public class AdminUiController(
         _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
         _runtimeConfig.SetCodeRetention(row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays);
         _runtimeConfig.SetDeletedUserRetention(row.DeletedUserRetentionDays);
+        _runtimeConfig.SetJourneyEnabled(row.JourneyEnabled);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, lspShared={row.LspShared}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, journeyEnabled={row.JourneyEnabled}, lspShared={row.LspShared}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays, row.JourneyEnabled);
     }
 
     /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>

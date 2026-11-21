@@ -1124,6 +1124,9 @@ public class PlatformRuntimeSettings
     /// <summary>Days an admin-deleted (trashed) account stays restorable before it is purged for good (0 = never). See DeletedUserJanitor.</summary>
     public int DeletedUserRetentionDays { get; set; } = 90;
 
+    /// <summary>Feature switch for Journey: off = students see no journeys (the menu goes, the API answers 404), the admin editor still works.</summary>
+    public bool JourneyEnabled { get; set; } = true;
+
     /// <summary>Notification kinds switched off for everyone, and the kinds that may be emailed at all (comma-separated, see NotificationKinds). Null email list = the built-in default.</summary>
     public string? NotifyOffKinds { get; set; }
     public string? NotifyEmailKinds { get; set; }

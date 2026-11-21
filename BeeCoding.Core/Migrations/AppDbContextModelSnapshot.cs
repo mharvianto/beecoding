@@ -1212,6 +1212,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("ImageMaxPerUser")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("JourneyEnabled")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("JudgeRateLimitMs")
                         .HasColumnType("INTEGER");
 

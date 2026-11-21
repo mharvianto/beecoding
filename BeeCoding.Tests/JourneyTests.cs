@@ -99,4 +99,27 @@ public class JourneyTests
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
     }
+
+    [Fact]
+    public async Task Switching_the_feature_off_hides_it_from_students_but_keeps_the_admin_editor()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var kid = app.CreateClient();
+            (await kid.PostAsJsonAsync("/api/auth/register", new { email = "kid@test.dev", password = "Passw0rd!x1", displayName = "Budi", role = "Student" })).EnsureSuccessStatusCode();
+            var admin = app.CreateClient();
+            (await admin.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+            var make = await admin.PostAsJsonAsync("/api/journeys/admin", new { title = "J", published = true, worlds = new object[0] });
+            var jid = (await make.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
+
+            Assert.Equal(HttpStatusCode.OK, (await kid.GetAsync("/api/journeys")).StatusCode);
+            app.Services.GetRequiredService<BeeCoding.Services.PlatformRuntimeConfig>().SetJourneyEnabled(false);
+            Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync("/api/journeys")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync($"/api/journeys/{jid}")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/journeys/admin")).StatusCode);   // the editor still works
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
 }

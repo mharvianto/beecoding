@@ -19,8 +19,9 @@ public record JourneyEditDto(string Title, bool Published, List<WorldEditDto> Wo
 /// </summary>
 [Authorize]
 [Route("api/journeys")]
-public class JourneysController(AppDbContext db, ProgressService progress, AuditLog audit) : ApiControllerBase
+public class JourneysController(AppDbContext db, ProgressService progress, AuditLog audit, PlatformRuntimeConfig runtime) : ApiControllerBase
 {
+    private const string Off = "The Journey feature is switched off.";
     private const int MaxWorlds = 20, MaxItems = 30;
 
     private IQueryable<Journey> Full() => db.Journeys.Include(j => j.Worlds.OrderBy(w => w.Position)).ThenInclude(w => w.Items.OrderBy(i => i.Position));
@@ -38,6 +39,7 @@ public class JourneysController(AppDbContext db, ProgressService progress, Audit
     [HttpGet]
     public async Task<ActionResult> List()
     {
+        if (!runtime.JourneyEnabled) return NotFound(Off);
         var journeys = await Full().Where(j => j.Published).OrderBy(j => j.Id).ToListAsync();
         var solved = await SolvedAsync(journeys.SelectMany(ProblemIds));
         return Ok(journeys.Select(j => new
@@ -51,6 +53,7 @@ public class JourneysController(AppDbContext db, ProgressService progress, Audit
     [HttpGet("{id:int}")]
     public async Task<ActionResult> Get(int id)
     {
+        if (!runtime.JourneyEnabled) return NotFound(Off);
         var j = await Full().FirstOrDefaultAsync(x => x.Id == id && x.Published);
         if (j is null) return NotFound();
 
@@ -95,6 +98,7 @@ public class JourneysController(AppDbContext db, ProgressService progress, Audit
     [HttpPost("{id:int}/skip/{slug}")]
     public async Task<IActionResult> Skip(int id, string slug)
     {
+        if (!runtime.JourneyEnabled) return NotFound(Off);
         if (await ItemProblemAsync(id, slug) is not int pid) return NotFound();
         if (await db.JourneySkips.AnyAsync(s => s.UserId == UserId && s.BankProblemId == pid)) return NoContent();
         db.JourneySkips.Add(new JourneySkip { UserId = UserId, BankProblemId = pid });
@@ -105,6 +109,7 @@ public class JourneysController(AppDbContext db, ProgressService progress, Audit
     [HttpDelete("{id:int}/skip/{slug}")]
     public async Task<IActionResult> Unskip(int id, string slug)
     {
+        if (!runtime.JourneyEnabled) return NotFound(Off);
         if (await ItemProblemAsync(id, slug) is not int pid) return NotFound();
         await db.JourneySkips.Where(s => s.UserId == UserId && s.BankProblemId == pid).ExecuteDeleteAsync();
         return NoContent();

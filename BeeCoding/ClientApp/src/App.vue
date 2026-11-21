@@ -73,8 +73,9 @@ watch(() => (progress.ready ? progress.xp : null), async (xp) => {
 });
 // The Journey link shows only while a journey is published (admins always see it, to build one). Re-checked when entering/leaving /journey pages.
 const journeyOpen = ref(false);
+const journeyOff = ref(false);   // the admin switched the feature off (the API answers 404)
 watch([activeUserId, () => route.path.startsWith('/journey')], async ([id]) => {
-  try { journeyOpen.value = id ? (await api.get('/api/journeys')).length > 0 : false; } catch { journeyOpen.value = false; }
+  try { journeyOff.value = false; journeyOpen.value = id ? (await api.get('/api/journeys')).length > 0 : false; } catch (e) { journeyOpen.value = false; journeyOff.value = e.status === 404; }
 }, { immediate: true });
 
 // Bell + live toasts for reactions/comments on my wall posts. No toast when the user is
@@ -158,7 +159,7 @@ onBeforeUnmount(() => {
                     border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">
           <RouterLink to="/boards" @click="mobileNavOpen = false">{{ tr('Boards') }}</RouterLink>
           <RouterLink to="/practice" @click="mobileNavOpen = false">{{ tr('Practice') }}</RouterLink>
-          <RouterLink v-if="journeyOpen || auth.user?.isAdmin" to="/journey" @click="mobileNavOpen = false">{{ tr('Journey') }}</RouterLink>
+          <RouterLink v-if="journeyOpen || (auth.user?.isAdmin && !journeyOff)" to="/journey" @click="mobileNavOpen = false">{{ tr('Journey') }}</RouterLink>
           <RouterLink to="/playground" @click="mobileNavOpen = false">{{ tr('Playground') }}</RouterLink>
           <RouterLink to="/leaderboard" @click="mobileNavOpen = false">{{ tr('Leaderboard') }}</RouterLink>
           <RouterLink to="/bank" @click="mobileNavOpen = false">{{ auth.isTeacher ? tr('Problem bank') : tr('My problems') }}</RouterLink>
