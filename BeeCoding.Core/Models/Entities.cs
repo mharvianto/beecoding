@@ -1180,6 +1180,20 @@ public class SurveyResponse
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>A badge a user has earned (definitions live in BadgeService; the key is its stable id). Kept even if the rule or the data behind it later changes.
+/// <see cref="SeenAt"/> null = the browser has not shown the "new badge" toast yet.</summary>
+public class UserBadge
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+
+    [MaxLength(40)]
+    public string Key { get; set; } = "";
+
+    public DateTime EarnedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? SeenAt { get; set; }
+}
+
 /// <summary>A guided path through Practice: worlds of ordered public bank problems, each ending in a boss. Built by platform admins.</summary>
 public class Journey
 {

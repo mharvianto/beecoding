@@ -183,6 +183,14 @@ attempts at them. Shares of those problems are dropped. Run it inside the caller
 (Admin → System → Privacy; 0 = keep; existing installs migrate to 0, new ones 365 / 180) and sets `CodePurgedAt`. The row stays (verdicts, scores, XP never read the code); DTOs carry `CodePurged` and a null `Code`;
 plagiarism, the ZIP export and the wall preview skip or mark purged ones.
 
+### Practice badges
+
+`BadgeService` holds the rules (12 badges: problems solved, streaks, Medium/Hard counts, solved in a day, levels) as code; earned ones are `UserBadge` rows (key + `EarnedAt`, `SeenAt` null until the browser has announced it) and
+stay even if the numbers later fall. Inputs are what the XP system already keeps: `SolveRecord` (board + practice, `journey-boss:` bonus rows excluded), `User.LongestStreak`, `MaxSolvedInADay`, level from `Xp`.
+`GradeResultConsumer` calls `EvaluateAsync` after a full solve (before the result is pushed); `BadgeBackfill` gives existing users their badges silently once at startup. `GET /api/me/badges` (all, with progress) and
+`GET /api/me/badges/new` (earned since the last look, each returned once → `BadgeToast`, triggered in `App.vue` when XP changes). UI: Account → Badges (`BadgeGrid.vue`), only the owner sees them. Names/descriptions are English
+in the API and translated with `tr()` in the browser. Journey boss badges (`JourneyWorld.BadgeName`) are still only a label.
+
 ### Audit log lifetime
 
 `AuditLogJanitor` (daily) deletes audit-log rows older than `Audit:RetentionDays` (365; 0 = keep forever).

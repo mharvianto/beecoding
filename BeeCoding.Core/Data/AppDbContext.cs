@@ -54,6 +54,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<JourneyWorld> JourneyWorlds => Set<JourneyWorld>();
     public DbSet<JourneyItem> JourneyItems => Set<JourneyItem>();
     public DbSet<JourneySkip> JourneySkips => Set<JourneySkip>();
+    public DbSet<UserBadge> UserBadges => Set<UserBadge>();
 
     // Postgres folds unquoted names to lower case, so a filtered index must quote the column there; SQLite keeps the bare text (the migrations' snapshot).
 
@@ -210,6 +211,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
+        b.Entity<UserBadge>().HasIndex(x => new { x.UserId, x.Key }).IsUnique();
+        b.Entity<UserBadge>().HasOne<User>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<JourneySkip>().HasIndex(x => new { x.UserId, x.BankProblemId }).IsUnique();
         b.Entity<JourneyWorld>().HasOne(x => x.Journey).WithMany(x => x.Worlds).HasForeignKey(x => x.JourneyId).OnDelete(DeleteBehavior.Cascade);
         b.Entity<JourneyItem>().HasOne(x => x.World).WithMany(x => x.Items).HasForeignKey(x => x.WorldId).OnDelete(DeleteBehavior.Cascade);

@@ -11,6 +11,7 @@ import MiniLineChart from '../components/MiniLineChart.vue';
 import TopicBarChart from '../components/TopicBarChart.vue';
 import MfaSettings from '../components/MfaSettings.vue';
 import ConnectedAccounts from '../components/ConnectedAccounts.vue';
+import BadgeGrid from '../components/BadgeGrid.vue';
 import PasskeySettings from '../components/PasskeySettings.vue';
 import OrganizationSettings from '../components/OrganizationSettings.vue';
 import SnippetSettings from '../components/SnippetSettings.vue';
@@ -80,6 +81,7 @@ const topicBarItems = () => (topicStats.value || []).map((t) => ({ label: t.tag,
 const sections = [
   { key: 'overview', label: 'Overview', icon: 'chart', to: '/account' },
   { key: 'profile', label: 'Profile', icon: 'user', to: '/account/profile' },
+  { key: 'badges', label: 'Badges', icon: 'award', to: '/account/badges' },
   { key: 'editor', label: 'Editor', icon: 'keyboard', to: '/account/editor' },
   { key: 'security', label: 'Security', icon: 'lock', to: '/account/security' },
   { key: 'danger', label: 'Delete account', icon: 'alert', to: '/account/danger' },
@@ -333,6 +335,9 @@ async function deleteAccount(force = false) {
         </div>
 
         <!-- Profile -->
+        <div v-else-if="section === 'badges'" class="max-w-3xl">
+          <BadgeGrid />
+        </div>
         <div v-else-if="section === 'profile'" class="max-w-xl space-y-10">
         <OrganizationSettings />
         <!-- display name -->

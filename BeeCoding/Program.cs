@@ -307,6 +307,8 @@ builder.Services.AddHostedService<JudgeJanitor>();
 builder.Services.AddHostedService<NotificationJanitor>();
 builder.Services.AddHostedService<SubmissionCodeJanitor>();
 builder.Services.AddScoped<AccountErasure>();
+builder.Services.AddScoped<BadgeService>();
+builder.Services.AddHostedService<BadgeBackfill>();
 builder.Services.AddHostedService<DeletedUserJanitor>();
 builder.Services.AddHostedService<GroupScheduleNotifier>();
 builder.Services.AddHostedService<StatementImageJanitor>();

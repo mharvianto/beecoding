@@ -21,8 +21,16 @@ public record MyBoardDto(int Id, string Slug, string Title);
 
 [ApiController]
 [Authorize]
-public class ProgressController(AppDbContext db, ProgressService progress, IMemoryCache cache) : ApiControllerBase
+public class ProgressController(AppDbContext db, ProgressService progress, IMemoryCache cache, BadgeService badges) : ApiControllerBase
 {
+    /// <summary>All badges with the caller's progress towards each.</summary>
+    [HttpGet("api/me/badges")]
+    public async Task<List<BadgeDto>> Badges() => await badges.ListAsync(UserId);
+
+    /// <summary>Badges earned since the last call — each is returned once, for the "new badge" toast.</summary>
+    [HttpGet("api/me/badges/new")]
+    public async Task<List<BadgeDto>> NewBadges() => await badges.TakeNewAsync(UserId);
+
     private readonly AppDbContext _db = db;
     private readonly ProgressService _progress = progress;
     private readonly IMemoryCache _cache = cache;

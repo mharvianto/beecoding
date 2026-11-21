@@ -1906,6 +1906,34 @@ namespace BeeCoding.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.UserBadge", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("EarnedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("SeenAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("UserBadges");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.UserPasskey", b =>
                 {
                     b.Property<int>("Id")
@@ -2512,6 +2540,15 @@ namespace BeeCoding.Migrations
                         .IsRequired();
 
                     b.Navigation("Problem");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.UserBadge", b =>
+                {
+                    b.HasOne("BeeCoding.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("BeeCoding.Models.UserPasskey", b =>

@@ -105,6 +105,7 @@ public sealed class GradeResultConsumer(
             // Board solves don't bump the practice streak (see User.CurrentStreak), but they
             // do count toward the combined "most solved in a day" record.
             await progress.UpdateMaxSolvedInADayAsync(sub.UserId, sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            await sp.GetRequiredService<BadgeService>().EvaluateAsync(sub.UserId, ct: ct);
         }
         sub.XpAwarded = xp;
         await db.SaveChangesAsync(ct);
@@ -158,6 +159,7 @@ public sealed class GradeResultConsumer(
             var localDay = sub.LocalDay ?? DateOnly.FromDateTime(DateTime.UtcNow);
             await progress.UpdateStreakAsync(sub.UserId, localDay, ct);
             await progress.UpdateMaxSolvedInADayAsync(sub.UserId, localDay, ct);
+            await sp.GetRequiredService<BadgeService>().EvaluateAsync(sub.UserId, ct: ct);
         }
         sub.XpAwarded = xp;
         await db.SaveChangesAsync(ct);

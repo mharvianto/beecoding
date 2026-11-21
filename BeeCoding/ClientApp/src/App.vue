@@ -9,6 +9,8 @@ import AppFooter from './components/AppFooter.vue';
 import UndoToast from './components/UndoToast.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import CelebrationToast from './components/CelebrationToast.vue';
+import BadgeToast from './components/BadgeToast.vue';
+import { useBadgeToast } from './stores/badgeToast';
 import NotificationBell from './components/NotificationBell.vue';
 import UserMenu from './components/UserMenu.vue';
 import DocLangToggle from './components/DocLangToggle.vue';
@@ -58,6 +60,17 @@ watch(() => auth.user?.id, (id) => (id ? onSignedIn(id) : onSignedOut()), { imme
 
 const activeUserId = computed(() => (auth.mustSetupMfa ? null : auth.user?.id));
 watch(activeUserId, (id) => (id ? progress.refresh() : progress.reset()), { immediate: true });
+// A new badge is announced once: after XP changes (a solve), ask the server what was earned since the last look. The first value after sign-in is only the baseline.
+const badgeToast = useBadgeToast();
+let xpBaseline = null;
+watch(activeUserId, () => { xpBaseline = null; });
+watch(() => (progress.ready ? progress.xp : null), async (xp) => {
+  if (xp === null) return;
+  if (xpBaseline === null) { xpBaseline = xp; return; }
+  if (xp === xpBaseline) return;
+  xpBaseline = xp;
+  try { const fresh = await api.get('/api/me/badges/new'); if (fresh.length) badgeToast.show(fresh); } catch { /* a toast is optional */ }
+});
 // The Journey link shows only while a journey is published (admins always see it, to build one). Re-checked when entering/leaving /journey pages.
 const journeyOpen = ref(false);
 watch([activeUserId, () => route.path.startsWith('/journey')], async ([id]) => {
@@ -187,6 +200,7 @@ onBeforeUnmount(() => {
     <UndoToast />
     <ConfirmDialog />
     <CelebrationToast />
+    <BadgeToast v-if="auth.user" />
     <NotificationToast v-if="auth.user" />
   </div>
 </template>
