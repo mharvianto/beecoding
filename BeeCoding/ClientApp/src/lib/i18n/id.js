@@ -1493,4 +1493,5 @@ export default {
   "Reach level 15": "Capai level 15",
   "Level 20": "Level 20",
   "Reach level 20": "Capai level 20",
+  "Automated browsers cannot open protected problems. Use a regular browser window.": "Browser otomatis tidak dapat membuka soal terproteksi. Gunakan jendela browser biasa.",
 };

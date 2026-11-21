@@ -1,5 +1,6 @@
 <script setup>
 import { tr } from '../lib/i18n';
+import { clientFlags } from '../lib/automation';
 import { ref, watch, onBeforeUnmount } from 'vue';
 import { theme as appTheme } from '../lib/theme';
 import { withBase } from '../lib/base';
@@ -32,7 +33,8 @@ async function load() {
   try {
     const dark = document.documentElement.classList.contains('dark');
     const res = await fetch(`${endpoint()}?theme=${dark ? 'dark' : 'light'}`,
-      { credentials: 'include' });
+      { credentials: 'include', headers: clientFlags() ? { 'X-Client-Flags': clientFlags() } : {} });
+    if (res.status === 403 && clientFlags()) { err.value = 'Automated browsers cannot open protected problems. Use a regular browser window.'; return; }
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
     const key = await crypto.subtle.importKey('raw', fromB64(j.key), 'AES-GCM', false, ['decrypt']);

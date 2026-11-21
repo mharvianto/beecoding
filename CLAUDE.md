@@ -183,6 +183,13 @@ attempts at them. Shares of those problems are dropped. Run it inside the caller
 (Admin → System → Privacy; 0 = keep; existing installs migrate to 0, new ones 365 / 180) and sets `CodePurgedAt`. The row stays (verdicts, scores, XP never read the code); DTOs carry `CodePurged` and a null `Code`;
 plagiarism, the ZIP export and the wall preview skip or mark purged ones.
 
+### Statement protection: what is and is not stopped
+
+Students get the statement only as the encrypted watermarked PNG (`StatementController`); the JSON of a board problem for a student carries NO statement and no expected output of samples (`Mapping.ToStudentDto`, as practice already did), only sample inputs for the Run box.
+The protection follows the person's role on THAT board (`Solve.vue` `protectOn`), so a teacher who solves problems as a student of another's board gets it too. The browser reports `X-Client-Flags` (`lib/automation.js`: `navigator.webdriver`, HeadlessChrome);
+for a student the two statement endpoints then answer 403 and write an `automation-blocked` audit entry (once per person and problem an hour); `Security:BlockAutomatedBrowsers=false` turns it off; staff are never refused.
+The header is the client's own word: it stops casual Playwright/Selenium scripts only. A model reading screenshots, desktop control, a second camera or a script that fakes the header are NOT stopped — the watermark makes a leak attributable, exam mode (paste blocked) and plagiarism detection are the other deterrents.
+
 ### Practice badges
 
 `BadgeService` holds the rules (24 badges in six groups, each with its own icon and a bronze/silver/gold/platinum tier: problems solved, streaks, Medium problems, Hard problems, solved in a day, levels) as code; earned ones are `UserBadge` rows (key + `EarnedAt`, `SeenAt` null until the browser has announced it) and

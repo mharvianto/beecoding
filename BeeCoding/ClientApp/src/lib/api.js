@@ -1,6 +1,7 @@
 import { withBase } from './base';
 import { tr } from './i18n';
 import { docLang } from './docLang';
+import { clientFlags } from './automation';
 
 async function request(method, url, body) {
   const opts = {
@@ -10,6 +11,7 @@ async function request(method, url, body) {
     // X-Lang: the language the interface is in, for the few texts the server writes itself (an email sent before sign-in).
     headers: { 'X-UTC-Offset': String(-new Date().getTimezoneOffset()), 'X-Lang': docLang.value },
   };
+  if (clientFlags()) opts.headers['X-Client-Flags'] = clientFlags();   // automation hints, see lib/automation.js
   if (body !== undefined) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);

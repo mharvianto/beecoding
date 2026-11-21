@@ -5,18 +5,39 @@ using BeeCoding.Data;
 using BeeCoding.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 
 namespace BeeCoding.Controllers;
 
 [ApiController]
 [Authorize]
-public class StatementController(AppDbContext db, BoardService boards, StatementImageService images, VisibilityService vis) : ApiControllerBase
+public class StatementController(AppDbContext db, BoardService boards, StatementImageService images, VisibilityService vis, AuditLog audit,
+    Microsoft.Extensions.Caching.Memory.IMemoryCache cache, IConfiguration cfg) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
     private readonly StatementImageService _images = images;
     private readonly VisibilityService _vis = vis;
+
+    /// <summary>
+    /// A browser that says it is automated (<c>X-Client-Flags</c>, from lib/automation.js: navigator.webdriver, headless Chrome) is refused the
+    /// protected statement when the viewer is a student, and an audit entry says who tried (once per person and problem an hour). The header is
+    /// the client's own word, so this stops casual scripts only — never a person driving a normal browser, or a model reading screenshots.
+    /// Off with <c>Security:BlockAutomatedBrowsers=false</c>.
+    /// </summary>
+    private async Task<ActionResult?> RefuseAutomationAsync(string what, int id, bool isStudent)
+    {
+        var flags = Request.Headers["X-Client-Flags"].ToString();
+        if (!isStudent || flags.Length == 0 || !cfg.GetValue("Security:BlockAutomatedBrowsers", true)) return null;
+        var seen = $"automation:{UserId}:{what}{id}";
+        if (!cache.TryGetValue(seen, out _))
+        {
+            cache.Set(seen, true, TimeSpan.FromHours(1));
+            await audit.RecordAsync(UserId, ActorEmail, "automation-blocked", "Statement", id, $"{what} · {(flags.Length > 60 ? flags[..60] : flags)}");
+        }
+        return StatusCode(403, "Automated browsers cannot open protected problems. Use a regular browser window.");
+    }
 
     /// <summary>
     /// Board problem statement + samples rendered to a PNG (no text reaches the client),
@@ -33,6 +54,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
         // Same rule as the problem itself (ProblemsController.Get): a hidden problem, or one in a hidden / not-yet-open group, is
         // not there for students — ids are sequential, so without this the statement and its samples could be read ahead of time.
         if (!_vis.IsStaff(me.Role) && !GroupAccess.StudentVisible(problem, DateTime.UtcNow)) return NotFound();
+        if (await RefuseAutomationAsync("board", problemId, !_vis.IsStaff(me.Role)) is { } refused) return refused;
 
         var samples = problem.TestCases.Where(t => t.IsSample)
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
@@ -48,6 +70,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
         var problem = await _db.BankProblems.Include(p => p.TestCases)
             .FirstOrDefaultAsync(p => p.Id == id && (p.IsPublic || p.OwnerId == UserId));
         if (problem is null) return NotFound();
+        if (await RefuseAutomationAsync("practice", id, CurrentRole == "Student") is { } refused) return refused;
 
         var samples = problem.TestCases.Where(t => t.IsSample)
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
