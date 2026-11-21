@@ -58,13 +58,14 @@ watch(() => props.id, () => { map.value = null; defeated.value = []; load(); });
       <h1 class="text-2xl font-semibold">{{ map ? map.title : tr('Journey') }}</h1>
       <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="row-action-btn"><Icon name="pencil" /> {{ tr('Edit journeys') }}</RouterLink>
     </div>
+    <p class="text-sm text-slate-600 dark:text-slate-300 max-w-3xl mb-4">{{ tr('A guided path through Practice. Problems come in order, from easy to hard, grouped into worlds. You can skip any problem and come back to it later. Finish enough problems in a world to unlock its boss: beat it for bonus XP and a badge. Your progress comes from problems you have already solved.') }}</p>
     <p v-if="error" class="text-sm text-rose-600 mb-3">{{ error }}</p>
     <div class="max-w-3xl">
     <p v-if="loading" class="text-sm text-slate-500">{{ tr('Loading…') }}</p>
 
     <!-- list (only when there is more than one journey) -->
     <template v-else-if="!id">
-      <p v-if="!list.length" class="text-sm text-slate-500">{{ tr('No journey is open yet.') }}</p>
+      <p v-if="!list.length" class="text-sm text-slate-500">{{ tr('No journey is open yet.') }} <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="underline">{{ tr('Create one') }}</RouterLink></p>
       <RouterLink v-for="j in list" :key="j.id" :to="`/journey/${j.id}`"
                   class="block rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 mb-2 hover:border-amber-400">
         <div class="font-medium">{{ j.title }}</div>
