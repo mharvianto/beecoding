@@ -911,6 +911,7 @@ export default {
   "each time you sign in. No app needed, but it is only as safe as your inbox.": "setiap kali masuk. Tidak perlu aplikasi, tetapi keamanannya hanya sebaik kotak masuk Anda.",
   "write the solution for you.": "menulis solusinya untuk Anda.",
   "Any": "Semua",
+  "1 week": "1 minggu",
   "1 month": "1 bulan",
   "Live board · C & C++ judge · runs in the browser": "Board langsung · juri C & C++ · berjalan di browser",
   "Post": "Posting",

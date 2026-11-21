@@ -176,7 +176,7 @@ public class ProgressController(AppDbContext db, ProgressService progress, IMemo
         }
         else
         {
-            DateTime? cutoff = period == "1m" ? DateTime.UtcNow.AddMonths(-1) : null;   // "all" only other option now
+            DateTime? cutoff = period switch { "1w" => DateTime.UtcNow.AddDays(-7), "1m" => DateTime.UtcNow.AddMonths(-1), _ => null };   // anything else is "all"
 
             var records = _db.SolveRecords.AsQueryable();
             if (cutoff is DateTime c) records = records.Where(r => r.CreatedAt >= c);

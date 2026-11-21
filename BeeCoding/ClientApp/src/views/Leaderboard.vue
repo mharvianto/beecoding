@@ -22,14 +22,15 @@ const boards = ref([]);
 // 'global' | `org:<slug>` | `board:<slug>` — initialized from the URL so a scoped/windowed
 // leaderboard link (e.g. shared in a class group chat) opens straight into that view.
 const scope = ref(/^(org|board):[\w-]+$/.test(route.query.scope) ? route.query.scope : 'global');
-const period = ref(route.query.period === '1m' ? '1m' : 'all');
+const periods = [['1w', '1 week'], ['1m', '1 month'], ['all', 'All time']];
+const periodOf = (v) => (periods.some((p) => p[0] === v) ? v : 'all');
+const period = ref(periodOf(route.query.period));
 // page lives in the URL too (only when > 1), so a deep page survives refresh/back and can be shared.
 const pageFromQuery = (v) => Math.max(1, Number(v) || 1);
 const page = ref(pageFromQuery(route.query.page));
 const pageSize = 20;
 const total = ref(0);
 
-const periods = [['all', 'All time'], ['1m', '1 month']];
 
 const LAST_QUERY_KEY = 'beecoding.leaderboard.lastQuery';
 function loadLastQuery() {
@@ -97,7 +98,7 @@ function nextPage() { if (page.value * pageSize < total.value) { page.value++; s
 watch(() => [route.query.scope, route.query.period, route.query.page, route.query.tab], ([s, p, pg, t]) => {
   tab.value = t === 'recent' ? 'recent' : 'ranking';
   const nextScope = /^(org|board):[\w-]+$/.test(s) ? s : 'global';
-  const nextPeriod = p === '1m' ? '1m' : 'all';
+  const nextPeriod = periodOf(p);
   const nextPage = pageFromQuery(pg);
   if (nextScope === scope.value && nextPeriod === period.value && nextPage === page.value) return;
   scope.value = nextScope; period.value = nextPeriod; page.value = nextPage; load();
@@ -110,7 +111,7 @@ onMounted(async () => {
     const saved = loadLastQuery();
     if (saved) {
       scope.value = /^(org|board):[\w-]+$/.test(saved.scope) ? saved.scope : 'global';
-      period.value = saved.period === '1m' ? '1m' : 'all';
+      period.value = periodOf(saved.period);
       router.replace({ query: { ...route.query, scope: scope.value, period: period.value } });
     }
   }

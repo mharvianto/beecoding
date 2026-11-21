@@ -38,6 +38,25 @@ public class LeaderboardMineTests
         // unranked in a scope: a period with no solves has no row for the caller
         var month = await kid.GetFromJsonAsync<LeaderboardPageDto>("/api/leaderboard?period=1m");
         Assert.Null(month!.Mine);
-        Assert.Null(month.MyPage);
+        Assert.Null(month.MyPage);    }
+
+    [Fact]
+    public async Task One_week_counts_only_solves_from_the_last_seven_days()
+    {
+        using var app = new TestApp();
+        var kid = app.CreateClient();
+        (await kid.PostAsJsonAsync("/api/auth/register", new { email = "kid@test.dev", password = "Passw0rd!x1", displayName = "Budi", role = "Student" })).EnsureSuccessStatusCode();
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var id = (await db.Users.FirstAsync(u => u.Email == "kid@test.dev")).Id;
+            db.SolveRecords.AddRange(
+                new SolveRecord { UserId = id, ProblemKey = "a", XpAwarded = 10, CreatedAt = DateTime.UtcNow.AddDays(-2) },
+                new SolveRecord { UserId = id, ProblemKey = "b", XpAwarded = 40, CreatedAt = DateTime.UtcNow.AddDays(-20) });
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Equal(10, (await kid.GetFromJsonAsync<LeaderboardPageDto>("/api/leaderboard?period=1w"))!.Mine!.Xp);
+        Assert.Equal(50, (await kid.GetFromJsonAsync<LeaderboardPageDto>("/api/leaderboard?period=1m"))!.Mine!.Xp);
     }
 }
