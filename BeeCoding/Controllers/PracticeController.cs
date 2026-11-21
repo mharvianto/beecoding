@@ -417,6 +417,31 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         return result;
     }
 
+    /// <summary>
+    /// "You finished the board — keep going": the practice guide's picks, but only for a student of this board who has fully solved
+    /// every problem they can see on it (at least one), and never while exam mode is on for any of them. Empty otherwise, so a
+    /// board with work left, a teacher, or a stranger gets nothing (and learns nothing about the board).
+    /// </summary>
+    [HttpGet("after-board/{boardSlug}")]
+    public async Task<ActionResult<List<RecommendationDto>>> AfterBoard(string boardSlug)
+    {
+        var board = await _db.Boards.Where(b => b.Slug == boardSlug).Select(b => new { b.Id, b.ExamMode }).FirstOrDefaultAsync();
+        if (board is null || !await _db.BoardMemberships.AnyAsync(m => m.BoardId == board.Id && m.UserId == UserId && m.Role == MembershipRole.Student))
+            return new List<RecommendationDto>();
+
+        var now = DateTime.UtcNow;
+        var visible = (await _db.Problems.Include(p => p.Group).Where(p => p.BoardId == board.Id).ToListAsync())
+            .Where(p => GroupAccess.StudentVisible(p, now)).ToList();
+        if (visible.Count == 0 || visible.Any(p => GroupAccess.ExamMode(new Board { ExamMode = board.ExamMode }, p))) return new List<RecommendationDto>();
+
+        var ids = visible.Select(p => p.Id).ToList();
+        var solved = await _db.Submissions.Where(s => s.UserId == UserId && ids.Contains(s.ProblemId) && s.Verdict == Verdict.Accepted && s.Score >= 1.0)
+            .Select(s => s.ProblemId).Distinct().CountAsync();
+        if (solved < ids.Count) return new List<RecommendationDto>();
+
+        return (await Guide()).Value?.Recommended.Take(3).ToList() ?? new List<RecommendationDto>();
+    }
+
     [HttpGet("{slug}")]
     public async Task<ActionResult<PracticeProblemDto>> Get(string slug)
     {

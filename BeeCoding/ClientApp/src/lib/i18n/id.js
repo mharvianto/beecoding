@@ -1337,6 +1337,8 @@ export default {
   "Reset link for {name}": "Tautan reset untuk {name}",
   "Send this to {email} yourself. It works once and expires {when}. Anyone with the link can set a new password — share it privately.": "Kirim ini ke {email} sendiri. Hanya berlaku sekali dan kedaluwarsa {when}. Siapa pun dengan tautan ini bisa mengatur kata sandi baru — bagikan secara pribadi.",
   "Copy link": "Salin tautan",
+  "You solved everything on this board — keep going in Practice": "Semua soal di board ini sudah kamu selesaikan — lanjut berlatih di Practice",
+  "See all of Practice": "Lihat semua soal Practice",
   "Go to my rank": "Ke peringkat saya",
   "Continue revision": "Lanjutkan revisi",
   "Revise": "Revisi",

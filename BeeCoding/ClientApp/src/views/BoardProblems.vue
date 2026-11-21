@@ -11,6 +11,7 @@ import BankPicker from '../components/BankPicker.vue';
 import GroupEditor from '../components/GroupEditor.vue';
 import ExportMenu from '../components/ExportMenu.vue';
 import MarkdownBlock from '../components/MarkdownBlock.vue';
+import BoardContinue from '../components/BoardContinue.vue';
 import { useConfirmDialog } from '../stores/confirmDialog';
 
 const props = defineProps({ slug: { type: String, required: true } });
@@ -303,6 +304,7 @@ async function reorderGroupTo(id, target, pos) {
       </div>
     </div>
     <p v-if="error" role="alert" class="text-red-600 dark:text-red-400 text-sm mb-3">{{ tr(error) }}</p>
+    <BoardContinue v-if="!isStaff" :board-slug="slug" />
 
     <section v-if="board?.isOwner && proposals.length"
              class="mb-4 border border-amber-200 dark:border-amber-500/30 rounded-xl p-3 bg-amber-50/40 dark:bg-amber-500/5">

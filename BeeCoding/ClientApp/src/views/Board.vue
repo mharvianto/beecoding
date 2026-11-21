@@ -13,6 +13,7 @@ import { useUndoToast } from '../stores/undoToast';
 import ProgressGrid from '../components/ProgressGrid.vue';
 import PadletWall from '../components/PadletWall.vue';
 import QrCode from '../components/QrCode.vue';
+import BoardContinue from '../components/BoardContinue.vue';
 import SubmissionView from '../components/SubmissionView.vue';
 import { useConfirmDialog } from '../stores/confirmDialog';
 
@@ -363,6 +364,8 @@ onBeforeUnmount(async () => {
       </span>
       <span class="text-slate-500 dark:text-slate-400 text-sm">{{ isStaff ? tr('View & manage') : tr('Browse & solve') }} →</span>
     </RouterLink>
+
+    <BoardContinue v-if="!isStaff" :board-slug="slug" />
 
     <!-- Live board -->
     <div class="flex items-center justify-between mt-8 mb-2">
