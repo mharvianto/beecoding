@@ -62,14 +62,28 @@ public class StatementMathRenderTests
     private static int HeightOf(byte[] png) { using var b = SKBitmap.Decode(png); return b.Height; }
 
     [Fact]
+    public void The_statement_image_is_lossless_webp_and_decodes_to_the_same_size_with_and_without_the_watermark_cache()
+    {
+        using var app = new TestApp();
+        app.CreateClient();
+        using var svc = Service(app);
+        var first = svc.RenderImage("w:1", "Hitung **jumlahnya**.", [("1 2", "3")], "a@x", dark: true);
+        var cached = svc.RenderImage("w:1", "Hitung **jumlahnya**.", [("1 2", "3")], "b@x", dark: true);   // base from the cache, another watermark
+        Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(first, 0, 4));
+        Assert.Equal("WEBP", System.Text.Encoding.ASCII.GetString(first, 8, 4));
+        Assert.Equal(HeightOf(first), HeightOf(cached));
+        Assert.NotEqual(first, cached);                                                                      // the watermark names the viewer
+    }
+
+    [Fact]
     public void A_formula_is_typeset_into_the_statement_picture()
     {
         using var app = new TestApp();
         app.CreateClient();
         using var svc = Service(app);
-        var plain = svc.RenderPng("m:plain", "Hitung jumlahnya lalu cetak hasilnya.", [], "w", dark: false);
-        var tall = svc.RenderPng("m:tall", @"Hitung $\sum_{i=1}^{n}\frac{a_i}{b_i}$ lalu cetak hasilnya.", [], "w", dark: false);
-        var disp = svc.RenderPng("m:disp", "Hitung\n\n$$\\frac{n(n+1)}{2}$$\n\nlalu cetak.", [], "w", dark: false);
+        var plain = svc.RenderImage("m:plain", "Hitung jumlahnya lalu cetak hasilnya.", [], "w", dark: false);
+        var tall = svc.RenderImage("m:tall", @"Hitung $\sum_{i=1}^{n}\frac{a_i}{b_i}$ lalu cetak hasilnya.", [], "w", dark: false);
+        var disp = svc.RenderImage("m:disp", "Hitung\n\n$$\\frac{n(n+1)}{2}$$\n\nlalu cetak.", [], "w", dark: false);
 
         Assert.True(HeightOf(tall) > HeightOf(plain), "a line with a sum and a fraction needs more room than a plain line");
         Assert.True(HeightOf(disp) > HeightOf(plain));
@@ -94,7 +108,7 @@ public class StatementMathRenderTests
             "Harga $5 dan $10",
         });
         var sw = Stopwatch.StartNew();
-        var png = svc.RenderPng("m:hostile", markdown, [("1 2", "3")], "w", dark: true);
+        var png = svc.RenderImage("m:hostile", markdown, [("1 2", "3")], "w", dark: true);
         Assert.True(sw.Elapsed < TimeSpan.FromSeconds(15), $"took {sw.Elapsed}");
         Assert.True(HeightOf(png) > 100);
     }
@@ -106,6 +120,6 @@ public class StatementMathRenderTests
         app.CreateClient();
         using var svc = Service(app);
         Parallel.For(0, 40, i =>
-            Assert.True(HeightOf(svc.RenderPng($"m:par{i}", $"Soal {i}: $\\sum_{{k=1}}^{{n}} a_k \\le 10^9$ dan $$\\binom{{n}}{{k}}$$", [("1", "2")], "w", dark: i % 2 == 0)) > 80));
+            Assert.True(HeightOf(svc.RenderImage($"m:par{i}", $"Soal {i}: $\\sum_{{k=1}}^{{n}} a_k \\le 10^9$ dan $$\\binom{{n}}{{k}}$$", [("1", "2")], "w", dark: i % 2 == 0)) > 80));
     }
 }

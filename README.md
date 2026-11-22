@@ -147,11 +147,11 @@ rlimits only and logs which mode it picked at startup.
 
 When a teacher turns it on, a student opening a problem gets:
 
-- The statement + samples **rendered to a PNG server-side** (`StatementImageService`,
+- The statement + samples **rendered to a lossless WebP image server-side** (`StatementImageService`,
   SkiaSharp + Markdig, DejaVu fonts vendored in `Assets/fonts/`) with a per-viewer
   identity watermark **baked into the pixels** — there is no text in the DOM to select,
   copy, or read via inspect-element.
-- That PNG is sent wrapped for transport (`GET /api/problems/{id}/statement`, AES-256-GCM, fresh
+- That image is sent wrapped for transport (`GET /api/problems/{id}/statement`, AES-256-GCM, fresh
   key+nonce per request, `Cache-Control: no-store`); the client unwraps it via WebCrypto to
   a `blob:` URL. No stable image URL, nothing reusable in a HAR/cache.
 - `ContentGuard.vue` on top: blocks selection / copy / context-menu / drag, blurs the

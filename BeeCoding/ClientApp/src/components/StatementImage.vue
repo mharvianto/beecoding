@@ -40,7 +40,7 @@ async function load() {
     const key = await crypto.subtle.importKey('raw', fromB64(j.key), 'AES-GCM', false, ['decrypt']);
     const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64(j.iv) }, key, fromB64(j.data));
     revoke();
-    objectUrl = URL.createObjectURL(new Blob([plain], { type: 'image/png' }));
+    objectUrl = URL.createObjectURL(new Blob([plain], { type: 'image/webp' }));
     src.value = objectUrl;
   } catch {
     err.value = tr('Failed to load the problem.');

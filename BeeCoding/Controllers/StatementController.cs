@@ -40,7 +40,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     }
 
     /// <summary>
-    /// Board problem statement + samples rendered to a PNG (no text reaches the client),
+    /// Board problem statement + samples rendered to an image (no text reaches the client),
     /// returned with a per-viewer identity watermark baked in (wrapped with AES-GCM for transport).
     /// </summary>
     [HttpGet("api/problems/{problemId:int}/statement")]
@@ -93,15 +93,15 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             markdown + "\0" + string.Join("", samples.Select(s => s.Stdin + "\0" + s.ExpectedStdout)))))[..16];
         var cacheKey = $"{idKey}:{fingerprint}:{(dark ? "d" : "l")}";
 
-        var png = _images.RenderPng(cacheKey, markdown, samples, watermark, dark, pictures);
+        var image = _images.RenderImage(cacheKey, markdown, samples, watermark, dark, pictures);
 
         // AES-256-GCM; fresh key + nonce per request, delivered in the same authenticated response.
         var key = RandomNumberGenerator.GetBytes(32);
         var nonce = RandomNumberGenerator.GetBytes(12);
-        var cipher = new byte[png.Length];
+        var cipher = new byte[image.Length];
         var tag = new byte[16];
         using (var gcm = new AesGcm(key, 16))
-            gcm.Encrypt(nonce, png, cipher, tag);
+            gcm.Encrypt(nonce, image, cipher, tag);
 
         var payload = new byte[cipher.Length + tag.Length];
         Buffer.BlockCopy(cipher, 0, payload, 0, cipher.Length);
