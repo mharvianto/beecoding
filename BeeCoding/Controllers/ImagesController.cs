@@ -66,26 +66,38 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         return new { id, url = $"/api/images/{id}", kb = (stored.Length + 1023) / 1024 };
     }
 
-    /// <summary>The normal compression of an accepted upload: at most <see cref="MaxWidth"/> px wide and re-encoded. Lossless PNG
-    /// keeps diagrams crisp; only when that came out bigger than the file the author sent (a photo) is JPEG used instead, if smaller.</summary>
+    /// <summary>The normal compression of an accepted upload: at most <see cref="MaxWidth"/> px wide and re-encoded. Lossless first, the smaller of
+    /// PNG and lossless WebP (which one wins depends on the picture: WebP on flat colours, PNG on busy screenshots), so diagrams stay crisp.
+    /// Only when that came out bigger than the file the author sent (a photo) is lossy WebP tried instead, if smaller.</summary>
     private static byte[] Shrink(SKBitmap bmp, long uploadedBytes)
     {
         using var resized = bmp.Width <= MaxWidth ? null
             : bmp.Resize(new SKImageInfo(MaxWidth, Math.Max(1, bmp.Height * MaxWidth / bmp.Width)), new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
         var src = resized ?? bmp;
-        using var img = SKImage.FromBitmap(src);
-        var best = img.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+        var best = SmallestLossless(src);
         if (best.Length <= uploadedBytes) return best;
 
-        using var flat = new SKBitmap(src.Width, src.Height);   // JPEG has no transparency: flatten on white
-        using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); using var flatSrc = SKImage.FromBitmap(src); canvas.DrawImage(flatSrc, 0, 0, new SKSamplingOptions()); }
-        using var flatImg = SKImage.FromBitmap(flat);
-        var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, 85).ToArray();
-        return jpg.Length < best.Length ? jpg : best;
+        var lossy = Webp(src, lossless: false, quality: 90);
+        return lossy.Length < best.Length ? lossy : best;
     }
 
-    /// <summary>Last resort when <see cref="Shrink"/> is still over the limit. Lossless PNG first (diagrams stay crisp); if that is too big, JPEG at falling quality (flattened on white,
-    /// since JPEG has no transparency); if still too big, shrink by a quarter and try again.</summary>
+    private static byte[] Webp(SKBitmap bmp, bool lossless, int quality)
+    {
+        using var pixels = bmp.PeekPixels();
+        using var data = pixels.Encode(new SKWebpEncoderOptions(lossless ? SKWebpEncoderCompression.Lossless : SKWebpEncoderCompression.Lossy, quality));
+        return data.ToArray();
+    }
+
+    private static byte[] SmallestLossless(SKBitmap bmp)
+    {
+        using var img = SKImage.FromBitmap(bmp);
+        var png = img.Encode(SKEncodedImageFormat.Png, 100).ToArray();
+        var webp = Webp(bmp, lossless: true, quality: 100);
+        return webp.Length < png.Length ? webp : png;
+    }
+
+    /// <summary>Last resort when <see cref="Shrink"/> is still over the limit. Lossless first (diagrams stay crisp); if that is too big, lossy WebP at
+    /// falling quality; if still too big, shrink by a quarter and try again.</summary>
     private static byte[]? Compress(SKBitmap bmp, long maxBytes)
     {
         var sampling = new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear);
@@ -94,19 +106,20 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         {
             using var resized = w == bmp.Width ? null : bmp.Resize(new SKImageInfo(w, Math.Max(1, (int)((long)bmp.Height * w / bmp.Width))), sampling);
             var src = resized ?? bmp;
-            using (var img = SKImage.FromBitmap(src))
-            using (var png = img.Encode(SKEncodedImageFormat.Png, 100))
-                if (png.Size <= maxBytes) return png.ToArray();
-
-            using var flat = new SKBitmap(src.Width, src.Height);
-            using (var canvas = new SKCanvas(flat)) { canvas.Clear(SKColors.White); using var flatSrc = SKImage.FromBitmap(src); canvas.DrawImage(flatSrc, 0, 0, new SKSamplingOptions()); }
-            using var flatImg = SKImage.FromBitmap(flat);
-            foreach (var quality in new[] { 85, 65 })
-                using (var jpg = flatImg.Encode(SKEncodedImageFormat.Jpeg, quality))
-                    if (jpg.Size <= maxBytes) return jpg.ToArray();
+            var lossless = SmallestLossless(src);
+            if (lossless.Length <= maxBytes) return lossless;
+            foreach (var quality in new[] { 90, 75 })
+            {
+                var lossy = Webp(src, lossless: false, quality);
+                if (lossy.Length <= maxBytes) return lossy;
+            }
         }
         return null;
     }
+
+    /// <summary>What was stored: WebP (RIFF....WEBP), JPEG (pictures stored before WebP was used), else PNG.</summary>
+    internal static string ContentTypeOf(byte[] d) =>
+        d.Length > 12 && d[0] == 'R' && d[1] == 'I' && d[8] == 'W' && d[9] == 'E' ? "image/webp" : d[0] == 0xFF ? "image/jpeg" : "image/png";
 
     [HttpGet("{id}")]
     public async Task<IActionResult> Get(string id)
@@ -114,6 +127,6 @@ public partial class ImagesController(AppDbContext db, PlatformRuntimeConfig cfg
         var data = await _db.StatementImages.Where(x => x.Id == id).Select(x => x.Data).FirstOrDefaultAsync();
         if (data is null) return NotFound();
         Response.Headers.CacheControl = "private, max-age=86400";   // ids are never reused, so a cached copy is never stale
-        return File(data, data[0] == 0xFF ? "image/jpeg" : "image/png");   // stored as PNG, or JPEG when that was the only way to fit the size limit
+        return File(data, ContentTypeOf(data));
     }
 }

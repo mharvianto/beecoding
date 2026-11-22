@@ -89,7 +89,7 @@ public class ImageUploadTests
         ok.EnsureSuccessStatusCode();
         var url = (await ok.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("url").GetString()!;
         var got = await teacher.GetAsync(url);
-        Assert.Equal("image/png", got.Content.Headers.ContentType?.MediaType);
+        Assert.Contains(got.Content.Headers.ContentType?.MediaType, new[] { "image/png", "image/webp" });   // whichever lossless one is smaller for this picture
         using var stored = SKBitmap.Decode(await got.Content.ReadAsByteArrayAsync());
         Assert.Equal(1200, stored.Width);
 
@@ -133,8 +133,29 @@ public class ImageCompressionTests
         var got = await teacher.GetAsync(url);
         var stored = await got.Content.ReadAsByteArrayAsync();
         Assert.True(stored.Length < fits.Length);                                  // compressed, not just copied
-        Assert.Equal("image/jpeg", got.Content.Headers.ContentType?.MediaType);    // PNG would have been bigger than the upload
+        Assert.Equal("image/webp", got.Content.Headers.ContentType?.MediaType);    // lossless would have been bigger than the upload: lossy WebP
         Assert.NotNull(SKBitmap.Decode(stored));
+    }
+
+    [Fact]
+    public async Task Pictures_stored_before_webp_still_come_back_with_their_own_type()
+    {
+        using var app = new TestApp();
+        var teacher = app.CreateClient();
+        (await teacher.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+        byte[] jpeg;
+        using (var bmp = new SKBitmap(40, 40)) { bmp.Erase(SKColors.Red); using var img = SKImage.FromBitmap(bmp); jpeg = img.Encode(SKEncodedImageFormat.Jpeg, 85).ToArray(); }
+        var png = Noise(20);
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<BeeCoding.Data.AppDbContext>();
+            var owner = db.Users.First().Id;
+            db.StatementImages.AddRange(new BeeCoding.Models.StatementImage { Id = "jpegjpegjpegjpegjpegjp", OwnerId = owner, Data = jpeg },
+                                        new BeeCoding.Models.StatementImage { Id = "pngpngpngpngpngpngpng", OwnerId = owner, Data = png });
+            await db.SaveChangesAsync();
+        }
+        Assert.Equal("image/jpeg", (await teacher.GetAsync("/api/images/jpegjpegjpegjpegjpegjp")).Content.Headers.ContentType?.MediaType);
+        Assert.Equal("image/png", (await teacher.GetAsync("/api/images/pngpngpngpngpngpngpng")).Content.Headers.ContentType?.MediaType);
     }
 }
 
