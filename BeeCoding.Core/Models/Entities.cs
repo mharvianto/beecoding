@@ -51,7 +51,7 @@ public class User
 
     /// <summary>Base32 secret of the user's authenticator app (TOTP, RFC 6238). Set at the start of
     /// setup but only counts once <see cref="TotpEnabledAt"/> is set (after a first valid code).</summary>
-    [MaxLength(64)]
+    [MaxLength(512)]   // the stored text is sealed (enc1:...), several times longer than the secret
     public string? TotpSecret { get; set; }
 
     /// <summary>When the authenticator app was confirmed. Null = no TOTP second factor.</summary>
@@ -970,7 +970,7 @@ public class AiProviderConfig
 
     /// <summary>Bearer token for the OpenAI-compatible endpoint. Never returned to a client
     /// once saved — the admin/org-admin API exposes only whether one is set.</summary>
-    [MaxLength(300)]
+    [MaxLength(1000)]   // stored sealed (enc1:...)
     public string? ApiKey { get; set; }
 
     [MaxLength(500)]
@@ -1087,7 +1087,7 @@ public class AuditLogEntry
     public string ActorEmail { get; set; } = "";
 
     /// <summary>"delete" | "restore" | "purge".</summary>
-    [MaxLength(20)]
+    [MaxLength(64)]
     public string Action { get; set; } = "";
 
     /// <summary>"User" | "Board" | "Problem" | "BankProblem".</summary>
@@ -1098,7 +1098,7 @@ public class AuditLogEntry
 
     /// <summary>Title/email/display name at the time of the action, for a readable log
     /// even once the target row is purged.</summary>
-    [MaxLength(300)]
+    [MaxLength(4000)]
     public string TargetLabel { get; set; } = "";
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

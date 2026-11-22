@@ -83,7 +83,7 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("ApiKey")
-                        .HasMaxLength(300)
+                        .HasMaxLength(1000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("BaseUrl")
@@ -252,7 +252,7 @@ namespace BeeCoding.Migrations
 
                     b.Property<string>("Action")
                         .IsRequired()
-                        .HasMaxLength(20)
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ActorEmail")
@@ -271,7 +271,7 @@ namespace BeeCoding.Migrations
 
                     b.Property<string>("TargetLabel")
                         .IsRequired()
-                        .HasMaxLength(300)
+                        .HasMaxLength(4000)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TargetType")
@@ -1959,7 +1959,7 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TotpSecret")
-                        .HasMaxLength(64)
+                        .HasMaxLength(512)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UtcOffsetMinutes")

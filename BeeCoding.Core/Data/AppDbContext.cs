@@ -63,11 +63,18 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     private string NotNull(string column) => Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL" ? $"\"{column}\" IS NOT NULL" : $"{column} IS NOT NULL";
 
 
+    /// <summary>Npgsql refuses a <see cref="DateTime"/> that is not UTC for a timestamptz column, and SQLite hands every value back as
+    /// "unspecified". Every date in this app is UTC, so on Postgres they are read and written as such. SQLite is left as it was.</summary>
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        if (Database.ProviderName == "Npgsql.EntityFrameworkCore.PostgreSQL")
+            configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<User>().HasIndex(u => u.Email).IsUnique();
-        // Secrets are kept encrypted (see SecretBox). The column stays TEXT; the stored text is longer than the MaxLength attributes say.
-        // shortcut: SQLite does not enforce MaxLength, so no migration; raise those lengths when moving to a server database.
+        // Secrets are kept encrypted (see SecretBox); the stored text is several times longer than the secret, and the MaxLength attributes allow for it.
         b.Entity<User>().Property(u => u.TotpSecret).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
         b.Entity<AiProviderConfig>().Property(c => c.ApiKey).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
         b.Entity<AiProviderConfig>().Property(c => c.Fallbacks).HasConversion(v => SecretBox.Seal(v), v => SecretBox.Open(v));
@@ -350,3 +357,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         return Slug.New(12);   // astronomically unlikely; longer slug as a last resort
     }
 }
+
+/// <summary>Stores a DateTime as UTC and returns it with Kind = Utc.</summary>
+public sealed class UtcDateTimeConverter() : Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+    v => v.Kind == DateTimeKind.Utc ? v : v.Kind == DateTimeKind.Local ? v.ToUniversalTime() : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+    v => DateTime.SpecifyKind(v, DateTimeKind.Utc));

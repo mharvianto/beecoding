@@ -265,4 +265,33 @@ public class HardeningTests
         Assert.Contains("CREATE TABLE", script);
         Assert.Contains("\"Users\"", script);
     }
+
+    [Fact]
+    public void Postgres_reads_and_writes_every_date_as_UTC_while_SQLite_is_left_alone_and_the_encrypted_columns_have_room()
+    {
+        using var pg = new AppDbContext(new DbContextOptionsBuilder<AppDbContext>().UseNpgsql("Host=localhost;Database=x").Options);
+        var created = pg.Model.FindEntityType(typeof(User))!.FindProperty(nameof(User.CreatedAt))!;
+        var conv = created.GetValueConverter()!;
+        Assert.NotNull(conv);
+        Assert.Equal(DateTimeKind.Utc, ((DateTime)conv.ConvertToProvider(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Unspecified))!).Kind);
+        Assert.NotNull(pg.Model.FindEntityType(typeof(User))!.FindProperty(nameof(User.DeletedAt))!.GetValueConverter());   // nullable ones too
+
+        // sealed text ("enc1:...") and long titles were refused by a server database: production holds 181-char TOTP secrets and 2273-char audit labels
+        int Max(Type t, string p) => pg.Model.FindEntityType(t)!.FindProperty(p)!.GetMaxLength() ?? int.MaxValue;
+        Assert.True(Max(typeof(User), nameof(User.TotpSecret)) >= 181);
+        Assert.True(Max(typeof(AuditLogEntry), nameof(AuditLogEntry.TargetLabel)) >= 2273);
+        Assert.True(Max(typeof(AuditLogEntry), nameof(AuditLogEntry.Action)) >= 23);
+    }
+
+    [Fact]
+    public async Task The_audit_log_clips_a_too_long_action_or_label_instead_of_failing_the_action_it_records()
+    {
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await new AuditLog(db).RecordAsync(1, "a@b.c", new string('x', 200), "problem", 1, new string('y', 9000));
+        var row = await db.AuditLogEntries.AsNoTracking().OrderByDescending(x => x.Id).FirstAsync();
+        Assert.Equal(64, row.Action.Length);
+        Assert.Equal(4000, row.TargetLabel.Length);
+    }
 }
