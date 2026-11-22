@@ -204,6 +204,7 @@ builder.Services.AddSingleton<BeeCoding.Services.Similarity.SimilarCooldown>();
 builder.Services.AddSingleton<BeeCoding.Services.Similarity.TextCorpusCache>();
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection("Ai"));
 builder.Services.AddSingleton<SharedClangd>();
+builder.Services.AddSingleton<LspBridge>();
 builder.Services.AddSingleton<LspEndpoint>();
 // The default HttpClient.Timeout is 100s — too short for generate-problem. Let each call's
 // own CancellationTokenSource (Ai:TimeoutSeconds / Ai:GenerateTimeoutSeconds) be the limit.

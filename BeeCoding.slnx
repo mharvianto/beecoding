@@ -2,6 +2,7 @@
   <Project Path="BeeCoding.Core/BeeCoding.Core.csproj" />
   <Project Path="BeeCoding.Core.Postgres/BeeCoding.Core.Postgres.csproj" />
   <Project Path="BeeCoding.Judge/BeeCoding.Judge.csproj" />
+  <Project Path="BeeCoding.Lsp/BeeCoding.Lsp.csproj" />
   <Project Path="BeeCoding/BeeCoding.csproj" />
   <Project Path="BeeCoding.Tests/BeeCoding.Tests.csproj" />
 </Solution>

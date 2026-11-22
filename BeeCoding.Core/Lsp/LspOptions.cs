@@ -58,4 +58,19 @@ public class LspOptions
 
     /// <summary>The shared process exits this long after its last student left, so it does not sit on memory between classes.</summary>
     public int SharedIdleStopSeconds { get; set; } = 120;
+
+    // ---- clangd on its own node(s) (BeeCoding.Lsp, see DEPLOY.md) ----
+    /// <summary>WEB side. Empty (default) = clangd runs on this machine. With one or more URLs (<c>ws://host:5100/lsp/node</c>, <c>wss://</c> across
+    /// a network) the web app only authenticates the student and relays the editor's WebSocket to a clangd node. With several, each student is
+    /// tied to one by a stable hash of their id (sticky: clangd remembers the open file), and the next one is tried when that node is down.</summary>
+    public string[] RemoteUrls { get; set; } = [];
+
+    /// <summary>WEB side. The shared secret sent to the node (<c>Authorization: Bearer</c>); must equal the node's <see cref="NodeToken"/>.</summary>
+    public string? RemoteToken { get; set; }
+
+    /// <summary>NODE side (BeeCoding.Lsp). Required: the secret a web app must present. The node does no sign-in of its own, so keep it on a private network too.</summary>
+    public string? NodeToken { get; set; }
+
+    /// <summary>NODE side. Shared or one-clangd-per-student when the web app does not say (it passes its Admin → System choice along).</summary>
+    public bool NodeShared { get; set; } = true;
 }

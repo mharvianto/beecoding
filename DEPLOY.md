@@ -25,7 +25,7 @@ konsep sebelum ke Kubernetes). Isinya jawaban untuk tiga pertanyaan:
 | Judge | `IJudgeQueue` — `inproc` (`Channel<JudgeJob>`) default, `redis` broker opsional; `JudgeWorker` `BackgroundService` | Dengan `inproc`, kode murid jalan di container web & tiap pod butuh toolchain; `redis` memungkinkan judge jadi Deployment terpisah |
 | Throttle / job berkala / cache pengaturan | `ICounterStore` (`memory` atau `redis`), `JobLock`, `RuntimeCacheRefresher` — ikut `Realtime:Backend` (§2.4) | Dengan `memory` dan > 1 pod: limit per-pod, janitor jalan di semua pod, pengaturan admin baru terlihat setelah restart |
 | Cookie auth | Data Protection keys **default** (folder efemeral per proses) | Restart pod / pod baru → semua logout; cookie pod A ditolak pod B |
-| clangd LSP | 1 proses clangd per koneksi `/lsp/cpp`, ~1–2 GB RAM | Stateful, rakus memori; perlu routing sticky |
+| clangd LSP | 1 proses clangd per koneksi `/lsp/cpp` (atau dibagi), ~1–2 GB RAM | Stateful, rakus memori; bisa dipindah ke node `BeeCoding.Lsp` dengan routing sticky (§2.7) |
 | Aset statis | Di-serve oleh app, sudah ber-hash + `Cache-Control: immutable` + brotli | Aman apa adanya (tiap pod serve bundle-nya sendiri) |
 
 Konfigurasi sudah bisa lewat **environment variable** (`Section__Key`, mis. `Ai__ApiKey`,
@@ -215,9 +215,24 @@ Jangan jalankan binary murid di pod biasa.
 
 ### 2.7 clangd LSP
 
-- Untuk skala: **matikan** (`Lsp__Enabled=false`).
-- Atau: pool pod sendiri (`beecoding-lsp`) dengan memory limit besar + `Lsp__MaxConcurrent`,
-  route `/lsp/*` ke sana. Koneksi WS stateful → routing per-koneksi sticky.
+Tiga tingkat, semuanya lewat config (`Lsp__...`); naik tingkat hanya bila perlu:
+
+1. **Satu mesin, satu clangd per murid** (default bila `Lsp:Enabled=true`) — `Lsp:MaxConcurrent` proses, ~1–2 GB RAM masing-masing.
+2. **Satu mesin, clangd dibagi** — Admin → System "Share one clangd between students" (`SharedClangd`: `Lsp:SharedMaxSessions`,
+   `SharedMaxProcesses`, `SharedMemoryPercent`, `SharedPchStorage`). ~85 MB per murid + ~440 MB per proses. Cukup untuk 1 kelas.
+3. **Node clangd terpisah** — project `BeeCoding.Lsp` (tanpa DB/login/API; memorinya tidak berebut dengan web dan judge):
+
+| Di mana | Setting | Arti |
+|---|---|---|
+| Node (`BeeCoding.Lsp`) | `Lsp__NodeToken` | **wajib**; rahasia bersama, tanpa itu node menolak start |
+| Node | `Lsp__NodeShared`, `Lsp__SharedMax*`, `Lsp__MaxConcurrent`, `Lsp__Sandbox` | sama artinya dengan di web; pilihan Admin → System dari web ikut dikirim (`shared=`) |
+| Web | `Lsp__RemoteUrls__0`, `__1`, … (`ws://host:5100/lsp/node`) | kosong (default) = clangd jalan di mesin web seperti biasa. Terisi = web hanya mengecek login lalu meneruskan WebSocket ke node |
+| Web | `Lsp__RemoteToken` | harus sama dengan `Lsp__NodeToken` di node |
+
+Sticky tanpa load balancer: dengan beberapa URL, tiap murid dipetakan ke satu node lewat hash id (FNV-1a, sama di semua instance web);
+bila node itu mati, URL berikutnya dicoba. Aturan "satu editor per akun" (`replaced`) dijaga di node berdasarkan id murid, jadi
+berlaku juga lintas instance web. Node tidak punya login sendiri: taruh di jaringan privat, atau `wss://` di belakang proxy; port
+default 5100, `/health` untuk probe. Gagal tersambung ke semua node → editor dapat "server busy" (completion dasar tetap jalan).
 
 ### 2.8 Ingress
 
@@ -301,7 +316,7 @@ Urutan prioritas — **tanpa 1–4, replika kedua langsung merusak data / memutu
 5. **Judge → broker** (`Judge:Queue:Backend=redis` — **sudah ada**) + worker pool terpisah
    dengan isolasi gVisor/Kata. (Upgrade: list → Redis Streams untuk at-least-once.)
 6. **Sticky session OFF** setelah backplane ada (atau `skipNegotiation` + WS).
-7. **clangd**: `Lsp__Enabled=false`, atau pool khusus dengan routing sticky.
+7. **clangd**: `Lsp__Enabled=false`, atau node `BeeCoding.Lsp` (`Lsp__RemoteUrls__0=...`, §2.7).
 8. **Health checks** (`/health`, `/health/ready` — sudah ada) + probe + graceful shutdown (drain job judge in-flight).
 9. **Logging** JSON ke stdout + OpenTelemetry / Application Insights.
 10. Aset statis: aman apa adanya; CDN di depan bila mau.
