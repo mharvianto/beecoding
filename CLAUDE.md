@@ -192,7 +192,7 @@ plagiarism, the ZIP export and the wall preview skip or mark purged ones.
 ### Statement protection: what is and is not stopped
 
 Students get the statement only as the watermarked image (lossless WebP, `StatementImageService.RenderImage`; `StatementController`); the JSON of a board problem for a student carries NO statement and no expected output of samples (`Mapping.ToStudentDto`, as practice already did), only sample inputs for the Run box.
-The protection follows the person's role on THAT board (`Solve.vue` `protectOn`), so a teacher who solves problems as a student of another's board gets it too. The browser reports `X-Client-Flags` (`lib/automation.js`: `navigator.webdriver`, HeadlessChrome);
+`Solve.vue` shows the statement ONLY as that image for everyone, teachers and board staff included (an "Edit problem" link in its header leads to `ProblemEdit`, the one page that shows the text); the server still sends staff the statement text in the problem JSON, because the edit page needs it, so for staff this is a view rule, not a network one. The browser reports `X-Client-Flags` (`lib/automation.js`: `navigator.webdriver`, HeadlessChrome);
 for a student the two statement endpoints then answer 403 and write an `automation-blocked` audit entry (once per person and problem an hour); `Security:BlockAutomatedBrowsers=false` turns it off; staff are never refused.
 The header is the client's own word: it stops casual Playwright/Selenium scripts only. A model reading screenshots, desktop control, a second camera or a script that fakes the header are NOT stopped — the watermark makes a leak attributable, exam mode (paste blocked) and plagiarism detection are the other deterrents.
 

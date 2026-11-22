@@ -11,7 +11,6 @@ import { useProgress } from '../stores/progress';
 import { useCelebrationToast } from '../stores/celebrationToast';
 import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
-import MarkdownBlock from '../components/MarkdownBlock.vue';
 import VerdictBadge from '../components/VerdictBadge.vue';
 import LevelBadge from '../components/LevelBadge.vue';
 import ProblemFeedback from '../components/ProblemFeedback.vue';
@@ -37,9 +36,8 @@ const board = ref(null);
 const problem = ref(null);
 // internal id of the loaded problem — used for API calls / SignalR that key by int id
 const pid = computed(() => problem.value?.id);
-// Content protection follows the person's role ON THIS BOARD, not their account role: a teacher who solves problems as a student of someone
-// else's board gets the protected image too. Always on for students — there's no per-board opt-out.
-const protectOn = computed(() => auth.user?.role === 'Student' || board.value?.role === 'Student');
+// The statement is always the protected, watermarked image on this page — students and teachers alike, no per-board opt-out.
+// Staff read and change the text on the edit page (the "Edit problem" link in the header), the only place it is shown as text.
 const watermark = computed(() =>
   `${auth.user?.email || auth.user?.displayName || ''} · ${new Date().toLocaleString()}`);
 const code = ref('');
@@ -340,6 +338,7 @@ onBeforeUnmount(async () => {
       <RouterLink :to="`/boards/${props.slug}`" class="text-sm text-slate-500 dark:text-slate-400">← {{ tr('back to board') }}</RouterLink>
       <div class="flex items-center gap-2 mt-2 mb-1 flex-wrap">
         <h1 class="text-lg font-bold">{{ problem.title }}</h1>
+        <RouterLink v-if="isStaff" :to="`/boards/${props.slug}/problems/${props.problemSlug}/edit`" class="row-action-btn row-action-btn--accent">{{ tr('Edit problem') }}</RouterLink>
         <LevelBadge :level="problem.level" />
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
               class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
@@ -367,32 +366,21 @@ onBeforeUnmount(async () => {
         <button @click="restored = false" class="ml-auto text-amber-600 dark:text-amber-300" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
       </div>
 
-      <p v-if="protectOn" class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
+      <p class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
         <Icon name="lock" /> {{ tr('Protected problem — served as an image watermarked with your identity.') }}
       </p>
 
-      <ContentGuard v-if="protectOn" :active="true" :watermark="''">
+      <ContentGuard :active="true" :watermark="''">
         <StatementImage :problem-id="pid" />
       </ContentGuard>
 
-      <div v-if="protectOn && problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
+      <div v-if="problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
         <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Load sample input:') }}</span>
         <button v-for="(t, i) in problem.sampleTests" :key="i" @click="stdin = t.stdin"
                 class="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400">
           {{ tr('Sample {n}', { n: i + 1 }) }}
         </button>
       </div>
-
-      <template v-else-if="!protectOn">
-        <MarkdownBlock :text="problem.statementMarkdown" />
-        <div v-if="problem.sampleTests?.length" class="mt-4">
-          <h3 class="font-semibold text-sm mb-1">{{ tr('Samples') }}</h3>
-          <div v-for="(t, i) in problem.sampleTests" :key="i" class="grid grid-cols-2 gap-2 mb-2 text-xs">
-            <pre class="bg-slate-100 dark:bg-slate-800 rounded p-2 overflow-x-auto">{{ t.stdin }}</pre>
-            <pre class="bg-slate-100 dark:bg-slate-800 rounded p-2 overflow-x-auto">{{ t.expectedStdout }}</pre>
-          </div>
-        </div>
-      </template>
 
       <button v-if="isStudent() && myPost.postId" @click="toggleHiddenFromPeers"
               class="mt-4 w-full text-sm px-3 py-2 rounded-lg border flex items-center justify-center gap-2"
