@@ -1280,7 +1280,9 @@ onMounted(async () => {
           (timeout, 429, 5xx, 401/403, empty reply — not for a 400/422). A hint only moves to a backup before its first word is shown.
           An organization with its own key never falls back to these.
         </p>
-        <div class="grid sm:grid-cols-2 gap-2 text-sm max-w-md mb-3">
+        <div class="grid lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-x-8 gap-y-5">
+          <div class="space-y-3">
+        <div class="grid sm:grid-cols-2 gap-3 text-sm">
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Max tokens per hint (100–16000)') }}</span>
             <input v-model="aiExtrasForm.maxTokens" type="number" min="100" max="16000" :placeholder="tr('appsettings')" :aria-label="tr('appsettings')"
@@ -1295,12 +1297,12 @@ onMounted(async () => {
             </select>
           </label>
         </div>
-        <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
+        <label class="flex flex-col gap-1 text-sm">
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Review model (AI check + report triage; blank = the generate-problem model)') }}</span>
           <input v-model="aiExtrasForm.reviewModel" :placeholder="tr('e.g. mistralai/mistral-large-4-1t-a52b')" :aria-label="tr('Model')"
                  class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </label>
-        <label class="flex flex-col gap-1 text-sm max-w-md mb-3">
+        <label class="flex flex-col gap-1 text-sm">
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Effort for problem generation + AI review (turns thinking on; blank = quiet and fast: low, no thinking)') }}</span>
           <select v-model="aiExtrasForm.jobEffort" :aria-label="tr('Effort for generation and review')"
                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
@@ -1308,7 +1310,11 @@ onMounted(async () => {
             <option value="low">{{ tr('low') }}</option><option value="medium">{{ tr('medium') }}</option><option value="high">{{ tr('high') }}</option>
           </select>
         </label>
-        <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 mb-2 max-w-md space-y-2 text-sm">
+          </div>
+          <div>
+            <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">{{ tr('Backup providers') }}</h3>
+            <div class="grid xl:grid-cols-2 gap-2 items-start">
+        <div v-for="(f, i) in aiExtrasForm.fallbacks" :key="f.id || 'new' + i" class="border border-slate-200 dark:border-slate-800 rounded-lg p-3 space-y-2 text-sm">
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-slate-500 dark:text-slate-400">{{ tr('Backup {n}', { n: i + 1 }) }}</span>
             <button @click="aiExtrasForm.fallbacks.splice(i, 1)" class="row-action-btn row-action-btn--danger ml-auto">{{ tr('Remove') }}</button>
@@ -1320,7 +1326,12 @@ onMounted(async () => {
           <input v-model="f.baseUrl" :placeholder="tr('Base URL (blank = same as the main provider)')" :aria-label="tr('Base URL (blank = same as the main provider)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
         </div>
+            </div>
+            <div class="mt-2">
         <button v-if="aiExtrasForm.fallbacks.length < 5" @click="addAiFallback" class="row-action-btn row-action-btn--accent">{{ tr('+ Add backup provider') }}</button>
+            </div>
+          </div>
+        </div>
         <p v-if="aiExtrasMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiExtrasMsg }}</p>
         <div>
           <button @click="saveAiExtras" :disabled="aiExtrasSaving"

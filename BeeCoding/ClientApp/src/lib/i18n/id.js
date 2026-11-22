@@ -1051,6 +1051,7 @@ export default {
   "low": "low",
   "medium": "medium",
   "high": "high",
+  "Backup providers": "Penyedia cadangan",
   "Backup {n}": "Cadangan {n}",
   "API key (saved: {p}) — blank keeps it": "Kunci API (tersimpan: {p}) — kosong berarti tetap",
   "API key (blank = same as the main provider)": "Kunci API (kosong = sama dengan penyedia utama)",
