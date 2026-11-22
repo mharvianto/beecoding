@@ -87,11 +87,22 @@ public class AuditFixTests
         var http = app.CreateClient();
         Assert.True((await http.GetAsync("/lti/jwks")).IsSuccessStatusCode);   // creates the key row
 
-        using var con = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={app.Db}");
-        con.Open();
-        using var cmd = con.CreateCommand();
-        cmd.CommandText = "SELECT PrivateKeyPem FROM LtiToolKeys";
-        var raw = (string)cmd.ExecuteScalar()!;
+        string Scalar(string table, string column)
+        {
+            if (TestApp.Pg is null)
+            {
+                using var con = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={app.Db}");
+                con.Open();
+                using var cmd = con.CreateCommand();
+                cmd.CommandText = $"SELECT {column} FROM {table} WHERE {column} IS NOT NULL";
+                return (string)cmd.ExecuteScalar()!;
+            }
+            using var pg = new Npgsql.NpgsqlConnection($"{TestApp.Pg};Database={app.Db}");
+            pg.Open();
+            using var pcmd = new Npgsql.NpgsqlCommand($"SELECT \"{column}\" FROM \"{table}\" WHERE \"{column}\" IS NOT NULL", pg);
+            return (string)pcmd.ExecuteScalar()!;
+        }
+        var raw = Scalar("LtiToolKeys", "PrivateKeyPem");
         Assert.StartsWith("enc1:", raw);
         Assert.DoesNotContain("PRIVATE KEY", raw);
 
@@ -105,7 +116,6 @@ public class AuditFixTests
             using var again = app.Services.CreateScope();
             Assert.Equal("JBSWY3DPEHPK3PXP", (await again.ServiceProvider.GetRequiredService<AppDbContext>().Users.FirstAsync(x => x.Id == u.Id)).TotpSecret);
         }
-        cmd.CommandText = "SELECT TotpSecret FROM Users WHERE TotpSecret IS NOT NULL";
-        Assert.StartsWith("enc1:", (string)cmd.ExecuteScalar()!);
+        Assert.StartsWith("enc1:", Scalar("Users", "TotpSecret"));
     }
 }

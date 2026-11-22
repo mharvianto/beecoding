@@ -294,4 +294,15 @@ public class HardeningTests
         Assert.Equal(64, row.Action.Length);
         Assert.Equal(4000, row.TargetLabel.Length);
     }
+
+    [Fact]
+    public async Task The_migrations_of_the_provider_in_use_match_the_model()
+    {
+        // A model change needs one migration per provider (scripts/ef-add.sh); forgetting one shows up here on that provider's run.
+        using var app = new TestApp();
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        Assert.False(db.Database.HasPendingModelChanges(), "the model has changes no migration of " + db.Database.ProviderName + " covers - run scripts/ef-add.sh");
+        Assert.Empty(await db.Database.GetPendingMigrationsAsync());
+    }
 }

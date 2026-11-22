@@ -88,7 +88,7 @@ builder.Services.AddDbContext<AppDbContext>(o =>
     // problems x groups) would otherwise be one cartesian-product join that grows multiplicatively.
     if (usePostgres)
         o.UseNpgsql(builder.Configuration.GetConnectionString("Default") ?? throw new InvalidOperationException("Database:Provider=postgres needs ConnectionStrings:Default"),
-            s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
+            s => { s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery); s.MigrationsAssembly("BeeCoding.Core.Postgres"); });   // its own migrations, see that project
     else
         o.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=beecoding.db",
             s => s.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery));
@@ -351,9 +351,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    // shortcut: the 139 migrations are SQLite-typed, so a Postgres database is only created from the model (new, empty database);
-    // later schema changes need Postgres migrations in their own assembly, before this runs against real data.
-    if (usePostgres) await db.Database.EnsureCreatedAsync(); else await db.Database.MigrateAsync();
+    // SQLite and PostgreSQL each have their own migrations (BeeCoding.Core / BeeCoding.Core.Postgres): a model change needs both (scripts/ef-add.sh).
+    await db.Database.MigrateAsync();
 
     // Encrypt secrets written before SecretBox existed: they read fine as plain text, but only a save re-encodes them.
     foreach (var id in await db.Database.SqlQueryRaw<int>("SELECT \"Id\" AS \"Value\" FROM \"Users\" WHERE \"TotpSecret\" IS NOT NULL AND \"TotpSecret\" NOT LIKE 'enc1:%'").ToListAsync())

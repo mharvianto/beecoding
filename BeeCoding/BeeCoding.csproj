@@ -40,6 +40,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BeeCoding.Core\BeeCoding.Core.csproj" />
+    <ProjectReference Include="..\BeeCoding.Core.Postgres\BeeCoding.Core.Postgres.csproj" />
   </ItemGroup>
 
   <ItemGroup>

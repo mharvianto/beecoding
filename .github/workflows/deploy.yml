@@ -24,6 +24,16 @@ jobs:
     # A manual run from another branch must not publish a release the server then deploys.
     if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
+    # A real PostgreSQL for the second test run below.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v5
 
@@ -40,6 +50,13 @@ jobs:
       # The server deploys whatever the newest release holds, within minutes and with its migrations: a red test must stop it here.
       - name: Test
         run: dotnet test BeeCoding.Tests -c Release
+
+      # The same suite on PostgreSQL (each test gets a database of its own and applies the Postgres migrations): keeps that provider
+      # working while production still runs SQLite, and fails when a model change got a migration for only one of the two.
+      - name: Test (PostgreSQL)
+        env:
+          BEECODING_TEST_PG: Host=localhost;Port=5432;Username=postgres
+        run: dotnet test BeeCoding.Tests -c Release --no-build
 
       - name: Publish (linux-arm64)
         env:
