@@ -248,6 +248,7 @@ if (redisConn is not null)
 // Ephemeral realtime stores + the AI-job registry (see DEPLOY.md §2.4)
 if (realtimeOpt.UseRedis)
 {
+    builder.Services.AddSingleton<ICounterStore, RedisCounterStore>();
     builder.Services.AddSingleton<IPresenceTracker, RedisPresenceTracker>();
     builder.Services.AddSingleton<IDraftStore, RedisDraftStore>();
     builder.Services.AddSingleton<ILectureStore, RedisLectureStore>();
@@ -255,6 +256,7 @@ if (realtimeOpt.UseRedis)
 }
 else
 {
+    builder.Services.AddSingleton<ICounterStore, InMemoryCounterStore>();
     builder.Services.AddSingleton<IPresenceTracker, InMemoryPresenceTracker>();
     builder.Services.AddSingleton<IDraftStore, InMemoryDraftStore>();
     builder.Services.AddSingleton<IAiJobStore, InMemoryAiJobStore>();
@@ -280,6 +282,7 @@ else
 }
 
 builder.Services.AddSingleton<StatementImageService>();
+builder.Services.AddSingleton<JobLock>();
 builder.Services.AddSingleton<RateLimiter>();
 builder.Services.AddSingleton<PlatformRuntimeConfig>();
 builder.Services.AddSingleton<SubmitCooldown>();
@@ -319,6 +322,7 @@ builder.Services.AddHostedService<AuditLogJanitor>();
 builder.Services.AddHostedService<AiReviewJanitor>();
 builder.Services.AddHostedService<BeeCoding.Services.Lti.LtiSyncRetryJanitor>();
 builder.Services.AddHostedService<BoardOnlyJanitor>();
+builder.Services.AddHostedService<RuntimeCacheRefresher>();
 builder.Services.AddHostedService<BeeCoding.Services.Similarity.EmbeddingBackfill>();
 
 builder.Services.AddScoped<VisibilityService>();
@@ -426,10 +430,6 @@ using (var scope = app.Services.CreateScope())
     }
     if (missing.Count > 0) await db.SaveChangesAsync();
 
-    // Warm the in-memory DB-admin cache (see AdminAccess) with anyone granted admin from
-    // the admin panel, so the "Admin" policy doesn't need a DB hit on every request.
-    var dbAdminEmails = await db.Users.Where(u => u.IsAdmin).Select(u => u.Email).ToListAsync();
-    scope.ServiceProvider.GetRequiredService<AdminAccess>().SetDbAdmins(dbAdminEmails);
 
     // Admin is decided by the email in the cookie, so a configured admin address with no account can be claimed by whoever registers it first.
     var adminAccess = scope.ServiceProvider.GetRequiredService<AdminAccess>();
@@ -447,44 +447,11 @@ using (var scope = app.Services.CreateScope())
         db.AiSettings.Add(aiSettings);
         await db.SaveChangesAsync();
     }
-    var aiOverrides = await db.AiUserSettings
-        .Select(x => new { x.UserId, x.DailyQuotaOverride, x.Banned }).ToListAsync();
-    var aiRuntime = scope.ServiceProvider.GetRequiredService<AiRuntimeSettings>();
-    aiRuntime.SetGlobal(aiSettings.Paused, aiSettings.PausedReason, aiSettings.DailyQuotaStudent, aiSettings.DailyQuotaTeacher);
-    aiRuntime.SetOverrides(aiOverrides.Select(x => (x.UserId, x.DailyQuotaOverride, x.Banned)));
-
-    // Same for each organization's own AI settings override (see Organization/OrgAdminController).
-    var orgAiSettings = await db.AiSettings.Where(x => x.OrganizationId != null)
-        .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.Paused, x.PausedReason, x.DailyQuotaStudent, x.DailyQuotaTeacher })
-        .ToListAsync();
-    aiRuntime.SetOrgs(orgAiSettings.Select(x => (x.OrganizationId, x.Paused, x.PausedReason, x.DailyQuotaStudent, x.DailyQuotaTeacher)));
-
-    // Same warm-up for which AI provider/credential to bill (see AiProviderRuntime) —
-    // appsettings.json's Ai:* stays the ultimate fallback when neither layer has a row.
-    var providerRuntime = scope.ServiceProvider.GetRequiredService<AiProviderRuntime>();
-    var platformProvider = await db.AiProviderConfigs.FirstOrDefaultAsync(x => x.OrganizationId == null);
-    if (platformProvider is not null)
-    {
-        providerRuntime.SetPlatform(platformProvider.ApiKey, platformProvider.BaseUrl, platformProvider.Model, platformProvider.GenerateModel);
-        providerRuntime.SetExtras(platformProvider.MaxTokens, platformProvider.ReasoningEffort, BeeCoding.Controllers.AdminAiController.ParseFallbacks(platformProvider.Fallbacks).Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList(), platformProvider.ReviewModel, platformProvider.JobEffort);
-    }
-    var orgProviders = await db.AiProviderConfigs.Where(x => x.OrganizationId != null)
-        .Select(x => new { OrganizationId = x.OrganizationId!.Value, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel, x.MaxTokens, x.ReasoningEffort, x.Fallbacks })
-        .ToListAsync();
-    providerRuntime.SetOrgs(orgProviders.Select(x => (x.OrganizationId, x.ApiKey, x.BaseUrl, x.Model, x.GenerateModel)));
-    providerRuntime.SetOrgsExtras(orgProviders.Select(x => (x.OrganizationId, x.MaxTokens, x.ReasoningEffort,
-        BeeCoding.Controllers.AdminAiController.ParseFallbacks(x.Fallbacks).Select(f => new AiFallback { ApiKey = f.ApiKey, BaseUrl = f.BaseUrl ?? "", Model = f.Model }).ToList())));
-
-    // Same warm-up for which origins the CSP should let frame this app (see
-    // LtiPlatformOriginsCache) — every enabled LTI platform's issuer.
-    var ltiOrigins = scope.ServiceProvider.GetRequiredService<LtiPlatformOriginsCache>();
-    ltiOrigins.Set(await db.LtiPlatforms.Where(p => p.Enabled).Select(p => p.Issuer).ToListAsync());
 
     // Same warm-up for the judge/LSP runtime overrides editable from /admin/reports (see
     // PlatformRuntimeConfig) — first run seeds the row from appsettings.json so shipping
     // this feature doesn't silently change existing behavior; every run after that, the DB
     // row (not appsettings.json) is the live source of truth for these two fields.
-    var runtimeConfig = scope.ServiceProvider.GetRequiredService<PlatformRuntimeConfig>();
     var platformRuntime = await db.PlatformRuntimeSettings.FindAsync(1);
     if (platformRuntime is null)
     {
@@ -497,16 +464,8 @@ using (var scope = app.Services.CreateScope())
         db.PlatformRuntimeSettings.Add(platformRuntime);
         await db.SaveChangesAsync();
     }
-    runtimeConfig.Set(platformRuntime.LspEnabled, platformRuntime.JudgeRateLimitMs);
-    runtimeConfig.SetLspShared(platformRuntime.LspShared);
-    runtimeConfig.SetStudentMaxProblems(platformRuntime.StudentMaxProblems);
-    runtimeConfig.SetImageLimits(platformRuntime.ImageMaxKb, platformRuntime.ImageMaxPerUser);
-    runtimeConfig.SetNotificationReadRetentionDays(platformRuntime.NotificationReadRetentionDays);
-    runtimeConfig.SetCodeRetention(platformRuntime.BoardCodeRetentionDays, platformRuntime.PracticeCodeRetentionDays);
-    runtimeConfig.SetDeletedUserRetention(platformRuntime.DeletedUserRetentionDays);
-    runtimeConfig.SetJourneyEnabled(platformRuntime.JourneyEnabled);
-    runtimeConfig.SetNotifyKinds(platformRuntime.NotifyOffKinds, platformRuntime.NotifyEmailKinds, platformRuntime.NotifyLockedKinds);
-    runtimeConfig.SetMfaPolicy(platformRuntime.MfaRequireAdmin, platformRuntime.MfaRequireOrgAdmin, platformRuntime.MfaRequireTeacher);
+    // Fill every in-memory copy of the admin-edited settings (admin emails, AI, LTI origins, runtime config) from the rows above.
+    await BeeCoding.Services.RuntimeCacheLoader.LoadAsync(scope.ServiceProvider);
 }
 
 // Build the sandbox runner + probe capabilities before serving traffic. With the Redis broker the compiling happens in

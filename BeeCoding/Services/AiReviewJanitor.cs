@@ -1,10 +1,11 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
 /// <summary>Daily: drops saved admin AI check/triage results (<c>AiReviewResult</c>) older than 180 days.</summary>
-public sealed class AiReviewJanitor(IServiceScopeFactory scopes, ILogger<AiReviewJanitor> log) : BackgroundService
+public sealed class AiReviewJanitor(IServiceScopeFactory scopes, ILogger<AiReviewJanitor> log, JobLock? locks = null) : BackgroundService
 {
     public const int RetentionDays = 180;
 
@@ -14,7 +15,7 @@ public sealed class AiReviewJanitor(IServiceScopeFactory scopes, ILogger<AiRevie
         catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await SweepAsync(stoppingToken); }
+            try { if (locks.ShouldRun("ai-review", TimeSpan.FromHours(24))) await SweepAsync(stoppingToken); }
             catch (Exception ex) when (ex is not OperationCanceledException) { log.LogWarning(ex, "AI review sweep failed"); }
             try { await Task.Delay(TimeSpan.FromHours(24), stoppingToken); }
             catch (OperationCanceledException) { break; }

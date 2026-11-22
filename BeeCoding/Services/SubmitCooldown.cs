@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -6,33 +6,16 @@ namespace BeeCoding.Services;
 /// Minimum spacing specifically between two SUBMIT actions (board or practice) by the same
 /// user — separate from RateLimiter's general run/submit spacing (1.5s, which stays snappy
 /// for iterating with Run). Submitting again right after a submit is worth slowing down
-/// harder, since each one queues a full compile + test run.
+/// harder, since each one queues a full compile + test run. Shared across instances with Redis.
 /// </summary>
-public class SubmitCooldown
+public class SubmitCooldown(ICounterStore? store = null)
 {
     private static readonly TimeSpan Window = TimeSpan.FromSeconds(5);
-    private readonly ConcurrentDictionary<int, DateTime> _last = new();
+    private readonly ICounterStore _store = store ?? new InMemoryCounterStore();
 
     /// <summary>Seconds still remaining before the next submit is allowed (0 if allowed now).</summary>
-    public double SecondsRemaining(int userId)
-    {
-        if (_last.TryGetValue(userId, out var last))
-        {
-            var elapsed = DateTime.UtcNow - last;
-            if (elapsed < Window) return (Window - elapsed).TotalSeconds;
-        }
-        return 0;
-    }
+    public double SecondsRemaining(int userId) => _store.Remaining("sc:" + userId)?.TotalSeconds ?? 0;
 
-    /// <summary>Returns true if allowed; records the timestamp when allowed.</summary>
-    public bool TryAcquire(int userId)
-    {
-        // Check and write as one step, or parallel submits all pass the check before any of them records itself.
-        lock (_last)
-        {
-            if (SecondsRemaining(userId) > 0) return false;
-            _last[userId] = DateTime.UtcNow;
-            return true;
-        }
-    }
+    /// <summary>Returns true if allowed; records the timestamp when allowed (one atomic step: parallel submits cannot all pass).</summary>
+    public bool TryAcquire(int userId) => _store.TryClaim("sc:" + userId, Window);
 }

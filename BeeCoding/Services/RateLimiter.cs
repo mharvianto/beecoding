@@ -1,25 +1,18 @@
-using System.Collections.Concurrent;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
 /// <summary>Minimum spacing between a user's run/submit requests — the window itself is
-/// live-tunable from /admin/reports (see PlatformRuntimeConfig), not fixed at startup.</summary>
-public class RateLimiter(PlatformRuntimeConfig cfg)
+/// live-tunable from /admin/reports (see PlatformRuntimeConfig), not fixed at startup.
+/// Kept in an <see cref="ICounterStore"/>, so with Redis the spacing holds across web instances.</summary>
+public class RateLimiter(PlatformRuntimeConfig cfg, ICounterStore? store = null)
 {
-    private readonly ConcurrentDictionary<int, long> _last = new();
-    private readonly PlatformRuntimeConfig _cfg = cfg;
+    private readonly ICounterStore _store = store ?? new InMemoryCounterStore();
 
-    /// <summary>Returns true if allowed; records the timestamp when allowed.</summary>
+    /// <summary>Returns true if allowed; records the timestamp when allowed. Check and write are one atomic step (SET NX).</summary>
     public bool TryAcquire(int userId)
     {
-        var minTicks = TimeSpan.FromMilliseconds(_cfg.JudgeRateLimitMs).Ticks;
-        var now = DateTime.UtcNow.Ticks;
-        // Check and write as one step: parallel requests must not all read "not seen yet" and all pass.
-        lock (_last)
-        {
-            if (_last.TryGetValue(userId, out var prev) && now - prev < minTicks) return false;
-            _last[userId] = now;
-            return true;
-        }
+        var ms = cfg.JudgeRateLimitMs;
+        return ms <= 0 || _store.TryClaim("rl:" + userId, TimeSpan.FromMilliseconds(ms));
     }
 }

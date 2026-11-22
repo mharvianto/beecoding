@@ -1,5 +1,6 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -7,7 +8,7 @@ namespace BeeCoding.Services;
 /// Deletes audit-log rows older than <c>Audit:RetentionDays</c> (default 365, 0 = keep forever). Without it the table
 /// grows for ever and the Audit tab's search scans all of it.
 /// </summary>
-public sealed class AuditLogJanitor(IServiceScopeFactory scopes, IConfiguration cfg, ILogger<AuditLogJanitor> log) : BackgroundService
+public sealed class AuditLogJanitor(IServiceScopeFactory scopes, IConfiguration cfg, ILogger<AuditLogJanitor> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(24);
@@ -22,7 +23,7 @@ public sealed class AuditLogJanitor(IServiceScopeFactory scopes, IConfiguration 
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await SweepAsync(stoppingToken); }
+            try { if (locks.ShouldRun("audit-log", Interval)) await SweepAsync(stoppingToken); }
             catch (Exception ex) when (ex is not OperationCanceledException) { log.LogWarning(ex, "audit log sweep failed"); }
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }

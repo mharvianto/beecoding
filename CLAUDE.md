@@ -204,6 +204,15 @@ stay even if the numbers later fall. Inputs are what the XP system already keeps
 `GET /api/me/badges/new` (earned since the last look, each returned once → `BadgeToast`, triggered in `App.vue` when XP changes). UI: Account → Badges (`BadgeGrid.vue`), only the owner sees them. Names/descriptions are English
 in the API and translated with `tr()` in the browser. Journey boss badges (`JourneyWorld.BadgeName`) are still only a label.
 
+### One instance or several (`Realtime:Backend`)
+
+One switch, `Realtime:Backend` = `memory` (default, ONE instance, no Redis) or `redis`, decides where the state that must be shared lives. Besides the presence/draft/lecture/AI-job stores it now covers:
+`ICounterStore` (`InMemoryCounterStore` / `RedisCounterStore`, `Services/Realtime/CounterStore.cs`): `LoginThrottle` (counters are `Increment`ed up front and the attempt is allowed only while every counter is within its cap, so a burst across instances cannot pass),
+`RateLimiter`, `SubmitCooldown` and the AI hint spacing / one-at-a-time flag (`TryClaim` = `SET NX PX`, which expires by itself). Redis down → the call falls back to this instance's memory, never fails closed.
+`JobLock` (`ShouldRun(name, interval)`): every periodic janitor/backfill claims its name for 0.9 × its interval before a sweep, so with several instances one runs it (a lone instance always passes; tests build janitors without a lock = always run).
+`RuntimeCacheLoader.LoadAsync` is the ONLY place that fills the in-memory copies of admin-edited settings (admin emails, AI settings/providers, LTI origins, `PlatformRuntimeConfig`); startup calls it, and `RuntimeCacheRefresher` calls it every `Realtime:ConfigRefreshSeconds`
+(default 15 with Redis, 0 without). A new admin-editable cache goes in the loader, not in `Program.cs`. Still per instance: `AiController._generating`, `PracticeController._aiCache`, the 10 s session recheck. Tests: `SharedStateTests` (memory always; Redis when `BEECODING_TEST_REDIS=host:port`, any Redis, e.g. `pip install redislite` brings a binary).
+
 ### Judge busy + LTI grade retry
 
 The in-process judge channel is bounded (`Judge:QueueCapacity`) and in Wait mode, so a full one would leave a submit hanging: `SubmissionsController.Submit` / `PracticeController.Submit` ask `JudgeQueueStats.IsFull` first and answer 503 "The judge is busy" before any row or cool-down slot is used (the Redis list is unbounded, never "full").

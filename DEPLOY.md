@@ -23,7 +23,7 @@ konsep sebelum ke Kubernetes). Isinya jawaban untuk tiga pertanyaan:
 | Live draft / lecture / presence | `DraftStore`, `LectureStore`, `PresenceTracker` — singleton memori | Murid di pod A & guru di pod B tidak saling lihat |
 | Job generate/regenerate soal AI | `IAiJobStore` — `InMemory` (default) atau `Redis` (ikut `Realtime:Backend`) | Dengan `memory`, polling `GET /api/ai/generate-problem/{id}` bisa kena pod yang tidak punya job itu |
 | Judge | `IJudgeQueue` — `inproc` (`Channel<JudgeJob>`) default, `redis` broker opsional; `JudgeWorker` `BackgroundService` | Dengan `inproc`, kode murid jalan di container web & tiap pod butuh toolchain; `redis` memungkinkan judge jadi Deployment terpisah |
-| Throttle / cache | `LoginThrottle`, `RateLimiter`, throttle AI, cache rekomendasi — memori | Limit jadi per-pod (lebih longgar); cache tidak dibagi |
+| Throttle / job berkala / cache pengaturan | `ICounterStore` (`memory` atau `redis`), `JobLock`, `RuntimeCacheRefresher` — ikut `Realtime:Backend` (§2.4) | Dengan `memory` dan > 1 pod: limit per-pod, janitor jalan di semua pod, pengaturan admin baru terlihat setelah restart |
 | Cookie auth | Data Protection keys **default** (folder efemeral per proses) | Restart pod / pod baru → semua logout; cookie pod A ditolak pod B |
 | clangd LSP | 1 proses clangd per koneksi `/lsp/cpp`, ~1–2 GB RAM | Stateful, rakus memori; perlu routing sticky |
 | Aset statis | Di-serve oleh app, sudah ber-hash + `Cache-Control: immutable` + brotli | Aman apa adanya (tiap pod serve bundle-nya sendiri) |
@@ -133,7 +133,22 @@ Kalau `Backend=redis`, `Program.cs` mendaftarkan `IConnectionMultiplexer` single
 `{prefix}aijob:user:{id}` untuk cek batas concurrency per user). Jadi polling
 `GET /api/ai/generate-problem/{id}` kena pod mana pun.
 
-**Belum diabstraksi (kalau butuh > 1 replika):**
+**Throttle, kunci job latar, dan cache pengaturan — ikut `Realtime:Backend` yang sama.**
+Satu saklar saja; dengan `memory` (default) semuanya tetap jalan tanpa Redis untuk 1 instance:
+
+| Apa | `memory` (1 instance) | `redis` (banyak instance) |
+|---|---|---|
+| `LoginThrottle`, `RateLimiter`, `SubmitCooldown`, jeda & "satu per waktu" hint AI | `InMemoryCounterStore` | `RedisCounterStore` (`INCR`+`PEXPIRE` satu langkah Lua, `SET NX PX`); batas berlaku **total**, bukan per instance |
+| Janitor/backfill berkala (`JobLock`) | selalu jalan | satu instance saja yang menyapu per interval (klaim `SET NX` selama 0,9 × interval) |
+| Cache pengaturan admin (admin DB, AI pause/kuota/provider, origin LTI, `PlatformRuntimeConfig`) | tidak perlu: tiap simpan memperbarui salinannya sendiri | `RuntimeCacheRefresher` memuat ulang dari DB tiap `Realtime:ConfigRefreshSeconds` (default 15 dengan Redis, 0 = mati tanpa Redis) — perubahan di instance A sampai ke B dalam ≤ 15 dtk |
+
+Redis mati? `RedisCounterStore` jatuh ke memori instance itu (pembatasan per instance tetap ada,
+tidak ada yang terkunci keluar), dan peringatan dicatat paling sering sekali per menit. Pakai
+`abortConnect=False` di connection string agar aplikasi tetap boot bila Redis belum siap.
+
+**Masih per-instance (longgar, bukan salah):** batas 2 generate soal AI bersamaan per user
+(`AiController._generating`), cache rekomendasi (`PracticeController._aiCache`), cache sesi 10 dtk
+(`Security:SessionRecheckSeconds`), cache TF-IDF 5 mnt.
 
 - `LoginThrottle`, `RateLimiter`, throttle AI (`AiController._last`), cache rekomendasi
   (`PracticeController._aiCache`) → Redis, atau terima jadi per-pod (limit lebih longgar).

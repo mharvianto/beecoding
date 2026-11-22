@@ -42,7 +42,7 @@ public record AiGenerateDto(string? Idea, string? Level, string? Language, int? 
 public class AiController(AppDbContext db, BoardService boards, AiTutorService ai,
     AiUsageService usage, AiHintProgressService prog, OrgResolver orgs, IJudgeQueue queue, IOptions<AiOptions> opt,
     IAiJobStore jobs, IServiceScopeFactory scopes, ILogger<AiController> log, PlatformRuntimeConfig runtimeConfig,
-    AdminAccess admin) : ApiControllerBase
+    AdminAccess admin, BeeCoding.Services.Realtime.ICounterStore counters) : ApiControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly BoardService _boards = boards;
@@ -58,9 +58,12 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     private readonly PlatformRuntimeConfig _runtimeConfig = runtimeConfig;
     private readonly AdminAccess _admin = admin;
 
-    private static readonly ConcurrentDictionary<int, long> _last = new();
+    private readonly BeeCoding.Services.Realtime.ICounterStore _counters = counters;
     // One hint at a time per user: the daily quota counts a call only when it ends, so overlapping calls would all pass the check.
-    private static readonly ConcurrentDictionary<int, byte> _busy = new();
+    // The flag expires by itself, so an instance that dies mid-hint cannot leave the user locked out.
+    private static readonly TimeSpan BusyTtl = TimeSpan.FromMinutes(3);
+    private bool TryBeginHint() => _counters.TryClaim("ai:busy:" + UserId, BusyTtl);
+    private void EndHint() => _counters.Remove("ai:busy:" + UserId);
 
     [HttpGet("enabled")]
     public IActionResult Enabled() =>
@@ -725,7 +728,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         _ai.UseOrganization(orgId);
         if (!_ai.Available) return NotFound();
         if (RateLimited()) return StatusCode(StatusCodes.Status429TooManyRequests, "Give the AI tutor a few seconds between questions.");
-        if (!_busy.TryAdd(UserId, 0)) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait for your previous question to finish.");
+        if (!TryBeginHint()) return StatusCode(StatusCodes.Status429TooManyRequests, "Wait for your previous question to finish.");
         try
         {
             var (allowed, reason) = await _usage.CheckGateAsync(UserId, CurrentRole, orgId);
@@ -746,7 +749,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 return StatusCode(StatusCodes.Status502BadGateway, ex.Message);
             }
         }
-        finally { _busy.TryRemove(UserId, out _); }
+        finally { EndHint(); }
     }
 
     [HttpPost("hint/stream")]
@@ -756,9 +759,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         var orgId = await _orgs.ForHintAsync(dto.ProblemId, dto.BoardSlug, UserId);
         _ai.UseOrganization(orgId);
         if (!_ai.Available) { Response.StatusCode = StatusCodes.Status404NotFound; return; }
-        if (RateLimited() || !_busy.TryAdd(UserId, 0)) { Response.StatusCode = StatusCodes.Status429TooManyRequests; return; }
+        if (RateLimited() || !TryBeginHint()) { Response.StatusCode = StatusCodes.Status429TooManyRequests; return; }
         try { await StreamCoreAsync(dto, orgId); }
-        finally { _busy.TryRemove(UserId, out _); }
+        finally { EndHint(); }
     }
 
     private async Task StreamCoreAsync(AiHintDto dto, int? orgId)
@@ -830,17 +833,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
 
     private static void EndGeneration(int userId) => _generating.AddOrUpdate(userId, 0, (_, n) => Math.Max(0, n - 1));
 
-    private bool RateLimited()
-    {
-        var now = DateTime.UtcNow.Ticks;
-        var min = TimeSpan.FromSeconds(Math.Max(1, _opt.RateLimitSeconds)).Ticks;
-        while (true)   // compare-and-swap: two simultaneous requests cannot both pass
-        {
-            if (!_last.TryGetValue(UserId, out var prev)) { if (_last.TryAdd(UserId, now)) return false; continue; }
-            if (now - prev < min) return true;
-            if (_last.TryUpdate(UserId, now, prev)) return false;
-        }
-    }
+    /// <summary>Minimum spacing between one user's hint requests; one atomic claim, so two simultaneous requests cannot both pass
+    /// (and the spacing holds across web instances with Redis).</summary>
+    private bool RateLimited() => !_counters.TryClaim("ai:rl:" + UserId, TimeSpan.FromSeconds(Math.Max(1, _opt.RateLimitSeconds)));
 
     private async Task<(AiHintContext? ctx, ObjectResult? err)> BuildContextAsync(AiHintDto dto)
     {

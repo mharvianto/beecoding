@@ -34,6 +34,13 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      # A real Redis for the shared-state tests (throttles, job claims) of the multi-instance setup.
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v5
 
@@ -49,6 +56,8 @@ jobs:
 
       # The server deploys whatever the newest release holds, within minutes and with its migrations: a red test must stop it here.
       - name: Test
+        env:
+          BEECODING_TEST_REDIS: localhost:6379
         run: dotnet test BeeCoding.Tests -c Release
 
       # The same suite on PostgreSQL (each test gets a database of its own and applies the Postgres migrations): keeps that provider

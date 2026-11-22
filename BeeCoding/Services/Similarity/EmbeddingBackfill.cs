@@ -1,6 +1,7 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services.Similarity;
 
@@ -9,7 +10,7 @@ namespace BeeCoding.Services.Similarity;
 /// awaiting review). Does nothing unless <c>Embeddings:ModelDir</c> is set. A pass works for at most <see cref="Budget"/>
 /// (about 15-50 ms per problem, so a few thousand fit) and saves as it goes; what is left waits for the next pass.
 /// </summary>
-public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingService embeddings, IOptions<EmbeddingOptions> opt, ILogger<EmbeddingBackfill> log) : BackgroundService
+public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingService embeddings, IOptions<EmbeddingOptions> opt, ILogger<EmbeddingBackfill> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan Budget = TimeSpan.FromSeconds(60);
     private const int SaveEvery = 50;
@@ -24,7 +25,7 @@ public sealed class EmbeddingBackfill(IServiceScopeFactory scopes, EmbeddingServ
         var every = TimeSpan.FromMinutes(Math.Max(1, opt.Value.BackfillMinutes));
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { var n = await SweepAsync(stoppingToken); if (n > 0) log.LogInformation("Embedded {Count} problems", n); }
+            try { if (locks.ShouldRun("embeddings", every)) { var n = await SweepAsync(stoppingToken); if (n > 0) log.LogInformation("Embedded {Count} problems", n); } }
             catch (Exception ex) when (ex is not OperationCanceledException) { log.LogWarning(ex, "embedding backfill failed"); }
             try { await Task.Delay(every, stoppingToken); } catch (OperationCanceledException) { break; }
         }

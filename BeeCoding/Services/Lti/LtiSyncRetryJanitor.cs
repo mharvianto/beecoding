@@ -1,12 +1,13 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services.Lti;
 
 /// <summary>Every 2 minutes: sends again the grades the LMS did not accept (<c>LtiSyncRetry</c>, set by
 /// <see cref="LtiGradeSyncService.TrackResultAsync"/>), at most 50 per pass. Waits grow 1, 5, 15, 60, 180, 720 minutes, then the
 /// row is dropped. Survives a restart, which a fire-and-forget send does not.</summary>
-public sealed class LtiSyncRetryJanitor(IServiceScopeFactory scopes, ILogger<LtiSyncRetryJanitor> log) : BackgroundService
+public sealed class LtiSyncRetryJanitor(IServiceScopeFactory scopes, ILogger<LtiSyncRetryJanitor> log, JobLock? locks = null) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -14,7 +15,7 @@ public sealed class LtiSyncRetryJanitor(IServiceScopeFactory scopes, ILogger<Lti
         catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await SweepAsync(stoppingToken); }
+            try { if (locks.ShouldRun("lti-retry", TimeSpan.FromMinutes(2))) await SweepAsync(stoppingToken); }
             catch (Exception ex) when (ex is not OperationCanceledException) { log.LogWarning(ex, "LTI retry sweep failed"); }
             try { await Task.Delay(TimeSpan.FromMinutes(2), stoppingToken); }
             catch (OperationCanceledException) { break; }

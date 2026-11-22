@@ -1,6 +1,7 @@
 using BeeCoding.Controllers;
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -11,7 +12,7 @@ namespace BeeCoding.Services;
 /// (default 3, 0 = never delete) after the sweep that first found it unused — not after the upload — so removing a picture
 /// from a statement, or uploading one for a problem not saved yet, always leaves time to change your mind.
 /// </summary>
-public sealed class StatementImageJanitor(IServiceScopeFactory scopes, IConfiguration cfg, ILogger<StatementImageJanitor> log) : BackgroundService
+public sealed class StatementImageJanitor(IServiceScopeFactory scopes, IConfiguration cfg, ILogger<StatementImageJanitor> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(6);
@@ -28,7 +29,7 @@ public sealed class StatementImageJanitor(IServiceScopeFactory scopes, IConfigur
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            try { await SweepAsync(stoppingToken); }
+            try { if (locks.ShouldRun("statement-images", Interval)) await SweepAsync(stoppingToken); }
             catch (Exception ex) when (ex is not OperationCanceledException) { log.LogWarning(ex, "statement image sweep failed"); }
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }

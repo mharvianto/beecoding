@@ -1,6 +1,7 @@
 using BeeCoding.Data;
 using BeeCoding.Models;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -10,7 +11,7 @@ namespace BeeCoding.Services;
 /// several instances never notify twice, and editing a date clears the marker so the new date notifies again. A group that opened
 /// more than a day ago is only marked (nothing is announced for something old, e.g. right after this was first deployed).
 /// </summary>
-public sealed class GroupScheduleNotifier(IServiceScopeFactory scopes, ILogger<GroupScheduleNotifier> log) : BackgroundService
+public sealed class GroupScheduleNotifier(IServiceScopeFactory scopes, ILogger<GroupScheduleNotifier> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan ClosingWindow = TimeSpan.FromHours(1);
@@ -22,7 +23,7 @@ public sealed class GroupScheduleNotifier(IServiceScopeFactory scopes, ILogger<G
         catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
         {
-            await SweepAsync(DateTime.UtcNow, stoppingToken);
+            if (locks.ShouldRun("group-schedule", Interval)) await SweepAsync(DateTime.UtcNow, stoppingToken);
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }
         }

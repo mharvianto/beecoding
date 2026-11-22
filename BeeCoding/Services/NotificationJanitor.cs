@@ -1,5 +1,6 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -9,7 +10,7 @@ namespace BeeCoding.Services;
 /// the table (and an unread badge nobody can clear) grow forever. Safe to run on every
 /// instance: the delete is idempotent.
 /// </summary>
-public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfiguration cfg, PlatformRuntimeConfig runtime, ILogger<NotificationJanitor> log) : BackgroundService
+public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfiguration cfg, PlatformRuntimeConfig runtime, ILogger<NotificationJanitor> log, JobLock? locks = null) : BackgroundService
 {
     /// <summary>Config <c>Notifications:RetentionDays</c> (default 30).</summary>
     private readonly TimeSpan _maxAge = TimeSpan.FromDays(Math.Max(0, cfg.GetValue("Notifications:RetentionDays", 30)));
@@ -29,7 +30,7 @@ public sealed class NotificationJanitor(IServiceScopeFactory scopes, IConfigurat
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await SweepAsync(stoppingToken);
+            if (locks.ShouldRun("notifications", Interval)) await SweepAsync(stoppingToken);
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }
         }

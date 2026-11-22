@@ -1,6 +1,7 @@
 using BeeCoding.Data;
 using BeeCoding.Models;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -10,7 +11,7 @@ namespace BeeCoding.Services;
 /// never depend on the code. Only finished submissions are touched, so a queued one that JudgeRecovery re-sends keeps its code.
 /// Idempotent and safe on every instance.
 /// </summary>
-public sealed class SubmissionCodeJanitor(IServiceScopeFactory scopes, PlatformRuntimeConfig runtime, ILogger<SubmissionCodeJanitor> log) : BackgroundService
+public sealed class SubmissionCodeJanitor(IServiceScopeFactory scopes, PlatformRuntimeConfig runtime, ILogger<SubmissionCodeJanitor> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(2);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
@@ -22,7 +23,7 @@ public sealed class SubmissionCodeJanitor(IServiceScopeFactory scopes, PlatformR
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            await SweepAsync(stoppingToken);
+            if (locks.ShouldRun("submission-code", Interval)) await SweepAsync(stoppingToken);
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }
         }

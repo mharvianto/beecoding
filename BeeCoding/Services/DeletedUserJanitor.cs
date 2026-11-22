@@ -1,5 +1,6 @@
 using BeeCoding.Data;
 using Microsoft.EntityFrameworkCore;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
@@ -8,7 +9,7 @@ namespace BeeCoding.Services;
 /// retention set in Admin → System it is purged for good, the same way as the Trash's Purge: public problems stay under "Deleted
 /// user", everything else of theirs goes. Accounts that still own boards, admin addresses and the placeholder account are skipped.
 /// </summary>
-public sealed class DeletedUserJanitor(IServiceScopeFactory scopes, PlatformRuntimeConfig runtime, ILogger<DeletedUserJanitor> log) : BackgroundService
+public sealed class DeletedUserJanitor(IServiceScopeFactory scopes, PlatformRuntimeConfig runtime, ILogger<DeletedUserJanitor> log, JobLock? locks = null) : BackgroundService
 {
     private static readonly TimeSpan FirstRunDelay = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan Interval = TimeSpan.FromHours(12);
@@ -19,7 +20,7 @@ public sealed class DeletedUserJanitor(IServiceScopeFactory scopes, PlatformRunt
         catch (OperationCanceledException) { return; }
         while (!stoppingToken.IsCancellationRequested)
         {
-            await SweepAsync(stoppingToken);
+            if (locks.ShouldRun("deleted-users", Interval)) await SweepAsync(stoppingToken);
             try { await Task.Delay(Interval, stoppingToken); }
             catch (OperationCanceledException) { break; }
         }

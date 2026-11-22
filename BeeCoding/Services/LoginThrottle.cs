@@ -1,21 +1,16 @@
-using System.Collections.Concurrent;
+using BeeCoding.Services.Realtime;
 
 namespace BeeCoding.Services;
 
 /// <summary>
 /// Fixed-window failed-login throttle, counted by client IP, by (account, IP) and by account overall.
 /// Once any counter passes its cap inside the window, further attempts are refused until
-/// the window rolls over. A successful login clears both counters.
+/// the window rolls over. A successful login clears the counters. The counters live in an <see cref="ICounterStore"/>: this
+/// instance's memory by default, Redis (shared by every web instance) with Realtime:Backend=redis.
 /// </summary>
-public sealed class LoginThrottle
+public sealed class LoginThrottle(ICounterStore? store = null)
 {
-    private sealed class Bucket
-    {
-        public int Fails;
-        public long WindowTicks;
-    }
-
-    private static readonly long Window = TimeSpan.FromMinutes(15).Ticks;
+    private static readonly TimeSpan Window = TimeSpan.FromMinutes(15);
     private const int IpCap = 5000;   // very generous: a whole classroom can share one NAT/wifi
     // A single account being wrong 1000 times in 15 minutes isn't a real cap — that's enough
     // attempts for a scripted brute force to get well into a small wordlist. One account is
@@ -26,90 +21,47 @@ public sealed class LoginThrottle
     // account) is caught by this much higher total instead.
     private const int AccountTotalCap = 100;
 
-    private readonly object _gate = new();   // the buckets are plain objects: counting must not interleave
-    private readonly ConcurrentDictionary<string, Bucket> _byIp = new();
-    private readonly ConcurrentDictionary<string, Bucket> _byAccount = new();
-    private readonly ConcurrentDictionary<string, Bucket> _byPair = new();
+    private readonly ICounterStore _store = store ?? new InMemoryCounterStore();
+
+    // A counter whose subject is empty (no account typed) is left out, as before.
+    private static IEnumerable<(string Key, int Cap)> Counters(string ip, string account, bool strict)
+    {
+        if (!string.IsNullOrEmpty(ip)) yield return ("lt:ip:" + ip, IpCap);
+        if (!string.IsNullOrEmpty(account)) yield return ("lt:pair:" + account + "|" + ip, AccountCap);
+        if (!string.IsNullOrEmpty(account)) yield return ("lt:acct:" + account, strict ? AccountCap : AccountTotalCap);
+    }
 
     /// <param name="strict">For guessing a short code (2-step): the account-wide cap stays at <see cref="AccountCap"/>
     /// whatever IPs the guesses come from, since 100 tries at a 6-digit code is too generous.</param>
-    public bool IsBlocked(string ip, string account, bool strict = false)
-    {
-        lock (_gate)
-            return Over(_byIp, ip, IpCap) || Over(_byPair, Pair(ip, account), AccountCap) || Over(_byAccount, account, strict ? AccountCap : AccountTotalCap);
-    }
+    public bool IsBlocked(string ip, string account, bool strict = false) =>
+        Counters(ip, account, strict).Any(c => _store.Get(c.Key) >= c.Cap);
 
-    /// <summary>Checks the caps and, in the same step, counts this attempt as a failure (a success later clears it with
-    /// <see cref="RecordSuccess"/>). Use it BEFORE checking the password or code: checking first and recording after lets a burst of
-    /// simultaneous guesses all pass the check, so the cap would not hold. False = refuse the attempt.</summary>
+    /// <summary>Counts this attempt as a failure (a success later clears it with <see cref="RecordSuccess"/>) and says whether it may go on.
+    /// Use it BEFORE checking the password or code: checking first and recording after lets a burst of simultaneous guesses all pass the
+    /// check, so the cap would not hold. Each counter is incremented atomically (also across instances with Redis), strictest first;
+    /// the first one over its cap refuses the attempt and takes back what this call added, so a refused attempt counts nowhere — a
+    /// flood at one account from one address cannot push that account's overall counter up and lock its owner out elsewhere.
+    /// False = refuse the attempt.</summary>
     public bool TryBegin(string ip, string account, bool strict = false)
     {
-        lock (_gate)
+        var added = new List<string>(3);
+        foreach (var (key, cap) in Counters(ip, account, strict).OrderBy(c => c.Cap))
         {
-            if (IsBlocked(ip, account, strict)) return false;
-            RecordFailure(ip, account);
-            return true;
+            added.Add(key);
+            if (_store.Increment(key, Window) <= cap) continue;
+            foreach (var k in added) _store.Decrement(k);
+            return false;
         }
+        return true;
     }
-
-    private static string Pair(string ip, string account) => string.IsNullOrEmpty(account) ? "" : account + "|" + ip;
 
     public void RecordFailure(string ip, string account)
     {
-        lock (_gate)
-        {
-            Bump(_byIp, ip);
-            Bump(_byAccount, account);
-            Bump(_byPair, Pair(ip, account));
-            Prune();
-        }
+        foreach (var (key, _) in Counters(ip, account, false)) _store.Increment(key, Window);
     }
 
     public void RecordSuccess(string ip, string account)
     {
-        lock (_gate)
-        {
-            _byIp.TryRemove(ip, out _);
-            _byAccount.TryRemove(account, out _);
-            _byPair.TryRemove(Pair(ip, account), out _);
-        }
-    }
-
-    private static bool Over(ConcurrentDictionary<string, Bucket> map, string key, int cap)
-    {
-        if (string.IsNullOrEmpty(key) || !map.TryGetValue(key, out var b)) return false;
-        if (DateTime.UtcNow.Ticks - b.WindowTicks > Window) return false;
-        return b.Fails >= cap;
-    }
-
-    private static void Bump(ConcurrentDictionary<string, Bucket> map, string key)
-    {
-        if (string.IsNullOrEmpty(key)) return;
-        var now = DateTime.UtcNow.Ticks;
-        map.AddOrUpdate(key,
-            _ => new Bucket { Fails = 1, WindowTicks = now },
-            (_, b) =>
-            {
-                if (now - b.WindowTicks > Window) { b.Fails = 0; b.WindowTicks = now; }
-                b.Fails++;
-                return b;
-            });
-    }
-
-    private int _pruneGuard;
-    private void Prune()
-    {
-        // opportunistic: at most one pruning pass at a time, and only occasionally.
-        if ((_byIp.Count + _byAccount.Count + _byPair.Count) < 5_000) return;
-        if (Interlocked.Exchange(ref _pruneGuard, 1) == 1) return;
-        try
-        {
-            var now = DateTime.UtcNow.Ticks;
-            foreach (var map in new[] { _byIp, _byAccount, _byPair })
-                foreach (var kv in map)
-                    if (now - kv.Value.WindowTicks > Window)
-                        map.TryRemove(kv.Key, out _);
-        }
-        finally { Interlocked.Exchange(ref _pruneGuard, 0); }
+        foreach (var (key, _) in Counters(ip, account, false)) _store.Remove(key);
     }
 }
