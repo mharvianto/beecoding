@@ -878,6 +878,19 @@ public class BankSubmission
     public DateTime? CodePurgedAt { get; set; }
 }
 
+/// <summary>A grade that could not be sent to the LMS (LTI), to be sent again by <c>LtiSyncRetryJanitor</c>. One row per
+/// (Kind "board"|"practice", TargetId = board / bank problem, user): the score is recomputed on every try, so repeats collapse.</summary>
+public class LtiSyncRetry
+{
+    public int Id { get; set; }
+    [System.ComponentModel.DataAnnotations.MaxLength(16)] public string Kind { get; set; } = "board";
+    public int TargetId { get; set; }
+    public int UserId { get; set; }
+    public int Attempts { get; set; }
+    public DateTime NextAttemptAt { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>The last admin "AI check" / "AI triage" result for one subject (Key = "check:bank:{id}" or "triage:{reportId}"), kept so
 /// it is not paid for twice. ContentHash is of what the AI was shown; a different hash now means the problem changed since. No FK:
 /// <c>AiReviewJanitor</c> drops rows after 180 days.</summary>

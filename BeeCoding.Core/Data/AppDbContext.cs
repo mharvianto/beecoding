@@ -36,6 +36,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<SolveRecord> SolveRecords => Set<SolveRecord>();
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
     public DbSet<AiReviewResult> AiReviewResults => Set<AiReviewResult>();
+    public DbSet<LtiSyncRetry> LtiSyncRetries => Set<LtiSyncRetry>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
     public DbSet<AiHintEvent> AiHintEvents => Set<AiHintEvent>();
     public DbSet<BankProblemShare> BankProblemShares => Set<BankProblemShare>();
@@ -232,6 +233,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         b.Entity<AiUsage>().HasIndex(x => new { x.UserId, x.Day }).IsUnique();
         b.Entity<AiReviewResult>().HasIndex(x => x.Key).IsUnique();
+        b.Entity<LtiSyncRetry>().HasIndex(x => new { x.Kind, x.TargetId, x.UserId }).IsUnique();
+        b.Entity<LtiSyncRetry>().HasIndex(x => x.NextAttemptAt);
         b.Entity<AiUsage>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

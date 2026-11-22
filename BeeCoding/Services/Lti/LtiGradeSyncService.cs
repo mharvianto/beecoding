@@ -21,17 +21,50 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
     private readonly IHttpClientFactory _http = httpFactory;
     private readonly ILogger<LtiGradeSyncService> _log = log;
 
-    public async Task SyncBoardAsync(int boardId, int userId, CancellationToken ct = default)
+    /// <summary>Waits before the n-th retry of a grade the LMS did not take; after the last one the row is dropped.</summary>
+    private static readonly int[] RetryMinutes = [1, 5, 15, 60, 180, 720];
+
+    /// <summary>Records the outcome of a send. A failure leaves (or extends) a retry row for <c>LtiSyncRetryJanitor</c>; a success
+    /// removes it. Returns true when this failure is the first one, so the teacher is told once, not on every retry.</summary>
+    public async Task<bool> TrackResultAsync(string kind, int targetId, int userId, bool ok)
     {
         try
         {
+            var row = await _db.LtiSyncRetries.FirstOrDefaultAsync(x => x.Kind == kind && x.TargetId == targetId && x.UserId == userId);
+            if (ok)
+            {
+                if (row is not null) { _db.LtiSyncRetries.Remove(row); await _db.SaveChangesAsync(); }
+                return false;
+            }
+            var first = row is null;
+            if (row is null) _db.LtiSyncRetries.Add(row = new LtiSyncRetry { Kind = kind, TargetId = targetId, UserId = userId });
+            else row.Attempts++;
+            if (row.Attempts >= RetryMinutes.Length) { _db.LtiSyncRetries.Remove(row); _log.LogWarning("LTI grade for {Kind} {Target} user {UserId} gave up after {N} tries", kind, targetId, userId, row.Attempts); }
+            else row.NextAttemptAt = DateTime.UtcNow.AddMinutes(RetryMinutes[row.Attempts]);
+            await _db.SaveChangesAsync();
+            return first;
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "could not record LTI retry"); return false; }
+    }
+
+    public async Task SyncBoardAsync(int boardId, int userId, CancellationToken ct = default)
+    {
+        bool ok;
+        try { ok = await TryBoardAsync(boardId, userId, ct); }
+        catch (Exception ex) { _log.LogWarning(ex, "LTI grade sync failed for board {BoardId} user {UserId}", boardId, userId); ok = false; }
+        if (await TrackResultAsync("board", boardId, userId, ok)) await notifications.LtiSyncFailedAsync(boardId);
+    }
+
+    private async Task<bool> TryBoardAsync(int boardId, int userId, CancellationToken ct)
+    {
+        {
             var link = await _db.LtiResourceLinks.Include(l => l.LtiPlatform)
                 .FirstOrDefaultAsync(l => l.BoardId == boardId && l.LineItemUrl != null, ct);
-            if (link?.LtiPlatform is null || link.LineItemUrl is null) return;
+            if (link?.LtiPlatform is null || link.LineItemUrl is null) return true;
 
             var userLink = await _db.LtiUserLinks
                 .FirstOrDefaultAsync(u => u.LtiPlatformId == link.LtiPlatformId && u.UserId == userId, ct);
-            if (userLink is null) return;   // this account didn't arrive via this platform
+            if (userLink is null) return true;   // this account didn't arrive via this platform
 
             // Only what a student can open counts: a hidden problem, or one in a hidden / not yet open group, would
             // otherwise keep the grade below 100% for good.
@@ -39,7 +72,7 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
             var visible = (await _db.Problems.Include(p => p.Group).Where(p => p.BoardId == boardId).ToListAsync(ct))
                 .Where(p => GroupAccess.StudentVisible(p, now)).Select(p => p.Id).ToList();
             var totalProblems = visible.Count;
-            if (totalProblems == 0) return;
+            if (totalProblems == 0) return true;
             var solved = await _db.Submissions
                 .Where(s => visible.Contains(s.ProblemId) && s.UserId == userId && s.Verdict == Verdict.Accepted && s.Score >= 1.0)
                 .Select(s => s.ProblemId).Distinct().CountAsync(ct);
@@ -65,13 +98,9 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
             if (!res.IsSuccessStatusCode)
             {
                 _log.LogWarning("LTI grade sync rejected for board {BoardId} user {UserId}: {Status}", boardId, userId, res.StatusCode);
-                await notifications.LtiSyncFailedAsync(boardId);
+                return false;
             }
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "LTI grade sync failed for board {BoardId} user {UserId}", boardId, userId);
-            await notifications.LtiSyncFailedAsync(boardId);
+            return true;
         }
     }
 
@@ -81,15 +110,22 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
     /// link here maps to exactly one problem.</summary>
     public async Task SyncPracticeAsync(int bankProblemId, int userId, CancellationToken ct = default)
     {
-        try
+        bool ok;
+        try { ok = await TryPracticeAsync(bankProblemId, userId, ct); }
+        catch (Exception ex) { _log.LogWarning(ex, "LTI grade sync failed for practice problem {ProblemId} user {UserId}", bankProblemId, userId); ok = false; }
+        await TrackResultAsync("practice", bankProblemId, userId, ok);
+    }
+
+    private async Task<bool> TryPracticeAsync(int bankProblemId, int userId, CancellationToken ct)
+    {
         {
             var link = await _db.LtiResourceLinks.Include(l => l.LtiPlatform)
                 .FirstOrDefaultAsync(l => l.BankProblemId == bankProblemId && l.LineItemUrl != null, ct);
-            if (link?.LtiPlatform is null || link.LineItemUrl is null) return;
+            if (link?.LtiPlatform is null || link.LineItemUrl is null) return true;
 
             var userLink = await _db.LtiUserLinks
                 .FirstOrDefaultAsync(u => u.LtiPlatformId == link.LtiPlatformId && u.UserId == userId, ct);
-            if (userLink is null) return;   // this account didn't arrive via this platform
+            if (userLink is null) return true;   // this account didn't arrive via this platform
 
             var best = await _db.BankSubmissions
                 .Where(s => s.BankProblemId == bankProblemId && s.UserId == userId && s.Status == SubmissionStatus.Done)
@@ -114,11 +150,11 @@ public class LtiGradeSyncService(AppDbContext db, LtiTokenService tokens, IHttpC
 
             var res = await client.SendAsync(req, ct);
             if (!res.IsSuccessStatusCode)
+            {
                 _log.LogWarning("LTI grade sync rejected for practice problem {ProblemId} user {UserId}: {Status}", bankProblemId, userId, res.StatusCode);
-        }
-        catch (Exception ex)
-        {
-            _log.LogWarning(ex, "LTI grade sync failed for practice problem {ProblemId} user {UserId}", bankProblemId, userId);
+                return false;
+            }
+            return true;
         }
     }
 }

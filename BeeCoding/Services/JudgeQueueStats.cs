@@ -19,4 +19,7 @@ public static class JudgeQueueStats
         }
         catch { return null; }   // a hiccup reading the count must never fail a submit
     }
+
+    /// <summary>The in-process queue is bounded and a full one makes a submit wait for room; the Redis list is not bounded.</summary>
+    public static bool IsFull(IJudgeQueue queue) => queue is InProcessJudgeQueue { IsFull: true };
 }

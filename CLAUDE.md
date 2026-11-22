@@ -198,6 +198,11 @@ stay even if the numbers later fall. Inputs are what the XP system already keeps
 `GET /api/me/badges/new` (earned since the last look, each returned once → `BadgeToast`, triggered in `App.vue` when XP changes). UI: Account → Badges (`BadgeGrid.vue`), only the owner sees them. Names/descriptions are English
 in the API and translated with `tr()` in the browser. Journey boss badges (`JourneyWorld.BadgeName`) are still only a label.
 
+### Judge busy + LTI grade retry
+
+The in-process judge channel is bounded (`Judge:QueueCapacity`) and in Wait mode, so a full one would leave a submit hanging: `SubmissionsController.Submit` / `PracticeController.Submit` ask `JudgeQueueStats.IsFull` first and answer 503 "The judge is busy" before any row or cool-down slot is used (the Redis list is unbounded, never "full").
+A grade the LMS did not take (LTI score post, board or practice) is kept as an `LtiSyncRetry` row (`LtiGradeSyncService.TrackResultAsync`; one per kind + target + user, the score is recomputed each time) and sent again by `LtiSyncRetryJanitor` (every 2 min, waits 1/5/15/60/180/720 min, then dropped). The teacher is notified on the first failure only.
+
 ### Audit log lifetime
 
 `AuditLogJanitor` (daily) deletes audit-log rows older than `Audit:RetentionDays` (365; 0 = keep forever).

@@ -84,6 +84,7 @@ public interface IGradeResultStream
 public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeResultStream
 {
     private readonly Channel<JudgeJob> _jobs;
+    private readonly int _capacity;
     private readonly Channel<GradeResult> _grades =
         Channel.CreateUnbounded<GradeResult>(new UnboundedChannelOptions { SingleReader = true });
     private readonly Channel<GradeProgress> _progress =
@@ -92,6 +93,7 @@ public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeRe
 
     public InProcessJudgeQueue(IOptions<JudgeOptions> options)
     {
+        _capacity = options.Value.QueueCapacity;
         _jobs = Channel.CreateBounded<JudgeJob>(new BoundedChannelOptions(options.Value.QueueCapacity)
         {
             FullMode = BoundedChannelFullMode.Wait,
@@ -101,6 +103,10 @@ public sealed class InProcessJudgeQueue : IJudgeQueue, IJudgeJobSource, IGradeRe
 
     /// <summary>Jobs waiting to be picked up by the (single, in-process) judge worker — for
     /// the admin system-status panel. -1 if the runtime can't report a count.</summary>
+    /// <summary>True when every slot is taken: a further grade job would WAIT for room (the channel is in Wait mode), so callers
+    /// check this first and answer "busy" instead of leaving the student on a spinner.</summary>
+    public bool IsFull => _jobs.Reader.CanCount && _jobs.Reader.Count >= _capacity;
+
     public int PendingJobCount => _jobs.Reader.CanCount ? _jobs.Reader.Count : -1;
 
     public ValueTask EnqueueGradeAsync(GradeJob job, CancellationToken ct = default) =>

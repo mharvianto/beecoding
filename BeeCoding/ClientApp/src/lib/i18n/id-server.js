@@ -198,4 +198,5 @@ export default {
   "A world has at most {p0} problems.": "Satu dunia paling banyak {p0} soal.",
   "Not a public problem: {p0}": "Bukan soal publik: {p0}",
   "The Journey feature is switched off.": "Fitur Journey sedang dimatikan.",
+  "The judge is busy right now — try again in a moment.": "Judge sedang sibuk — coba lagi sebentar lagi.",
 };

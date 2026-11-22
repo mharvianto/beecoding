@@ -314,6 +314,7 @@ builder.Services.AddHostedService<GroupScheduleNotifier>();
 builder.Services.AddHostedService<StatementImageJanitor>();
 builder.Services.AddHostedService<AuditLogJanitor>();
 builder.Services.AddHostedService<AiReviewJanitor>();
+builder.Services.AddHostedService<BeeCoding.Services.Lti.LtiSyncRetryJanitor>();
 builder.Services.AddHostedService<BoardOnlyJanitor>();
 builder.Services.AddHostedService<BeeCoding.Services.Similarity.EmbeddingBackfill>();
 

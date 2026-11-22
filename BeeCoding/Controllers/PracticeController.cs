@@ -464,6 +464,8 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         var lang = dto.Language is "c" or "cpp" ? dto.Language : Languages.Default(problem.AllowedLanguages);
         if (!Languages.Allows(problem.AllowedLanguages, lang))
             return BadRequest($"This problem only accepts {Languages.Label(problem.AllowedLanguages)}.");
+        // Checked before the rate / cool-down slots are used, and before a row is written: a refused submit costs the student nothing.
+        if (JudgeQueueStats.IsFull(_queue)) return StatusCode(503, "The judge is busy right now — try again in a moment.");
         if (!_rate.TryAcquire(UserId)) return StatusCode(429, "Slow down a moment and try again.");
         if (!_submitCooldown.TryAcquire(UserId))
             return StatusCode(429, $"Please wait {Math.Ceiling(_submitCooldown.SecondsRemaining(UserId))}s before submitting again.");

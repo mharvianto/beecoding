@@ -941,6 +941,42 @@ namespace BeeCoding.Migrations
                     b.ToTable("LtiResourceLinks");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.LtiSyncRetry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("NextAttemptAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("TargetId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("NextAttemptAt");
+
+                    b.HasIndex("Kind", "TargetId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("LtiSyncRetries");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.LtiToolKey", b =>
                 {
                     b.Property<int>("Id")
