@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { api } from '../lib/api';
 import { getPasskey } from '../lib/webauthn';
 import { detachPush } from '../lib/browserNotify';
+import { clearAllDrafts } from '../lib/draft';
 
 export const useAuth = defineStore('auth', {
   state: () => ({
@@ -71,6 +72,7 @@ export const useAuth = defineStore('auth', {
     async logout() {
       await detachPush(api);   // the push endpoint belongs to this account: don't leave it behind on a shared browser
       await api.post('/api/auth/logout');
+      clearAllDrafts();
       this.user = null;
     },
     async changePassword(currentPassword, newPassword) {
@@ -81,6 +83,7 @@ export const useAuth = defineStore('auth', {
     },
     async deleteAccount(password, deleteOwnedBoards = false, keepPublicProblems = true) {
       await api.del('/api/auth/account', { password, deleteOwnedBoards, keepPublicProblems });
+      clearAllDrafts();
       this.user = null;
     },
   },

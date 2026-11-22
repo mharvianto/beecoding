@@ -6,6 +6,7 @@ const INDEX = 'beecoding.draft.index';
 const MAX_DRAFTS = 50;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7 * DAY_MS;
+const SOLVED_MS = 60 * 60 * 1000;   // a solved problem's code is on the server already
 
 export function loadDraft(uid, scope) {
   try {
@@ -43,7 +44,7 @@ export function markDraftAccepted(uid, scope) {
   }
 }
 
-// Retention pass: drop drafts for already-solved problems after 1 day, unsolved after 1
+// Retention pass: drop drafts for already-solved problems after 1 hour, unsolved after 1
 // week. Meant to run once per app load, not on every save.
 export function pruneDrafts() {
   try {
@@ -55,11 +56,26 @@ export function pruneDrafts() {
       if (!raw) continue;
       let d;
       try { d = JSON.parse(raw); } catch { localStorage.removeItem(k); continue; }
-      const expired = d?.acAt ? now - d.acAt > DAY_MS : now - (d?.ts || 0) > WEEK_MS;
+      const expired = d?.acAt ? now - d.acAt > SOLVED_MS : now - (d?.ts || 0) > WEEK_MS;
       if (expired) localStorage.removeItem(k);
       else kept.push(k);
     }
     localStorage.setItem(INDEX, JSON.stringify(kept));
+  } catch {
+    /* ignore */
+  }
+}
+
+// Sign-out / account deletion: the computer may be shared, so nothing of the person's code stays behind.
+export function clearAllDrafts() {
+  try {
+    for (const k of JSON.parse(localStorage.getItem(INDEX) || '[]')) localStorage.removeItem(k);
+    localStorage.removeItem(INDEX);
+    // drafts whose index entry was lost (the index is capped) are found by prefix
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k?.startsWith('beecoding.draft.')) localStorage.removeItem(k);
+    }
   } catch {
     /* ignore */
   }
