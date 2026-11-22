@@ -65,19 +65,11 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         // AI usage isn't tracked per-org directly (AiUsage is per-user) — sum it across this
         // org's members as the closest proxy. A user in several orgs shows up under each.
         var memberIds = members.Select(m => m.UserId).ToList();
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var monthStart = new DateOnly(today.Year, today.Month, 1);
-        var usage = await _db.AiUsages.Where(x => memberIds.Contains(x.UserId) && x.Day >= monthStart).ToListAsync();
-        static AdminAiUsageBucket Sum(IEnumerable<AiUsage> xs)
-        {
-            int c = 0; long p = 0, k = 0;
-            foreach (var x in xs) { c += x.Calls; p += x.PromptTokens; k += x.CompletionTokens; }
-            return new AdminAiUsageBucket(c, p, k, p + k);
-        }
+        var (aiToday, aiMonth) = await UserClock.AiTodayAndMonthAsync(_db, _db.AiUsages.Where(x => memberIds.Contains(x.UserId)));
 
         return new OrgDashboardDto(totalMembers, teacherCount, studentCount, adminCount,
             totalBoards, totalProblems, totalSubmissions, acceptedSubmissions,
-            Sum(usage.Where(x => x.Day == today)), Sum(usage));
+            aiToday, aiMonth);
     }
 
     /// <summary>Active-users + submissions over time, scoped to this org's boards only
@@ -122,7 +114,7 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
         DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
 
         var byBucket = rows.ToLookup(x => BucketDay(x.Day));
-        return TimeBucketing.DayWindow(g, periods).Select(d => new AdminAiEngagementPointDto(
+        return TimeBucketing.DayWindow(g, periods, await UserClock.LocalNowAsync(_db, UserId)).Select(d => new AdminAiEngagementPointDto(
             d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 

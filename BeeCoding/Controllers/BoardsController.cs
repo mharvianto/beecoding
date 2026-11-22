@@ -260,7 +260,7 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
 
         var byBucket = rows.ToLookup(x => BucketDay(x.Day));
-        return TimeBucketing.DayWindow(g, periods).Select(d => new AdminAiEngagementPointDto(
+        return TimeBucketing.DayWindow(g, periods, await UserClock.LocalNowAsync(_db, UserId)).Select(d => new AdminAiEngagementPointDto(
             d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 

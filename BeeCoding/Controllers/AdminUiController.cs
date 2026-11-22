@@ -85,17 +85,7 @@ public class AdminUiController(
             + await _db.Problems.IgnoreQueryFilters().CountAsync(p => p.DeletedAt != null)
             + await _db.BankProblems.IgnoreQueryFilters().CountAsync(b => b.DeletedAt != null);
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var monthStart = new DateOnly(today.Year, today.Month, 1);
-        var usage = await _db.AiUsages.Where(x => x.Day >= monthStart).ToListAsync();
-        static AdminAiUsageBucket Sum(IEnumerable<AiUsage> xs)
-        {
-            int c = 0; long p = 0, k = 0;
-            foreach (var x in xs) { c += x.Calls; p += x.PromptTokens; k += x.CompletionTokens; }
-            return new AdminAiUsageBucket(c, p, k, p + k);
-        }
-        var aiToday = Sum(usage.Where(x => x.Day == today));
-        var aiMonth = Sum(usage);
+        var (aiToday, aiMonth) = await UserClock.AiTodayAndMonthAsync(_db, _db.AiUsages);
 
         var recentActivity = await _db.AuditLogEntries.OrderByDescending(x => x.CreatedAt).Take(8)
             .Select(x => new AdminAuditLogRow(x.Id, x.CreatedAt, x.ActorEmail, x.Action, x.TargetType, x.TargetId, x.TargetLabel))
@@ -147,7 +137,7 @@ public class AdminUiController(
         DateOnly BucketDay(DateOnly d) => g == "week" ? d.AddDays(-(((int)d.DayOfWeek + 6) % 7)) : d;
 
         var byBucket = rows.ToLookup(x => BucketDay(x.Day));
-        return TimeBucketing.DayWindow(g, periods).Select(d => new AdminAiEngagementPointDto(
+        return TimeBucketing.DayWindow(g, periods, await UserClock.LocalNowAsync(_db, UserId)).Select(d => new AdminAiEngagementPointDto(
             d.ToString("yyyy-MM-dd"), byBucket[d].Sum(y => y.Calls), byBucket[d].Sum(y => y.PromptTokens + y.CompletionTokens))).ToList();
     }
 
