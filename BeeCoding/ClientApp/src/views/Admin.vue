@@ -1221,26 +1221,32 @@ onMounted(async () => {
           {{ tr('Overrides appsettings.json\'s') }} <code>Ai:*</code> {{ tr('at runtime. An organization can set its own key/model in') }} <RouterLink to="/org-admin" class="underline">{{ tr('Organization') }}</RouterLink>
           {{ tr('→ AI settings, which takes priority over this for that organization only.') }}
         </p>
-        <div class="space-y-2 text-sm max-w-md">
+        <div class="grid md:grid-cols-2 gap-x-4 gap-y-3 text-sm">
           <label class="flex flex-col gap-1">
             <span class="text-xs text-slate-500 dark:text-slate-400">
               {{ tr('API key') }} {{ aiProvider.hasApiKey ? tr('(saved: {p})', { p: aiProvider.apiKeyPreview }) : tr('(none saved — using appsettings.json, if any)') }}
             </span>
             <div class="flex gap-2">
               <input v-model="aiProviderForm.apiKey" type="password" :placeholder="tr('Leave blank to keep the saved key')" :aria-label="tr('Leave blank to keep the saved key')"
-                     class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+                     class="flex-1 min-w-0 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
               <button v-if="aiProvider.hasApiKey" @click="clearAiProviderKey" class="row-action-btn row-action-btn--danger shrink-0">{{ tr('Clear') }}</button>
             </div>
           </label>
-          <label for="ai-base-url" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Base URL') }}</label>
-          <input id="ai-base-url" v-model="aiProviderForm.baseUrl" :placeholder="tr('Base URL (blank = appsettings.json default)')" :aria-label="tr('Base URL (blank = appsettings.json default)')"
-                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <label for="ai-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model') }}</label>
-          <input id="ai-model" v-model="aiProviderForm.model" :placeholder="tr('Model (blank = appsettings.json default)')" :aria-label="tr('Model (blank = appsettings.json default)')"
-                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <label for="ai-generate-model" class="block text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Model for generating problems') }}</label>
-          <input id="ai-generate-model" v-model="aiProviderForm.generateModel" :placeholder="tr('Generate-problem model (blank = same as above)')" :aria-label="tr('Generate-problem model (blank = same as above)')"
-                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          <label for="ai-base-url" class="flex flex-col gap-1">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Base URL') }}</span>
+            <input id="ai-base-url" v-model="aiProviderForm.baseUrl" :placeholder="tr('Base URL (blank = appsettings.json default)')" :aria-label="tr('Base URL (blank = appsettings.json default)')"
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          </label>
+          <label for="ai-model" class="flex flex-col gap-1">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Model') }}</span>
+            <input id="ai-model" v-model="aiProviderForm.model" :placeholder="tr('Model (blank = appsettings.json default)')" :aria-label="tr('Model (blank = appsettings.json default)')"
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          </label>
+          <label for="ai-generate-model" class="flex flex-col gap-1">
+            <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Model for generating problems') }}</span>
+            <input id="ai-generate-model" v-model="aiProviderForm.generateModel" :placeholder="tr('Generate-problem model (blank = same as above)')" :aria-label="tr('Generate-problem model (blank = same as above)')"
+                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
+          </label>
         </div>
         <p v-if="aiProviderMsg" class="text-xs text-emerald-600 dark:text-emerald-400 mt-2">{{ aiProviderMsg }}</p>
         <button @click="saveAiProvider" :disabled="aiProviderSaving"
