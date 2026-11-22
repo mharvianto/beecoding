@@ -131,6 +131,37 @@ namespace BeeCoding.Migrations
                     b.ToTable("AiProviderConfigs");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.AiReviewResult", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Json")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("AiReviewResults");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.AiSettings", b =>
                 {
                     b.Property<int>("Id")

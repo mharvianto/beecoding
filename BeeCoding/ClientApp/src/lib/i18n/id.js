@@ -1497,4 +1497,7 @@ export default {
   "Features": "Fitur",
   "Off hides Journey for everyone: no menu, no map, no boss bonus. Journeys and progress are kept, and the editor at /journey/edit still works.": "Mati menyembunyikan Journey untuk semua orang: tanpa menu, peta, dan bonus bos. Journey dan progres tetap tersimpan, dan editor di /journey/edit tetap bisa dipakai.",
   "The Journey feature is switched off.": "Fitur Journey sedang dimatikan.",
+  "Check again": "Periksa ulang",
+  "Saved result from {when}.": "Hasil tersimpan dari {when}.",
+  "The problem has changed since — check again.": "Soal berubah sejak itu — periksa ulang.",
 };

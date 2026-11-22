@@ -251,7 +251,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     public async Task<IActionResult> CheckBankProblem(int bankProblemId)
     {
         if (!IsAdminUser(_admin)) return Forbid();
-        return await StartCheckAsync(await LoadBankCheckInputAsync(bankProblemId));
+        return await StartCheckAsync(await LoadBankCheckInputAsync(bankProblemId), $"check:bank:{bankProblemId}");
     }
 
     /// <summary>
@@ -266,15 +266,55 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             .Select(x => new { x.BankProblemId, x.ProblemId, x.Category, x.Message }).FirstOrDefaultAsync();
         if (r is null) return NotFound();
 
+        var input = await LoadReportCheckInputAsync(r.BankProblemId, r.ProblemId);
+        return await StartCheckAsync(input, $"triage:{reportId}", triage: new TriageInput(r.Category.ToString(), r.Message));
+    }
+
+    private async Task<CheckInput?> LoadReportCheckInputAsync(int? bankProblemId, int? problemId)
+    {
+        if (bankProblemId is int bid) return await LoadBankCheckInputAsync(bid);
+        var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == problemId);
+        return p is null ? null : new CheckInput(p.Title, p.StatementMarkdown, p.AllowedLanguages, p.TimeLimitMs, p.MemoryLimitKb,
+            p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList());
+    }
+
+    /// <summary>What the AI was shown, fingerprinted: a saved result is "out of date" once this differs.</summary>
+    private static string HashOf(CheckInput i) => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(
+        string.Join("\u001f", new[] { i.Statement, i.AllowedLanguages, i.TimeLimitMs.ToString(), i.MemoryLimitKb.ToString() }
+            .Concat(i.Tests.Select(t => $"{t.Stdin}\u001e{t.Expected}\u001e{t.IsSample}"))))));
+
+    /// <summary>The last saved check (<c>subject</c> = "bank", id = bank problem) or triage (<c>subject</c> = "report", id = report), if any.</summary>
+    [HttpGet("last-review/{subject}/{id:int}")]
+    public async Task<IActionResult> LastReview(string subject, int id)
+    {
+        if (!IsAdminUser(_admin)) return Forbid();
         CheckInput? input;
-        if (r.BankProblemId is int bid) input = await LoadBankCheckInputAsync(bid);
-        else
+        string key;
+        if (subject == "bank") { key = $"check:bank:{id}"; input = await LoadBankCheckInputAsync(id); }
+        else if (subject == "report")
         {
-            var p = await _db.Problems.Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == r.ProblemId);
-            input = p is null ? null : new CheckInput(p.Title, p.StatementMarkdown, p.AllowedLanguages, p.TimeLimitMs, p.MemoryLimitKb,
-                p.TestCases.OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => (t.Stdin, t.ExpectedStdout, t.IsSample)).ToList());
+            key = $"triage:{id}";
+            var r = await _db.ProblemReports.Where(x => x.Id == id).Select(x => new { x.BankProblemId, x.ProblemId }).FirstOrDefaultAsync();
+            input = r is null ? null : await LoadReportCheckInputAsync(r.BankProblemId, r.ProblemId);
         }
-        return await StartCheckAsync(input, triage: new TriageInput(r.Category.ToString(), r.Message));
+        else return NotFound();
+        var row = await _db.AiReviewResults.AsNoTracking().FirstOrDefaultAsync(x => x.Key == key);
+        if (row is null) return NoContent();
+        return Ok(new
+        {
+            result = JsonSerializer.Deserialize<JsonElement>(row.Json),
+            createdAt = DateTime.SpecifyKind(row.CreatedAt, DateTimeKind.Utc),
+            outOfDate = input is null || HashOf(input) != row.ContentHash,
+        });
+    }
+
+    private async Task SaveReviewAsync(AppDbContext db, string key, string hash, object result)
+    {
+        var json = JsonSerializer.Serialize(result, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var row = await db.AiReviewResults.FirstOrDefaultAsync(x => x.Key == key);
+        if (row is null) db.AiReviewResults.Add(row = new AiReviewResult { Key = key });
+        row.ContentHash = hash; row.Json = json; row.CreatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
     }
 
     private async Task<CheckInput?> LoadBankCheckInputAsync(int id)
@@ -286,7 +326,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
 
     private sealed record TriageInput(string Category, string Message);
 
-    private async Task<IActionResult> StartCheckAsync(CheckInput? input, TriageInput? triage = null)
+    private async Task<IActionResult> StartCheckAsync(CheckInput? input, string key, TriageInput? triage = null)
     {
         if (input is null) return NotFound();
         if (input.Tests.Count == 0) return BadRequest("This problem has no tests to check.");
@@ -300,7 +340,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             return StatusCode(StatusCodes.Status429TooManyRequests, "You already have AI jobs running — wait for those to finish.");
 
         var job = await _jobs.CreateAsync(UserId);
-        _ = Task.Run(() => RunCheckAsync(job.Id, UserId, input, orgId, triage));
+        _ = Task.Run(() => RunCheckAsync(job.Id, UserId, input, orgId, triage, key));
         return Accepted(new { jobId = job.Id });
     }
 
@@ -364,7 +404,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         return sb.ToString();
     }
 
-    private async Task RunCheckAsync(string jobId, int userId, CheckInput input, int? organizationId, TriageInput? triage)
+    private async Task RunCheckAsync(string jobId, int userId, CheckInput input, int? organizationId, TriageInput? triage, string key)
     {
         Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
             _jobs.FailAsync(jobId, msg, compilerOutput, stderr);
@@ -381,7 +421,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             if (triage is null)
             {
                 if (outcome.Result is null) await Fail(outcome.Error!, compilerOutput: outcome.CompilerOutput);
-                else await _jobs.CompleteAsync(jobId, outcome.Result);
+                else { await SaveReviewAsync(sp.GetRequiredService<AppDbContext>(), key, HashOf(input), outcome.Result); await _jobs.CompleteAsync(jobId, outcome.Result); }
                 return;
             }
 
@@ -395,8 +435,10 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
             await usage.RecordAsync(userId, t.PromptTokens, t.CompletionTokens, CancellationToken.None);
 
-            await _jobs.CompleteAsync(jobId, new AiTriageDto(t.Verdict, t.SuggestedAction, t.Reasoning, outcome.Result,
-                outcome.Result is null ? "The objective check could not run: " + outcome.Error : null));
+            var triaged = new AiTriageDto(t.Verdict, t.SuggestedAction, t.Reasoning, outcome.Result,
+                outcome.Result is null ? "The objective check could not run: " + outcome.Error : null);
+            await SaveReviewAsync(sp.GetRequiredService<AppDbContext>(), key, HashOf(input), triaged);
+            await _jobs.CompleteAsync(jobId, triaged);
         }
         catch (Exception ex)
         {

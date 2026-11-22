@@ -101,54 +101,55 @@ function cancel() {
 const discardEditsOk = () => !dirty.value
   || confirmDialog.ask(tr('This replaces the form with the saved problem plus the new tests, so your unsaved changes will be lost. Continue?'), { confirmLabel: tr('Continue') });
 
-// regenerate hidden tests — bank problems only (background job, poll)
-async function regenerateTests() {
-  if (isBoard.value || !problem.value?.id) return;
-  if (!(await discardEditsOk())) return;
-  error.value = ''; regenBusy.value = true;
-  try {
-    const { jobId } = await api.post(`/api/ai/regenerate-tests/${problem.value.id}`);
-    for (let n = 0; n < 240; n++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      let r;
-      try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
-      catch (e) { if (e.status === 404) { error.value = tr('The job expired.'); break; } continue; }
-      if (r.status === 'running') continue;
-      if (r.status === 'done') problem.value = r.problem;
-      else error.value = (r.message || 'Regeneration failed.') +
-        (r.compilerOutput ? '\n\n' + r.compilerOutput : '') + (r.stderr ? '\n\n' + r.stderr : '');
-      break;
-    }
-  } catch (e) { error.value = e.message; }
-  finally { regenBusy.value = false; }
+// Both AI test actions are server jobs that change the saved problem even if this page is closed. The job id is kept
+// (30 min = the server's job lifetime) so coming back resumes the wait and shows the result.
+const jobKey = (kind) => `beecoding.aijob.${kind}.${problem.value?.id}`;
+const keepJob = (kind, jobId) => { try { jobId ? localStorage.setItem(jobKey(kind), JSON.stringify({ jobId, at: Date.now() })) : localStorage.removeItem(jobKey(kind)); } catch { /* ignore */ } };
+
+async function pollTestsJob(kind, jobId, failText) {
+  for (let n = 0; n < 240; n++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    let r;
+    try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
+    catch (e) { if (e.status === 404) { keepJob(kind, null); error.value = tr('The job expired.'); return; } continue; }
+    if (r.status === 'running') continue;
+    keepJob(kind, null);
+    if (r.status === 'done') problem.value = r.problem;
+    else error.value = (r.message || failText) + (r.compilerOutput ? '\n\n' + r.compilerOutput : '') + (r.stderr ? '\n\n' + r.stderr : '');
+    return;
+  }
 }
 
-// append a few AI-written extreme/boundary tests — bank problems only (background job, poll)
-async function addExtremeTests() {
+// regenerate hidden tests / append extreme tests — bank problems only
+async function runTestsJob(kind, busy, failText) {
   if (isBoard.value || !problem.value?.id) return;
   if (!(await discardEditsOk())) return;
-  error.value = ''; addExtremeBusy.value = true;
+  error.value = ''; busy.value = true;
   try {
-    const { jobId } = await api.post(`/api/ai/add-extreme-tests/${problem.value.id}`);
-    for (let n = 0; n < 240; n++) {
-      await new Promise((r) => setTimeout(r, 2000));
-      let r;
-      try { r = await api.get(`/api/ai/generate-problem/${jobId}`); }
-      catch (e) { if (e.status === 404) { error.value = tr('The job expired.'); break; } continue; }
-      if (r.status === 'running') continue;
-      if (r.status === 'done') problem.value = r.problem;
-      else error.value = (r.message || tr('Adding extreme tests failed.')) +
-        (r.compilerOutput ? '\n\n' + r.compilerOutput : '') + (r.stderr ? '\n\n' + r.stderr : '');
-      break;
-    }
+    const { jobId } = await api.post(`/api/ai/${kind === 'regen' ? 'regenerate-tests' : 'add-extreme-tests'}/${problem.value.id}`);
+    keepJob(kind, jobId);
+    await pollTestsJob(kind, jobId, failText);
   } catch (e) { error.value = e.message; }
-  finally { addExtremeBusy.value = false; }
+  finally { busy.value = false; }
+}
+const regenerateTests = () => runTestsJob('regen', regenBusy, tr('Regeneration failed.'));
+const addExtremeTests = () => runTestsJob('extreme', addExtremeBusy, tr('Adding extreme tests failed.'));
+
+async function resumeTestsJobs() {
+  for (const [kind, busy, failText] of [['regen', regenBusy, tr('Regeneration failed.')], ['extreme', addExtremeBusy, tr('Adding extreme tests failed.')]]) {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(jobKey(kind)) || 'null'); } catch { /* ignore */ }
+    if (!saved?.jobId || Date.now() - saved.at > 30 * 60_000) { keepJob(kind, null); continue; }
+    busy.value = true;
+    try { await pollTestsJob(kind, saved.jobId, failText); } finally { busy.value = false; }
+  }
 }
 
 onMounted(async () => {
   await load();
   if (!isBoard.value) {
     try { aiEnabled.value = (await api.get('/api/ai/enabled'))?.enabled === true; } catch { /* ignore */ }
+    if (aiEnabled.value && problem.value?.id) resumeTestsJobs();
   }
 });
 </script>

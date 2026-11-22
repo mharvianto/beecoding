@@ -41,7 +41,19 @@ function setLang(l) {
   try { localStorage.setItem('beecoding.aiLang', l); } catch { /* ignore */ }
 }
 
+// The last hint per problem is kept for this tab only (sessionStorage: gone when the tab closes, so a shared computer keeps
+// nothing) and for as long as the server keeps the hint level (90 min), so leaving the page does not waste the answer.
+const HINT_KEY = props.problemId ? `beecoding.hint.p.${props.problemId}` : props.bankProblemId ? `beecoding.hint.b.${props.bankProblemId}` : '';
+function keepHint() {
+  if (!HINT_KEY) return;
+  try { reply.value ? sessionStorage.setItem(HINT_KEY, JSON.stringify({ reply: reply.value, level: level.value, at: Date.now() })) : sessionStorage.removeItem(HINT_KEY); } catch { /* ignore */ }
+}
+
 onMounted(async () => {
+  try {
+    const saved = HINT_KEY ? JSON.parse(sessionStorage.getItem(HINT_KEY) || 'null') : null;
+    if (saved?.reply && Date.now() - saved.at < 90 * 60_000) { reply.value = saved.reply; level.value = saved.level || 0; open.value = true; }
+  } catch { /* ignore */ }
   try {
     const r = await api.get('/api/ai/enabled');
     enabled.value = r?.enabled === true;
@@ -60,6 +72,7 @@ async function startOver() {
   try { await api.post('/api/ai/hint-progress/reset', idPayload()); } catch { /* ignore */ }
   level.value = 0;
   reply.value = '';
+  keepHint();
 }
 
 function payload(extra = {}) {
@@ -122,6 +135,7 @@ async function ask(extra = {}) {
     error.value = e.message;
   } finally {
     busy.value = false;
+    if (!error.value) keepHint();
     clearInterval(elapsedTimer);
     elapsedTimer = null;
   }

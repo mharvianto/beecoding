@@ -35,6 +35,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ProblemProposal> ProblemProposals => Set<ProblemProposal>();
     public DbSet<SolveRecord> SolveRecords => Set<SolveRecord>();
     public DbSet<AiUsage> AiUsages => Set<AiUsage>();
+    public DbSet<AiReviewResult> AiReviewResults => Set<AiReviewResult>();
     public DbSet<AiHintProgress> AiHintProgresses => Set<AiHintProgress>();
     public DbSet<AiHintEvent> AiHintEvents => Set<AiHintEvent>();
     public DbSet<BankProblemShare> BankProblemShares => Set<BankProblemShare>();
@@ -230,6 +231,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
 
         b.Entity<AiUsage>().HasIndex(x => new { x.UserId, x.Day }).IsUnique();
+        b.Entity<AiReviewResult>().HasIndex(x => x.Key).IsUnique();
         b.Entity<AiUsage>()
             .HasOne(x => x.User).WithMany()
             .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);

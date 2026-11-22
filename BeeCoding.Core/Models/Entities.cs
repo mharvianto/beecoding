@@ -878,6 +878,18 @@ public class BankSubmission
     public DateTime? CodePurgedAt { get; set; }
 }
 
+/// <summary>The last admin "AI check" / "AI triage" result for one subject (Key = "check:bank:{id}" or "triage:{reportId}"), kept so
+/// it is not paid for twice. ContentHash is of what the AI was shown; a different hash now means the problem changed since. No FK:
+/// <c>AiReviewJanitor</c> drops rows after 180 days.</summary>
+public class AiReviewResult
+{
+    public int Id { get; set; }
+    [System.ComponentModel.DataAnnotations.MaxLength(64)] public string Key { get; set; } = "";
+    [System.ComponentModel.DataAnnotations.MaxLength(64)] public string ContentHash { get; set; } = "";
+    public string Json { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 /// <summary>Per-day rollup of a user's AI usage (hint + recommendation calls).</summary>
 public class AiUsage
 {

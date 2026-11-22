@@ -10,6 +10,7 @@ const aiEnabled = () => (enabledProbe ??= api.get('/api/ai/enabled').then((r) =>
 import Icon from './Icon.vue';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useAuth } from '../stores/auth';
+import { tr } from '../lib/i18n';
 
 /**
  * Admin-only AI review aid. kind 'bank' = "AI check": the AI re-solves a problem from its statement alone, the judge
@@ -27,30 +28,56 @@ const available = ref(false);
 const busy = ref(false);
 const error = ref('');
 const result = ref(null);
+const saved = ref(null);   // { createdAt, outOfDate } of the result shown when it was loaded from the database, not just run
 const triage = props.kind === 'report';
 let stopped = false;
 
-onMounted(async () => { if (auth.user?.isAdmin) available.value = await aiEnabled(); });
+// The job runs on the server whether or not this page stays open, so its id is kept (30 min, the server's job lifetime)
+// and a panel opened again resumes the wait instead of losing the result.
+const JOB_KEY = `beecoding.aijob.${props.kind}.${props.id}`;
+const keep = (jobId) => { try { jobId ? localStorage.setItem(JOB_KEY, JSON.stringify({ jobId, at: Date.now() })) : localStorage.removeItem(JOB_KEY); } catch { /* ignore */ } };
+
+onMounted(async () => {
+  if (!auth.user?.isAdmin) return;
+  available.value = await aiEnabled();
+  if (!available.value) return;
+  let job = null;
+  try { job = JSON.parse(localStorage.getItem(JOB_KEY) || 'null'); } catch { /* ignore */ }
+  if (job?.jobId && Date.now() - job.at < 30 * 60_000) { error.value = ''; busy.value = true; await poll(job.jobId); return; }
+  keep(null);
+  // no job running: show the last saved result, if any (204 = none)
+  try {
+    const r = await api.get(`/api/ai/last-review/${triage ? 'report' : 'bank'}/${props.id}`);
+    if (r?.result) { result.value = r.result; saved.value = { createdAt: r.createdAt, outOfDate: r.outOfDate }; }
+  } catch { /* ignore */ }
+});
 onBeforeUnmount(() => { stopped = true; });
 
 async function run() {
-  error.value = ''; result.value = null; busy.value = true;
+  error.value = ''; result.value = null; saved.value = null; busy.value = true;
   try {
     const { jobId } = await api.post(triage ? `/api/ai/triage-report/${props.id}` : `/api/ai/check-problem/bank/${props.id}`);
+    keep(jobId);
+    await poll(jobId);
+  } catch (e) { error.value = e.message; busy.value = false; }
+}
+
+async function poll(jobId) {
+  try {
     for (let n = 0; n < 240 && !stopped; n++) {   // ~8 min ceiling: triage is two sequential AI calls
       await new Promise((r) => setTimeout(r, 2000));
       if (stopped) return;
       let r;
       try { r = await api.get(`/api/ai/${triage ? 'triage-report' : 'check-problem'}/${jobId}`); }
-      catch (e) { if (e.status === 404) { error.value = 'The check expired.'; return; } continue; }
+      catch (e) { if (e.status === 404) { keep(null); error.value = 'The check expired.'; return; } continue; }
       if (r.status === 'running') continue;
+      keep(null);
       if (r.status === 'done') result.value = r.problem;
       else error.value = (r.message || 'The check failed.') + (r.compilerOutput ? '\n\n' + r.compilerOutput : '');
       return;
     }
     if (!stopped) error.value = 'Still running — try again in a minute.';
-  } catch (e) { error.value = e.message; }
-  finally { busy.value = false; }
+  } finally { busy.value = false; }
 }
 
 const check = (r) => (triage ? r.check : r);   // triage nests the objective check
@@ -69,9 +96,13 @@ const ACTION = {
 <template>
   <div v-if="available" class="min-w-0">
     <button @click="run" :disabled="busy" class="row-action-btn row-action-btn--accent disabled:opacity-50">
-      <span><Icon name="bot" /></span><span>{{ busy ? (triage ? 'Triaging…' : 'Checking…') : (triage ? 'AI triage' : 'AI check') }}</span>
+      <span><Icon name="bot" /></span><span>{{ busy ? (triage ? 'Triaging…' : 'Checking…') : (saved ? tr('Check again') : (triage ? 'AI triage' : 'AI check')) }}</span>
     </button>
     <pre v-if="error" class="text-xs text-red-600 dark:text-red-400 whitespace-pre-wrap break-words max-h-40 overflow-auto mt-2">{{ error }}</pre>
+    <p v-if="result && saved" class="text-[11px] mt-2" :class="saved.outOfDate ? 'text-amber-700 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400'">
+      {{ tr('Saved result from {when}.', { when: new Date(saved.createdAt).toLocaleString() }) }}
+      <template v-if="saved.outOfDate"> {{ tr('The problem has changed since — check again.') }}</template>
+    </p>
     <div v-if="result" class="mt-2 border border-violet-200 dark:border-violet-500/30 rounded-lg p-3 bg-violet-50/40 dark:bg-violet-500/5 space-y-2 text-xs">
       <template v-if="triage">
         <div class="flex items-center gap-2 flex-wrap">
