@@ -299,6 +299,24 @@ Urutan prioritas — **tanpa 1–4, replika kedua langsung merusak data / memutu
 
 ---
 
+## 3b. Memindahkan data SQLite → PostgreSQL (sekali jalan)
+
+Alat bawaan: `dotnet BeeCoding.dll move-data <file.db> "<connection string Npgsql dengan Database=>"`
+(kode: `Services/DataMove/SqliteToPostgres.cs`). Nilai disalin **mentah** (tanpa converter EF), jadi rahasia terenkripsi
+(`enc1:…`: kode 2-langkah, kunci AI, kunci LTI) ikut apa adanya.
+
+1. **Latihan dulu pada salinan** cadangan (`sqlite3 beecoding.db ".backup salinan.db"`), ke database Postgres kosong baru. Ulangi sampai mulus.
+2. Hari H: hentikan aplikasi, `.backup` SQLite, jalankan versi aplikasi terbaru **sekali pada SQLite itu** (agar semua migrasi SQLite terpasang; alat menolak bila masih tertinggal).
+3. Buat database Postgres kosong, jalankan `move-data`. Alat menjalankan migrasi Postgres, menolak target yang tidak kosong, menyalin tabel menurut urutan kunci asing,
+   mereset sequence `Id`, lalu membandingkan jumlah baris dan jumlah kunci per tabel (kode keluar 1 bila ada selisih).
+4. Set `Database__Provider=postgres` dan `ConnectionStrings__Default=...`, dan **pakai Data Protection keys yang sama** (`DataProtection__KeysPath`) — tanpa itu rahasia terenkripsi tidak terbaca (dibaca sebagai kosong, bukan error).
+5. Simpan file SQLite lama sebagai jalan mundur. Mundur = kembalikan konfigurasi ke SQLite; data yang ditulis di Postgres sesudah pindah tidak ikut.
+
+Hal yang diketahui: karakter NUL (`\0`) dihapus dari teks (Postgres tidak bisa menyimpannya; satu salinan produksi punya 40). Tanpa hak superuser, kunci asing tidak dimatikan selama penyalinan, hanya urutan tabel yang menjaganya.
+Diuji pada salinan cadangan produksi 21 Nov 2026 (51 tabel, semua jumlah baris dan jumlah kunci sama; aplikasi bangun di Postgres dan daftar soal, papan peringkat, lencana terbaca). Beban dan waktu pada data yang jauh lebih besar belum diukur.
+
+---
+
 ## 4. Untuk kondisi sekarang (1 kelas ~40 murid)
 
 **Tidak perlu semua di atas.** VM 4 vCPU + tuning:

@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 
+// One-off: dotnet BeeCoding.dll move-data <sqlite file> "<Npgsql connection string>" (see SqliteToPostgres).
+if (args.Length > 0 && args[0] == "move-data") return await BeeCoding.Services.DataMove.SqliteToPostgres.RunAsync(args, Console.Out);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // journald integration + Type=notify readiness when run under systemd; no-op otherwise.
@@ -667,6 +670,7 @@ app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
 app.MapFallbackToFile("index.html");
 
 app.Run();
+return 0;
 
 // Lets BeeCoding.Tests host the app with WebApplicationFactory.
 /// <summary>What the session check needs to know about a user, cached briefly (see OnValidatePrincipal).</summary>
