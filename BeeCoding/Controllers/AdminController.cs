@@ -1,10 +1,10 @@
-using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using BeeCoding.Data;
 using BeeCoding.Models;
 using BeeCoding.Services;
 using BeeCoding.Services.Judge;
+using BeeCoding.Services.Realtime;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -21,41 +21,29 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [AllowAnonymous]
 [Route("api/admin")]
-public class AdminController(AppDbContext db, IConfiguration cfg) : ControllerBase
+public class AdminController(AppDbContext db, IConfiguration cfg, ICounterStore counters) : ControllerBase
 {
     private readonly AppDbContext _db = db;
     private readonly IConfiguration _cfg = cfg;
 
-    // per-IP failed-attempt throttle: max 8 misses per 10-minute rolling window.
-    private static readonly ConcurrentDictionary<string, (int Count, long WindowTicks)> _fails = new();
+    // per-IP failed-attempt throttle: max 8 misses per 10-minute window, shared by every web instance with Redis (see ICounterStore).
     private const int MaxFails = 8;
-    private static readonly long WindowTicks = TimeSpan.FromMinutes(10).Ticks;
+    private static readonly TimeSpan Window = TimeSpan.FromMinutes(10);
 
     private ActionResult? Gate()
     {
         var expected = _cfg["Admin:Token"];
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
-        var now = DateTime.UtcNow.Ticks;
-
-        if (_fails.Count > 1000)   // one entry per probing IP would otherwise live forever
-            foreach (var kv in _fails) if (now - kv.Value.WindowTicks > WindowTicks) _fails.TryRemove(kv.Key, out _);
-
         if (string.IsNullOrWhiteSpace(expected)) return NotFound();   // feature off
 
-        // Count the guess BEFORE checking it, in one locked step (a right token clears it): checking first and recording after
-        // lets a burst of parallel guesses all read "no misses yet" and all pass. Same rule as LoginThrottle.
-        lock (_fails)
-        {
-            var st = _fails.GetValueOrDefault(ip);
-            if (now - st.WindowTicks > WindowTicks) st = (0, now);   // window expired -> reset
-            if (st.Count >= MaxFails) return NotFound();             // locked out (still looks "off")
-            _fails[ip] = (st.Count + 1, st.WindowTicks == 0 ? now : st.WindowTicks);
-        }
+        // Count the guess BEFORE checking it (a right token clears it): checking first and recording after lets a burst of parallel
+        // guesses all read "no misses yet" and all pass. Same rule as LoginThrottle. Over the cap it still looks "off".
+        var key = "admin-token:" + (HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?");
+        if (counters.Increment(key, Window) > MaxFails) return NotFound();
 
         var got = Request.Headers["X-Admin-Token"].ToString();
         var ok = CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(got), Encoding.UTF8.GetBytes(expected));
-        if (ok) { lock (_fails) _fails.TryRemove(ip, out _); return null; }
+        if (ok) { counters.Remove(key); return null; }
         return NotFound();   // never reveal "wrong token" vs "disabled"
     }
 

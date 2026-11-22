@@ -82,7 +82,7 @@ public sealed class InMemoryCounterStore : ICounterStore
 
 /// <summary>
 /// Redis-backed. The calls are synchronous on purpose (the throttle API is, and each is one sub-millisecond round trip). If Redis
-/// cannot be reached the call falls back to this instance's own memory: protection per instance is better than none, and better than
+/// cannot be reached the call falls back to this instance's own memory (and after three failures in a row Redis is left alone for 30 s, so a dead server costs a few slow calls, not one per request): protection per instance is better than none, and better than
 /// locking everyone out of sign-in because the cache is down.
 /// </summary>
 public sealed class RedisCounterStore(IConnectionMultiplexer mux, Microsoft.Extensions.Options.IOptions<RealtimeStoreOptions> opt, ILogger<RedisCounterStore> log) : ICounterStore
@@ -96,15 +96,32 @@ public sealed class RedisCounterStore(IConnectionMultiplexer mux, Microsoft.Exte
     private readonly IDatabase _db = mux.GetDatabase();
     private readonly string _prefix = opt.Value.KeyPrefix + "ctr:";
     private readonly InMemoryCounterStore _fallback = new();
-    private long _lastWarn;
+
+    // After three failures in a row Redis is not asked again for 30 s: each try on a dead server would otherwise hold the request thread
+    // for the whole sync timeout (5 s by default, and a sign-in makes three calls), and a Redis outage would become a web outage.
+    // One slow call alone (a busy moment) does not switch sharing off.
+    private static readonly long PauseMs = 30_000;
+    private const int TripAfter = 3;
+    private long _downUntil;
+    private int _failures;
 
     private T Try<T>(Func<T> redis, Func<T> local)
     {
-        try { return redis(); }
+        if (Environment.TickCount64 < Interlocked.Read(ref _downUntil)) return local();
+        try
+        {
+            var r = redis();
+            Volatile.Write(ref _failures, 0);
+            return r;
+        }
         catch (Exception ex) when (ex is RedisException or TimeoutException)
         {
-            var now = Environment.TickCount64;
-            if (now - Interlocked.Exchange(ref _lastWarn, now) > 60_000) log.LogWarning(ex, "Redis counters unavailable; using this instance's memory");
+            if (Interlocked.Increment(ref _failures) >= TripAfter)
+            {
+                Interlocked.Exchange(ref _downUntil, Environment.TickCount64 + PauseMs);
+                Volatile.Write(ref _failures, 0);
+                log.LogWarning(ex, "Redis counters unavailable; using this instance's memory for {Seconds} s", PauseMs / 1000);
+            }
             return local();
         }
     }

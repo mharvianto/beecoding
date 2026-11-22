@@ -52,6 +52,10 @@ public sealed class JudgeQueueOptions
     /// <summary>How long a producer waits for an ad-hoc Run's result before giving up.</summary>
     public int RunReplyTimeoutSeconds { get; set; } = 60;
 
+    /// <summary>A job or verdict a consumer took but never finished (it crashed) is handed to another one after this long. Longer than the
+    /// slowest judging (compile + every test), or a slow job is run twice.</summary>
+    public int ReclaimAfterSeconds { get; set; } = 120;
+
     /// <summary>Poll interval when the job list is empty (redis backend).</summary>
     public int PollMs { get; set; } = 200;
 

@@ -37,6 +37,7 @@ public sealed class JudgeWorker(
                         case GradeJob g: await ProcessGradeAsync(g, stoppingToken); break;
                     }
                 }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { }   // shutting down: the job stays pending (or is re-queued at startup), no bogus verdict
                 catch (Exception ex)
                 {
                     _log.LogError(ex, "judge job crashed");
@@ -45,7 +46,7 @@ public sealed class JudgeWorker(
                     else if (job is GradeJob gj)
                         await _source.ReportGradeResultAsync(new GradeResult(gj.Kind, gj.SubmissionId, nameof(Verdict.RuntimeError), 0, 0, 0, "internal judge error"));
                 }
-                finally { slots.Release(); }
+                finally { if (!stoppingToken.IsCancellationRequested) await _source.AckAsync(job); slots.Release(); }
             }, stoppingToken);
         }
     }

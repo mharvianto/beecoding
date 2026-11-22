@@ -73,9 +73,9 @@ watch(() => (progress.ready ? progress.xp : null), async (xp) => {
 });
 // The Journey link shows only while a journey is published (admins always see it, to build one). Re-checked when entering/leaving /journey pages.
 const journeyOpen = ref(false);
-const journeyOff = ref(false);   // the admin switched the feature off (the API answers 404)
+const journeyOff = ref(false);   // the admin switched the feature off
 watch([activeUserId, () => route.path.startsWith('/journey')], async ([id]) => {
-  try { journeyOff.value = false; journeyOpen.value = id ? (await api.get('/api/journeys')).length > 0 : false; } catch (e) { journeyOpen.value = false; journeyOff.value = e.status === 404; }
+  try { const st = id ? await api.get('/api/journeys/status') : { enabled: true, open: false }; journeyOff.value = !st.enabled; journeyOpen.value = st.open; } catch { journeyOpen.value = false; }
 }, { immediate: true });
 
 // Bell + live toasts for reactions/comments on my wall posts. No toast when the user is

@@ -115,9 +115,15 @@ public class JourneyTests
             var jid = (await make.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetInt32();
 
             Assert.Equal(HttpStatusCode.OK, (await kid.GetAsync("/api/journeys")).StatusCode);
+            var on = await kid.GetFromJsonAsync<JsonElement>("/api/journeys/status");
+            Assert.True(on.GetProperty("enabled").GetBoolean()); Assert.True(on.GetProperty("open").GetBoolean());
             app.Services.GetRequiredService<BeeCoding.Services.PlatformRuntimeConfig>().SetJourneyEnabled(false);
             Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync("/api/journeys")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync($"/api/journeys/{jid}")).StatusCode);
+            var off = await kid.GetAsync("/api/journeys/status");   // the menu's probe: 200, so no failed request in the console
+            Assert.Equal(HttpStatusCode.OK, off.StatusCode);
+            var offJson = await off.Content.ReadFromJsonAsync<JsonElement>();
+            Assert.False(offJson.GetProperty("enabled").GetBoolean()); Assert.False(offJson.GetProperty("open").GetBoolean());
             Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/journeys/admin")).StatusCode);   // the editor still works
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }

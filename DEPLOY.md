@@ -96,7 +96,8 @@ pernah menyentuh DB.
 
 ### 2.3 SignalR backplane
 
-Salah satu:
+**Sudah dipasang untuk Redis:** dengan `Realtime:Backend=redis`, `Program.cs` memakai `AddStackExchangeRedis` (prefix channel `{KeyPrefix}hub:`);
+satu instance (`memory`) tidak memakai backplane. Diuji `BackplaneTests` (dua instance, satu Redis). Alternatif lain:
 
 - **Azure SignalR Service** (mode *Default*) — paling sederhana, hub di-offload, **tidak
   perlu sticky session**. Tambah `Azure.SignalR` + `AddSignalR().AddAzureSignalR(conn)`.
@@ -138,12 +139,12 @@ Satu saklar saja; dengan `memory` (default) semuanya tetap jalan tanpa Redis unt
 
 | Apa | `memory` (1 instance) | `redis` (banyak instance) |
 |---|---|---|
-| `LoginThrottle`, `RateLimiter`, `SubmitCooldown`, jeda & "satu per waktu" hint AI | `InMemoryCounterStore` | `RedisCounterStore` (`INCR`+`PEXPIRE` satu langkah Lua, `SET NX PX`); batas berlaku **total**, bukan per instance |
+| `LoginThrottle`, `RateLimiter`, `SubmitCooldown`, jeda & "satu per waktu" hint AI, throttle token admin (`/api/admin`) | `InMemoryCounterStore` | `RedisCounterStore` (`INCR`+`PEXPIRE` satu langkah Lua, `SET NX PX`); batas berlaku **total**, bukan per instance |
 | Janitor/backfill berkala (`JobLock`) | selalu jalan | satu instance saja yang menyapu per interval (klaim `SET NX` selama 0,9 × interval) |
 | Cache pengaturan admin (admin DB, AI pause/kuota/provider, origin LTI, `PlatformRuntimeConfig`) | tidak perlu: tiap simpan memperbarui salinannya sendiri | `RuntimeCacheRefresher` memuat ulang dari DB tiap `Realtime:ConfigRefreshSeconds` (default 15 dengan Redis, 0 = mati tanpa Redis) — perubahan di instance A sampai ke B dalam ≤ 15 dtk |
 
 Redis mati? `RedisCounterStore` jatuh ke memori instance itu (pembatasan per instance tetap ada,
-tidak ada yang terkunci keluar), dan peringatan dicatat paling sering sekali per menit. Pakai
+tidak ada yang terkunci keluar), dan Redis tidak ditanyai lagi selama 30 detik setelah satu kegagalan (satu panggilan lambat, bukan satu per request; timeout bawaan 5 dtk), dan peringatan dicatat sekali. Pakai
 `abortConnect=False` di connection string agar aplikasi tetap boot bila Redis belum siap.
 
 **Masih per-instance (longgar, bukan salah):** batas 2 generate soal AI bersamaan per user
@@ -183,7 +184,7 @@ Jangan jalankan binary murid di pod biasa.
   | `Judge:Queue:Backend` | Implementasi | |
   |---|---|---|
   | `inproc` (default) | `InProcessJudgeQueue` — `Channel<JudgeJob>` + registry `CorrelationId → TaskCompletionSource` untuk balasan Run | Single node |
-  | `redis` | `RedisJudgeQueue` — job di **Redis list** (`RPUSH`/`LPOP`), balasan Run lewat **pub/sub** channel `{prefix}run-results` yang di-korelasikan `CorrelationId` | Judge sebagai Deployment terpisah |
+  | `redis` | `RedisJudgeQueue` — job dan verdict di **Redis Streams** (`{prefix}jobs-s` grup `judges`, `{prefix}grade-results-s` grup `web`), balasan Run lewat **pub/sub** channel `{prefix}run-results` yang di-korelasikan `CorrelationId` | Judge sebagai Deployment terpisah |
 
   ```jsonc
   "Judge": { "Queue": {
@@ -191,7 +192,8 @@ Jangan jalankan binary murid di pod biasa.
     "RedisConnectionString": null,   // null = pakai multiplexer milik Realtime
     "KeyPrefix": "bc:judge:",
     "RunReplyTimeoutSeconds": 60,
-    "PollMs": 200
+    "PollMs": 200,
+    "ReclaimAfterSeconds": 120   // job/verdict yang diambil tapi tidak selesai dioper ke node lain setelah ini; > judging terlama
   } }
   ```
 
@@ -200,9 +202,12 @@ Jangan jalankan binary murid di pod biasa.
   memproses.
 
   **Catatan operasional (belum dikeraskan):**
-  - `LPOP` = *at-most-once* — job yang sudah di-pop lalu pod judge crash **hilang**. Untuk
-    produksi ganti ke **Redis Streams + consumer group** (`XREADGROUP`/`XACK`) — antarmukanya
-    tidak berubah.
+  - **At-least-once** (Streams + consumer group): job diambil `XREADGROUP`, dihapus (`XACK`+`XDEL`) hanya saat worker selesai
+    (`AckAsync`); verdict dihapus saat web meminta yang berikutnya (sudah diterapkan). Pod yang crash di tengah jalan tidak
+    menghilangkan apa pun: setelah `ReclaimAfterSeconds` node lain mengambil alih (`XAUTOCLAIM`, Redis ≥ 6.2). Akibatnya satu
+    entri bisa berjalan dua kali (yang lambat diambil alih saat masih jalan). `RunJob` lama yang diambil alih **dibuang**, bukan
+    dijalankan lagi, karena penanyanya sudah berhenti menunggu. Key lama (`jobs`, `grade-results` berupa list) tidak dibaca lagi:
+    kosongkan sebelum pindah. Nama consumer tiap proses baru bertambah di grup (beberapa byte, tidak dibersihkan).
   - Job Submit harus **idempotent** (aman kalau ter-judge dua kali) — `ProcessSubmissionAsync`
     menimpa verdict, jadi aman.
   - Kalau judge jadi proses terpisah, ia butuh `AppDbContext` (koneksi Postgres) **dan**

@@ -36,6 +36,12 @@ public class JourneysController(AppDbContext db, ProgressService progress, Audit
             .Select(s => s.BankProblemId).Distinct().ToHashSetAsync();
     }
 
+    /// <summary>What the menu needs, and always 200: whether the feature is on and whether a journey is published. (The other endpoints
+    /// answer 404 while it is off, and a menu that probed them would put a red line in every browser console.)</summary>
+    [HttpGet("status")]
+    public async Task<ActionResult> Status() =>
+        Ok(new { enabled = runtime.JourneyEnabled, open = runtime.JourneyEnabled && await db.Journeys.AnyAsync(j => j.Published) });
+
     [HttpGet]
     public async Task<ActionResult> List()
     {

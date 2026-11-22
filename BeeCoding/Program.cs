@@ -246,6 +246,15 @@ if ((realtimeOpt.UseRedis || judgeOpt.Queue.UseRedis) && string.IsNullOrWhiteSpa
 if (redisConn is not null)
     builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConn));
 
+// Several web instances: a board event raised on one must reach the browsers connected to the others (live wall, bell, verdicts), so SignalR
+// goes through Redis. One instance (Realtime:Backend=memory) needs no backplane.
+if (realtimeOpt.UseRedis)
+    builder.Services.AddSignalR().AddStackExchangeRedis(redisConn!, o =>
+    {
+        o.Configuration.ChannelPrefix = RedisChannel.Literal(realtimeOpt.KeyPrefix + "hub:");
+        o.Configuration.AbortOnConnectFail = false;   // a Redis that is still starting must not stop the app from booting
+    });
+
 // Ephemeral realtime stores + the AI-job registry (see DEPLOY.md §2.4)
 if (realtimeOpt.UseRedis)
 {

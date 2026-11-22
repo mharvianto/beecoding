@@ -68,6 +68,8 @@ public interface IJudgeJobSource
     ValueTask ReportRunResultAsync(RunJob job, RunResultDto result);
     ValueTask ReportGradeResultAsync(GradeResult result);
     ValueTask ReportGradeProgressAsync(GradeProgress progress);
+    /// <summary>The worker is done with a job. A broker that keeps unfinished jobs (Redis Streams) drops it now; the in-process queue has nothing to do.</summary>
+    ValueTask AckAsync(JudgeJob job) => ValueTask.CompletedTask;
 }
 
 /// <summary>Grade-result side — consumed by the web tier to persist verdicts + notify.</summary>

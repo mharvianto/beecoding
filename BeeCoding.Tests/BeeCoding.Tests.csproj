@@ -16,6 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BeeCoding\BeeCoding.csproj" />
+    <ProjectReference Include="..\BeeCoding.Lsp\BeeCoding.Lsp.csproj" Aliases="lspnode" />
   </ItemGroup>
 
 </Project>

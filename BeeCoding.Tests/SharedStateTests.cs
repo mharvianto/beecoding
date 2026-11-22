@@ -68,7 +68,7 @@ public class SharedStateTests
         var f = Factory(kind);
         var a = new LoginThrottle(f()); var b = new LoginThrottle(f());
         var allowed = 0;
-        Parallel.For(0, 60, i =>
+        Parallel.For(0, 60, new ParallelOptions { MaxDegreeOfParallelism = 8 }, i =>
         {
             if ((i % 2 == 0 ? a : b).TryBegin($"9.9.9.{i}", "mfa:7", strict: true)) Interlocked.Increment(ref allowed);
         });
@@ -82,7 +82,7 @@ public class SharedStateTests
     public void A_flood_of_refused_attempts_does_not_lock_the_owner_out_elsewhere(string kind)
     {
         var t = new LoginThrottle(Factory(kind)());
-        Parallel.For(0, 500, _ => t.TryBegin("1.1.1.1", "victim@x"));        // attacker: 10 count, the rest are refused
+        Parallel.For(0, 500, new ParallelOptions { MaxDegreeOfParallelism = 8 }, _ => t.TryBegin("1.1.1.1", "victim@x"));        // attacker: 10 count, the rest are refused
         Assert.False(t.TryBegin("1.1.1.1", "victim@x"));
         Assert.True(t.TryBegin("2.2.2.2", "victim@x"));                      // the owner, from another address, is fine
         Assert.False(t.IsBlocked("3.3.3.3", "victim@x"));                    // the account-wide counter stayed far below its 100
@@ -124,6 +124,17 @@ public class SharedStateTests
         for (var i = 0; i < 10; i++) Assert.True(t.TryBegin("1.1.1.1", "a@x"));   // still counts, still answers
         Assert.False(t.TryBegin("1.1.1.1", "a@x"));
     }
+
+    [Fact]
+    public void A_dead_redis_costs_one_slow_call_not_one_per_request()
+    {
+        var down = ConnectionMultiplexer.Connect("127.0.0.1:1,abortConnect=false,connectTimeout=300,syncTimeout=300");
+        var t = new LoginThrottle(new RedisCounterStore(down, Options.Create(new RealtimeStoreOptions()), NullLogger<RedisCounterStore>.Instance));
+        for (var i = 0; i < 3; i++) t.TryBegin("9.9.9.9", "c@x");           // the ones that pay the timeout (three failures switch Redis off)
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        for (var i = 0; i < 100; i++) t.TryBegin("1.1.1." + i, "b" + i + "@x");
+        Assert.True(sw.ElapsedMilliseconds < 250, $"took {sw.ElapsedMilliseconds} ms");   // 300 calls, none of them waited for Redis
+    }
 }
 
 [Collection("app")]
@@ -154,5 +165,27 @@ public class RuntimeCacheTests
         Assert.False(cfg.JourneyEnabled);
         using (var scope = app.Services.CreateScope())
             Assert.True(admin.IsAdminEmail(scope.ServiceProvider.GetRequiredService<AppDbContext>().Users.First().Email));
+    }
+}
+
+[Collection("app")]
+public class AdminTokenThrottleTests
+{
+    [Fact]
+    public async Task Eight_wrong_tokens_lock_the_ip_out_even_for_the_right_one_and_a_right_one_clears_the_count()
+    {
+        const string Token = "test-token-0123456789abcdef0123456789";
+        Environment.SetEnvironmentVariable("Admin__Token", Token);
+        try
+        {
+            using var app = new TestApp();
+            HttpClient Client(string token) { var c = app.CreateClient(); c.DefaultRequestHeaders.Add("X-Admin-Token", token); return c; }
+            for (var i = 0; i < 5; i++) Assert.Equal(System.Net.HttpStatusCode.NotFound, (await Client("wrong").GetAsync("/api/admin/bank-problems")).StatusCode);
+            Assert.Equal(System.Net.HttpStatusCode.OK, (await Client(Token).GetAsync("/api/admin/bank-problems")).StatusCode);   // a hit clears the misses
+
+            for (var i = 0; i < 8; i++) await Client("wrong").GetAsync("/api/admin/bank-problems");
+            Assert.Equal(System.Net.HttpStatusCode.NotFound, (await Client(Token).GetAsync("/api/admin/bank-problems")).StatusCode);   // locked, and it still looks "off"
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Token", null); }
     }
 }
