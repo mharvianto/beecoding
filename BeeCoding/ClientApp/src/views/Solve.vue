@@ -368,7 +368,7 @@ onBeforeUnmount(async () => {
       </div>
 
       <p v-if="protectOn" class="text-[11px] text-amber-700 dark:text-amber-400 mb-2">
-        <Icon name="lock" /> {{ tr('Protected problem — served as an encrypted image watermarked with your identity.') }}
+        <Icon name="lock" /> {{ tr('Protected problem — served as an image watermarked with your identity.') }}
       </p>
 
       <ContentGuard v-if="protectOn" :active="true" :watermark="''">

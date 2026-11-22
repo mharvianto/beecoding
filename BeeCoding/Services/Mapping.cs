@@ -87,7 +87,7 @@ public static class Mapping
         isStaff ? s.FailedTest : null,
         previousSubmissionId, nextSubmissionId, s.CodePurgedAt != null);
 
-    // Practice statements are always served as an encrypted image, so the statement text
+    // Practice statements are always served as a watermarked image, so the statement text
     // and expected outputs are never sent as JSON (see StatementController.PracticeProblem).
     // Sample *inputs* are still returned so the Run box can be pre-filled — they're already
     // fully visible in the rendered statement image anyway.

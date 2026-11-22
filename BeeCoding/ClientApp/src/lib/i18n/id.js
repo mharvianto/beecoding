@@ -272,7 +272,7 @@ export default {
   "↩︎ Restored your unsaved code from {when}.": "↩︎ Kode Anda yang belum disimpan dipulihkan dari {when}.",
   "Use the template instead": "Pakai templat saja",
   "Dismiss": "Tutup",
-  "Protected problem — served as an encrypted image watermarked with your identity.": "Soal terlindungi — ditampilkan sebagai gambar terenkripsi dengan watermark identitas Anda.",
+  "Protected problem — served as an image watermarked with your identity.": "Soal terlindungi — ditampilkan sebagai gambar dengan watermark identitas Anda.",
   "Samples": "Contoh",
   "{name}'s code · live": "Kode {name} · langsung",
   "(empty)": "(kosong)",

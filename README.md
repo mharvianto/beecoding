@@ -89,7 +89,7 @@ All five visibility rules live in one place: `Services/VisibilityService.cs`.
    `SolveRecord` with a unique `(user, problemKey)` — a bank problem and its board copies
    share one key, so the same problem can't be farmed. XP rolls up to a level
    (`ProgressService`, `25·L·(L-1)` cumulative); header shows `Lv N` + bar, and a
-   leaderboard ranks by total XP. Practice statements are ALWAYS content-protected (encrypted watermarked image, `/api/practice/{id}/statement`). `GET /api/me/progress`, `GET /api/leaderboard`.
+   leaderboard ranks by total XP. Practice statements are ALWAYS content-protected (watermarked image, `/api/practice/{id}/statement`). `GET /api/me/progress`, `GET /api/leaderboard`.
 
 8. **C/C++ IntelliSense** (optional, off by default) — with `Lsp:Enabled=true` and `clangd`
    on `PATH`, the Monaco editor on **Solve** and **Practice** talks to clangd as a language
@@ -151,8 +151,8 @@ When a teacher turns it on, a student opening a problem gets:
   SkiaSharp + Markdig, DejaVu fonts vendored in `Assets/fonts/`) with a per-viewer
   identity watermark **baked into the pixels** — there is no text in the DOM to select,
   copy, or read via inspect-element.
-- That PNG returned **AES-256-GCM encrypted** (`GET /api/problems/{id}/statement`, fresh
-  key+nonce per request, `Cache-Control: no-store`); the client decrypts via WebCrypto to
+- That PNG is sent wrapped for transport (`GET /api/problems/{id}/statement`, AES-256-GCM, fresh
+  key+nonce per request, `Cache-Control: no-store`); the client unwraps it via WebCrypto to
   a `blob:` URL. No stable image URL, nothing reusable in a HAR/cache.
 - `ContentGuard.vue` on top: blocks selection / copy / context-menu / drag, blurs the
   content while the tab is hidden or unfocused, and disables printing.

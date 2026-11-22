@@ -41,7 +41,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
 
     /// <summary>
     /// Board problem statement + samples rendered to a PNG (no text reaches the client),
-    /// returned AES-GCM encrypted with a per-viewer identity watermark baked in.
+    /// returned with a per-viewer identity watermark baked in (wrapped with AES-GCM for transport).
     /// </summary>
     [HttpGet("api/problems/{problemId:int}/statement")]
     public async Task<ActionResult<object>> BoardProblem(int problemId, [FromQuery] string? theme)
@@ -60,7 +60,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return await EncryptedImageAsync($"b{problemId}", problem.StatementMarkdown, samples, theme);
+        return await ProtectedImageAsync($"b{problemId}", problem.StatementMarkdown, samples, theme);
     }
 
     /// <summary>Practice (public bank) problem statement — always protected.</summary>
@@ -76,10 +76,10 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return await EncryptedImageAsync($"k{id}", problem.StatementMarkdown, samples, theme);
+        return await ProtectedImageAsync($"k{id}", problem.StatementMarkdown, samples, theme);
     }
 
-    private async Task<object> EncryptedImageAsync(string idKey, string markdown,
+    private async Task<object> ProtectedImageAsync(string idKey, string markdown,
         List<(string Stdin, string ExpectedStdout)> samples, string? theme)
     {
         var ids = ImagesController.RefsIn(markdown).ToList();
