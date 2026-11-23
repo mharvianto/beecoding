@@ -1,7 +1,7 @@
 <script setup>
 import { tr } from '../lib/i18n';
 import { clientFlags } from '../lib/automation';
-import { ref, watch, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { theme as appTheme } from '../lib/theme';
 import { withBase } from '../lib/base';
 
@@ -32,7 +32,7 @@ async function load() {
   err.value = '';
   try {
     const dark = document.documentElement.classList.contains('dark');
-    const res = await fetch(`${endpoint()}?theme=${dark ? 'dark' : 'light'}`,
+    const res = await fetch(`${endpoint()}?theme=${dark ? 'dark' : 'light'}&w=${width.value}`,
       { credentials: 'include', headers: clientFlags() ? { 'X-Client-Flags': clientFlags() } : {} });
     if (res.status === 403 && clientFlags()) { err.value = 'Automated browsers cannot open protected problems. Use a regular browser window.'; return; }
     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -47,8 +47,15 @@ async function load() {
   }
 }
 
-watch(() => [props.problemId, props.bankId, appTheme.value], load, { immediate: true });
-onBeforeUnmount(revoke);
+// The server draws the statement for the screen it is shown on (phone / small tablet / desktop), so the letters are as big as the page's own text;
+// a turn of the phone or a resize across a tier redraws it. Same three tiers as StatementImageService.WidthFor.
+const tier = () => (window.innerWidth <= 480 ? 400 : window.innerWidth <= 680 ? 600 : 780);
+const width = ref(tier());
+const onResize = () => { width.value = tier(); };
+onMounted(() => window.addEventListener('resize', onResize));
+
+watch(() => [props.problemSlug, props.bankSlug, appTheme.value, width.value], load, { immediate: true });
+onBeforeUnmount(() => { window.removeEventListener('resize', onResize); revoke(); });
 </script>
 
 <template>

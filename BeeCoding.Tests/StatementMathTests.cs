@@ -76,6 +76,28 @@ public class StatementMathRenderTests
     }
 
     [Fact]
+    public void A_narrow_screen_gets_a_narrower_denser_picture_with_the_same_text_size()
+    {
+        Assert.Equal(400, StatementImageService.WidthFor(360));
+        Assert.Equal(400, StatementImageService.WidthFor(480));
+        Assert.Equal(600, StatementImageService.WidthFor(481));
+        Assert.Equal(780, StatementImageService.WidthFor(1400));
+        Assert.Equal(780, StatementImageService.WidthFor(null));
+        Assert.Equal(780, StatementImageService.WidthFor(-5));   // nonsense falls back to the desktop page
+
+        using var app = new TestApp();
+        app.CreateClient();
+        using var svc = Service(app);
+        var text = "Seorang menaiki tangga dengan N anak tangga. Setiap langkah ia boleh naik 1, 2, atau 3 anak tangga dan hitung banyak urutan yang berbeda untuk setiap N yang diberikan. $$\\frac{n(n+1)}{2}$$";
+        var wide = svc.RenderImage("n:1", text, [("3", "3")], "w", dark: false);
+        var phone = svc.RenderImage("n:1", text, [("3", "3")], "w", dark: false, width: 400);   // same cache key: the width is part of it
+        using var w = SKBitmap.Decode(wide); using var p = SKBitmap.Decode(phone);
+        Assert.Equal(780, w.Width);
+        Assert.Equal(800, p.Width);                  // 400 page units at 2x
+        Assert.True(p.Height / 2 > w.Height, "the same words wrap onto more lines on the narrow page");
+    }
+
+    [Fact]
     public void A_formula_is_typeset_into_the_statement_picture()
     {
         using var app = new TestApp();

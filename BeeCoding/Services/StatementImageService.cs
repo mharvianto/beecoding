@@ -14,7 +14,13 @@ namespace BeeCoding.Services;
 /// </summary>
 public class StatementImageService : IDisposable
 {
-    private const int Width = 780;
+    public const int DefaultWidth = 780;
+
+    /// <summary>The page width for a browser area of <paramref name="cssWidth"/> pixels: three tiers (phone, small tablet, desktop), so a phone gets text of the same size as a desktop
+    /// instead of a 780 px picture shrunk to half, and the cache holds at most three renders of a statement. Null or nonsense = desktop.</summary>
+    public static int WidthFor(int? cssWidth) => cssWidth switch { > 0 and <= 480 => 400, > 480 and <= 680 => 600, _ => DefaultWidth };
+    // Narrow tiers are drawn at a higher pixel density: a phone shows the picture at 2.5-3 device pixels per CSS pixel, and 1x looks soft there.
+    private static float ScaleFor(int width) => width <= 400 ? 2f : width <= 600 ? 1.5f : 1f;
     private const float Margin = 28f;
     private const int MaxHeight = 6000;
 
@@ -55,11 +61,11 @@ public class StatementImageService : IDisposable
     /// <param name="images">Bytes of the statement's pictures by id (see ImagesController); a missing id is drawn as its alt text.</param>
     public byte[] RenderImage(string cacheKey, string markdown,
         IReadOnlyList<(string Input, string Output)> samples, string watermark, bool dark,
-        IReadOnlyDictionary<string, byte[]>? images = null)
+        IReadOnlyDictionary<string, byte[]>? images = null, int width = DefaultWidth)
     {
-        var baseImage = _baseCache.GetOrCreate(cacheKey, e =>
+        var baseImage = _baseCache.GetOrCreate($"{cacheKey}:w{width}", e =>
         {
-            var bytes = RenderBase(markdown, samples, dark, images ?? new Dictionary<string, byte[]>());
+            var bytes = RenderBase(markdown, samples, dark, images ?? new Dictionary<string, byte[]>(), width);
             e.Size = bytes.Length;
             e.SlidingExpiration = KeepFor;
             return bytes;
@@ -67,7 +73,9 @@ public class StatementImageService : IDisposable
 
         using var bmp = SKBitmap.Decode(baseImage);
         using var canvas = new SKCanvas(bmp);
-        StampWatermark(canvas, bmp.Width, bmp.Height, watermark, dark);
+        float k = ScaleFor(width);
+        canvas.Scale(k);   // the tiles keep the same spacing and size relative to the text at every density
+        StampWatermark(canvas, (int)(bmp.Width / k), (int)(bmp.Height / k), watermark, dark);
         using var pixels = bmp.PeekPixels();
         return EncodeLossless(pixels);
     }
@@ -81,11 +89,13 @@ public class StatementImageService : IDisposable
     }
 
     // Immediate-mode: draw onto an oversized surface, then crop to the used height.
-    private byte[] RenderBase(string markdown, IReadOnlyList<(string Input, string Output)> samples, bool dark, IReadOnlyDictionary<string, byte[]> images)
+    private byte[] RenderBase(string markdown, IReadOnlyList<(string Input, string Output)> samples, bool dark, IReadOnlyDictionary<string, byte[]> images, int width)
     {
         var t = Palette(dark);
-        using var surface = SKSurface.Create(new SKImageInfo(Width, MaxHeight));
+        float k = ScaleFor(width);
+        using var surface = SKSurface.Create(new SKImageInfo((int)(width * k), (int)(MaxHeight * k)));
         var canvas = surface.Canvas;
+        canvas.Scale(k);   // everything below is drawn in the page's own units
         canvas.Clear(t.Bg);
 
         using var reg = new SKFont(_regular, 15f);
@@ -99,7 +109,7 @@ public class StatementImageService : IDisposable
 
         // Formulas are typeset (CSharpMath, drawn on the same canvas); what is left of the text only gets the old ASCII clean-up of bare commands.
         var (withoutMath, formulas) = StatementMath.Extract(markdown);
-        var g = new Gfx(canvas, t, reg, bold, mono, monoSmall, text, muted, codeBg, rule) { Y = Margin, Formulas = formulas };
+        var g = new Gfx(canvas, t, reg, bold, mono, monoSmall, text, muted, codeBg, rule) { Y = Margin, Formulas = formulas, PageWidth = width };
 
         foreach (var block in Markdown.Parse(PlainMath(withoutMath, stripDelimiters: false) ?? "")) RenderBlock(g, block, Margin, images);
 
@@ -121,7 +131,7 @@ public class StatementImageService : IDisposable
 
         int height = Math.Clamp((int)MathF.Ceiling(g.Y + Margin), 80, MaxHeight);
         using var full = surface.Snapshot();
-        using var cropped = full.Subset(new SKRectI(0, 0, Width, height));
+        using var cropped = full.Subset(new SKRectI(0, 0, (int)(width * k), (int)MathF.Ceiling(height * k)));
         using var bmp = SKBitmap.FromImage(cropped);
         using var pixels = bmp.PeekPixels();
         return EncodeLossless(pixels);
@@ -201,7 +211,7 @@ public class StatementImageService : IDisposable
     {
         using var bmp = SKBitmap.Decode(data);
         if (bmp is null) return;
-        float scale = Math.Min(1f, Math.Min((Width - Margin - x) / bmp.Width, 700f / bmp.Height));
+        float scale = Math.Min(1f, Math.Min((g.PageWidth - Margin - x) / bmp.Width, 700f / bmp.Height));
         var dest = new SKRect(x, g.Y, x + bmp.Width * scale, g.Y + bmp.Height * scale);
         using var img = SKImage.FromBitmap(bmp);
         g.Canvas.DrawImage(img, dest, new SKSamplingOptions(SKFilterMode.Linear, SKMipmapMode.Linear));
@@ -277,10 +287,11 @@ public class StatementImageService : IDisposable
         private readonly SKFont _reg = reg, _bold = bold, _mono = mono, _monoSmall = monoSmall;
         private readonly SKPaint _text = text, _muted = muted, _codeBg = codeBg, _rule = rule;
         public float Y;
+        public int PageWidth { get; init; } = DefaultWidth;
 
         public SKPaint MutedPaint => _muted;
 
-        public void HLine() => Canvas.DrawLine(Margin, Y, Width - Margin, Y, _rule);
+        public void HLine() => Canvas.DrawLine(Margin, Y, PageWidth - Margin, Y, _rule);
 
         public void Heading(string s, int level)
         {
@@ -306,7 +317,7 @@ public class StatementImageService : IDisposable
             if (lines.Length == 1 && lines[0].Length == 0) lines = new[] { " " };
             float top = Y + 4;
             float boxH = lines.Length * lineH + 12;
-            Canvas.DrawRoundRect(new SKRect(Margin, top, Width - Margin, top + boxH), 6, 6, _codeBg);
+            Canvas.DrawRoundRect(new SKRect(Margin, top, PageWidth - Margin, top + boxH), 6, 6, _codeBg);
             float y = top + 6 + size;
             foreach (var ln in lines)
             {
@@ -341,7 +352,7 @@ public class StatementImageService : IDisposable
         public void Paragraph(List<Run> runs, float x, string? bullet = null)
         {
             const float bodySize = 15f, lineH = 22f;
-            float maxRight = Width - Margin;
+            float maxRight = PageWidth - Margin;
 
             // Pass 1: break into lines (a formula can be taller than text, so a line's height is only known once it is full).
             var lines = new List<List<Item>> { new() };

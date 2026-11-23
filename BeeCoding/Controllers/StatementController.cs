@@ -44,7 +44,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     /// returned with a per-viewer identity watermark baked in (wrapped with AES-GCM for transport).
     /// </summary>
     [HttpGet("api/problems/{slug}/statement")]
-    public async Task<ActionResult<object>> BoardProblem(string slug, [FromQuery] string? theme)
+    public async Task<ActionResult<object>> BoardProblem(string slug, [FromQuery] string? theme, [FromQuery] int? w = null)
     {
         var problem = await _db.Problems.Include(p => p.TestCases).Include(p => p.Group)
             .FirstOrDefaultAsync(p => p.Slug == slug);
@@ -62,12 +62,12 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return await ProtectedImageAsync($"b{problemId}", problem.StatementMarkdown, samples, theme);
+        return await ProtectedImageAsync($"b{problemId}", problem.StatementMarkdown, samples, theme, w);
     }
 
     /// <summary>Practice (public bank) problem statement — always protected.</summary>
     [HttpGet("api/practice/{slug}/statement")]
-    public async Task<ActionResult<object>> PracticeProblem(string slug, [FromQuery] string? theme)
+    public async Task<ActionResult<object>> PracticeProblem(string slug, [FromQuery] string? theme, [FromQuery] int? w = null)
     {
         var problem = await _db.BankProblems.Include(p => p.TestCases)
             .FirstOrDefaultAsync(p => p.Slug == slug && (p.IsPublic || p.OwnerId == UserId));
@@ -79,11 +79,11 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             .OrderBy(t => t.Position).ThenBy(t => t.Id)
             .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
 
-        return await ProtectedImageAsync($"k{id}", problem.StatementMarkdown, samples, theme);
+        return await ProtectedImageAsync($"k{id}", problem.StatementMarkdown, samples, theme, w);
     }
 
     private async Task<object> ProtectedImageAsync(string idKey, string markdown,
-        List<(string Stdin, string ExpectedStdout)> samples, string? theme)
+        List<(string Stdin, string ExpectedStdout)> samples, string? theme, int? cssWidth)
     {
         var ids = ImagesController.RefsIn(markdown).ToList();
         var pictures = ids.Count == 0 ? new Dictionary<string, byte[]>()
@@ -96,7 +96,7 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
             markdown + "\0" + string.Join("", samples.Select(s => s.Stdin + "\0" + s.ExpectedStdout)))))[..16];
         var cacheKey = $"{idKey}:{fingerprint}:{(dark ? "d" : "l")}";
 
-        var image = _images.RenderImage(cacheKey, markdown, samples, watermark, dark, pictures);
+        var image = _images.RenderImage(cacheKey, markdown, samples, watermark, dark, pictures, StatementImageService.WidthFor(cssWidth));
 
         // AES-256-GCM; fresh key + nonce per request, delivered in the same authenticated response.
         var key = RandomNumberGenerator.GetBytes(32);
