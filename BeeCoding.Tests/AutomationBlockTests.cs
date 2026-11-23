@@ -19,7 +19,7 @@ public class AutomationBlockTests
         (await kid.PostAsJsonAsync("/api/auth/register", new { email = "kid@test.dev", password = "Passw0rd!x1", displayName = "Budi", role = "Student" })).EnsureSuccessStatusCode();
         var teacher = app.CreateClient();
         (await teacher.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
-        int problemId, bankId;
+        string problemId, bankId;
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -29,8 +29,8 @@ public class AutomationBlockTests
             var bank = new BankProblem { OwnerId = owner.Id, Title = "Pub", StatementMarkdown = "s", IsPublic = true };
             db.BankProblems.Add(bank);
             await db.SaveChangesAsync();
-            problemId = (await db.Problems.FirstAsync(p => p.BoardId == board.Id)).Id;
-            bankId = bank.Id;
+            problemId = (await db.Problems.FirstAsync(p => p.BoardId == board.Id)).Slug;
+            bankId = bank.Slug;
         }
 
         HttpRequestMessage Get(string url, string? flags) { var r = new HttpRequestMessage(HttpMethod.Get, url); if (flags is not null) r.Headers.Add("X-Client-Flags", flags); return r; }

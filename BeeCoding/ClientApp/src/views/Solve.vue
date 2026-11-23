@@ -373,7 +373,7 @@ onBeforeUnmount(async () => {
       </p>
 
       <ContentGuard :active="true" :watermark="''">
-        <StatementImage :problem-id="pid" />
+        <StatementImage :problem-slug="props.problemSlug" />
       </ContentGuard>
 
       <div v-if="samples.length" class="mt-3 flex items-center gap-2 flex-wrap">

@@ -34,13 +34,13 @@ public class DataAccessTests
         var ownerHttp = app.CreateClient();
         (await ownerHttp.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.OK, (await ownerHttp.GetAsync($"/api/practice/{slug}")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await ownerHttp.GetAsync($"/api/practice/{id}/statement")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ownerHttp.GetAsync($"/api/practice/{slug}/statement")).StatusCode);
         Assert.DoesNotContain(slug, await ownerHttp.GetStringAsync("/api/practice"));
 
         var other = app.CreateClient();
         (await other.PostAsJsonAsync("/api/auth/register", new { email = "other@test.dev", password = "Passw0rd!x1", displayName = "Other", role = "Student" })).EnsureSuccessStatusCode();
         Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/practice/{slug}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/practice/{id}/statement")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await other.GetAsync($"/api/practice/{slug}/statement")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await other.PostAsJsonAsync($"/api/practice/{slug}/submit", new { code = "int main(){}", language = "c" })).StatusCode);
     }
 

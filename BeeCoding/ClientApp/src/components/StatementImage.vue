@@ -6,13 +6,13 @@ import { theme as appTheme } from '../lib/theme';
 import { withBase } from '../lib/base';
 
 const props = defineProps({
-  problemId: { type: [String, Number], default: null },   // board problem
-  bankId: { type: [String, Number], default: null },      // practice (bank) problem
+  problemSlug: { type: String, default: null },   // board problem
+  bankSlug: { type: String, default: null },      // practice (bank) problem
 });
 const endpoint = () =>
-  withBase(props.bankId != null
-    ? `/api/practice/${props.bankId}/statement`
-    : `/api/problems/${props.problemId}/statement`);
+  withBase(props.bankSlug != null
+    ? `/api/practice/${encodeURIComponent(props.bankSlug)}/statement`
+    : `/api/problems/${encodeURIComponent(props.problemSlug)}/statement`);
 
 const src = ref('');
 const err = ref('');

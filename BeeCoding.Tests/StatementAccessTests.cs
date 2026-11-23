@@ -18,7 +18,7 @@ public class StatementAccessTests
         var kid = app.CreateClient();
         (await kid.PostAsJsonAsync("/api/auth/register", new { email = "probe@test.dev", password = "Passw0rd!x1", displayName = "Probe", role = "Student" })).EnsureSuccessStatusCode();
         (await kid.PostAsJsonAsync("/api/boards/join", new { code = "DEMO01" })).EnsureSuccessStatusCode();
-        int openId, hiddenId, notOpenId, hiddenGroupId;
+        string openId, hiddenId, notOpenId, hiddenGroupId;
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -33,9 +33,9 @@ public class StatementAccessTests
             var inHiddenGroup = new Problem { BoardId = board.Id, Title = "Soal di Grup Tersembunyi", StatementMarkdown = "x", GroupId = secretGroup.Id };
             db.Problems.AddRange(open, hidden, notOpen, inHiddenGroup);
             await db.SaveChangesAsync();
-            openId = open.Id; hiddenId = hidden.Id; notOpenId = notOpen.Id; hiddenGroupId = inHiddenGroup.Id;
+            openId = open.Slug; hiddenId = hidden.Slug; notOpenId = notOpen.Slug; hiddenGroupId = inHiddenGroup.Slug;
         }
-        async Task<HttpStatusCode> Statement(HttpClient c, int id) => (await c.GetAsync($"/api/problems/{id}/statement")).StatusCode;
+        async Task<HttpStatusCode> Statement(HttpClient c, string id) => (await c.GetAsync($"/api/problems/{id}/statement")).StatusCode;
 
         Assert.Equal(HttpStatusCode.OK, await Statement(kid, openId));
         Assert.Equal(HttpStatusCode.NotFound, await Statement(kid, hiddenId));
@@ -49,6 +49,7 @@ public class StatementAccessTests
 
         var outsider = app.CreateClient();      // not a member at all
         (await outsider.PostAsJsonAsync("/api/auth/register", new { email = "out@test.dev", password = "Passw0rd!x1", displayName = "Out", role = "Student" })).EnsureSuccessStatusCode();
-        Assert.Equal(HttpStatusCode.Forbidden, await Statement(outsider, openId));
+        Assert.Equal(HttpStatusCode.NotFound, await Statement(outsider, openId));   // same answer as for a problem that does not exist
+        Assert.Equal(HttpStatusCode.NotFound, await Statement(outsider, "zzzzzzzz"));
     }
 }

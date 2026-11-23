@@ -43,16 +43,18 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     /// Board problem statement + samples rendered to an image (no text reaches the client),
     /// returned with a per-viewer identity watermark baked in (wrapped with AES-GCM for transport).
     /// </summary>
-    [HttpGet("api/problems/{problemId:int}/statement")]
-    public async Task<ActionResult<object>> BoardProblem(int problemId, [FromQuery] string? theme)
+    [HttpGet("api/problems/{slug}/statement")]
+    public async Task<ActionResult<object>> BoardProblem(string slug, [FromQuery] string? theme)
     {
         var problem = await _db.Problems.Include(p => p.TestCases).Include(p => p.Group)
-            .FirstOrDefaultAsync(p => p.Id == problemId);
+            .FirstOrDefaultAsync(p => p.Slug == slug);
         if (problem is null) return NotFound();
+        var problemId = problem.Id;
+        // not a member: the same 404 as a problem that does not exist, so the answer says nothing about which problems exist
         var me = await _boards.GetMembershipAsync(problem.BoardId, UserId);
-        if (me is null) return Forbid();
+        if (me is null) return NotFound();
         // Same rule as the problem itself (ProblemsController.Get): a hidden problem, or one in a hidden / not-yet-open group, is
-        // not there for students — ids are sequential, so without this the statement and its samples could be read ahead of time.
+        // not there for students — slugs are not guessable but can leak (a shared link), so without this the statement and its samples could be read ahead of time.
         if (!_vis.IsStaff(me.Role) && !GroupAccess.StudentVisible(problem, DateTime.UtcNow)) return NotFound();
         if (await RefuseAutomationAsync("board", problemId, !_vis.IsStaff(me.Role)) is { } refused) return refused;
 
@@ -64,12 +66,13 @@ public class StatementController(AppDbContext db, BoardService boards, Statement
     }
 
     /// <summary>Practice (public bank) problem statement — always protected.</summary>
-    [HttpGet("api/practice/{id:int}/statement")]
-    public async Task<ActionResult<object>> PracticeProblem(int id, [FromQuery] string? theme)
+    [HttpGet("api/practice/{slug}/statement")]
+    public async Task<ActionResult<object>> PracticeProblem(string slug, [FromQuery] string? theme)
     {
         var problem = await _db.BankProblems.Include(p => p.TestCases)
-            .FirstOrDefaultAsync(p => p.Id == id && (p.IsPublic || p.OwnerId == UserId));
+            .FirstOrDefaultAsync(p => p.Slug == slug && (p.IsPublic || p.OwnerId == UserId));
         if (problem is null) return NotFound();
+        var id = problem.Id;
         if (await RefuseAutomationAsync("practice", id, CurrentRole == "Student") is { } refused) return refused;
 
         var samples = problem.TestCases.Where(t => t.IsSample)

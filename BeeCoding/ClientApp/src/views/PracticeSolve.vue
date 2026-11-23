@@ -280,7 +280,7 @@ onBeforeUnmount(async () => {
         <Icon name="lock" /> {{ tr('Protected problem — served as an image watermarked with your identity.') }}
       </p>
       <ContentGuard :active="true" :watermark="''">
-        <StatementImage :bank-id="pid" />
+        <StatementImage :bank-slug="props.slug" />
       </ContentGuard>
 
       <div v-if="problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
