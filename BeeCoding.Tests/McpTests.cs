@@ -63,7 +63,7 @@ public class McpTests
             Assert.Equal("2025-06-18", init.GetProperty("result").GetProperty("protocolVersion").GetString());
             await Rpc(app, token, new { jsonrpc = "2.0", method = "notifications/initialized" }, HttpStatusCode.Accepted);   // a notification: no body
             var list = await Rpc(app, token, new { jsonrpc = "2.0", id = 2, method = "tools/list" });
-            Assert.Equal(new[] { "board_progress", "students_at_risk", "session_summary", "problem_stats", "problem_issues", "lsp_usage" }, list.GetProperty("result").GetProperty("tools").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToArray());
+            Assert.Equal(new[] { "board_progress", "students_at_risk", "session_summary", "problem_stats", "student_progress", "hint_usage", "problem_issues", "lsp_usage" }, list.GetProperty("result").GetProperty("tools").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToArray());
 
             // the demo board: one student who solved one problem
             using (var scope = app.Services.CreateScope())
@@ -148,6 +148,26 @@ public class McpTests
             Assert.Contains("average 2.0", stats);                       // Ace needed 2 attempts
             Assert.Contains("WrongAnswer 6", stats);
             Assert.Contains("Tried: 1. Solved: 1", Text(await Rpc(app, token, Call("problem_stats", new { board = "DEMO01", problem = title2 }))));   // the one who left
+
+            var one = Text(await Rpc(app, token, Call("student_progress", new { board = "DEMO01", student = "ace" })));
+            Assert.Contains("Ace on", one);
+            Assert.Contains("solved 1 of", one);
+            Assert.Contains($"- {title1}: Accepted, 2 attempts", one);
+            Assert.Contains($"- {title2}: not tried", one);
+            Assert.True((await Rpc(app, token, Call("student_progress", new { board = "DEMO01", student = "nobody" }))).GetProperty("result").GetProperty("isError").GetBoolean());
+
+            Assert.Contains("No student asked for a hint", Text(await Rpc(app, token, Call("hint_usage", new { board = "DEMO01" }))));
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var pid = (await db.Problems.FirstAsync(p => p.Title == title1)).Id;
+                var stuckId = (await db.Users.FirstAsync(u => u.Email == "Stuck@t.dev")).Id;
+                db.AiHintProgresses.Add(new AiHintProgress { UserId = stuckId, ProblemKey = $"board:{pid}", Count = 3, UpdatedAt = DateTime.UtcNow });
+                await db.SaveChangesAsync();
+            }
+            var hints = Text(await Rpc(app, token, Call("hint_usage", new { board = "DEMO01" })));
+            Assert.Contains($"- {title1}: 1, level 3", hints);
+            Assert.Contains("- Stuck: 1 problems, deepest level 3", hints);
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
     }
