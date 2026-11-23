@@ -644,6 +644,10 @@ public class AdminUiController(
         return new AdminJudgeLatencyDto(hours, _judgeOpt.MaxConcurrent, pending, all.Count, Math.Round(P95(all), 2), buckets, stuck.Count, oldest);
     }
 
+    /// <summary>Students with a clangd editor attached over the last N hours — see <see cref="LspUsageSampler.ReportAsync"/>.</summary>
+    [HttpGet("system/lsp-usage")]
+    public async Task<ActionResult<LspUsageDto>> LspUsage([FromQuery] int hours = 24) => await LspUsageSampler.ReportAsync(_db, hours);
+
     [HttpGet("system/sysstat")]
     public async Task<ActionResult<SysstatResultDto>> Sysstat([FromQuery] string metric = "cpu", [FromQuery] int daysAgo = 0)
     {

@@ -329,6 +329,7 @@ builder.Services.AddHostedService<DeletedUserJanitor>();
 builder.Services.AddHostedService<GroupScheduleNotifier>();
 builder.Services.AddHostedService<StatementImageJanitor>();
 builder.Services.AddHostedService<AuditLogJanitor>();
+builder.Services.AddHostedService<LspUsageSampler>();
 builder.Services.AddHostedService<AiReviewJanitor>();
 builder.Services.AddHostedService<BeeCoding.Services.Lti.LtiSyncRetryJanitor>();
 builder.Services.AddHostedService<BoardOnlyJanitor>();
@@ -337,6 +338,7 @@ builder.Services.AddHostedService<BeeCoding.Services.Similarity.EmbeddingBackfil
 
 builder.Services.AddScoped<VisibilityService>();
 builder.Services.AddScoped<BoardService>();
+builder.Services.AddScoped<BeeCoding.Services.Mcp.McpServer>();
 builder.Services.AddScoped<BoardBulkService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));

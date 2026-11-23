@@ -23,6 +23,9 @@ public sealed class LspBridge
     private sealed record Mine(CancellationTokenSource Replaced, TaskCompletionSource Done);
     private readonly ConcurrentDictionary<(string, string), Mine> _byUser = new();
 
+    /// <summary>People with an editor attached right now (a person with C and C++ open counts once).</summary>
+    public int AttachedStudents => _byUser.Keys.Select(k => k.Item1).Distinct().Count();
+
     public LspBridge(IOptions<LspOptions> opt, SharedClangd shared, ILogger<LspBridge> log)
     {
         _opt = opt.Value;

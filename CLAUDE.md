@@ -214,6 +214,14 @@ One switch, `Realtime:Backend` = `memory` (default, ONE instance, no Redis) or `
 `RuntimeCacheLoader.LoadAsync` is the ONLY place that fills the in-memory copies of admin-edited settings (admin emails, AI settings/providers, LTI origins, `PlatformRuntimeConfig`); startup calls it, and `RuntimeCacheRefresher` calls it every `Realtime:ConfigRefreshSeconds`
 (default 15 with Redis, 0 without). A new admin-editable cache goes in the loader, not in `Program.cs`. Still per instance: `AiController._generating`, `PracticeController._aiCache`, the 10 s session recheck. Tests: `SharedStateTests` (memory always; Redis when `BEECODING_TEST_REDIS=host:port`, any Redis, e.g. `pip install redislite` brings a binary).
 
+### MCP (read-only, for teachers)
+
+`POST /mcp` (`McpController` + `Services/Mcp/McpServer`, hand-written JSON-RPC, stateless streamable HTTP, `Mcp:Enabled` default true) lets a teacher connect an AI assistant to their own boards. Signed in ONLY by a personal access token (`ApiToken`: SHA-256 kept, text shown once, 5 per teacher, 90 days, created in Account → "Connect an AI assistant" after re-entering the password, `ApiTokensController`); the cookie is ignored and a student or deleted owner is refused. Three read tools: `board_progress`, `problem_issues`, `lsp_usage` (platform admins). They go through `BoardService.BuildProgressAsync` and the board-staff checks, return names and counts only (no email, code or statements), and cut and mark student-written report text as data (prompt-injection). Bad guesses are counted per IP before the lookup, 60 calls a minute per token.
+
+### IntelliSense use history
+
+`LspUsageSampler` (every minute, per instance, no `JobLock`) writes an `LspUsageSample` (`At` minute, `Host`, `Students` = distinct people attached via `LspBridge.AttachedStudents`, `Processes` = shared clangd processes) only while someone is attached plus the minute it drops to zero; rows older than 30 days are deleted hourly. `GET /api/admin-ui/system/lsp-usage?hours=` sums instances per minute and thins long windows to the busiest minute of 5/15; chart in Admin → System. The live "x / y attached" in the settings is still only the instant.
+
 ### Judge busy + LTI grade retry
 
 The in-process judge channel is bounded (`Judge:QueueCapacity`) and in Wait mode, so a full one would leave a submit hanging: `SubmissionsController.Submit` / `PracticeController.Submit` ask `JudgeQueueStats.IsFull` first and answer 503 "The judge is busy" before any row or cool-down slot is used (the Redis list is unbounded, never "full").

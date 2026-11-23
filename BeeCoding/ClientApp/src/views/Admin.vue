@@ -903,9 +903,25 @@ async function loadSystemStatus() {
   try {
     systemStatus.value = await api.get('/api/admin-ui/system-status');
     if (systemStatus.value.sysstatInstalled) { loadSysstat(); loadSysstatDaily(); }
+    loadLspUsage();
     loadLatency();
   } catch (e) { err.value = e.message; }
 }
+
+// ---- IntelliSense (clangd) use: students attached per minute, recorded by the server (LspUsageSampler) ----
+const LSP_HOURS = [[24, 'Last 24 hours'], [72, 'Last 3 days'], [168, 'Last 7 days'], [720, 'Last 30 days']];
+const LSP_HOURS_KEY = 'beecoding.admin.lspUsageHours';
+const lspUsageHours = ref((() => { try { return Number(localStorage.getItem(LSP_HOURS_KEY)) || 24; } catch { return 24; } })());
+const lspUsage = ref(null);
+async function loadLspUsage() {
+  try { lspUsage.value = await api.get(`/api/admin-ui/system/lsp-usage?hours=${lspUsageHours.value}`); }
+  catch { lspUsage.value = null; }
+}
+function setLspUsageHours() {
+  try { localStorage.setItem(LSP_HOURS_KEY, String(lspUsageHours.value)); } catch { /* ignore */ }
+  loadLspUsage();
+}
+const lspUsagePoints = () => (lspUsage.value?.points || []).map((p) => ({ label: hourLabel(p.time), value: p.students }));
 
 // ---- judge latency: time from submit to verdict, per hour (queue wait + compile + run) ----
 const LATENCY_KEY = 'beecoding.admin.judgeLatencyHours';
@@ -2177,6 +2193,21 @@ onMounted(async () => {
           <MiniLineChart v-if="sysstatDaily?.days?.length" :title="tr('Average vs peak %')" name="Avg" :points="dailyPoints('avg')"
                          :second="{ name: 'Peak', color: '#ef4444', points: dailyPoints('max') }" />
           <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No saved data yet.') }}</p>
+        </div>
+
+        <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2 mb-2 flex-wrap">
+            <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ tr('IntelliSense use — students with an editor attached') }}</h3>
+            <select v-model.number="lspUsageHours" @change="setLspUsageHours" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
+              <option v-for="h in LSP_HOURS" :key="h[0]" :value="h[0]">{{ tr(h[1]) }}</option>
+            </select>
+          </div>
+          <p v-if="lspUsage?.points?.length" class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">
+            {{ tr('Peak: {n} at once, {when}.', { n: lspUsage.peakStudents, when: hourLabel(lspUsage.peakAt) }) }}
+            {{ tr('Recorded once a minute while anyone is attached; the time axis skips the idle stretches.') }}
+          </p>
+          <MiniLineChart v-if="lspUsage?.points?.length" :title="tr('Students attached')" :points="lspUsagePoints()" />
+          <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No IntelliSense use recorded in this period yet.') }}</p>
         </div>
 
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">

@@ -244,6 +244,44 @@ namespace BeeCoding.Migrations
                     b.ToTable("AiUserSettings");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.ApiToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ApiTokens");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.AuditLogEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -827,6 +865,33 @@ namespace BeeCoding.Migrations
                     b.HasIndex("JourneyId");
 
                     b.ToTable("JourneyWorlds");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.LspUsageSample", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Processes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Students")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.ToTable("LspUsageSamples");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.LtiPlatform", b =>
@@ -2130,6 +2195,17 @@ namespace BeeCoding.Migrations
                 });
 
             modelBuilder.Entity("BeeCoding.Models.AiUserSetting", b =>
+                {
+                    b.HasOne("BeeCoding.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.ApiToken", b =>
                 {
                     b.HasOne("BeeCoding.Models.User", "User")
                         .WithMany()

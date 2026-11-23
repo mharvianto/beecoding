@@ -261,6 +261,46 @@ namespace BeeCoding.Migrations.Postgres
                     b.ToTable("AiUserSettings");
                 });
 
+            modelBuilder.Entity("BeeCoding.Models.ApiToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("ApiTokens");
+                });
+
             modelBuilder.Entity("BeeCoding.Models.AuditLogEntry", b =>
                 {
                     b.Property<int>("Id")
@@ -872,6 +912,35 @@ namespace BeeCoding.Migrations.Postgres
                     b.HasIndex("JourneyId");
 
                     b.ToTable("JourneyWorlds");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.LspUsageSample", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<int>("Processes")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Students")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("At");
+
+                    b.ToTable("LspUsageSamples");
                 });
 
             modelBuilder.Entity("BeeCoding.Models.LtiPlatform", b =>
@@ -2231,6 +2300,17 @@ namespace BeeCoding.Migrations.Postgres
                 });
 
             modelBuilder.Entity("BeeCoding.Models.AiUserSetting", b =>
+                {
+                    b.HasOne("BeeCoding.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BeeCoding.Models.ApiToken", b =>
                 {
                     b.HasOne("BeeCoding.Models.User", "User")
                         .WithMany()

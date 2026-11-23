@@ -41,6 +41,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AiHintEvent> AiHintEvents => Set<AiHintEvent>();
     public DbSet<BankProblemShare> BankProblemShares => Set<BankProblemShare>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
+    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+    public DbSet<LspUsageSample> LspUsageSamples => Set<LspUsageSample>();
     public DbSet<PlatformRuntimeSettings> PlatformRuntimeSettings => Set<PlatformRuntimeSettings>();
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
     public DbSet<AiProviderConfig> AiProviderConfigs => Set<AiProviderConfig>();
@@ -256,6 +258,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
         // No FK to Users: an audit row must survive the actor being purged.
         b.Entity<AuditLogEntry>().HasIndex(x => x.CreatedAt);
+        b.Entity<LspUsageSample>().HasIndex(x => x.At);
+        b.Entity<ApiToken>().HasIndex(x => x.TokenHash).IsUnique();
 
         b.Entity<AiUserSetting>().HasKey(x => x.UserId);
         b.Entity<AiUserSetting>()

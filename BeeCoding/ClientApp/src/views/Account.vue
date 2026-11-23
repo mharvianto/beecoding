@@ -13,6 +13,7 @@ import MfaSettings from '../components/MfaSettings.vue';
 import ConnectedAccounts from '../components/ConnectedAccounts.vue';
 import BadgeGrid from '../components/BadgeGrid.vue';
 import PasskeySettings from '../components/PasskeySettings.vue';
+import McpSettings from '../components/McpSettings.vue';
 import OrganizationSettings from '../components/OrganizationSettings.vue';
 import SnippetSettings from '../components/SnippetSettings.vue';
 import BrowserNotificationSettings from '../components/BrowserNotificationSettings.vue';
@@ -409,6 +410,8 @@ async function deleteAccount(force = false) {
         <PasskeySettings />
 
         <MfaSettings />
+
+        <McpSettings />
         </div>
 
         <!-- Danger zone -->

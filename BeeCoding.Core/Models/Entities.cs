@@ -1077,6 +1077,35 @@ public class BankProblemShare
 /// Actor/target are denormalized (email, label) so the row still reads sensibly after the
 /// actor or target account is itself deleted or purged.
 /// </summary>
+/// <summary>One minute of clangd (IntelliSense) use on one web instance, written by LspUsageSampler while anyone is attached
+/// (plus the minute it drops to zero). Students = distinct people with an editor attached; Processes = shared clangd processes here.</summary>
+/// <summary>A personal access token for the read-only MCP endpoint (<c>/mcp</c>): a teacher connects an AI assistant to their own
+/// boards with it. Only the SHA-256 of the token is kept (it is 256 random bits, so a plain hash is enough); the text is shown once.
+/// It carries the owner's rights, never more, and stops working at <see cref="ExpiresAt"/> or when its owner is deleted.</summary>
+public class ApiToken
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public User? User { get; set; }
+    [MaxLength(80)]
+    public string Name { get; set; } = "";
+    [MaxLength(64)]
+    public string TokenHash { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ExpiresAt { get; set; }
+    public DateTime? LastUsedAt { get; set; }
+}
+
+public class LspUsageSample
+{
+    public int Id { get; set; }
+    public DateTime At { get; set; }
+    [MaxLength(128)]
+    public string Host { get; set; } = "";
+    public int Students { get; set; }
+    public int Processes { get; set; }
+}
+
 public class AuditLogEntry
 {
     public int Id { get; set; }

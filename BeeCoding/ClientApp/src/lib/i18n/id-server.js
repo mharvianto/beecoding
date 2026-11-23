@@ -199,4 +199,6 @@ export default {
   "Not a public problem: {p0}": "Bukan soal publik: {p0}",
   "The Journey feature is switched off.": "Fitur Journey sedang dimatikan.",
   "The judge is busy right now — try again in a moment.": "Judge sedang sibuk — coba lagi sebentar lagi.",
+  "Give the token a name (up to 80 characters).": "Beri nama token (maksimal 80 karakter).",
+  "You can have at most {p0} tokens. Revoke one first.": "Maksimal {p0} token. Cabut salah satu dulu.",
 };
