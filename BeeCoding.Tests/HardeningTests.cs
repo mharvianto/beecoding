@@ -67,7 +67,11 @@ public class HardeningTests
         await Task.Delay(400);   // the hub allows one draft per ~250 ms per connection
         await Send("{\"type\":1,\"invocationId\":\"2\",\"target\":\"PushDraft\",\"arguments\":[" + boardId + "," + mine + ",\"int main(){}\"]}"); await Until("\"invocationId\":\"2\"");
 
+        await Task.Delay(400);
+        await Send("{\"type\":1,\"invocationId\":\"3\",\"target\":\"PushDraft\",\"arguments\":[" + boardId + ",0,\"int main(){}\"]}"); await Until("\"invocationId\":\"3\"");   // Live Code's scratch buffer
+
         var drafts = await app.Services.GetRequiredService<IDraftStore>().ForBoardAsync(boardId);
+        Assert.Contains(drafts, d => d.ProblemId == 0);
         Assert.Contains(drafts, d => d.ProblemId == mine);
         Assert.DoesNotContain(drafts, d => d.ProblemId == foreign);
     }

@@ -548,7 +548,8 @@ public class OrgAdminController(AppDbContext db, OrgAccess access, AuditLog audi
             catch (Exception ex)
             {
                 _db.ChangeTracker.Clear();   // else the board that failed to save is retried — and fails again — on every later SaveChanges
-                resultRows.Add(new(title, false, null, ex.Message));
+                HttpContext.RequestServices.GetRequiredService<ILogger<OrgAdminController>>().LogWarning(ex, "bulk board create failed for {Title}", title);
+                resultRows.Add(new(title, false, null, "Could not create this board"));   // not ex.Message: it can name tables and columns
                 errors++;
             }
         }

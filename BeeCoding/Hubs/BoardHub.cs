@@ -65,7 +65,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
         var membership = await _db.BoardMemberships
             .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == UserId);
         if (membership is null) return;
-        if (!await _db.Problems.AnyAsync(p => p.Id == problemId && p.BoardId == boardId)) return;   // problemId is client-chosen: drafts exist only for this board's problems
+        if (problemId != 0 && !await _db.Problems.AnyAsync(p => p.Id == problemId && p.BoardId == boardId)) return;   // problemId is client-chosen: drafts exist only for this board's problems; 0 = the Live Code scratch buffer
         if (code is { Length: > 200_000 }) code = code[..200_000];
 
         var name = Context.User!.FindFirstValue(ClaimTypes.Name) ?? "user";
