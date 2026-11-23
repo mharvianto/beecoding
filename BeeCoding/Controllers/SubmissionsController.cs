@@ -32,7 +32,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (problem is null) return NotFound();
 
         var membership = await _boards.GetMembershipAsync(problem.BoardId, UserId);
-        if (membership is null) return Forbid();
+        if (membership is null) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
         bool staffSubmitter = _vis.IsStaff(membership.Role) || IsAdminUser(_admin);
         var now = DateTime.UtcNow;
         if (!staffSubmitter && !GroupAccess.StudentVisible(problem, now)) return NotFound();
@@ -91,7 +91,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
         bool isAdmin = IsAdminUser(_admin);
-        if (viewer is null && !isAdmin) return Forbid();
+        if (viewer is null && !isAdmin) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
         bool staff = viewer is not null ? _vis.IsStaff(viewer.Role) : isAdmin;
         // Same rule as the statement and submit paths: ids are sequential, so a hidden or not-yet-open problem must not be probed.
         if (!staff && !GroupAccess.StudentVisible(problem, DateTime.UtcNow)) return NotFound();
@@ -168,13 +168,13 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
 
         if (board is null) return NotFound();
         var viewer = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (viewer is null && !IsAdminUser(_admin) && !orgManages) return Forbid();
+        if (viewer is null && !IsAdminUser(_admin) && !orgManages) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         var author = board.Members.FirstOrDefault(m => m.UserId == s.UserId);
         if (!staff && s.Problem is not null && !GroupAccess.StudentVisible(s.Problem, DateTime.UtcNow)) return NotFound();
         bool exam = await GroupAccess.ExamModeAsync(_db, board, s.ProblemId);
-        if (author is null || !_vis.CanSeePeerRow(UserId, staff, exam, author)) return Forbid();
-        if (!staff && _vis.IsStaff(author.Role)) return Forbid();
+        if (author is null || !_vis.CanSeePeerRow(UserId, staff, exam, author)) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
+        if (!staff && _vis.IsStaff(author.Role)) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
         bool full = _vis.CanSeePeerSubmission(UserId, staff, exam, author, s);
         return Mapping.ToDto(s, UserId, full, author.User!.DisplayName, isStaff: staff, previousSubmissionId: previousId, nextSubmissionId: nextId);
     }
@@ -186,7 +186,7 @@ public class SubmissionsController(AppDbContext db, BoardService boards, Visibil
         var s = await _db.Submissions.Include(x => x.User).Include(x => x.Problem)
             .FirstOrDefaultAsync(x => x.Id == id);
         if (s is null) return NotFound();
-        if (s.UserId != UserId) return Forbid();
+        if (s.UserId != UserId) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         s.HiddenByStudent = dto.HiddenByStudent;
         await _db.SaveChangesAsync();

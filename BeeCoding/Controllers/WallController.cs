@@ -37,7 +37,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         if (problem is null) return NotFound();
         var membership = await _db.BoardMemberships
             .FirstOrDefaultAsync(m => m.BoardId == problem.BoardId && m.UserId == UserId);
-        if (membership is null) return Forbid();
+        if (membership is null) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.ProblemId == problemId && p.UserId == UserId);
         if (post is null)
@@ -55,7 +55,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
     {
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
         if (post is null) return NotFound();
-        if (post.UserId != UserId) return Forbid();
+        if (post.UserId != UserId) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         post.Note = (dto.Note ?? "").Trim();
         if (post.Note.Length > 500) post.Note = post.Note[..500];
@@ -71,7 +71,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
     {
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
         if (post is null) return NotFound();
-        if (post.UserId != UserId) return Forbid();
+        if (post.UserId != UserId) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         post.HiddenByStudent = dto.HiddenByStudent;
         post.UpdatedAt = DateTime.UtcNow;
@@ -90,7 +90,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
     {
         var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
         if (post is null) return NotFound();
-        if (post.UserId != UserId) return Forbid();
+        if (post.UserId != UserId) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         post.ActivitySeenAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
@@ -106,7 +106,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         var (post, board, viewer, author, _) = await _wall.LoadPostContextAsync(postId, UserId);
         if (post is null || board is null || viewer is null || author is null) return NotFound();
         bool staff = _vis.IsStaff(viewer.Role);
-        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return Forbid();
+        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         var existing = await _db.PostReactions
             .FirstOrDefaultAsync(r => r.PostId == postId && r.UserId == UserId && r.Emoji == emoji);
@@ -140,7 +140,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         var (post, board, viewer, author, _) = await _wall.LoadPostContextAsync(postId, UserId);
         if (post is null || board is null || viewer is null || author is null) return NotFound();
         bool staff = _vis.IsStaff(viewer.Role);
-        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return Forbid();
+        if (!_wall.CanViewPost(await GroupAccess.ExamModeAsync(_db, board, post.ProblemId), UserId, staff, author, post)) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         var c = new PostComment { PostId = postId, UserId = UserId, Body = body };
         _db.PostComments.Add(c);
@@ -160,7 +160,7 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
         if (c is null) return NotFound();
 
         bool isBoardOwner = await _db.Boards.AnyAsync(b => b.Id == c.Post!.BoardId && b.OwnerId == UserId);
-        if (c.UserId != UserId && !isBoardOwner) return Forbid();
+        if (c.UserId != UserId && !isBoardOwner) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         _db.PostComments.Remove(c);
         await _db.SaveChangesAsync();

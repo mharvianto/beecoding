@@ -513,7 +513,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
         // Staff-ness here means "has admin/org-manage capability over this author" — not
         // granted just by "mine" (see Mapping.ToDto), same principle as the board side.
         bool isStaff = IsAdminUser(_admin) || await _orgAccess.CanManageMemberAsync(UserId, ActorEmail, s.UserId);
-        if (s.UserId != UserId && !isStaff) return Forbid();
+        if (s.UserId != UserId && !isStaff) return NotFound();   // not Forbid: ids are sequential, a 403 would tell which ones exist
 
         var previousId = await _db.BankSubmissions
             .Where(x => x.UserId == s.UserId && x.BankProblemId == s.BankProblemId && x.Id < s.Id)

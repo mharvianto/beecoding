@@ -42,7 +42,7 @@ public class SecurityFixTests
 
         Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync($"/api/problems/{hiddenId}/submissions")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync($"/api/submissions/{teacherOnHidden}")).StatusCode);
-        Assert.Equal(HttpStatusCode.Forbidden, (await kid.GetAsync($"/api/submissions/{teacherOnOpen}")).StatusCode);   // visible problem, but staff code stays staff-only
+        Assert.Equal(HttpStatusCode.NotFound, (await kid.GetAsync($"/api/submissions/{teacherOnOpen}")).StatusCode);   // visible problem, but staff code stays staff-only (a 404, so it does not say the id exists)
         var listed = await kid.GetStringAsync($"/api/problems/{openId}/submissions");
         Assert.DoesNotContain("REFERENCE-OPEN", listed);
         Assert.Contains("PEER-CODE", listed);                                                                            // peers' solutions keep working as before
