@@ -23,7 +23,6 @@ namespace BeeCoding.Controllers;
 public class McpController(AppDbContext db, McpServer server, AdminAccess admin, ICounterStore counters, IConfiguration cfg) : ControllerBase
 {
     private const int MaxBodyBytes = 64 * 1024;
-    private static readonly TimeSpan BadWindow = TimeSpan.FromMinutes(10);
 
     public static string Hash(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
 
@@ -36,18 +35,16 @@ public class McpController(AppDbContext db, McpServer server, AdminAccess admin,
     {
         if (!cfg.GetValue("Mcp:Enabled", true)) return NotFound();
 
-        var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "?";
         var header = Request.Headers.Authorization.ToString();
         var bearer = header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? header[7..].Trim() : "";
-        // count a guess BEFORE looking it up, like LoginThrottle: a burst of parallel guesses must not all pass
-        if (bearer.Length == 0 || counters.Increment("mcp-bad:" + ip, BadWindow) > 30) return Denied();
+        if (bearer.Length == 0) return Denied();
 
         var hash = Hash(bearer);
         var now = DateTime.UtcNow;
         var tok = await db.ApiTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.TokenHash == hash);
         var u = tok?.User;
-        if (tok is null || u is null || tok.ExpiresAt <= now || u.DeletedAt != null || u.IsSystem || u.Role == UserRole.Student) return Denied();
-        counters.Remove("mcp-bad:" + ip);
+        if (tok is null || u is null || tok.ExpiresAt <= now || u.DeletedAt != null || u.IsSystem || u.Role == UserRole.Student)
+            return Denied();   // no per-IP guess counter: a token is 192 random bits, and one noisy guesser must not lock out every teacher behind a school's shared IP
 
         if (counters.Increment("mcp:" + tok.Id, TimeSpan.FromMinutes(1)) > 60) return StatusCode(StatusCodes.Status429TooManyRequests, "Too many requests.");
         if (tok.LastUsedAt is null || now - tok.LastUsedAt > TimeSpan.FromMinutes(5))

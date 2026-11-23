@@ -22,8 +22,8 @@ namespace BeeCoding.Controllers;
 /// host root forwarded (DEPLOY.md).
 /// </summary>
 [ApiController]
-[AllowAnonymous]
-public class OAuthController(AppDbContext db, ICounterStore counters, IConfiguration cfg, AdminAccess admin) : ApiControllerBase
+[Authorize]   // only the two api/oauth/* actions need a signed-in teacher; the protocol endpoints are marked [AllowAnonymous] one by one
+public class OAuthController(AppDbContext db, ICounterStore counters, IConfiguration cfg) : ApiControllerBase
 {
     private const string Scope = "mcp:read";
     private static readonly TimeSpan CodeLife = TimeSpan.FromMinutes(5), AccessLife = TimeSpan.FromHours(1), RefreshLife = TimeSpan.FromDays(60);
@@ -37,6 +37,7 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
 
     // ---------- discovery ----------
 
+    [AllowAnonymous]
     [HttpGet(".well-known/oauth-protected-resource")]
     public IActionResult ResourceMetadata() => !Enabled ? NotFound() : Ok(new JsonObject
     {
@@ -46,6 +47,7 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
         ["scopes_supported"] = new JsonArray(Scope),
     });
 
+    [AllowAnonymous]
     [HttpGet(".well-known/oauth-authorization-server")]
     [HttpGet(".well-known/openid-configuration")]   // the form clients try for an issuer that has a path
     public IActionResult ServerMetadata() => !Enabled ? NotFound() : Ok(new JsonObject
@@ -76,6 +78,7 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
 
     // ---------- registration (RFC 7591) ----------
 
+    [AllowAnonymous]
     [HttpPost("oauth/register")]
     public async Task<IActionResult> Register([FromBody] JsonObject body)
     {
@@ -87,7 +90,9 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
         var method = body["token_endpoint_auth_method"]?.GetValue<string>();
         if (method is not (null or "none")) return Err("invalid_client_metadata", "Only public clients (token_endpoint_auth_method none) are supported.");
 
-        var cutoff = DateTime.UtcNow.AddDays(-7);   // registrations nobody ever authorized do not pile up
+        var cutoff = DateTime.UtcNow.AddDays(-1);   // registrations nobody ever authorized do not pile up (a flood cannot hold the 2000 slots for long)
+        var dead = DateTime.UtcNow.AddDays(-30);    // connections whose refresh (or, for a hand-made token, access) lifetime ended a month ago
+        await db.ApiTokens.Where(t => (t.RefreshExpiresAt ?? t.ExpiresAt) < dead).ExecuteDeleteAsync();
         await db.OAuthClients.Where(c => c.CreatedAt < cutoff && !db.ApiTokens.Any(t => t.ClientId == c.ClientId)).ExecuteDeleteAsync();
         if (await db.OAuthClients.CountAsync() >= 2000) return Err("invalid_client_metadata", "Registration is full. Try later.", 503);
 
@@ -109,6 +114,7 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
 
     /// <summary>The browser lands here from the assistant. Bad client or redirect → a plain error page (never redirect to an unchecked address);
     /// otherwise on to the consent page of the app, which needs a signed-in teacher.</summary>
+    [AllowAnonymous]
     [HttpGet("oauth/authorize")]
     public async Task<IActionResult> Authorize([FromQuery(Name = "client_id")] string? clientId, [FromQuery(Name = "redirect_uri")] string? redirectUri)
     {
@@ -125,7 +131,6 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
     }
 
     [HttpGet("api/oauth/client")]
-    [Authorize]
     public async Task<IActionResult> ClientInfo([FromQuery] string? clientId, [FromQuery] string? redirectUri)
     {
         var c = Enabled ? await FindClientAsync(clientId, redirectUri) : null;
@@ -137,7 +142,6 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
     /// <summary>The consent page's answer. Same-origin POST with the session cookie (CSRF-checked like every other), so only a click on
     /// our own page can grant access.</summary>
     [HttpPost("api/oauth/authorize")]
-    [Authorize]
     public async Task<IActionResult> Decide(DecisionDto dto)
     {
         if (!Enabled) return NotFound();
@@ -167,6 +171,7 @@ public class OAuthController(AppDbContext db, ICounterStore counters, IConfigura
 
     // ---------- token ----------
 
+    [AllowAnonymous]
     [HttpPost("oauth/token")]
     public async Task<IActionResult> Token()
     {
