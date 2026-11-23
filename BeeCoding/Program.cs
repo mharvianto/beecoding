@@ -50,10 +50,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(o =>
     }
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new UtcJsonDateTimeConverter()));
 // The hub accepts a student's whole editor buffer (up to 200,000 characters, see BoardHub.PushDraft); SignalR's own default of 32 KB
 // per message would close the connection on a pasted file of that size, over and over as each keystroke pushes it again.
-builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 512 * 1024);
+builder.Services.AddSignalR(o => o.MaximumReceiveMessageSize = 512 * 1024)
+    .AddJsonProtocol(o => o.PayloadSerializerOptions.Converters.Add(new UtcJsonDateTimeConverter()));
 builder.Services.AddMemoryCache();
 
 // Data Protection seals the login cookie, MFA tickets and (SecretBox) the secrets in the database. Its keys must survive a restart, or every

@@ -173,6 +173,21 @@ public class McpTests
     }
 
     [Fact]
+    public async Task Times_leave_the_api_as_UTC_with_a_Z_so_a_browser_does_not_read_them_as_local()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var teacher = await Login(app, "teacher@demo.test");
+            await NewToken(teacher);
+            var created = (await teacher.GetFromJsonAsync<JsonElement>("/api/me/api-tokens"))[0].GetProperty("createdAt").GetString()!;
+            Assert.EndsWith("Z", created);   // SQLite returns the value with kind "unspecified": without the converter there is no Z
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    [Fact]
     public async Task Changing_the_password_ends_every_token()
     {
         Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
