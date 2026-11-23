@@ -99,6 +99,22 @@ public class McpTests
     }
 
     [Fact]
+    public async Task Changing_the_password_ends_every_token()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var teacher = await Login(app, "teacher@demo.test");
+            var token = await NewToken(teacher);
+            await Rpc(app, token, new { jsonrpc = "2.0", id = 1, method = "ping" });
+            (await teacher.PostAsJsonAsync("/api/auth/change-password", new { currentPassword = "password", newPassword = "N3w-Passw0rd!x" })).EnsureSuccessStatusCode();
+            await Rpc(app, token, new { jsonrpc = "2.0", id = 1, method = "ping" }, HttpStatusCode.Unauthorized);
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
+    }
+
+    [Fact]
     public async Task An_expired_token_and_the_off_switch_are_refused()
     {
         Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");

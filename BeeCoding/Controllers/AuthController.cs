@@ -200,6 +200,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
         user.PasswordHash = _pw.Hash(user, dto.NewPassword!);
         if (row.ProvesEmail) user.EmailVerifiedAt ??= DateTime.UtcNow;   // the link came to their mailbox
         await _db.SaveChangesAsync();
+        await _db.ApiTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();   // and every MCP token
         _cache.Remove(CookieSignIn.CacheKey(user.Id));   // every open session of this account now fails its next check
         await _resets.ConsumeAsync(row);
         _throttle.RecordSuccess(ClientIp, user.Email);   // a locked-out account can sign in again
@@ -253,6 +254,7 @@ public class AuthController(AppDbContext db, PasswordService pw, IConfiguration 
     /// session gets a fresh cookie and carries on.</summary>
     private async Task EndOtherSessionsAsync(User user)
     {
+        await _db.ApiTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();   // MCP tokens are credentials too: a new password ends them
         _cache.Remove(CookieSignIn.CacheKey(user.Id));
         await SignInAsync(user);
     }
