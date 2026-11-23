@@ -63,7 +63,7 @@ public class McpTests
             Assert.Equal("2025-06-18", init.GetProperty("result").GetProperty("protocolVersion").GetString());
             await Rpc(app, token, new { jsonrpc = "2.0", method = "notifications/initialized" }, HttpStatusCode.Accepted);   // a notification: no body
             var list = await Rpc(app, token, new { jsonrpc = "2.0", id = 2, method = "tools/list" });
-            Assert.Equal(new[] { "board_progress", "problem_issues", "lsp_usage" }, list.GetProperty("result").GetProperty("tools").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToArray());
+            Assert.Equal(new[] { "board_progress", "students_at_risk", "session_summary", "problem_stats", "problem_issues", "lsp_usage" }, list.GetProperty("result").GetProperty("tools").EnumerateArray().Select(t => t.GetProperty("name").GetString()).ToArray());
 
             // the demo board: one student who solved one problem
             using (var scope = app.Services.CreateScope())
@@ -96,6 +96,60 @@ public class McpTests
             await Rpc(app, token, new { jsonrpc = "2.0", id = 1, method = "ping" }, HttpStatusCode.Unauthorized);
         }
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); Environment.SetEnvironmentVariable("Auth__TeacherSignupCode", null); }
+    }
+
+    [Fact]
+    public async Task Risk_session_and_problem_tools_report_numbers_and_names_only()
+    {
+        Environment.SetEnvironmentVariable("Admin__Emails", "teacher@demo.test");
+        try
+        {
+            using var app = new TestApp();
+            var token = await NewToken(await Login(app, "teacher@demo.test"));
+            var now = DateTime.UtcNow;
+            string title1, title2;
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var board = await db.Boards.Include(b => b.Problems).FirstAsync(b => b.JoinCode == "DEMO01");
+                db.Problems.Add(new Problem { BoardId = board.Id, Title = "Second one", StatementMarkdown = "s", Position = 99 });
+                await db.SaveChangesAsync();
+                var ps = (await db.Problems.Where(p => p.BoardId == board.Id).ToListAsync()).OrderBy(p => p.Position).ThenBy(p => p.Id).Take(2).ToList();
+                (title1, title2) = (ps[0].Title, ps[1].Title);
+                User Make(string name) { var u = new User { Email = name + "@t.dev", DisplayName = name, PasswordHash = "x" }; db.Users.Add(u); return u; }
+                var stuck = Make("Stuck"); var ace = Make("Ace"); var gone = Make("Gone"); var never = Make("Never");
+                await db.SaveChangesAsync();
+                foreach (var u in new[] { stuck, ace, gone, never }) db.BoardMemberships.Add(new BoardMembership { BoardId = board.Id, UserId = u.Id, Role = MembershipRole.Student });
+                Submission S(User u, Problem p, Verdict v, DateTime at) => new() { UserId = u.Id, ProblemId = p.Id, Code = "//", Status = SubmissionStatus.Done, Verdict = v, CreatedAt = at };
+                for (int i = 0; i < 5; i++) db.Submissions.Add(S(stuck, ps[0], Verdict.WrongAnswer, now.AddMinutes(-30 + i)));
+                db.Submissions.Add(S(ace, ps[0], Verdict.WrongAnswer, now.AddMinutes(-20)));
+                db.Submissions.Add(S(ace, ps[0], Verdict.Accepted, now.AddMinutes(-10)));
+                db.Submissions.Add(S(gone, ps[1], Verdict.Accepted, now.AddDays(-10)));
+                await db.SaveChangesAsync();
+            }
+
+            var risk = Text(await Rpc(app, token, Call("students_at_risk", new { board = "DEMO01" })));
+            Assert.Contains("Stuck: 5+ attempts", risk);
+            Assert.Contains($"- Stuck: {title1} (5 attempts", risk);
+            Assert.Contains("- Gone: last submission", risk);          // inactive 10 days
+            Assert.Contains("Never submitted (1): Never", risk);
+            Assert.DoesNotContain("Ace:", risk);                        // solved it: not at risk
+            Assert.DoesNotContain("@t.dev", risk);
+
+            var session = Text(await Rpc(app, token, Call("session_summary", new { board = "DEMO01", from = now.AddHours(-1).ToString("o"), to = now.AddMinutes(1).ToString("o") })));
+            Assert.Contains("7 submissions from 2 of 4 students", session);
+            Assert.Contains($"- {title1}: 7, 2, 1", session);           // attempts, students, students accepted
+            Assert.Contains("IntelliSense: no use recorded", session);   // the admin gets it
+            Assert.True((await Rpc(app, token, Call("session_summary", new { board = "DEMO01", from = "not a time" }))).GetProperty("result").GetProperty("isError").GetBoolean());
+
+            var stats = Text(await Rpc(app, token, Call("problem_stats", new { board = "DEMO01", problem = title1 })));
+            Assert.Contains("Tried: 2. Solved: 1 (50%", stats);
+            Assert.Contains("Not started: 2.", stats);
+            Assert.Contains("average 2.0", stats);                       // Ace needed 2 attempts
+            Assert.Contains("WrongAnswer 6", stats);
+            Assert.Contains("Tried: 1. Solved: 1", Text(await Rpc(app, token, Call("problem_stats", new { board = "DEMO01", problem = title2 }))));   // the one who left
+        }
+        finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
     }
 
     [Fact]

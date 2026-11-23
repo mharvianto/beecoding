@@ -56,7 +56,7 @@ public class McpController(AppDbContext db, McpServer server, AdminAccess admin,
             await db.SaveChangesAsync();
         }
 
-        var reply = await server.HandleAsync(message, new McpCaller(u.Id, u.Email, admin.IsAdminEmail(u.Email)));
+        var reply = await server.HandleAsync(message, new McpCaller(u.Id, u.Email, admin.IsAdminEmail(u.Email), u.UtcOffsetMinutes));
         return reply is null ? Accepted() : Ok(reply);
     }
 
