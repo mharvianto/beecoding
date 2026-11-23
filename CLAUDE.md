@@ -287,6 +287,8 @@ gives a threshold that separates duplicates from same-topic problems — so it i
 (no provider, no kill switch/quota). The tokenizer is `Microsoft.ML.Tokenizers` sentencepiece with ids remapped to the XLM-R vocabulary (`ToModelIds`,
 checked against the Hugging Face tokenizer by a test that runs when `E5_MODEL_DIR` is set).
 
+AI problem generation is the one place that retrieval feeds a model (`AiController.NearestPublicAsync`): before `GenerateProblemAsync` it finds the 5 PUBLIC bank problems closest to the teacher's idea with the same finder, and the prompt lists their titles and tags (one line each, cut, marked as data) with "do not repeat any of them". Never statements, never a private or pending problem; a failure only means no hint. Not RAG over statements or solutions, and not used by the hint tutor on purpose (a similar solved problem would leak an approach).
+
 ### Practice default order
 
 `GET /api/practice` without `sort` orders by `PracticeRanking.Key`: level first, then easiest first by the full-AC rate pulled toward a per-level typical rate (`LevelPrior`, weight `PriorWeight` submissions), so one lucky submission does not top a well-tried problem and an untried one sits at its level’s typical spot; ties go to the most tried, then title. The priors are guesses, not measured on the production bank. The rate counts submissions, not people, and includes authors’ own tests. The explicit `sort` values (likes, submissions, acrate, acrate_asc) are unchanged.

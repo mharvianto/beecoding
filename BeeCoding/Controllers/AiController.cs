@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using BeeCoding.Data;
+using BeeCoding.Services.Similarity;
 using BeeCoding.Models;
 using BeeCoding.Services;
 using BeeCoding.Services.Ai;
@@ -136,6 +137,22 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         };
     }
 
+    /// <summary>"Title [tags]" of the 5 public problems closest to the idea, to keep the generator from writing a duplicate. A miss or a failure
+    /// here only means no hint — it never stops a generation. Public problems only: nobody's draft or pending problem leaves the database.</summary>
+    internal static async Task<List<string>> NearestPublicAsync(AppDbContext db, SimilarProblemFinder finder, string idea)
+    {
+        try
+        {
+            var others = (await db.BankProblems.Where(b => b.IsPublic).Select(b => new { b.Id, b.Slug, b.Title, b.StatementMarkdown, b.OwnerId, b.Tags }).ToListAsync())
+                .Select(b => new SimilarProblemFinder.Candidate(b.Id, b.Slug, b.Title, b.StatementMarkdown, true, b.OwnerId)).ToList();
+            var near = await finder.FindAsync("", idea, others, 0, 5);
+            var ids = near.Items.Select(i => i.Id).ToList();
+            var tags = await db.BankProblems.Where(b => ids.Contains(b.Id)).ToDictionaryAsync(b => b.Id, b => b.Tags);
+            return near.Items.Select(i => string.IsNullOrWhiteSpace(tags.GetValueOrDefault(i.Id)) ? i.Title : $"{i.Title} [{tags[i.Id]}]").ToList();
+        }
+        catch (Exception) { return []; }
+    }
+
     private async Task RunGenerateAsync(string jobId, int userId, string idea, string level, string wantLang, int count, string lang, int? organizationId, bool isStudent)
     {
         Task Fail(string msg, string? compilerOutput = null, string? stderr = null) =>
@@ -153,7 +170,8 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             var ct = CancellationToken.None;   // detached from the original request
 
             AiTutorService.AiGenResult gen;
-            try { gen = await ai.GenerateProblemAsync(idea, level, wantLang, count, lang, ct); }
+            var existing = await NearestPublicAsync(db, sp.GetRequiredService<SimilarProblemFinder>(), idea);
+            try { gen = await ai.GenerateProblemAsync(idea, level, wantLang, count, lang, ct, existing); }
             catch (AiUnavailableException ex) { await Fail(ex.Message); return; }
             await usage.RecordAsync(userId, gen.PromptTokens, gen.CompletionTokens, ct);
 
