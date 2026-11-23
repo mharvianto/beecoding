@@ -62,7 +62,8 @@ public class McpController(AppDbContext db, McpServer server, AdminAccess admin,
 
     private IActionResult Denied()
     {
-        Response.Headers.WWWAuthenticate = "Bearer";
+        // points an OAuth-capable client (claude.ai) at where to start the "Connect" flow (RFC 9728)
+        Response.Headers.WWWAuthenticate = $"Bearer resource_metadata=\"{PublicUrl.Build(cfg, Request, "/.well-known/oauth-protected-resource")}\"";
         return Unauthorized();
     }
 }

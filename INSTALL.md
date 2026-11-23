@@ -570,6 +570,18 @@ server {
 
 ---
 
+### 4) MCP + "Connect" di claude.ai di bawah sub-path
+
+Guru bisa menyambungkan asisten AI ke `/mcp` (README/CLAUDE.md: "MCP"). Lewat Claude Code cukup token pribadi (Akun → "Connect an AI assistant"). Tombol **Connect** di claude.ai memakai OAuth, dan di sana ada satu jebakan sub-path: klien mencari berkas *discovery* untuk issuer `https://example.com/beecoding` di akar host, di luar `/beecoding/`. Teruskan juga dua alamat itu ke backend:
+
+```nginx
+location = /.well-known/oauth-protected-resource/beecoding/mcp { proxy_pass http://beecoding/beecoding/.well-known/oauth-protected-resource; }
+location = /.well-known/oauth-authorization-server/beecoding   { proxy_pass http://beecoding/beecoding/.well-known/oauth-authorization-server; }
+```
+
+Atur `App:PublicUrl=https://example.com/beecoding` (dipakai sebagai issuer dan resource). Alamat balik yang diizinkan untuk klien OAuth: `https://claude.ai/api/mcp/auth_callback` dan `https://claude.com/api/mcp/auth_callback` (ganti dengan `Mcp:OAuthRedirects`), ditambah `http://localhost:*` untuk klien baris-perintah. `Mcp:Enabled=false` mematikan semuanya.
+
+
 ## 4D. Auto-deploy dengan GitHub Actions self-hosted runner
 
 Melengkapi prosedur update manual di §4A ("Update ke versi baru"). Alih-alih SSH manual

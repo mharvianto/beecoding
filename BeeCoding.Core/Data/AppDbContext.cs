@@ -42,6 +42,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<BankProblemShare> BankProblemShares => Set<BankProblemShare>();
     public DbSet<AuditLogEntry> AuditLogEntries => Set<AuditLogEntry>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+    public DbSet<OAuthCode> OAuthCodes => Set<OAuthCode>();
     public DbSet<LspUsageSample> LspUsageSamples => Set<LspUsageSample>();
     public DbSet<PlatformRuntimeSettings> PlatformRuntimeSettings => Set<PlatformRuntimeSettings>();
     public DbSet<AiSettings> AiSettings => Set<AiSettings>();
@@ -260,6 +262,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         b.Entity<AuditLogEntry>().HasIndex(x => x.CreatedAt);
         b.Entity<LspUsageSample>().HasIndex(x => x.At);
         b.Entity<ApiToken>().HasIndex(x => x.TokenHash).IsUnique();
+        b.Entity<ApiToken>().HasIndex(x => x.RefreshHash).IsUnique();
+        b.Entity<OAuthClient>().HasIndex(x => x.ClientId).IsUnique();
+        b.Entity<OAuthCode>().HasIndex(x => x.CodeHash).IsUnique();
 
         b.Entity<AiUserSetting>().HasKey(x => x.UserId);
         b.Entity<AiUserSetting>()

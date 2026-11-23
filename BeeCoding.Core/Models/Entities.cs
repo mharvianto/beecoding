@@ -1092,8 +1092,48 @@ public class ApiToken
     [MaxLength(64)]
     public string TokenHash { get; set; } = "";
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    /// <summary>Access-token expiry. A hand-made token lives 90 days; one issued through OAuth ("Connect" in claude.ai) one hour.</summary>
     public DateTime ExpiresAt { get; set; }
     public DateTime? LastUsedAt { get; set; }
+
+    /// <summary>Set for a connection made through OAuth (<see cref="OAuthClient.ClientId"/>): one row per person and app, its access
+    /// token is renewed with the refresh token (hash kept, rotated at every use) until <see cref="RefreshExpiresAt"/>.</summary>
+    [MaxLength(64)]
+    public string? ClientId { get; set; }
+    [MaxLength(64)]
+    public string? RefreshHash { get; set; }
+    public DateTime? RefreshExpiresAt { get; set; }
+}
+
+/// <summary>An app that registered itself (RFC 7591, <c>POST /oauth/register</c>) to ask a teacher for access to <c>/mcp</c>. A public
+/// client: no secret, every authorization is bound to a PKCE verifier. Redirect addresses are checked against an allow-list when it registers.</summary>
+public class OAuthClient
+{
+    public int Id { get; set; }
+    [MaxLength(64)]
+    public string ClientId { get; set; } = "";
+    [MaxLength(120)]
+    public string Name { get; set; } = "";
+    /// <summary>Exact redirect addresses, one per line.</summary>
+    [MaxLength(2000)]
+    public string RedirectUris { get; set; } = "";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+/// <summary>A one-time authorization code (hash only), valid 5 minutes, deleted when exchanged for tokens.</summary>
+public class OAuthCode
+{
+    public int Id { get; set; }
+    [MaxLength(64)]
+    public string CodeHash { get; set; } = "";
+    [MaxLength(64)]
+    public string ClientId { get; set; } = "";
+    public int UserId { get; set; }
+    [MaxLength(500)]
+    public string RedirectUri { get; set; } = "";
+    [MaxLength(128)]
+    public string CodeChallenge { get; set; } = "";
+    public DateTime ExpiresAt { get; set; }
 }
 
 public class LspUsageSample

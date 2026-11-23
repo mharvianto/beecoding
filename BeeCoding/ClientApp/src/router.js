@@ -14,6 +14,7 @@ const routes = [
   { path: '/privacy', component: () => import('./views/Privacy.vue'), meta: { public: true } },
   { path: '/terms', component: () => import('./views/Terms.vue'), meta: { public: true } },
   { path: '/design', component: () => import('./views/Design.vue'), meta: { public: true } },   // living style guide, static UI only
+  { path: '/oauth/consent', component: () => import('./views/OAuthConsent.vue') },   // an AI assistant asks a signed-in teacher for access
   { path: '/dashboard', redirect: '/account' },
   { path: '/boards', component: () => import('./views/Dashboard.vue') },
   { path: '/join/:code', component: () => import('./views/JoinBoard.vue'), props: true, meta: { keyed: true } },

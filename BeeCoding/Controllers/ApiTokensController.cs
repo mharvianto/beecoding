@@ -18,7 +18,7 @@ public class ApiTokensController(AppDbContext db, PasswordService pw, LoginThrot
     private const int Days = 90;
 
     public record CreateDto(string Name, string Password);
-    public record TokenDto(int Id, string Name, DateTime CreatedAt, DateTime ExpiresAt, DateTime? LastUsedAt);
+    public record TokenDto(int Id, string Name, DateTime CreatedAt, DateTime ExpiresAt, DateTime? LastUsedAt, bool Connected);
 
     private bool Allowed => cfg.GetValue("Mcp:Enabled", true) && CurrentRole == nameof(UserRole.Teacher);
 
@@ -27,7 +27,7 @@ public class ApiTokensController(AppDbContext db, PasswordService pw, LoginThrot
     {
         if (!Allowed) return NotFound();
         return await db.ApiTokens.Where(t => t.UserId == UserId).OrderBy(t => t.CreatedAt)
-            .Select(t => new TokenDto(t.Id, t.Name, t.CreatedAt, t.ExpiresAt, t.LastUsedAt)).ToListAsync();
+            .Select(t => new TokenDto(t.Id, t.Name, t.CreatedAt, t.RefreshExpiresAt ?? t.ExpiresAt, t.LastUsedAt, t.ClientId != null)).ToListAsync();   // a connection made with "Connect" is good as long as its refresh token is
     }
 
     [HttpPost]
@@ -43,7 +43,7 @@ public class ApiTokensController(AppDbContext db, PasswordService pw, LoginThrot
         if (!throttle.TryBegin(ip, key, strict: true)) return StatusCode(StatusCodes.Status429TooManyRequests, "Too many attempts. Try again in a few minutes.");
         if (pw.Reauth(user, dto.Password) is string err) return BadRequest(err);
         throttle.RecordSuccess(ip, key);
-        if (await db.ApiTokens.CountAsync(t => t.UserId == UserId) >= MaxTokens) return BadRequest($"You can have at most {MaxTokens} tokens. Revoke one first.");
+        if (await db.ApiTokens.CountAsync(t => t.UserId == UserId && t.ClientId == null) >= MaxTokens) return BadRequest($"You can have at most {MaxTokens} tokens. Revoke one first.");
 
         var token = "bcm_" + Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var row = new ApiToken { UserId = UserId, Name = name, TokenHash = McpController.Hash(token), ExpiresAt = DateTime.UtcNow.AddDays(Days) };

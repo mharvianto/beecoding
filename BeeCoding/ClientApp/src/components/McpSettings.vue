@@ -46,7 +46,7 @@ async function copy() {
     <h2 class="font-semibold text-sm">{{ tr('Connect an AI assistant') }}</h2>
     <div class="border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3">
       <p class="text-sm text-slate-500 dark:text-slate-400">
-        {{ tr('A token lets an AI assistant (for example Claude through MCP) read the progress of the boards you teach: names and counts only, never code or statements. It can only read, and only what you can see. Revoke it here at any time.') }}
+        {{ tr('A token lets an AI assistant (for example Claude through MCP) read the progress of the boards you teach: names and counts only, never code or statements. It can only read, and only what you can see. Revoke it here at any time. Apps you connected with "Connect" (for example in claude.ai) are listed here too.') }}
       </p>
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
 
@@ -59,6 +59,7 @@ async function copy() {
       <ul v-if="tokens.length" class="divide-y divide-slate-100 dark:divide-slate-800">
         <li v-for="t in tokens" :key="t.id" class="py-2 flex items-center gap-2 flex-wrap text-sm">
           <span class="font-medium">{{ t.name }}</span>
+          <span v-if="t.connected" class="text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ tr('connected app') }}</span>
           <span class="text-xs text-slate-500 dark:text-slate-400">
             {{ tr('created {a}, expires {b}, last used {c}', { a: when(t.createdAt), b: when(t.expiresAt), c: t.lastUsedAt ? when(t.lastUsedAt) : tr('never') }) }}
           </span>
