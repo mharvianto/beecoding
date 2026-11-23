@@ -36,6 +36,8 @@ const board = ref(null);
 const problem = ref(null);
 // internal id of the loaded problem — used for API calls / SignalR that key by int id
 const pid = computed(() => problem.value?.id);
+// Students get `sampleTests`; staff get the owner DTO (`testCases`), whose sample rows are the same thing.
+const samples = computed(() => problem.value?.sampleTests ?? (problem.value?.testCases || []).filter(t => t.isSample));
 // The statement is always the protected, watermarked image on this page — students and teachers alike, no per-board opt-out.
 // Staff read and change the text on the edit page (the "Edit problem" link in the header), the only place it is shown as text.
 const watermark = computed(() =>
@@ -154,7 +156,7 @@ async function load() {
     restoredAt.value = new Date(d.ts).toLocaleString();
   }
 
-  if (problem.value.sampleTests?.[0]) stdin.value = problem.value.sampleTests[0].stdin;
+  if (samples.value[0]) stdin.value = samples.value[0].stdin;
   await loadSubs();
   // Resume tracking a still-grading submission across a refresh/reopen — otherwise the
   // progress bar only ever shows up for the exact submit() call that started it.
@@ -374,9 +376,9 @@ onBeforeUnmount(async () => {
         <StatementImage :problem-id="pid" />
       </ContentGuard>
 
-      <div v-if="problem.sampleTests?.length" class="mt-3 flex items-center gap-2 flex-wrap">
+      <div v-if="samples.length" class="mt-3 flex items-center gap-2 flex-wrap">
         <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Load sample input:') }}</span>
-        <button v-for="(t, i) in problem.sampleTests" :key="i" @click="stdin = t.stdin"
+        <button v-for="(t, i) in samples" :key="i" @click="stdin = t.stdin"
                 class="text-xs px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 hover:border-amber-400">
           {{ tr('Sample {n}', { n: i + 1 }) }}
         </button>
