@@ -204,6 +204,30 @@ public class LspSharedTests
         finally { Environment.SetEnvironmentVariable("Admin__Emails", null); }
     }
 
+    private sealed class ListLogger : Microsoft.Extensions.Logging.ILogger<SharedClangd>
+    {
+        public readonly List<string> Warnings = [];
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel l) => true;
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel l, Microsoft.Extensions.Logging.EventId e, TState s, Exception? ex, Func<TState, Exception?, string> f)
+        { if (l == Microsoft.Extensions.Logging.LogLevel.Warning) Warnings.Add(f(s, ex)); }
+    }
+
+    [Fact]
+    public async Task A_hand_set_total_far_above_what_the_memory_pays_for_is_logged_once_and_a_refusal_says_why()
+    {
+        var log = new ListLogger();
+        await using var shared = new SharedClangd(Microsoft.Extensions.Options.Options.Create(new LspOptions { SharedMaxTotalSessions = 1_000_000, ClangdPath = "/nonexistent/clangd" }), log);
+        Assert.Null(await shared.OpenAsync("cpp", null));   // clangd cannot start here: refused, which is not what is under test
+        Assert.Null(await shared.OpenAsync("cpp", null));
+        Assert.Single(log.Warnings, w => w.Contains("SharedMaxTotalSessions"));
+
+        var quiet = new ListLogger();   // an automatic total never warns
+        await using var auto = new SharedClangd(Microsoft.Extensions.Options.Options.Create(new LspOptions { ClangdPath = "/nonexistent/clangd" }), quiet);
+        await auto.OpenAsync("cpp", null);
+        Assert.DoesNotContain(quiet.Warnings, w => w.Contains("SharedMaxTotalSessions"));
+    }
+
     [Fact]
     public void The_automatic_total_follows_the_memory_of_the_host_and_can_be_overridden()
     {

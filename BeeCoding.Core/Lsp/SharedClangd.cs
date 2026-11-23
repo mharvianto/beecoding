@@ -39,8 +39,25 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
 
     /// <summary>The most students attached at once: Lsp:SharedMaxTotalSessions, or what <see cref="LspOptions.SharedMemoryPercent"/>
     /// of this host's (or container's) memory pays for at <see cref="LspOptions.SharedSessionMemoryMb"/> each.</summary>
-    public int TotalCap => _opt.SharedMaxTotalSessions > 0 ? _opt.SharedMaxTotalSessions
-        : (int)Math.Clamp(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024) * _opt.SharedMemoryPercent / 100 / Math.Max(1, _opt.SharedSessionMemoryMb), 4, 100_000);
+    public int TotalCap => _opt.SharedMaxTotalSessions > 0 ? _opt.SharedMaxTotalSessions : AutoCap;
+
+    /// <summary>What the host's memory pays for (the automatic total, also the yardstick for a hand-set one).</summary>
+    private int AutoCap => (int)Math.Clamp(GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024) * _opt.SharedMemoryPercent / 100 / Math.Max(1, _opt.SharedSessionMemoryMb), 4, 100_000);
+
+    private int _checkedCap;
+
+    /// <summary>Once, when the first student attaches: a hand-set total above what the memory pays for is almost always a mistake (a 4 GB host set to 40 runs out of
+    /// memory with about 15 students, long before the cap refuses anyone), so say it in the log. Only a warning: the operator may know better (disk PCH, a big swap).</summary>
+    private void WarnIfCapExceedsMemory()
+    {
+        if (Interlocked.Exchange(ref _checkedCap, 1) == 1 || _opt.SharedMaxTotalSessions <= 0) return;
+        int auto = AutoCap;
+        if (_opt.SharedMaxTotalSessions <= auto) return;
+        long mb = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / (1024 * 1024);
+        _log.LogWarning("Lsp:SharedMaxTotalSessions is {Set} but this host's {Mb} MB pays for about {Auto} students at {Per} MB each ({Pct}% of memory). " +
+            "Past that the host may run out of memory before the cap refuses anyone; remove the setting to use {Auto}, or add memory.",
+            _opt.SharedMaxTotalSessions, mb, auto, _opt.SharedSessionMemoryMb, _opt.SharedMemoryPercent, auto);   // a name used twice takes its own argument, in order
+    }
 
     /// <summary>clangd processes running, over both languages.</summary>
     public int Processes => _hosts.Values.Count(l => l.IsValueCreated && l.Value.IsCompletedSuccessfully);
@@ -54,10 +71,33 @@ public sealed class SharedClangd(IOptions<LspOptions> opt, ILogger<SharedClangd>
         var lang = string.Equals(language, "c", StringComparison.OrdinalIgnoreCase) ? "c" : "cpp";
 
         // Reserve a place before anything is parsed: a whole class opens at the same moment, long before memory shows it.
-        if (Interlocked.Increment(ref _slots) > TotalCap) { Interlocked.Decrement(ref _slots); return null; }
+        WarnIfCapExceedsMemory();
+        int cap = TotalCap;
+        if (Interlocked.Increment(ref _slots) > cap)
+        {
+            int held = Interlocked.Decrement(ref _slots);
+            WarnFull($"every one of the {cap} places is taken ({held} attached or being let in)");
+            return null;
+        }
         var session = await OpenOnAProcessAsync(lang, formatStyle);
-        if (session is null) Interlocked.Decrement(ref _slots);   // an attached session gives its place back when it closes
+        if (session is null)
+        {
+            Interlocked.Decrement(ref _slots);   // an attached session gives its place back when it closes
+            WarnFull($"the places ({cap} in all) are free but every {lang} clangd process is full or could not start ({Math.Max(1, _opt.SharedMaxProcesses)} allowed, {_opt.SharedMaxSessions} sessions each)");
+        }
         return session;
+    }
+
+    private long _lastFullWarning;
+
+    /// <summary>Says why a student was turned away ("server busy" in the editor), at most once every 30 s: a class that opens together is dozens of refusals in a second.</summary>
+    private void WarnFull(string why)
+    {
+        var now = Environment.TickCount64;
+        var last = Interlocked.Read(ref _lastFullWarning);
+        if (last != 0 && now - last < 30_000) return;
+        if (Interlocked.CompareExchange(ref _lastFullWarning, now, last) != last) return;
+        _log.LogWarning("shared clangd turned a student away: {Why}", why);
     }
 
     // Fill the processes in order: the next one starts only when every earlier one is full.
