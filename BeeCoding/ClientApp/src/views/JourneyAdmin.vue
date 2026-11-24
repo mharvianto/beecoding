@@ -85,7 +85,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
     <div v-if="cur" class="grid gap-4 lg:grid-cols-[1fr_320px] items-start">
       <div class="space-y-4">
         <div class="flex flex-wrap items-center gap-3">
-          <input v-model="cur.title" :placeholder="tr('Journey title')" maxlength="120"
+          <input :aria-label="tr('Journey title')" v-model="cur.title" :placeholder="tr('Journey title')" maxlength="120"
                  class="flex-1 min-w-[200px] px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-transparent">
           <label class="text-sm flex items-center gap-1.5"><input type="checkbox" v-model="cur.published"> {{ tr('Published') }}</label>
         </div>
@@ -94,7 +94,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
                  :class="target === wi ? 'border-amber-400' : 'border-slate-200 dark:border-slate-700'" @click="target = wi">
           <div class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-semibold">{{ tr('World {n}', { n: wi + 1 }) }}</span>
-            <input v-model="w.name" :placeholder="tr('World name')" maxlength="120"
+            <input :aria-label="tr('World name')" v-model="w.name" :placeholder="tr('World name')" maxlength="120"
                    class="flex-1 min-w-[140px] px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent text-sm">
             <button @click.stop="cur.worlds.splice(wi, 1); target = 0" class="row-action-btn row-action-btn--danger"><Icon name="trash" /> {{ tr('Remove') }}</button>
           </div>
@@ -118,7 +118,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
               <template v-else><span class="text-slate-500">{{ tr('no boss — pick one on the right') }}</span></template>
             </span>
             <label class="flex items-center gap-1.5">+<input type="number" min="0" max="1000" v-model="w.bossXp" class="w-20 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent"> XP</label>
-            <input v-model="w.badgeName" :placeholder="tr('Badge name')" maxlength="60" class="w-40 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent">
+            <input :aria-label="tr('Badge name')" v-model="w.badgeName" :placeholder="tr('Badge name')" maxlength="60" class="w-40 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent">
           </div>
         </section>
 
@@ -133,7 +133,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
       <aside class="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
         <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ tr('Add from the bank') }}</div>
         <div class="text-xs text-slate-500">{{ tr('Goes into the world you last clicked: World {n}', { n: target + 1 }) }}</div>
-        <input v-model="q" @input="search" :placeholder="tr('Search title or tag…')" class="w-full px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-transparent text-sm">
+        <input :aria-label="tr('Search title or tag…')" v-model="q" @input="search" :placeholder="tr('Search title or tag…')" class="w-full px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-transparent text-sm">
         <ul class="space-y-1">
           <li v-for="p in found" :key="p.slug" class="flex items-center gap-2 text-sm">
             <span class="flex-1 min-w-0 truncate">{{ p.title }}</span>

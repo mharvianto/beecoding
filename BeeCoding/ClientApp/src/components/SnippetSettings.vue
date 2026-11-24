@@ -83,7 +83,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
         <input v-model="form.description" :placeholder="tr('Description (optional)')" :aria-label="tr('Description (optional)')" maxlength="80"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
       </div>
-      <textarea v-model="form.body" rows="6" spellcheck="false" placeholder="What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through."
+      <textarea :aria-label="tr('What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through.')" v-model="form.body" rows="6" spellcheck="false" placeholder="What to insert. Use $0 for where the cursor ends up, or ${1:name} for a placeholder you tab through."
                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm font-mono"></textarea>
       <p class="text-[11px] text-slate-500 dark:text-slate-400">
         <code>$1</code>, <code>$2</code>{{ tr('… are tab stops,') }} <code>${1:text}</code> {{ tr('is a stop with default text,') }} <code>$0</code> {{ tr('is the final cursor position. Write') }} <code>\$</code> {{ tr('for a literal dollar sign.') }}

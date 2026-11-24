@@ -1344,7 +1344,7 @@ onMounted(async () => {
           </div>
           <input v-model="f.model" :placeholder="tr('Model, e.g. moonshotai/kimi-k3.1-pro')" :aria-label="tr('Model')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
+          <input :aria-label="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')" v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="f.baseUrl" :placeholder="tr('Base URL (blank = same as the main provider)')" :aria-label="tr('Base URL (blank = same as the main provider)')"
                  class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
@@ -1575,7 +1575,7 @@ onMounted(async () => {
             </div>
           </div>
           <div class="flex items-center gap-2 flex-wrap mt-2">
-            <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
+            <select :aria-label="tr('Role')" v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
                     class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
               <option value="Student">{{ tr('Student') }}</option>
               <option value="Teacher">{{ tr('Teacher') }}</option>
@@ -1617,7 +1617,7 @@ onMounted(async () => {
               <td class="text-slate-500 dark:text-slate-400">{{ u.id }}</td>
               <td><div class="font-medium">{{ u.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ u.email }}</div></td>
               <td>
-                <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
+                <select :aria-label="tr('Role')" v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
                         class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                   <option value="Student">{{ tr('Student') }}</option>
                   <option value="Teacher">{{ tr('Teacher') }}</option>
@@ -1661,7 +1661,7 @@ onMounted(async () => {
           {{ tr('columns. An email that already exists is left alone (just optionally added to the board below). A missing password is auto-generated and shown once — copy it down.') }}
         </p>
         <div class="flex flex-wrap gap-2 mb-2 text-sm">
-          <select v-model="importDefaultRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
+          <select :aria-label="tr('Default role')" v-model="importDefaultRole" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
             <option value="Student">{{ tr('Default role: Student') }}</option>
             <option value="Teacher">{{ tr('Default role: Teacher') }}</option>
           </select>
@@ -1928,12 +1928,12 @@ onMounted(async () => {
     <!-- Plagiarism -->
     <section v-show="tab === 'plagiarism'">
       <div class="flex items-center gap-2 mb-3">
-        <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
+        <select :aria-label="tr('Board')" v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
           <option :value="null">{{ tr('Pick a board…') }}</option>
           <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
         </select>
-        <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
+        <select :aria-label="tr('Problem')" v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
           <option :value="null">{{ tr('All problems') }}</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
@@ -2160,7 +2160,7 @@ onMounted(async () => {
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">
               {{ tr('CPU / memory — {when}, host', { when: sysstatDaysAgo ? tr('{n} day(s) ago', { n: sysstatDaysAgo }) : tr('today') }) }} <span class="font-mono">{{ sysstatResult?.hostname }}</span> {{ tr('only') }}
             </h3>
-            <select v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
+            <select :aria-label="tr('Period')" v-model.number="sysstatDaysAgo" @change="loadSysstat" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
               <option :value="0">{{ tr('Today') }}</option>
               <option v-for="d in 30" :key="d" :value="d">{{ tr('{n} day(s) ago', { n: d }) }}</option>
             </select>
@@ -2199,7 +2199,7 @@ onMounted(async () => {
         <div v-if="systemStatus" class="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
           <div class="flex items-center gap-2 mb-2 flex-wrap">
             <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400">{{ tr('IntelliSense use — students with an editor attached') }}</h3>
-            <select v-model.number="lspUsageHours" @change="setLspUsageHours" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
+            <select :aria-label="tr('Period')" v-model.number="lspUsageHours" @change="setLspUsageHours" class="ml-auto border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-xs">
               <option v-for="h in LSP_HOURS" :key="h[0]" :value="h[0]">{{ tr(h[1]) }}</option>
             </select>
           </div>
@@ -2574,9 +2574,9 @@ onMounted(async () => {
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
             <tr v-for="o in organizations" :key="o.id" class="border-b border-slate-100 dark:border-slate-800/60">
               <template v-if="orgEdit?.id === o.id">
-                <td><input v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
+                <td><input :aria-label="tr('Organization name')" v-model="orgEdit.name" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
-                <td><input v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
+                <td><input :aria-label="tr('Organization slug')" v-model="orgEdit.slug" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
                 <td><input v-model="orgEdit.emailDomains" @keyup.enter="saveOrgEdit" @keyup.esc="orgEdit = null" :placeholder="tr('univ.ac.id, univ.edu')" :aria-label="tr('univ.ac.id, univ.edu')"
                            class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" /></td>
@@ -2640,7 +2640,7 @@ onMounted(async () => {
           <input v-model="ltiForm.authLoginUrl" :placeholder="tr('Auth login URL')" :aria-label="tr('Auth login URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="ltiForm.authTokenUrl" :placeholder="tr('Auth token URL')" :aria-label="tr('Auth token URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
           <input v-model="ltiForm.jwksUrl" :placeholder="tr('JWKS (key set) URL')" :aria-label="tr('JWKS (key set) URL')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-          <select v-model="ltiForm.organizationId" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
+          <select :aria-label="tr('Organization')" v-model="ltiForm.organizationId" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5">
             <option :value="null">{{ tr('No organization (unaffiliated)') }}</option>
             <option v-for="o in organizations" :key="o.id" :value="o.id">{{ o.name }}</option>
           </select>
@@ -2715,7 +2715,7 @@ onMounted(async () => {
         <p class="text-sm text-slate-500 dark:text-slate-400">
           {{ tr('Send this to {email} yourself. It works once and expires {when}. Anyone with the link can set a new password — share it privately.', { email: resetLink.user.email, when: new Date(resetLink.expiresAt.endsWith('Z') ? resetLink.expiresAt : resetLink.expiresAt + 'Z').toLocaleString() }) }}
         </p>
-        <input :value="resetLink.url" readonly @focus="$event.target.select()"
+        <input :aria-label="tr('Reset link')" :value="resetLink.url" readonly @focus="$event.target.select()"
                class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-xs font-mono" />
         <div class="flex justify-end gap-2">
           <button @click="resetLink = null" class="px-3 py-1.5 rounded-lg text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">{{ tr('Close') }}</button>

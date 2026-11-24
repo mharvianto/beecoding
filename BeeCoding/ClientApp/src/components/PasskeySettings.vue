@@ -66,7 +66,7 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
       <ul v-if="status.passkeys.length" class="divide-y divide-slate-100 dark:divide-slate-800">
         <li v-for="k in status.passkeys" :key="k.id" class="py-2 flex items-center gap-2 flex-wrap">
           <template v-if="renaming?.id === k.id">
-            <input v-model="renaming.name" maxlength="80" @keyup.enter="saveRename" :class="[inputCls, 'flex-1 min-w-0']" />
+            <input :aria-label="tr('Passkey name')" v-model="renaming.name" maxlength="80" @keyup.enter="saveRename" :class="[inputCls, 'flex-1 min-w-0']" />
             <button @click="saveRename" :disabled="busy" class="row-action-btn row-action-btn--success">{{ tr('Save') }}</button>
             <button @click="renaming = null" class="row-action-btn">{{ tr('Cancel') }}</button>
           </template>

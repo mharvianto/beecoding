@@ -234,17 +234,17 @@ onBeforeUnmount(() => { pollStopped = true; });
                 :placeholder="tr('e.g. \'count array elements divisible by k\', \'check if a graph is bipartite\', \'prefix-sum range queries\'')" :aria-label="tr('e.g. \'count array elements divisible by k\', \'check if a graph is bipartite\', \'prefix-sum range queries\'')"
                 class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
       <div class="flex flex-wrap gap-2 text-sm">
-        <select v-model="gen.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select :aria-label="tr('Level')" v-model="gen.level" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option>{{ tr('Easy') }}</option><option>{{ tr('Medium') }}</option><option>{{ tr('Hard') }}</option>
         </select>
-        <select v-model="gen.language" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select :aria-label="tr('Language')" v-model="gen.language" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option value="cpp">C++</option><option value="c">C</option>
         </select>
         <label class="flex items-center gap-1">{{ tr('tests') }}
           <input v-model.number="gen.count" type="number" min="3" max="15"
                  class="w-14 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1" />
         </label>
-        <select v-model="gen.lang" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <select :aria-label="tr('Statement language')" v-model="gen.lang" class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
           <option value="id">{{ tr('Statement: Indonesian') }}</option><option value="en">{{ tr('Statement: English') }}</option>
         </select>
       </div>
@@ -357,7 +357,7 @@ onBeforeUnmount(() => { pollStopped = true; });
           </li>
         </ul>
         <div v-if="propose && propose.slug === b.slug" class="mt-2 space-y-2 border-t border-slate-200 dark:border-slate-800 pt-2">
-          <select v-model="propose.boardSlug"
+          <select :aria-label="tr('Board')" v-model="propose.boardSlug"
                   class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm">
             <option value="" disabled>{{ tr('Choose a board…') }}</option>
             <option v-for="bd in boards" :key="bd.slug" :value="bd.slug">{{ bd.title }}</option>

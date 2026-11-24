@@ -1539,4 +1539,9 @@ export default {
   "Survey": "Survei",
   "Skip to content": "Lewati ke konten",
   "Replace": "Ganti",
+  "Show problems from": "Tampilkan soal dari",
+  "Passkey name": "Nama passkey",
+  "Statement language": "Bahasa soal",
+  "Input (stdin)": "Masukan (stdin)",
+  "Problems from": "Soal dari",
 };

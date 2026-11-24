@@ -75,7 +75,7 @@ async function join() {
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mb-4">{{ tr(error) }}</p>
 
-    <input v-if="boards.length > 1" v-model="q" :placeholder="tr('Search by title or tag…')"
+    <input :aria-label="tr('Search by title or tag…')" v-if="boards.length > 1" v-model="q" :placeholder="tr('Search by title or tag…')"
            class="w-full sm:w-80 border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm mb-4" />
 
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -311,7 +311,7 @@ onBeforeUnmount(async () => {
           <StdinFileButton @load="stdin = $event" />
         </span>
                     </div>
-                    <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+                    <textarea :aria-label="tr('Input (stdin)')" v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>
@@ -330,7 +330,7 @@ onBeforeUnmount(async () => {
             <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
               <span class="font-semibold"><Icon name="eye" /> {{ tr('Student code') }}</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('{n} live', { n: studentList.length }) }}</span>
-              <select v-if="studentList.length" v-model="selectedUid"
+              <select :aria-label="tr('Student')" v-if="studentList.length" v-model="selectedUid"
                       class="ml-auto text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 max-w-[50%]">
                 <option v-for="s in studentList" :key="s.uid" :value="s.uid">
                   {{ s.authorName }} · {{ ago(s.updatedAt) }}
@@ -419,7 +419,7 @@ onBeforeUnmount(async () => {
           <StdinFileButton @load="stdin = $event" />
         </span>
                     </div>
-                    <textarea v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
+                    <textarea :aria-label="tr('Input (stdin)')" v-model="stdin" :style="{ fontSize: editorFontSize + 'px' }"
                               class="w-full h-20 resize-y border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono"></textarea>
                   </div>
                   <div>

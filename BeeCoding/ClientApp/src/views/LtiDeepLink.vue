@@ -132,7 +132,7 @@ async function createAndSelect() {
       <div class="flex gap-2 mb-3">
         <input v-model="problemQ" @keyup.enter="loadProblems" :placeholder="tr('Search problems…')" :aria-label="tr('Search problems…')"
                class="flex-1 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm" />
-        <select v-model="problemScope" @change="loadProblems"
+        <select :aria-label="tr('Problems from')" v-model="problemScope" @change="loadProblems"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 text-sm">
           <option value="mine">{{ tr('Mine') }}</option>
           <option value="public">{{ tr('Shared by others') }}</option>

@@ -514,7 +514,7 @@ onMounted(() => { url.read(); loadOrgs(); });
 
     <template v-else-if="orgs">
       <div class="flex items-center gap-3 mb-4 flex-wrap">
-        <select v-if="orgs.length > 1" :value="orgId" @change="selectOrg(Number($event.target.value))"
+        <select :aria-label="tr('Organization')" v-if="orgs.length > 1" :value="orgId" @change="selectOrg(Number($event.target.value))"
                 class="border border-slate-300 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2 py-1.5 text-sm">
           <option v-for="o in orgs" :key="o.id" :value="o.id">{{ o.name }}</option>
         </select>
@@ -711,7 +711,7 @@ onMounted(() => { url.read(); loadOrgs(); });
               </div>
             </div>
             <div class="flex items-center gap-2 mt-2">
-              <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
+              <select :aria-label="tr('Role')" :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
                       class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                 <option value="Member">{{ tr('Member') }}</option>
                 <option value="Admin">{{ tr('Admin') }}</option>
@@ -735,7 +735,7 @@ onMounted(() => { url.read(); loadOrgs(); });
               <tr v-for="m in members" :key="m.userId" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td><div class="font-medium">{{ m.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ m.email }}</div></td>
                 <td>
-                  <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
+                  <select :aria-label="tr('Role')" :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
                           class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
                     <option value="Member">{{ tr('Member') }}</option>
                     <option value="Admin">{{ tr('Admin') }}</option>
@@ -965,12 +965,12 @@ onMounted(() => { url.read(); loadOrgs(); });
       <!-- Plagiarism -->
       <section v-show="tab === 'plagiarism'">
         <div class="flex items-center gap-2 mb-3">
-          <select v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
+          <select :aria-label="tr('Board')" v-model="plagiarismBoardId" @change="pickPlagiarismBoard"
                   class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm">
             <option :value="null">{{ tr('Pick a board…') }}</option>
             <option v-for="b in boards" :key="b.id" :value="b.id">{{ b.title }}</option>
           </select>
-        <select v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
+        <select :aria-label="tr('Problem')" v-if="plagiarismBoardId" v-model="plagiarismProblemId" @change="loadPlagiarism"
                 class="border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-2 text-sm max-w-xs">
           <option :value="null">{{ tr('All problems') }}</option>
           <option v-for="p in plagiarismProblems" :key="p.id" :value="p.id">{{ p.title }}</option>
@@ -1070,7 +1070,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </div>
             <input v-model="f.model" :placeholder="tr('Model')" :aria-label="tr('Model')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
-            <input v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
+            <input :aria-label="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')" v-model="f.apiKey" type="password" :placeholder="f.keyPreview ? tr('API key (saved: {p}) — blank keeps it', { p: f.keyPreview }) : tr('API key (blank = same as the main provider)')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
             <input v-model="f.baseUrl" :placeholder="tr('Base URL (blank = same as the main provider)')" :aria-label="tr('Base URL (blank = same as the main provider)')"
                    class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-1.5" />
