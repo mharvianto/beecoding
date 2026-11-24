@@ -78,7 +78,7 @@ Reset local dev data: stop the app, delete `BeeCoding/beecoding.db*`, restart (r
 
 `BeeCoding.Tests` (xunit, `dotnet test BeeCoding.Tests`) covers only the risky rules: `VisibilityService`,
 `GroupAccess`, `AiUrl` and the CSRF middleware (via `WebApplicationFactory<Program>` on a temp SQLite file).
-Add a test there when you touch one of those. The frontend has a small Vitest suite (`npm test` in `BeeCoding/ClientApp`, `tests/*.test.js`, jsdom) for the plain-JS logic in `src/lib` — drafts, `tr()`, `v-modal`, and that `SYNCED_KEYS` equals the server's `PreferencesController` list; CI runs it. No component tests, no ESLint/Prettier config, so
+Add a test there when you touch one of those. The frontend has a small Vitest suite (`npm test` in `BeeCoding/ClientApp`, `tests/*.test.js`, jsdom) for the plain-JS logic in `src/lib` — drafts, `tr()`, `v-modal`, and that `SYNCED_KEYS` equals the server's `PreferencesController` list; CI runs it. Four browser flows live in `ClientApp/e2e/` (`npm run test:e2e`: Playwright starts the app on port 5058 with a throw-away SQLite file, needs `npm run build` first and `npx playwright install chromium` once; CI runs it too). No component tests, no ESLint/Prettier config, so
 verify everything else by building (`dotnet build`, `npm run build`) and exercising the feature — via the
 running dev server (curl / a Playwright script).
 

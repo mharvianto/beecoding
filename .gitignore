@@ -25,3 +25,6 @@ BeeCoding/appsettings.*.local.json
 .env.*
 beecoding-*.db.gz
 graphify-out/
+
+BeeCoding/ClientApp/test-results/
+BeeCoding/ClientApp/playwright-report/

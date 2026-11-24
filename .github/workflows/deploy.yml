@@ -72,6 +72,11 @@ jobs:
           BEECODING_TEST_PG: Host=localhost;Port=5432;Username=postgres
         run: dotnet test BeeCoding.Tests -c Release --no-build
 
+      # A few browser flows against the real app (login, a modal's keyboard behaviour, page titles, joining a board) on a throw-away database.
+      - name: Test (browser)
+        working-directory: BeeCoding/ClientApp
+        run: npm run build && npx playwright install --with-deps chromium && npm run test:e2e
+
       - name: Publish (linux-arm64)
         env:
           VITE_BASE_PATH: /beecoding/
