@@ -100,14 +100,14 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
           </div>
           <ul class="space-y-1">
             <li v-for="(it, i) in w.items" :key="it.slug" class="flex items-center gap-2 text-sm">
-              <span class="w-5 text-slate-500">{{ i + 1 }}</span>
+              <span class="w-5 text-slate-500 dark:text-slate-400">{{ i + 1 }}</span>
               <span class="flex-1 min-w-0 truncate">{{ it.title }}</span>
               <LevelBadge :level="it.level" />
               <button @click.stop="move(w, i, -1)" class="row-action-btn" :aria-label="tr('Move up')"><Icon name="arrowup" /></button>
               <button @click.stop="move(w, i, 1)" class="row-action-btn" :aria-label="tr('Move down')"><Icon name="arrowup" class="rotate-180" /></button>
               <button @click.stop="w.items.splice(i, 1)" class="row-action-btn row-action-btn--danger" :aria-label="tr('Remove')"><Icon name="x" /></button>
             </li>
-            <li v-if="!w.items.length" class="text-xs text-slate-500">{{ tr('No problems yet — search on the right and add some.') }}</li>
+            <li v-if="!w.items.length" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('No problems yet — search on the right and add some.') }}</li>
           </ul>
           <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm pt-1 border-t border-slate-200 dark:border-slate-700">
             <label class="flex items-center gap-1.5">{{ tr('Boss opens after') }}
@@ -115,7 +115,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
               {{ tr('of {n} solved', { n: w.items.length }) }}</label>
             <span class="flex items-center gap-1.5"><Icon name="crown" class="text-amber-500" />
               <template v-if="w.boss">{{ w.boss.title }} <button @click.stop="w.boss = null" class="row-action-btn" :aria-label="tr('Remove')"><Icon name="x" /></button></template>
-              <template v-else><span class="text-slate-500">{{ tr('no boss — pick one on the right') }}</span></template>
+              <template v-else><span class="text-slate-500 dark:text-slate-400">{{ tr('no boss — pick one on the right') }}</span></template>
             </span>
             <label class="flex items-center gap-1.5">+<input type="number" min="0" max="1000" v-model="w.bossXp" class="w-20 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent"> XP</label>
             <input :aria-label="tr('Badge name')" v-model="w.badgeName" :placeholder="tr('Badge name')" maxlength="60" class="w-40 px-2 py-1 rounded border border-slate-300 dark:border-slate-600 bg-transparent">
@@ -131,8 +131,8 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
       </div>
 
       <aside class="rounded-xl border border-slate-200 dark:border-slate-700 p-3 space-y-2">
-        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500">{{ tr('Add from the bank') }}</div>
-        <div class="text-xs text-slate-500">{{ tr('Goes into the world you last clicked: World {n}', { n: target + 1 }) }}</div>
+        <div class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{{ tr('Add from the bank') }}</div>
+        <div class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Goes into the world you last clicked: World {n}', { n: target + 1 }) }}</div>
         <input :aria-label="tr('Search title or tag…')" v-model="q" @input="search" :placeholder="tr('Search title or tag…')" class="w-full px-2 py-1.5 rounded border border-slate-300 dark:border-slate-600 bg-transparent text-sm">
         <ul class="space-y-1">
           <li v-for="p in found" :key="p.slug" class="flex items-center gap-2 text-sm">
@@ -142,7 +142,7 @@ onMounted(() => { if (!auth.user?.isAdmin) router.replace('/journey'); else load
             <button @click="setBoss(p)" class="row-action-btn"><Icon name="crown" /></button>
           </li>
         </ul>
-        <p class="text-xs text-slate-500">{{ tr('Only public problems can be used. A problem can appear once in a journey.') }}</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Only public problems can be used. A problem can appear once in a journey.') }}</p>
       </aside>
     </div>
   </div>

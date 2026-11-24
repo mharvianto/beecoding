@@ -345,7 +345,7 @@ onBeforeUnmount(async () => {
         <RouterLink v-if="isStaff" :to="`/boards/${props.slug}/problems/${props.problemSlug}/edit`" class="row-action-btn row-action-btn--accent">{{ tr('Edit problem') }}</RouterLink>
         <LevelBadge :level="problem.level" />
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
-              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t }}</span>
         <span class="ml-auto"><ProblemFeedback kind="board" :board-slug="props.slug" :slug="props.problemSlug" /></span>
       </div>
       <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">

@@ -61,11 +61,11 @@ watch(() => props.id, () => { map.value = null; defeated.value = []; load(); });
     <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">{{ tr('A guided path through Practice: problems in order from easy to hard, grouped into worlds. Skip any problem and come back later; finish enough of a world to unlock its boss, and beat it for bonus XP and a badge.') }}</p>
     <p v-if="error" class="text-sm text-rose-600 mb-3">{{ error }}</p>
     <div class="max-w-3xl">
-    <p v-if="loading" class="text-sm text-slate-500">{{ tr('Loading…') }}</p>
+    <p v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</p>
 
     <!-- list (only when there is more than one journey) -->
     <template v-else-if="!id">
-      <p v-if="!list.length" class="text-sm text-slate-500">{{ tr('No journey is open yet.') }} <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="underline">{{ tr('Create one') }}</RouterLink></p>
+      <p v-if="!list.length" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No journey is open yet.') }} <RouterLink v-if="auth.user?.isAdmin" to="/journey/edit" class="underline">{{ tr('Create one') }}</RouterLink></p>
       <RouterLink v-for="j in list" :key="j.id" :to="`/journey/${j.id}`"
                   class="block rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 mb-2 hover:border-amber-400">
         <div class="font-medium">{{ j.title }}</div>

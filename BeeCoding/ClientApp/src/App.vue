@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
         <RouterLink to="/boards" class="order-2 font-bold text-lg text-amber-700 dark:text-amber-400 shrink-0"><LogoMark />BeeCoding</RouterLink>
 
         <!-- primary nav: burger-toggled dropdown on mobile, inline row after the logo on ≥md -->
-        <nav :class="mobileNavOpen ? 'flex' : 'hidden'"
+        <nav :aria-label="tr('Main')" :class="mobileNavOpen ? 'flex' : 'hidden'"
              class="md:flex order-5 md:order-2 w-full md:w-auto flex-col md:flex-row items-start md:items-center gap-3 md:gap-4 text-sm
                     text-slate-500 dark:text-slate-400 [&_a:hover]:text-slate-900 dark:[&_a:hover]:text-slate-100
                     border-t md:border-0 border-slate-200 dark:border-slate-800 pt-3 md:pt-0 mt-1 md:mt-0">

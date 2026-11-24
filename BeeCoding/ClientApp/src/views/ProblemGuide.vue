@@ -80,7 +80,7 @@ const sections = [
       <section>
         <h2 id="statement">2. Menulis statement</h2>
         <p>Statement ditulis dengan Markdown. Soal baru langsung terisi kerangka ini; ganti isinya:</p>
-        <pre v-pre><code>Tulis ceritanya atau masalahnya di sini, singkat dan jelas.
+        <pre v-pre tabindex="0"><code>Tulis ceritanya atau masalahnya di sini, singkat dan jelas.
 
 **Format Input:** jelaskan baris demi baris apa yang dibaca program.
 
@@ -227,7 +227,7 @@ const sections = [
           </tbody>
         </table>
         <p><strong>Statement:</strong></p>
-        <pre v-pre><code>Diberikan dua bilangan bulat `a` dan `b`. Cetak hasil penjumlahannya.
+        <pre v-pre tabindex="0"><code>Diberikan dua bilangan bulat `a` dan `b`. Cetak hasil penjumlahannya.
 
 **Format Input:** satu baris berisi dua bilangan bulat `a` dan `b` dipisah spasi.
 
@@ -282,7 +282,7 @@ const sections = [
       <section>
         <h2 id="statement">2. Writing the statement</h2>
         <p>The statement is written in Markdown. A new problem starts with this skeleton; replace its contents:</p>
-        <pre v-pre><code>Tell the story or describe the task here, briefly and clearly.
+        <pre v-pre tabindex="0"><code>Tell the story or describe the task here, briefly and clearly.
 
 **Input Format:** explain, line by line, what the program reads.
 
@@ -429,7 +429,7 @@ const sections = [
           </tbody>
         </table>
         <p><strong>Statement:</strong></p>
-        <pre v-pre><code>You are given two integers `a` and `b`. Print their sum.
+        <pre v-pre tabindex="0"><code>You are given two integers `a` and `b`. Print their sum.
 
 **Input Format:** one line with two integers `a` and `b` separated by a space.
 

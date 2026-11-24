@@ -61,13 +61,13 @@ const themeNow = computed(() => theme.value);
     <section>
       <h2 :class="section">Typography</h2>
       <div :class="card" class="space-y-2">
-        <p class="text-2xl font-bold">Page title <span class="text-xs font-normal text-slate-500">text-2xl font-bold</span></p>
-        <p class="text-xl font-bold">Page title <span class="text-xs font-normal text-slate-500">text-xl font-bold</span></p>
-        <p class="font-semibold text-sm">Section title <span class="text-xs font-normal text-slate-500">font-semibold text-sm</span></p>
-        <p class="text-sm">Body text <span class="text-xs text-slate-500">text-sm</span></p>
+        <p class="text-2xl font-bold">Page title <span class="text-xs font-normal text-slate-500 dark:text-slate-400">text-2xl font-bold</span></p>
+        <p class="text-xl font-bold">Page title <span class="text-xs font-normal text-slate-500 dark:text-slate-400">text-xl font-bold</span></p>
+        <p class="font-semibold text-sm">Section title <span class="text-xs font-normal text-slate-500 dark:text-slate-400">font-semibold text-sm</span></p>
+        <p class="text-sm">Body text <span class="text-xs text-slate-500 dark:text-slate-400">text-sm</span></p>
         <p class="text-xs text-slate-500 dark:text-slate-400">Secondary text, text-xs slate-500 / slate-400</p>
         <p class="text-[11px] text-slate-500 dark:text-slate-400">Smallest allowed, text-[11px]: hints, badges, times</p>
-        <p class="font-mono text-sm">int main(void) { return 0; } <span class="font-sans text-xs text-slate-500">font-mono</span></p>
+        <p class="font-mono text-sm">int main(void) { return 0; } <span class="font-sans text-xs text-slate-500 dark:text-slate-400">font-mono</span></p>
       </div>
     </section>
 

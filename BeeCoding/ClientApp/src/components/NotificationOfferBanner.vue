@@ -56,7 +56,7 @@ async function turnOn() {
 </script>
 
 <template>
-  <div v-if="shown" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
+  <div v-if="shown" role="region" :aria-label="tr('Notice')" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
       <span v-if="message">{{ tr(message) }}</span>
       <template v-else>

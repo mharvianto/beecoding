@@ -16,7 +16,7 @@ const auth = useAuth();
       <span v-if="!auth.user" class="flex items-center gap-3"><DocLangToggle /><ThemeToggle /></span>
     </header>
 
-    <main class="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
+    <div class="flex-1 max-w-3xl w-full mx-auto px-4 py-8">
       <h1 class="text-2xl font-bold">{{ title }}</h1>
       <p v-if="updated" class="text-xs text-slate-500 dark:text-slate-400 mt-1">{{ docLang === 'id' ? 'Terakhir diperbarui' : 'Last updated' }}: {{ updated }}</p>
 
@@ -29,6 +29,6 @@ const auth = useAuth();
       <p class="mt-10 text-sm">
         <RouterLink to="/" class="text-amber-700 dark:text-amber-400">&larr; {{ docLang === 'id' ? 'Kembali ke beranda' : 'Back to home' }}</RouterLink>
       </p>
-    </main>
+    </div>
   </div>
 </template>

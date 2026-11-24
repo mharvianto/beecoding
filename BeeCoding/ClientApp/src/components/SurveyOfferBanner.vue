@@ -1,4 +1,5 @@
 <script setup>
+import { tr } from '../lib/i18n';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../lib/api';
@@ -30,7 +31,7 @@ const open = () => { shown.value = false; router.push('/survey'); };
 </script>
 
 <template>
-  <div v-if="shown" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
+  <div v-if="shown" role="region" :aria-label="tr('Notice')" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
       <span><Icon name="message" /> {{ docLang === 'id' ? 'Bantu kami memperbaiki BeeCoding — survei singkat, sekitar 5 menit.' : 'Help us improve BeeCoding — a short survey, about 5 minutes.' }}</span>
       <button @click="open" class="font-semibold underline hover:no-underline">{{ docLang === 'id' ? 'Isi survei' : 'Take the survey' }}</button>

@@ -10,7 +10,7 @@ const router = useRouter();
 </script>
 
 <template>
-  <div class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
+  <div role="region" :aria-label="tr('Notice')" class="shrink-0 bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 text-sm text-amber-900 dark:text-amber-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
       <span><Icon name="building" /> {{ tr(auth.user.pendingOrgInvites === 1 ? 'You have {n} organization invitation waiting.' : 'You have {n} organization invitations waiting.', { n: auth.user.pendingOrgInvites }) }}</span>
       <button @click="router.push({ path: '/account/profile', hash: '#organizations' })" class="font-semibold underline hover:no-underline">{{ tr('Review') }}</button>

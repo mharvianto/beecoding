@@ -1544,4 +1544,7 @@ export default {
   "Statement language": "Bahasa soal",
   "Input (stdin)": "Masukan (stdin)",
   "Problems from": "Soal dari",
+  "Main": "Utama",
+  "Footer": "Kaki halaman",
+  "Notice": "Pemberitahuan",
 };

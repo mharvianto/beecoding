@@ -84,7 +84,7 @@ function exportCsv() {
     <p class="text-xs text-slate-500 dark:text-slate-400 mb-6">{{ tr('Answers carry no name or email. With few responses in a group, treat the numbers as anecdotes.') }}</p>
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-    <p v-else-if="loading" class="text-sm text-slate-500">…</p>
+    <p v-else-if="loading" class="text-sm text-slate-500 dark:text-slate-400">…</p>
     <template v-else>
       <section v-for="s in SECTIONS" :key="s.id" class="mb-8">
         <h2 class="font-semibold text-sm uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-3">{{ s.title.en }}</h2>
@@ -93,8 +93,8 @@ function exportCsv() {
                class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
             <div class="flex items-baseline gap-2">
               <h3 class="text-sm font-medium flex-1">{{ c.q.q.en }}</h3>
-              <span v-if="c.mean !== undefined" class="text-xs tabular-nums text-slate-500">{{ tr('mean {n}', { n: c.mean }) }}</span>
-              <span v-if="c.nps !== undefined" class="text-xs tabular-nums text-slate-500">NPS {{ c.nps }}</span>
+              <span v-if="c.mean !== undefined" class="text-xs tabular-nums text-slate-500 dark:text-slate-400">{{ tr('mean {n}', { n: c.mean }) }}</span>
+              <span v-if="c.nps !== undefined" class="text-xs tabular-nums text-slate-500 dark:text-slate-400">NPS {{ c.nps }}</span>
               <span class="text-xs tabular-nums text-slate-500 dark:text-slate-400">n={{ c.n }}</span>
             </div>
             <div v-if="c.q.type === 'choice' && view === 'donut'" class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -110,7 +110,7 @@ function exportCsv() {
                 <li v-for="g in segs(c)" :key="g.label" class="flex items-center gap-2">
                   <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: g.color }"></span>
                   <span class="flex-1 min-w-0 truncate text-slate-600 dark:text-slate-300" :title="g.label">{{ g.label }}</span>
-                  <span class="tabular-nums text-slate-500">{{ g.n }} · {{ pct(g.n, c.n) }}%</span>
+                  <span class="tabular-nums text-slate-500 dark:text-slate-400">{{ g.n }} · {{ pct(g.n, c.n) }}%</span>
                 </li>
               </ul>
             </div>
@@ -118,7 +118,7 @@ function exportCsv() {
               <li v-for="b in c.bars" :key="b.label" class="flex items-center gap-2 text-xs">
                 <span class="w-28 shrink-0 truncate text-slate-600 dark:text-slate-300" :title="b.label">{{ b.label }}</span>
                 <span class="flex-1 h-2 rounded bg-slate-100 dark:bg-slate-800 overflow-hidden"><span class="block h-full bg-amber-500" :style="{ width: pct(b.n, c.n) + '%' }"></span></span>
-                <span class="w-14 text-right tabular-nums text-slate-500">{{ b.n }} · {{ pct(b.n, c.n) }}%</span>
+                <span class="w-14 text-right tabular-nums text-slate-500 dark:text-slate-400">{{ b.n }} · {{ pct(b.n, c.n) }}%</span>
               </li>
             </ul>
             <ul v-else class="mt-2 space-y-1.5">

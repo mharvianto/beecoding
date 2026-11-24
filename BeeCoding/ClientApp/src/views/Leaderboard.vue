@@ -207,7 +207,7 @@ const showHowItWorks = ref(false);
           <div class="flex items-center gap-1.5 min-w-0">
             <span class="text-sm font-medium truncate">{{ r.displayName?.trim() || tr('Anonymous') }}</span>
             <span v-if="r.me" class="text-xs text-amber-700 dark:text-amber-400 shrink-0">{{ tr('(you)') }}</span>
-            <span v-if="r.role === 'Teacher'" class="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ tr('teacher') }}</span>
+            <span v-if="r.role === 'Teacher'" class="shrink-0 text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ tr('teacher') }}</span>
           </div>
           <div class="sm:hidden text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
             {{ tr('{n} solved · Lv {lv}', { n: r.solvedCount, lv: r.level }) }}
@@ -231,7 +231,7 @@ const showHowItWorks = ref(false);
       </div>
       <p v-if="!loading && !rows.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">
         {{ period === 'all' ? tr('No XP earned yet.') : tr('No XP earned in this period.') }}
-        <RouterLink to="/practice" class="text-amber-600">{{ tr('Practice') }}</RouterLink> {{ tr('some problems.') }}
+        <RouterLink to="/practice" class="text-amber-700 dark:text-amber-400 underline">{{ tr('Practice') }}</RouterLink> {{ tr('some problems.') }}
       </p>
     </div>
     <div v-if="total" class="flex items-center gap-3 mt-3 text-sm">

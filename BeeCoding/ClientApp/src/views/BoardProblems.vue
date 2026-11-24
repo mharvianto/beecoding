@@ -405,8 +405,8 @@ async function reorderGroupTo(id, target, pos) {
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" :title="tr('Move group up')"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" :title="tr('Move group down')"><span>↓</span></button>
-              <button @click="editingGroup = sec.group" class="row-action-btn"><span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span></button>
-              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger"><span><Icon name="trash" /></span><span class="max-sm:hidden">{{ tr('Delete') }}</span></button>
+              <button @click="editingGroup = sec.group" class="row-action-btn" :aria-label="tr('Edit')"><span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span></button>
+              <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger" :aria-label="tr('Delete')"><span><Icon name="trash" /></span><span class="max-sm:hidden">{{ tr('Delete') }}</span></button>
             </span>
           </template>
         </div>
@@ -435,7 +435,7 @@ async function reorderGroupTo(id, target, pos) {
                 </div>
                 <div v-if="p.tags" class="flex flex-wrap gap-1 mt-1">
                   <span v-for="t in p.tags.split(',')" :key="t"
-                        class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t.trim() }}</span>
+                        class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t.trim() }}</span>
                 </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
                   <span class="whitespace-nowrap">{{ langLabel(p.allowedLanguages) }}</span>
@@ -456,17 +456,17 @@ async function reorderGroupTo(id, target, pos) {
             <option v-for="g in groups" :key="g.id" :value="g.id">{{ g.title }}</option>
           </select>
           <button v-if="bankUpdates[p.slug] !== undefined" @click="updateFromBank(p)" class="row-action-btn row-action-btn--accent"
-                  :title="tr('The bank problem this was copied from has changed since')">
+                  :title="tr('The bank problem this was copied from has changed since')" :aria-label="tr('Update from bank')">
                 <span><Icon name="refresh" /></span><span class="max-sm:hidden">{{ tr('Update from bank') }}</span>
               </button>
-          <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn">
+          <button v-if="isStaff" @click="toggleHidden(p)" :title="p.hidden ? 'Unhide from students' : 'Hide from students'" class="row-action-btn" :aria-label="p.hidden ? tr('Unhide') : tr('Hide')">
                 <span><Icon :name="p.hidden ? 'eyeoff' : 'eye'" /></span><span class="max-sm:hidden">{{ p.hidden ? tr('Unhide') : tr('Hide') }}</span>
               </button>
               <button v-if="isStaff" @click="router.push({ path: `/boards/${slug}/plagiarism`, query: { problem: p.slug } })" class="row-action-btn"
-                      :title="tr('Compare students\' latest submissions to this problem')">
+                      :title="tr('Compare students\' latest submissions to this problem')" :aria-label="tr('Similarity')">
                 <span><Icon name="search" /></span><span class="max-sm:hidden">{{ tr('Similarity') }}</span>
               </button>
-              <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn">
+              <button v-if="isStaff" @click="router.push(`/boards/${slug}/problems/${p.slug}/edit`)" class="row-action-btn" :aria-label="tr('Edit')">
                 <span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span>
               </button>
               <ExportMenu v-if="isStaff" :slug="slug" :problem="p.slug" label="Download results and answers for this problem" @error="error = $event" />

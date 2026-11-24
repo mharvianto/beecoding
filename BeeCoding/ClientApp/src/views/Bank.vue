@@ -292,7 +292,7 @@ onBeforeUnmount(() => { pollStopped = true; });
       <div v-for="b in items" :key="b.id"
            class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3">
         <div class="flex items-start justify-between gap-2">
-          <h3 class="font-semibold text-sm">{{ b.title }}</h3>
+          <h2 class="font-semibold text-sm">{{ b.title }}</h2>
           <div class="flex items-center gap-1 shrink-0">
             <RouterLink v-if="openReports[b.id]" :to="`/reports/problems?bank=${b.id}`" @click.stop
                         class="text-[11px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300 hover:underline"
@@ -319,7 +319,7 @@ onBeforeUnmount(() => { pollStopped = true; });
         </div>
         <div v-if="b.tags" class="flex flex-wrap gap-1 mt-2">
           <span v-for="t in b.tags.split(',')" :key="t"
-                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
             {{ t }}
           </span>
         </div>

@@ -31,9 +31,9 @@ async function save() {
     <div class="mt-2 divide-y divide-slate-100 dark:divide-slate-800">
       <div v-for="k in s.kinds" :key="k.kind" class="flex items-center gap-3 py-2">
         <span class="flex-1 min-w-0 text-sm text-slate-700 dark:text-slate-200">{{ tr(k.label) }}</span>
-        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.enabled" /> On</label>
-        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.email" :disabled="!k.enabled" /> {{ tr('Email') }}</label>
-        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" v-model="k.locked" :disabled="!k.enabled" /> {{ tr('Locked') }}</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><input type="checkbox" v-model="k.enabled" /> On</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><input type="checkbox" v-model="k.email" :disabled="!k.enabled" /> {{ tr('Email') }}</label>
+        <label class="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400"><input type="checkbox" v-model="k.locked" :disabled="!k.enabled" /> {{ tr('Locked') }}</label>
       </div>
     </div>
     <div class="mt-3 flex items-center gap-3">

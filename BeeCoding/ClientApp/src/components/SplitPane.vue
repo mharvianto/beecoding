@@ -105,7 +105,7 @@ onBeforeUnmount(() => {
 
     <!-- foldable: ONE bar is both the drag handle and the fold button (a press without movement folds) -->
     <div v-if="foldable && !hideB" role="separator" aria-orientation="horizontal" tabindex="0" @pointerdown.prevent="onDown" @keydown="onKey"
-         :aria-expanded="!ioFolded" :aria-valuenow="Math.round(ioFolded ? 100 : pct)" aria-valuemin="0" aria-valuemax="100" :aria-label="tr('Run panel')"
+         :aria-valuenow="Math.round(ioFolded ? 100 : pct)" aria-valuemin="0" aria-valuemax="100" :aria-label="tr('Run panel')"
          :title="tr('Drag to resize, click to fold')"
          class="group relative shrink-0 z-10 h-8 md:h-6 flex items-center gap-1 px-3 text-xs touch-none select-none cursor-row-resize
                 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800

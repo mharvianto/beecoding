@@ -54,7 +54,7 @@ async function save() {
         : 'About 5 minutes. You can skip any question. Admins see the answers without your name or email, and you can change them any time.' }}
     </p>
 
-    <p v-if="loading" class="text-sm text-slate-500">…</p>
+    <p v-if="loading" class="text-sm text-slate-500 dark:text-slate-400">…</p>
     <div v-else-if="status && !status.open" class="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 text-sm">
       {{ lang === 'id' ? 'Survei ini sudah ditutup. Terima kasih!' : 'This survey is closed. Thank you!' }}
     </div>
@@ -115,7 +115,7 @@ async function save() {
         </button>
         <span class="text-xs text-slate-500 dark:text-slate-400">{{ answered }}/{{ questions.length }}</span>
         <span v-if="saved" role="status" class="text-sm text-emerald-700 dark:text-emerald-300">{{ lang === 'id' ? 'Terima kasih! Tersimpan.' : 'Thank you! Saved.' }}</span>
-        <RouterLink v-if="auth.user?.isAdmin" to="/survey/results" class="ml-auto text-xs text-slate-500 hover:underline">
+        <RouterLink v-if="auth.user?.isAdmin" to="/survey/results" class="ml-auto text-xs text-slate-500 dark:text-slate-400 hover:underline">
           {{ lang === 'id' ? 'Lihat hasil' : 'View results' }}
         </RouterLink>
       </div>

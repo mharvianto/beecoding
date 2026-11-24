@@ -55,7 +55,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 flex-wrap">
             <code class="text-sm font-semibold">{{ s.prefix }}</code>
-            <span class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ langLabel(s.lang) }}</span>
+            <span class="text-[11px] px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ langLabel(s.lang) }}</span>
             <span v-if="s.description" class="text-xs text-slate-500 dark:text-slate-400 truncate">{{ s.description }}</span>
           </div>
           <pre class="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-400 whitespace-pre-wrap break-all max-h-20 overflow-hidden">{{ s.body }}</pre>

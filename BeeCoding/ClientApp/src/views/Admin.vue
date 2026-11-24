@@ -1284,14 +1284,14 @@ onMounted(async () => {
         <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">
           {{ tr('Per student and problem that asked for a hint (hints are logged from the release that added this, with no text). Pairs already solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.') }}
         </p>
-        <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints logged in this period yet.') }}</p>
+        <p v-if="!hintEffect.pairs" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No hints logged in this period yet.') }}</p>
         <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+          <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
         </dl>
       </div>
 

@@ -249,7 +249,7 @@ onBeforeUnmount(async () => {
         <span v-if="problem.authorName" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('by {name}', { name: problem.authorName }) }}</span>
         <span v-if="problem.solved" class="text-[11px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">{{ tr('✓ solved') }}</span>
         <span v-for="t in (problem.tags ? problem.tags.split(',') : [])" :key="t"
-              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+              class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t }}</span>
         <span v-if="problem.isPublic" class="ml-auto flex items-center gap-2">
           <button type="button" class="row-action-btn" @click="copyLink"><Icon name="copy" /> {{ linkCopied ? tr('Copied ✓') : tr('Copy link') }}</button>
           <ProblemFeedback kind="practice" :slug="props.slug" />

@@ -28,7 +28,7 @@ const setUp = () => router.push({ path: '/account/security', hash: '#two-step' }
 </script>
 
 <template>
-  <div v-if="!auth.user.mfaOfferSnoozed" class="shrink-0 bg-sky-50 dark:bg-sky-500/10 border-b border-sky-200 dark:border-sky-500/20 text-sm text-sky-900 dark:text-sky-200">
+  <div v-if="!auth.user.mfaOfferSnoozed" role="region" :aria-label="tr('Notice')" class="shrink-0 bg-sky-50 dark:bg-sky-500/10 border-b border-sky-200 dark:border-sky-500/20 text-sm text-sky-900 dark:text-sky-200">
     <div class="max-w-7xl mx-auto px-4 py-1.5 flex items-center gap-x-3 gap-y-1 flex-wrap">
       <span>
         <Icon name="lock" /> {{ tr('Protect your account with two-step verification') }}

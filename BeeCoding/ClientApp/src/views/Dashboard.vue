@@ -95,7 +95,7 @@ async function join() {
         </div>
         <div v-if="b.tags" class="flex flex-wrap gap-1 mt-1.5">
           <span v-for="t in b.tags.split(',')" :key="t"
-                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t }}</span>
         </div>
         <div class="text-sm text-slate-500 dark:text-slate-400 mt-2 flex gap-4">
           <span>{{ tr(b.problemCount === 1 ? '{n} problem' : '{n} problems', { n: b.problemCount }) }}</span>

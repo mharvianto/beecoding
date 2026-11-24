@@ -626,14 +626,14 @@ onMounted(() => { url.read(); loadOrgs(); });
           <p class="text-xs text-slate-500 dark:text-slate-400 mb-2">
             {{ tr('Per student and problem on this organization\'s boards that asked for a hint (no hint text is kept). Pairs solved before the first hint are left out. Students ask on the harder problems, so the “no hint” number is not a fair comparison — trust the speed numbers more.') }}
           </p>
-          <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints on this organization\'s boards in this period yet.') }}</p>
+          <p v-if="!hintEffect.pairs" class="text-sm text-slate-500 dark:text-slate-400">{{ tr('No hints on this organization\'s boards in this period yet.') }}</p>
           <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
+            <div><dt class="text-xs text-slate-500 dark:text-slate-400">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
           </dl>
         </div>
 
@@ -817,7 +817,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </div>
             <div v-else class="flex flex-wrap items-center gap-1 mt-1.5">
               <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
-                    class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                    class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t }}</span>
               <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> {{ tr('Edit tags') }}</template><template v-else>{{ tr('+ Add tags') }}</template></button>
             </div>
           </div>
@@ -854,7 +854,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                   </div>
                   <div v-else class="flex flex-wrap items-center gap-1">
                     <span v-for="t in (b.tags ? b.tags.split(',') : [])" :key="t"
-                          class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">{{ t }}</span>
+                          class="text-[11px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">{{ t }}</span>
                     <button @click="startEditBoardTags(b)" class="row-action-btn"><template v-if="b.tags"><Icon name="pencil" /> {{ tr('Edit') }}</template><template v-else>{{ tr('+ Add') }}</template></button>
                   </div>
                 </td>

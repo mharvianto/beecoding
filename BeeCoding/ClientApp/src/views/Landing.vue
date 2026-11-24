@@ -89,7 +89,7 @@ const faqs = [
       </div>
     </header>
 
-    <main class="flex-1">
+    <div class="flex-1">
       <!-- hero -->
       <section class="hero relative overflow-hidden">
         <div class="hero-glow pointer-events-none absolute inset-0" aria-hidden="true"></div>
@@ -232,7 +232,7 @@ const faqs = [
           </div>
         </div>
       </section>
-    </main>
+    </div>
   </div>
 </template>
 
