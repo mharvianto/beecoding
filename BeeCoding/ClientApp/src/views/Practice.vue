@@ -13,6 +13,7 @@ const route = useRoute();
 const router = useRouter();
 const progress = useProgress();
 const items = ref([]);
+const loaded = ref(false);   // "No problems." must not flash before the first answer
 // Search text, level, status, sort and page all live in the URL query so a search is
 // bookmarkable/shareable and survives a refresh or the back button.
 const q = ref(route.query.q ? String(route.query.q) : '');
@@ -103,6 +104,7 @@ async function load() {
     page.value = res.page ?? 1;   // server clamps into range
     loadSuggestions();
   } catch (e) { error.value = e.message; }
+  finally { loaded.value = true; }
 }
 
 function syncUrl() {
@@ -292,7 +294,8 @@ onMounted(() => {
         <LevelBadge :level="p.level" />
         <span class="text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right">{{ langLabel(p.allowedLanguages) }}</span>
       </RouterLink>
-      <p v-if="!items.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">{{ tr('No problems.') }}</p>
+      <p v-if="!loaded" role="status" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">{{ tr('Loading…') }}</p>
+      <p v-else-if="!items.length" class="px-4 py-6 text-sm text-slate-500 dark:text-slate-400">{{ tr('No problems.') }}</p>
     </div>
 
     <div v-if="suggestions.length" class="mt-4">

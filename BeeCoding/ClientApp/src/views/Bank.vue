@@ -18,6 +18,7 @@ const confirmDialog = useConfirmDialog();
 const student = computed(() => !auth.isTeacher);
 
 const items = ref([]);
+const loaded = ref(false);   // "Nothing here yet." must not flash before the first answer
 const q = ref('');
 const scope = ref('mine');
 const level = ref('');
@@ -118,6 +119,7 @@ async function load() {
     items.value = await api.get(`/api/bank?${p}`);
     loadProposals();
   } catch (e) { error.value = e.message; }
+  finally { loaded.value = true; }
 }
 // open "this problem is wrong" reports per bank problem (for the 🚩 badge on the cards)
 const openReports = ref({});
@@ -373,7 +375,8 @@ onBeforeUnmount(() => { pollStopped = true; });
         </div>
       </div>
     </div>
-    <p v-if="!items.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Nothing here yet.') }}</p>
+    <p v-if="!loaded" role="status" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Loading…') }}</p>
+    <p v-else-if="!items.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('Nothing here yet.') }}</p>
 
   </div>
 </template>

@@ -6,13 +6,16 @@ import { useAuth } from '../stores/auth';
 
 const auth = useAuth();
 const boards = ref([]);
+const loaded = ref(false);   // the empty-state card must not flash before the first answer
 const newTitle = ref('');
 const joinCode = ref('');
 const error = ref('');
 const q = ref('');
 
 async function load() {
-  boards.value = await api.get('/api/boards');
+  try { boards.value = await api.get('/api/boards'); }
+  catch (e) { error.value = e.message; }
+  finally { loaded.value = true; }
 }
 onMounted(load);
 
@@ -106,7 +109,8 @@ async function join() {
     <p v-if="boards.length && !filteredBoards.length" class="text-slate-500 dark:text-slate-400 text-sm">
       {{ tr('No boards match "{q}".', { q }) }}
     </p>
-    <div v-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
+    <p v-if="!loaded" class="text-sm text-slate-500 dark:text-slate-400" role="status">{{ tr('Loading…') }}</p>
+    <div v-else-if="!boards.length" class="border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center">
       <p class="text-slate-500 dark:text-slate-400 text-sm">
         {{ auth.isTeacher ? "You don't own or belong to any board yet." : "You haven't joined a board yet." }}
       </p>
