@@ -791,12 +791,12 @@ public class AdminUiController(
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.LspEnabled = dto.LspEnabled;
         row.LspShared = dto.LspShared;
-        row.LspDefaultOn = dto.LspDefaultOn;
-        row.LspMaxConcurrent = Math.Clamp(dto.LspMaxConcurrent, 1, 64);
-        row.LspIdleTimeoutSeconds = Math.Clamp(dto.LspIdleTimeoutSeconds, 30, 3600);
-        row.LspMemoryLimitMb = Math.Clamp(dto.LspMemoryLimitMb, 0, 16000);
-        row.LspSharedMaxSessions = Math.Clamp(dto.LspSharedMaxSessions, 1, 500);
-        row.LspSharedMaxProcesses = Math.Clamp(dto.LspSharedMaxProcesses, 1, 16);
+        if (dto.LspDefaultOn is bool dflt) row.LspDefaultOn = dflt;
+        if (dto.LspMaxConcurrent is int mc) row.LspMaxConcurrent = Math.Clamp(mc, 1, 64);
+        if (dto.LspIdleTimeoutSeconds is int it) row.LspIdleTimeoutSeconds = Math.Clamp(it, 30, 3600);
+        if (dto.LspMemoryLimitMb is int ml) row.LspMemoryLimitMb = Math.Clamp(ml, 0, 16000);
+        if (dto.LspSharedMaxSessions is int ss) row.LspSharedMaxSessions = Math.Clamp(ss, 1, 500);
+        if (dto.LspSharedMaxProcesses is int sp) row.LspSharedMaxProcesses = Math.Clamp(sp, 1, 16);
         row.JudgeRateLimitMs = rateLimitMs;
         row.StudentMaxProblems = studentMax;
         row.ImageMaxKb = imageKb;
@@ -822,7 +822,7 @@ public class AdminUiController(
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
             $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, journeyEnabled={row.JourneyEnabled}, lspShared={row.LspShared}, lspDefaultOn={row.LspDefaultOn}, lspMaxConcurrent={row.LspMaxConcurrent}, lspIdleTimeoutSeconds={row.LspIdleTimeoutSeconds}, lspMemoryLimitMb={row.LspMemoryLimitMb}, lspSharedMaxSessions={row.LspSharedMaxSessions}, lspSharedMaxProcesses={row.LspSharedMaxProcesses}");
         return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays, row.JourneyEnabled,
-            row.LspDefaultOn, row.LspMaxConcurrent!.Value, row.LspIdleTimeoutSeconds!.Value, row.LspMemoryLimitMb!.Value, row.LspSharedMaxSessions!.Value, row.LspSharedMaxProcesses!.Value);
+            row.LspDefaultOn, _lspOpt.MaxConcurrent, _lspOpt.IdleTimeoutSeconds, _lspOpt.MemoryLimitMb, _lspOpt.SharedMaxSessions, _lspOpt.SharedMaxProcesses);
     }
 
     /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>

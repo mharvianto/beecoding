@@ -39,7 +39,7 @@ async function remove(i) {
   if (editing.value === i) cancel();
 }
 
-const EXAMPLE = '#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    $0\n    return 0;\n}';
+const EXAMPLE = '#include <iostream>\nusing namespace std;\n\nint main() {\n    ios::sync_with_stdio(false);\n    cin.tie(nullptr);\n    $0\n    return 0;\n}';
 function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', description: tr('Fast I/O template'), body: EXAMPLE }; editing.value = null; }
 </script>
 

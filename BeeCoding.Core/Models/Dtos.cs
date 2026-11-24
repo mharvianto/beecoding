@@ -357,7 +357,9 @@ public record AdminNotifyKindsDto(List<AdminNotifyKindDto> Kinds, bool EmailConf
 
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false,
     int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90, bool JourneyEnabled = true,
-    bool LspDefaultOn = false, int LspMaxConcurrent = 4, int LspIdleTimeoutSeconds = 90, int LspMemoryLimitMb = 0, int LspSharedMaxSessions = 40, int LspSharedMaxProcesses = 1);
+    bool? LspDefaultOn = null,
+    // null = leave as it is (a client that does not know these fields must not pin the limits).
+    int? LspMaxConcurrent = null, int? LspIdleTimeoutSeconds = null, int? LspMemoryLimitMb = null, int? LspSharedMaxSessions = null, int? LspSharedMaxProcesses = null);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>

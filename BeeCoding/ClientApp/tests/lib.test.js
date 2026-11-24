@@ -78,3 +78,12 @@ describe('tr()', () => {
     expect(tr(english)).toBe(id[key].replaceAll('{p0}', '3'));
   });
 });
+
+import { CODE_TEMPLATES, isPristine } from '../src/lib/templates';
+describe('starter templates', () => {
+  it('the C++ starter avoids the umbrella header, and a draft saved with the old one still counts as untouched', () => {
+    expect(CODE_TEMPLATES.cpp).not.toContain('bits/stdc++.h');
+    expect(isPristine(CODE_TEMPLATES.cpp.replace('<iostream>', '<bits/stdc++.h>'))).toBe(true);
+    expect(isPristine(CODE_TEMPLATES.cpp + '// mine')).toBe(false);
+  });
+});

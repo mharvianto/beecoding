@@ -1,7 +1,8 @@
 import { tr } from './i18n';
 // Generic starter templates per language, dropped into a fresh editor.
+// The C++ one names <iostream>, not <bits/stdc++.h>: IntelliSense costs the server ~115 MB per student with the umbrella header and ~25 MB without.
 export const CODE_TEMPLATES = {
-  cpp: `#include <bits/stdc++.h>
+  cpp: `#include <iostream>
 using namespace std;
 
 int main() {
@@ -21,12 +22,15 @@ int main(void) {
 `,
 };
 
+// The C++ starter before it dropped <bits/stdc++.h>: drafts saved with it still count as untouched.
+const LEGACY_CPP = CODE_TEMPLATES.cpp.replace('#include <iostream>', '#include <bits/stdc++.h>');
+
 // True when `code` is still an untouched language template — i.e. safe to replace
 // when the student switches language.
 export function isPristine(code) {
   const t = (code || '').trim();
   if (t === '') return true;
-  return [CODE_TEMPLATES.c, CODE_TEMPLATES.cpp].some((s) => s.trim() === t);
+  return [CODE_TEMPLATES.c, CODE_TEMPLATES.cpp, LEGACY_CPP].some((s) => s.trim() === t);
 }
 
 // Supported languages, in preference order.

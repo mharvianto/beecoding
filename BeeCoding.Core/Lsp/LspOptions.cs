@@ -39,10 +39,11 @@ public class LspOptions
     /// from the memory the host has (see <see cref="SharedSessionMemoryMb"/>), so a class opening together cannot exhaust RAM.</summary>
     public int SharedMaxTotalSessions { get; set; } = 0;
 
-    /// <summary>Memory one attached student costs the shared clangd, used for the automatic total above: measured about 85 MB
-    /// with the default C++ template (#include &lt;bits/stdc++.h&gt;) plus about 440 MB for the process itself, so 120 covers a class of 15–40;
-    /// with SharedPchStorage=disk it is about 65 MB, so 90 fits.</summary>
-    public int SharedSessionMemoryMb { get; set; } = 120;
+    /// <summary>Memory one attached student costs the shared clangd, used for the automatic total above: measured (clangd 18, real class code)
+    /// about 5 MB for a C file with stdio.h/stdlib.h, about 25 MB for C++ with ordinary headers and about 115 MB with #include &lt;bits/stdc++.h&gt;,
+    /// plus roughly 75–110 MB for the process itself. 60 fits C and ordinary C++; a class that writes the umbrella header should set 120
+    /// (SharedPchStorage=disk saves only about 8%).</summary>
+    public int SharedSessionMemoryMb { get; set; } = 60;
 
     /// <summary>Share of the host's memory the automatic total may spend on the shared clangd (the rest is the web app, the judge, the OS).</summary>
     public int SharedMemoryPercent { get; set; } = 40;
