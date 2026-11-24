@@ -54,6 +54,11 @@ jobs:
           cache: npm
           cache-dependency-path: BeeCoding/ClientApp/package-lock.json
 
+      # Plain-JS logic of the SPA (src/lib): drafts, i18n, the synced-preference list vs the server's, the modal helper.
+      - name: Test (frontend)
+        working-directory: BeeCoding/ClientApp
+        run: npm ci && npm test
+
       # The server deploys whatever the newest release holds, within minutes and with its migrations: a red test must stop it here.
       - name: Test
         env:
