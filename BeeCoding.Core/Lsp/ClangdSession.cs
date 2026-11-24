@@ -23,6 +23,34 @@ public sealed class ClangdSession : ILspSession
     public event Func<string, Task>? MessageReceived;
     public event Action? Exited;
 
+    // Every clangd this process started and has not stopped: what the usage sampler adds up memory over.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, byte> Live = new();
+
+    /// <summary>Resident memory (MB) of the clangd processes started by THIS instance (Linux /proc; 0 elsewhere). A clangd on a remote node is not counted.</summary>
+    public static int ResidentMb()
+    {
+        long kb = 0;
+        foreach (var pid in Live.Keys) kb += TreeRssKb(pid);
+        return (int)(kb / 1024);
+    }
+
+    // The started process may be a wrapper (prlimit execs clangd, bubblewrap forks it), so add the children too.
+    private static long TreeRssKb(int pid, int depth = 0)
+    {
+        long kb = 0;
+        try
+        {
+            foreach (var line in File.ReadLines($"/proc/{pid}/status"))
+                if (line.StartsWith("VmRSS:")) { kb = long.Parse(line.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1]); break; }
+            if (depth < 3)
+                foreach (var task in Directory.EnumerateDirectories($"/proc/{pid}/task"))
+                    foreach (var child in File.ReadAllText(Path.Combine(task, "children")).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+                        kb += TreeRssKb(int.Parse(child), depth + 1);
+        }
+        catch { /* gone, or not Linux */ }
+        return kb;
+    }
+
     private ClangdSession(Process proc, string workspaceDir, string mainFilePath)
     {
         _proc = proc;
@@ -93,6 +121,7 @@ public sealed class ClangdSession : ILspSession
         proc.ErrorDataReceived += (_, e) => { if (e.Data is { Length: > 0 }) log.LogTrace("clangd: {Line}", e.Data); };
 
         proc.Start();
+        Live[proc.Id] = 0;
         session._stdin = proc.StandardInput.BaseStream;
         proc.BeginErrorReadLine();
         _ = session.ReadLoopAsync(log);
@@ -188,6 +217,7 @@ public sealed class ClangdSession : ILspSession
         _cts.Cancel();
         try { if (!_proc.HasExited) _proc.Kill(entireProcessTree: true); } catch { }
         try { await _proc.WaitForExitAsync(new CancellationTokenSource(2000).Token); } catch { }
+        Live.TryRemove(_proc.Id, out _);
         _proc.Dispose();
         try { Directory.Delete(WorkspaceDir, recursive: true); } catch { }
         _cts.Dispose();

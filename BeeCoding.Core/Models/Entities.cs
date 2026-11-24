@@ -1144,6 +1144,8 @@ public class LspUsageSample
     public string Host { get; set; } = "";
     public int Students { get; set; }
     public int Processes { get; set; }
+    /// <summary>Resident memory (MB) of this instance's clangd processes at that minute.</summary>
+    public int RssMb { get; set; }
 }
 
 public class AuditLogEntry

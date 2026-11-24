@@ -42,7 +42,7 @@ public sealed class LspUsageSampler(IServiceScopeFactory scopes, LspBridge bridg
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         if (write)
         {
-            db.LspUsageSamples.Add(new LspUsageSample { At = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, DateTimeKind.Utc), Host = Environment.MachineName, Students = students, Processes = shared.Processes });
+            db.LspUsageSamples.Add(new LspUsageSample { At = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, 0, DateTimeKind.Utc), Host = Environment.MachineName, Students = students, Processes = shared.Processes, RssMb = ClangdSession.ResidentMb() });
             await db.SaveChangesAsync(ct);
         }
         if (prune) await db.LspUsageSamples.Where(x => x.At < now.AddDays(-KeepDays)).ExecuteDeleteAsync(ct);
@@ -55,18 +55,19 @@ public sealed class LspUsageSampler(IServiceScopeFactory scopes, LspBridge bridg
         hours = Math.Clamp(hours, 1, 24 * KeepDays);
         var since = DateTime.UtcNow.AddHours(-hours);
         var perMinute = (await db.LspUsageSamples.Where(x => x.At >= since)
-                .Select(x => new { x.At, x.Students, x.Processes }).ToListAsync())
+                .Select(x => new { x.At, x.Students, x.Processes, x.RssMb }).ToListAsync())
             .GroupBy(x => x.At).OrderBy(g => g.Key)
-            .Select(g => (At: g.Key, Students: g.Sum(x => x.Students), Processes: g.Sum(x => x.Processes))).ToList();
+            .Select(g => (At: g.Key, Students: g.Sum(x => x.Students), Processes: g.Sum(x => x.Processes), Rss: g.Sum(x => x.RssMb))).ToList();
 
         var step = hours <= 24 ? 1 : hours <= 72 ? 5 : 15;
         var ticks = TimeSpan.FromMinutes(step).Ticks;
         var points = perMinute
             .GroupBy(m => m.At.Ticks / ticks)
             .Select(g => g.OrderByDescending(m => m.Students).First() with { At = new DateTime(g.Key * ticks, DateTimeKind.Utc) })
-            .Select(m => new LspUsagePointDto(m.At.ToString("o"), m.Students, m.Processes)).ToList();
+            .Select(m => new LspUsagePointDto(m.At.ToString("o"), m.Students, m.Processes, m.Rss)).ToList();
         if (perMinute.Count == 0) return new LspUsageDto(hours, step, 0, null, points);
         var peak = perMinute.MaxBy(m => m.Students);
-        return new LspUsageDto(hours, step, peak.Students, peak.At.ToString("o"), points);
+        var peakRss = perMinute.MaxBy(m => m.Rss);
+        return new LspUsageDto(hours, step, peak.Students, peak.At.ToString("o"), points, peakRss.Rss, peakRss.Rss > 0 ? peakRss.At.ToString("o") : null);
     }
 }

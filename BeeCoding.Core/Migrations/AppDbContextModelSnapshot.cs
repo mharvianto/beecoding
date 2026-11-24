@@ -898,6 +898,9 @@ namespace BeeCoding.Migrations
                     b.Property<int>("Processes")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("RssMb")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("Students")
                         .HasColumnType("INTEGER");
 

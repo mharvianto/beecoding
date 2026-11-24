@@ -923,6 +923,7 @@ function setLspUsageHours() {
   loadLspUsage();
 }
 const lspUsagePoints = () => (lspUsage.value?.points || []).map((p) => ({ label: hourLabel(p.time), value: p.students }));
+const lspRssPoints = () => (lspUsage.value?.points || []).map((p) => ({ label: hourLabel(p.time), value: p.rssMb }));
 
 // ---- judge latency: time from submit to verdict, per hour (queue wait + compile + run) ----
 const LATENCY_KEY = 'beecoding.admin.judgeLatencyHours';
@@ -2196,6 +2197,10 @@ onMounted(async () => {
             {{ tr('Recorded once a minute while anyone is attached; the time axis skips the idle stretches.') }}
           </p>
           <MiniLineChart v-if="lspUsage?.points?.length" :title="tr('Students attached')" :points="lspUsagePoints()" />
+          <template v-if="lspUsage?.peakRssMb > 0">
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-3 mb-2">{{ tr('Memory peak: {n} MB, {when}. Resident memory of the clangd processes started by this server; a clangd on a separate node is not counted.', { n: lspUsage.peakRssMb, when: hourLabel(lspUsage.peakRssAt) }) }}</p>
+            <MiniLineChart :title="tr('clangd memory (MB)')" :points="lspRssPoints()" />
+          </template>
           <p v-else class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No IntelliSense use recorded in this period yet.') }}</p>
         </div>
 

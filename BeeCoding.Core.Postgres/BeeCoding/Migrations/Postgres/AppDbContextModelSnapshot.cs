@@ -947,6 +947,9 @@ namespace BeeCoding.Migrations.Postgres
                     b.Property<int>("Processes")
                         .HasColumnType("integer");
 
+                    b.Property<int>("RssMb")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Students")
                         .HasColumnType("integer");
 

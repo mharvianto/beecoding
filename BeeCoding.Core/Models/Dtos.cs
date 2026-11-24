@@ -332,8 +332,8 @@ public record AdminSystemStatusDto(
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
-public record LspUsagePointDto(string Time, int Students, int Processes);
-public record LspUsageDto(int Hours, int StepMinutes, int PeakStudents, string? PeakAt, List<LspUsagePointDto> Points);
+public record LspUsagePointDto(string Time, int Students, int Processes, int RssMb = 0);
+public record LspUsageDto(int Hours, int StepMinutes, int PeakStudents, string? PeakAt, List<LspUsagePointDto> Points, int PeakRssMb = 0, string? PeakRssAt = null);
 
 public record SysstatResultDto(string Hostname, string Metric, List<SysstatPointDto> Points);
 public record SysstatDayDto(string Start, double Avg, double Max, int Samples);

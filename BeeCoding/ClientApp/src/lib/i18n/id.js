@@ -1291,6 +1291,8 @@ export default {
   "Only when sharing one clangd between students.": "Hanya saat satu clangd dibagi antar siswa.",
   "Shared clangd: processes": "Clangd bersama: jumlah proses",
   "More processes spread parsing over more CPU cores.": "Lebih banyak proses membagi parsing ke lebih banyak inti CPU.",
+  "Memory peak: {n} MB, {when}. Resident memory of the clangd processes started by this server; a clangd on a separate node is not counted.": "Puncak memori: {n} MB, {when}. Memori resident proses clangd yang dijalankan server ini; clangd di node terpisah tidak dihitung.",
+  "clangd memory (MB)": "Memori clangd (MB)",
   "One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total comes from Lsp:SharedMaxTotalSessions.": "Satu proses melayani kelas, bukan satu per siswa: RAM jauh lebih hemat, tetapi permintaan berat memperlambat semua orang. Sesi yang terbuka tetap pada jenisnya. Totalnya berasal dari Lsp:SharedMaxTotalSessions.",
   "Judge & problems": "Juri & soal",
   "Submit / run cooldown": "Jeda kirim / jalankan",
