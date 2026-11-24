@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import * as monaco from 'monaco-editor';
@@ -87,7 +88,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div role="dialog" aria-modal="true" :aria-label="tr('Compare submissions')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
+  <div role="dialog" aria-modal="true" v-modal="() => emit('close')" :aria-label="tr('Compare submissions')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50" @click.self="emit('close')">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-6xl my-8 flex flex-col overflow-hidden" style="height: 85vh">
       <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center gap-3 text-sm font-medium min-w-0">
@@ -95,7 +96,7 @@ onBeforeUnmount(() => {
           <span class="text-slate-300 dark:text-slate-600">↔</span>
           <span class="truncate">{{ labelB || subB?.authorName }}</span>
         </div>
-        <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" :title="tr('Close')" :aria-label="tr('Close')">✕</button>
+        <button @click="emit('close')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0" :title="tr('Close')" :aria-label="tr('Close')">✕</button>
       </div>
 
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-5 py-3">{{ tr(error) }}</p>

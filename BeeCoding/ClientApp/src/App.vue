@@ -138,6 +138,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-full min-h-0 flex flex-col">
+    <a href="#main" @click.prevent="$el.querySelector('#main')?.focus()"
+       class="sr-only focus:not-sr-only focus:absolute focus:z-[60] focus:m-2 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-amber-500 focus:text-white">{{ tr('Skip to content') }}</a>
     <header v-if="auth.user && !(playgroundFocus && focusRoute)" class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
       <div class="max-w-7xl mx-auto px-4 py-2 flex items-center gap-x-4 gap-y-2 flex-wrap">
         <button @click="mobileNavOpen = !mobileNavOpen"
@@ -188,7 +190,7 @@ onBeforeUnmount(() => {
     <NotificationOfferBanner v-else-if="auth.user && !route.path.startsWith('/account')" />
     <!-- waits for the two-step offer, like the notification one: one nudge at a time -->
     <SurveyOfferBanner v-if="auth.user && (auth.user.mfaEnabled !== false || auth.user.mfaOfferSnoozed) && !auth.mustSetupMfa && !auth.needsVerification && !quietRoute && !route.path.startsWith('/survey') && !route.path.startsWith('/account')" />
-    <main class="flex-1 min-h-0 flex flex-col">
+    <main id="main" tabindex="-1" class="flex-1 min-h-0 flex flex-col outline-none">
       <div class="flex-1 min-h-0 overflow-y-auto flex flex-col">
         <div class="flex-1" :class="{ 'min-h-0': !showFooter }">
           <RouterView v-slot="{ Component, route: r }">

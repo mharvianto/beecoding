@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { hasData } from '../lib/hasData';
@@ -1173,10 +1174,10 @@ onMounted(async () => {
           <div v-for="r in dashboard.recentActivity" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="flex items-center justify-between gap-2 mb-1">
               <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
-              <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
             </div>
             <div class="text-xs">{{ r.actorEmail }}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
           </div>
           <p v-if="!dashboard.recentActivity.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity yet.') }}</p>
         </div>
@@ -1186,7 +1187,7 @@ onMounted(async () => {
           <table class="w-full text-sm">
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="r in dashboard.recentActivity" :key="r.id" class="border-b border-slate-100 dark:border-slate-800/60">
-                <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
                 <td class="text-[11px]">{{ r.actorEmail }}</td>
                 <td><span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span></td>
                 <td class="text-[11px]">{{ r.targetType }} · {{ r.targetLabel }}</td>
@@ -1285,12 +1286,12 @@ onMounted(async () => {
         </p>
         <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints logged in this period yet.') }}</p>
         <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
           <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
           <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
           <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
           <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-          <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+          <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
         </dl>
       </div>
 
@@ -1370,7 +1371,7 @@ onMounted(async () => {
         <div v-if="tableView === 'card'" class="space-y-2 mb-3">
           <div v-for="row in aiOverrides" :key="row.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ row.displayName }}</div>
-            <div class="text-[11px] text-slate-400 mb-2">{{ row.email }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">{{ row.email }}</div>
             <div class="flex items-center gap-3 flex-wrap text-xs">
               <label class="flex items-center gap-1.5">{{ tr('Quota') }}
                 <input v-model.number="row.dailyQuotaOverride" type="number" min="0" :placeholder="tr('role default')" :aria-label="tr('role default')"
@@ -1397,7 +1398,7 @@ onMounted(async () => {
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="row in aiOverrides" :key="row.userId" class="border-b border-slate-100 dark:border-slate-800/60">
-                <td><div class="font-medium">{{ row.displayName }}</div><div class="text-[11px] text-slate-400">{{ row.email }}</div></td>
+                <td><div class="font-medium">{{ row.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ row.email }}</div></td>
                 <td>
                   <input v-model.number="row.dailyQuotaOverride" type="number" min="0" :placeholder="tr('role default')" :aria-label="tr('role default')"
                          class="w-24 border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-2 py-1 text-xs" />
@@ -1450,11 +1451,11 @@ onMounted(async () => {
           </div>
           <div v-for="r in aiRows" :key="r.userId" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="font-medium text-sm">{{ r.displayName }}</div>
-            <div class="text-[11px] text-slate-400 mb-1.5">{{ r.email }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5">{{ r.email }}</div>
             <div class="text-xs grid grid-cols-3 gap-2 tabular-nums">
-              <div><div class="text-[11px] text-slate-400">{{ tr('Today') }}</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
-              <div><div class="text-[11px] text-slate-400">{{ tr('Month') }}</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
-              <div><div class="text-[11px] text-slate-400">{{ tr('All time') }}</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
+              <div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('Today') }}</div>{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('Month') }}</div>{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</div>
+              <div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('All time') }}</div><span class="font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</span></div>
             </div>
           </div>
           <p v-if="aiRows && !aiRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No AI usage yet.') }}</p>
@@ -1473,7 +1474,7 @@ onMounted(async () => {
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3 [&_td]:align-top">
               <tr v-for="r in aiRows" :key="r.userId" class="border-b border-slate-100 dark:border-slate-800/60">
-                <td><div class="font-medium">{{ r.displayName }}</div><div class="text-[11px] text-slate-400">{{ r.email }}</div></td>
+                <td><div class="font-medium">{{ r.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ r.email }}</div></td>
                 <td class="tabular-nums">{{ fmt(r.today.calls) }} / {{ fmt(r.today.totalTokens) }}</td>
                 <td class="tabular-nums">{{ fmt(r.month.calls) }} / {{ fmt(r.month.totalTokens) }}</td>
                 <td class="tabular-nums font-medium">{{ fmt(r.allTime.calls) }} / {{ fmt(r.allTime.totalTokens) }}</td>
@@ -1519,7 +1520,7 @@ onMounted(async () => {
                   class="px-2.5 py-1 tabular-nums"
                   :class="userFilter === c.key ? 'bg-emerald-500 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-800'"
                   :title="tr('Show only users with: {label}', { label: tr(c.label) })">
-            {{ tr(c.label) }} <b>{{ userStats[c.stat] }}</b><span class="text-slate-400" :class="{ 'text-white/80': userFilter === c.key }"> / {{ userStats.users }}</span>
+            {{ tr(c.label) }} <b>{{ userStats[c.stat] }}</b><span class="text-slate-500 dark:text-slate-400" :class="{ 'text-white/80': userFilter === c.key }"> / {{ userStats.users }}</span>
           </button>
           <button v-if="c.miss" @click="setUserFilter(c.miss)" :aria-pressed="userFilter === c.miss"
                   class="px-2 py-1 tabular-nums border-l border-slate-200 dark:border-slate-800"
@@ -1565,8 +1566,8 @@ onMounted(async () => {
           <div class="flex items-start gap-2">
             <input v-if="u.id !== auth.user?.id" type="checkbox" :checked="selectedUsers.has(u.id)" @change="toggleUserSelect(u.id)" class="mt-1 shrink-0" />
             <div class="min-w-0 flex-1">
-              <div class="font-medium text-sm truncate">{{ u.displayName }} <span class="text-slate-400 font-normal">#{{ u.id }}</span></div>
-              <div class="text-[11px] text-slate-400 truncate">{{ u.email }}</div>
+              <div class="font-medium text-sm truncate">{{ u.displayName }} <span class="text-slate-500 dark:text-slate-400 font-normal">#{{ u.id }}</span></div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ u.email }}</div>
             </div>
             <div v-if="u.id !== auth.user?.id" class="shrink-0 -mt-1 -mr-1">
               <AdminUserActions :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)" @reset-mfa="resetMfa(u)"
@@ -1584,9 +1585,9 @@ onMounted(async () => {
             <span v-if="!u.emailVerified" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300" :title="tr('Email not verified')"><Icon name="message" /> {{ tr('unverified') }}</span>
             <span v-if="u.mfaEnabled" class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300" :title="tr('Two-step verification is on')"><Icon name="lock" /> 2FA</span>
             <span v-if="u.hasPasskey" class="inline-block text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300" :title="tr('Has a passkey for passwordless sign-in')"><Icon name="key" /> {{ tr('passkey') }}</span>
-            <span class="text-[11px] text-slate-400 tabular-nums">{{ tr('{xp} XP · {b} boards · {s} subs', { xp: fmt(u.xp), b: u.ownedBoards, s: u.submissions }) }}</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{{ tr('{xp} XP · {b} boards · {s} subs', { xp: fmt(u.xp), b: u.ownedBoards, s: u.submissions }) }}</span>
           </div>
-          <div class="text-[11px] text-slate-400 mt-1">{{ tr('Joined {when}', { when: new Date(u.createdAt).toLocaleDateString() }) }}</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">{{ tr('Joined {when}', { when: new Date(u.createdAt).toLocaleDateString() }) }}</div>
         </div>
         <p v-if="users && !users.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No users.') }}</p>
       </div>
@@ -1613,8 +1614,8 @@ onMounted(async () => {
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
             <tr v-for="u in users" :key="u.id" class="border-b border-slate-100 dark:border-slate-800/60">
               <td><input v-if="u.id !== auth.user?.id" type="checkbox" :checked="selectedUsers.has(u.id)" @change="toggleUserSelect(u.id)" /></td>
-              <td class="text-slate-400">{{ u.id }}</td>
-              <td><div class="font-medium">{{ u.displayName }}</div><div class="text-[11px] text-slate-400">{{ u.email }}</div></td>
+              <td class="text-slate-500 dark:text-slate-400">{{ u.id }}</td>
+              <td><div class="font-medium">{{ u.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ u.email }}</div></td>
               <td>
                 <select v-if="u.id !== auth.user?.id" :value="u.role" @change="changeRole(u, $event.target.value)"
                         class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
@@ -1630,7 +1631,7 @@ onMounted(async () => {
               <td class="tabular-nums">{{ fmt(u.xp) }}</td>
               <td class="tabular-nums">{{ u.ownedBoards }}</td>
               <td class="tabular-nums">{{ u.submissions }}</td>
-              <td class="text-[11px] text-slate-400">{{ new Date(u.createdAt).toLocaleDateString() }}</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ new Date(u.createdAt).toLocaleDateString() }}</td>
               <td class="whitespace-nowrap text-right">
                 <AdminUserActions v-if="u.id !== auth.user?.id" :user="u" @verify="markVerified(u)" @reset-link="issueResetLink(u)"
                                   @reset-mfa="resetMfa(u)" @grant-admin="grantAdmin(u)" @revoke-admin="revokeAdmin(u)" @delete="deleteUser(u)" />
@@ -1670,7 +1671,7 @@ onMounted(async () => {
           </select>
         </div>
         <input type="file" accept="text/csv,.csv" :aria-label="tr('CSV file of users')" @change="importUsersCsv" :disabled="importingUsers" class="text-sm" />
-        <p v-if="importingUsers" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
+        <p v-if="importingUsers" class="text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Importing…') }}</p>
         <div v-if="userImportResult" class="mt-3 text-sm">
           <p class="text-emerald-600 dark:text-emerald-400">
             {{ tr('Created {a} · Already existed {b} · Errors {c}', { a: userImportResult.created, b: userImportResult.existing, c: userImportResult.errors }) }}
@@ -1731,12 +1732,12 @@ onMounted(async () => {
             <input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" class="mt-1 shrink-0" />
             <div class="min-w-0 flex-1">
               <RouterLink :to="`/boards/${b.slug}`" class="font-medium text-sm hover:underline">{{ b.title }}</RouterLink>
-              <div class="text-[11px] text-slate-400 font-mono">{{ b.slug }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{{ b.slug }}</div>
             </div>
             <button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger shrink-0">{{ tr('Delete') }}</button>
           </div>
-          <div class="text-[11px] text-slate-400 mt-1.5">{{ b.ownerName }} ({{ b.ownerEmail }})</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">{{ b.ownerName }} ({{ b.ownerEmail }})</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ tr('{a} student(s) · {b} problem(s) · created {when}', { a: b.memberCount, b: b.problemCount, when: new Date(b.createdAt).toLocaleDateString() }) }}
           </div>
         </div>
@@ -1761,11 +1762,11 @@ onMounted(async () => {
             <tr v-for="b in boards" :key="b.slug" class="border-b border-slate-100 dark:border-slate-800/60">
               <td><input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" /></td>
               <td><RouterLink :to="`/boards/${b.slug}`" class="font-medium hover:underline">{{ b.title }}</RouterLink>
-                <div class="text-[11px] text-slate-400 font-mono">{{ b.slug }}</div></td>
-              <td><div class="font-medium">{{ b.ownerName }}</div><div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div></td>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{{ b.slug }}</div></td>
+              <td><div class="font-medium">{{ b.ownerName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ b.ownerEmail }}</div></td>
               <td class="tabular-nums">{{ b.memberCount }}</td>
               <td class="tabular-nums">{{ b.problemCount }}</td>
-              <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
               <td><button @click="deleteBoard(b)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button></td>
             </tr>
             <tr v-if="boards && !boards.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No boards.') }}</td></tr>
@@ -1820,7 +1821,7 @@ onMounted(async () => {
         </label>
         <input type="file" accept="application/json,.json,application/zip,.zip" :aria-label="tr('problems.json or ZIP file')" @change="importProblems" :disabled="importing"
                class="text-sm" />
-        <p v-if="importing" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
+        <p v-if="importing" class="text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Importing…') }}</p>
         <div v-if="importResult" class="mt-3 text-sm">
           <p class="text-emerald-600 dark:text-emerald-400">
             {{ tr('Created {a} · Updated {b} · Skipped {c}', { a: importResult.created, b: importResult.updated, c: importResult.skipped }) }}
@@ -1863,14 +1864,14 @@ onMounted(async () => {
                 class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-center justify-between gap-2 mb-1">
             <VerdictBadge :verdict="s.verdict" small />
-            <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</span>
           </div>
           <div class="text-sm font-medium">
             <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
                         class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
             <template v-else>{{ s.problemTitle }}</template>
           </div>
-          <div class="text-[11px] text-slate-400 mt-0.5">
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
             {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}
           </div>
         </button>
@@ -1889,20 +1890,20 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
-            <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
+            <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)" tabindex="0" @keydown.enter.self="openSubmission(s)"
                 class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
-              <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</td>
-              <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(s.createdAt) }}</td>
+              <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.userEmail }}</div></td>
               <td>
                 <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
                             class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
                 <template v-else>{{ s.problemTitle }}</template>
               </td>
-              <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
               <td><VerdictBadge :verdict="s.verdict" small /></td>
               <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
-              <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
-              <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.language || '—' }}</td>
             </tr>
             <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No submissions.') }}</td></tr>
           </tbody>
@@ -2013,7 +2014,7 @@ onMounted(async () => {
           </div>
           <div class="grid sm:grid-cols-2 gap-2">
             <div v-for="(t, i) in row.tests" :key="i" class="text-xs border border-slate-100 dark:border-slate-800 rounded-lg p-2">
-              <div class="text-slate-400 mb-1 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
+              <div class="text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1.5 flex-wrap">#{{ i + 1 }}
                 <span v-if="t.isSample" class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Icon name="eye" /> {{ tr('visible to students (sample)') }}</span>
                 <span v-else class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="lock" /> {{ tr('hidden from students (graded)') }}</span>
               </div>
@@ -2115,7 +2116,7 @@ onMounted(async () => {
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
             <span class="text-slate-500 dark:text-slate-400">{{ tr('Redis') }}</span>
-            <span v-if="!systemStatus.redisConfigured" class="text-slate-400">{{ tr('not used') }}</span>
+            <span v-if="!systemStatus.redisConfigured" class="text-slate-500 dark:text-slate-400">{{ tr('not used') }}</span>
             <span v-else :class="systemStatus.redisConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'">
               {{ systemStatus.redisConnected ? tr('connected') : tr('disconnected') }}
             </span>
@@ -2150,7 +2151,7 @@ onMounted(async () => {
           </div>
           <div class="flex justify-between py-1">
             <span class="text-slate-500 dark:text-slate-400">{{ tr('Checked') }}</span>
-            <span class="text-[11px] text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ when(systemStatus.checkedAt) }}</span>
           </div>
         </div>
 
@@ -2405,7 +2406,7 @@ onMounted(async () => {
               <input type="checkbox" :checked="trash[kind].selected.has(trashKey(kind, row))" @change="toggleTrashSelect(kind, row)" class="mt-1 shrink-0" />
               <div class="min-w-0 flex-1">
                 <div class="font-medium text-sm truncate">{{ labelFn(row) }}</div>
-                <div class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }} · {{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ row.email || row.ownerEmail || '' }} · {{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</div>
               </div>
             </div>
             <div class="mt-1.5 flex gap-3">
@@ -2432,8 +2433,8 @@ onMounted(async () => {
               <tr v-for="row in trash[kind].rows" :key="trashKey(kind, row)" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td><input type="checkbox" :checked="trash[kind].selected.has(trashKey(kind, row))" @change="toggleTrashSelect(kind, row)" /></td>
                 <td class="font-medium">{{ labelFn(row) }}</td>
-                <td class="text-[11px] text-slate-400">{{ row.email || row.ownerEmail || '' }}</td>
-                <td class="text-[11px] text-slate-400">{{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ row.email || row.ownerEmail || '' }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('deleted {when}', { when: when(row.deletedAt) }) }}</td>
                 <td class="text-right">
                   <button @click="restoreTrash(kind, row)" class="row-action-btn row-action-btn--success mr-1">{{ tr('Restore') }}</button>
                   <button @click="purge(kind, row, labelFn(row))" class="row-action-btn row-action-btn--danger">{{ tr('Purge') }}</button>
@@ -2472,10 +2473,10 @@ onMounted(async () => {
         <div v-for="r in auditRows" :key="r.id" class="border border-slate-200 dark:border-slate-800 rounded-xl p-3">
           <div class="flex items-center justify-between gap-2 mb-1">
             <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
-            <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</span>
           </div>
           <div class="text-xs">{{ r.actorEmail }}</div>
-          <div class="text-[11px] text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
+          <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ r.targetType }} · {{ r.targetLabel }}</div>
         </div>
         <p v-if="auditRows && !auditRows.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No activity yet.') }}</p>
       </div>
@@ -2491,7 +2492,7 @@ onMounted(async () => {
           </thead>
           <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
             <tr v-for="r in auditRows" :key="r.id" class="border-b border-slate-100 dark:border-slate-800/60">
-              <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
+              <td class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ when(r.createdAt) }}</td>
               <td class="text-[11px]">{{ r.actorEmail }}</td>
               <td>
                 <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap" :class="actionBadgeClass(r.action)">{{ r.action }}</span>
@@ -2554,8 +2555,8 @@ onMounted(async () => {
                 <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button>
               </div>
             </div>
-            <div class="text-[11px] text-slate-400 mt-0.5">{{ o.slug }} · {{ tr('created {when}', { when: new Date(o.createdAt).toLocaleDateString() }) }}</div>
-            <div class="text-[11px] text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : tr('always invites') }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ o.slug }} · {{ tr('created {when}', { when: new Date(o.createdAt).toLocaleDateString() }) }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ o.emailDomains ? `auto-accepts ${o.emailDomains}` : tr('always invites') }}</div>
           </template>
         </div>
         <p v-if="organizations && !organizations.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No organizations yet.') }}</p>
@@ -2587,9 +2588,9 @@ onMounted(async () => {
               </template>
               <template v-else>
                 <td class="font-medium">{{ o.name }}</td>
-                <td class="text-[11px] text-slate-400">{{ o.slug }}</td>
-                <td class="text-[11px] text-slate-400">{{ o.emailDomains || '—' }}</td>
-                <td class="text-[11px] text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ o.slug }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ o.emailDomains || '—' }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ new Date(o.createdAt).toLocaleDateString() }}</td>
                 <td class="whitespace-nowrap">
                   <button @click="startOrgEdit(o)" class="row-action-btn row-action-btn--accent mr-1">{{ tr('Edit') }}</button>
                   <button @click="deleteOrganization(o)" class="row-action-btn row-action-btn--danger">{{ tr('Delete') }}</button>
@@ -2663,9 +2664,9 @@ onMounted(async () => {
                 {{ p.enabled ? tr('enabled') : tr('disabled') }}
               </span>
             </div>
-            <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
-            <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">{{ p.organizationName || tr('unaffiliated') }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-1">{{ p.issuer }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ p.clientId }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">{{ p.organizationName || tr('unaffiliated') }}</div>
             <div class="mt-2 flex gap-3">
               <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">{{ tr('Edit') }}</button>
               <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
@@ -2687,9 +2688,9 @@ onMounted(async () => {
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="p in ltiPlatforms" :key="p.id" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td class="font-medium">{{ p.name }}</td>
-                <td class="text-[11px] text-slate-400 max-w-40 truncate">{{ p.issuer }}</td>
-                <td class="text-[11px] text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
-                <td class="text-[11px] text-slate-400">{{ p.organizationName || '—' }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400 max-w-40 truncate">{{ p.issuer }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ p.organizationName || '—' }}</td>
                 <td>
                   <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                         :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">
@@ -2708,7 +2709,7 @@ onMounted(async () => {
       </div>
     </section>
       <!-- one-off password-reset link -->
-    <div v-if="resetLink" role="dialog" aria-modal="true" :aria-label="tr('Password reset link')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
+    <div v-if="resetLink" role="dialog" aria-modal="true" v-modal="() => (resetLink = null)" :aria-label="tr('Password reset link')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="resetLink = null">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-lg p-5 shadow-lg space-y-3">
         <h2 class="font-semibold">{{ tr('Reset link for {name}', { name: resetLink.user.displayName }) }}</h2>
         <p class="text-sm text-slate-500 dark:text-slate-400">

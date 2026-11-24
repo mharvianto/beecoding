@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { ref, computed } from 'vue';
 import Icon from '../components/Icon.vue';
 import iconSource from '../components/Icon.vue?raw';
@@ -158,13 +159,13 @@ const themeNow = computed(() => theme.value);
       </div>
     </section>
 
-    <div v-if="modal" role="dialog" aria-modal="true" aria-label="Example" @keydown.esc="modal = false" @click.self="modal = false"
+    <div v-if="modal" role="dialog" aria-modal="true" aria-label="Example" v-modal="() => (modal = false)" @click.self="modal = false"
          class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-3xl my-8 flex flex-col overflow-hidden" style="height: 60vh">
         <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
           <div class="flex items-center justify-between gap-2 px-4 pt-3">
             <div class="flex items-center gap-2"><VerdictBadge verdict="Accepted" small /><span class="text-sm font-semibold">Title (2 hours ago)</span></div>
-            <button type="button" @click="modal = false" aria-label="Close" title="Close" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
+            <button type="button" @click="modal = false" aria-label="Close" title="Close" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
           </div>
           <div class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
             <span>0ms · 1408KB · 100%</span>

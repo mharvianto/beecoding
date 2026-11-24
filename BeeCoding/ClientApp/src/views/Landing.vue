@@ -130,7 +130,7 @@ const faqs = [
                 <span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span class="ml-3 text-xs text-slate-400">A + B · C++</span>
+                <span class="ml-3 text-xs text-slate-500 dark:text-slate-400">A + B · C++</span>
                 <span class="ml-auto text-[11px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">{{ tr('Accepted · 10/10') }}</span>
               </div>
               <pre class="px-4 py-3 text-[13px] leading-relaxed font-mono text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-900 overflow-hidden"><span class="text-violet-600 dark:text-violet-400">#include</span> <span class="text-emerald-600 dark:text-emerald-400">&lt;iostream&gt;</span>
@@ -210,7 +210,7 @@ const faqs = [
             <summary class="flex items-center justify-between gap-4 cursor-pointer list-none py-4 font-medium
                             [&::-webkit-details-marker]:hidden hover:text-amber-600 dark:hover:text-amber-400">
               <span>{{ tr(q) }}</span>
-              <span class="shrink-0 text-slate-400 transition-transform group-open:rotate-45">+</span>
+              <span class="shrink-0 text-slate-500 dark:text-slate-400 transition-transform group-open:rotate-45">+</span>
             </summary>
             <p class="pb-4 -mt-1 text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{{ tr(a) }}</p>
           </details>

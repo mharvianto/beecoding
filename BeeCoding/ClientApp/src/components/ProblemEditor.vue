@@ -361,7 +361,7 @@ function pickFormula(e) {
           <label v-if="showBankFields && !studentMode" class="flex items-center gap-2" :class="{ 'opacity-50': props.problem?.pendingReview }">
             <input type="checkbox" v-model="form.isPublic" :disabled="props.problem?.pendingReview" />
             {{ tr('Share with other teachers') }}
-            <span v-if="props.problem?.pendingReview" class="text-[11px] text-slate-400">{{ tr('(awaiting admin review)') }}</span>
+            <span v-if="props.problem?.pendingReview" class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('(awaiting admin review)') }}</span>
           </label>
         </div>
 

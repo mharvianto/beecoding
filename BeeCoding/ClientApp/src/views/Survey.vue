@@ -101,7 +101,7 @@ async function save() {
             <div v-else>
               <textarea :id="`q-${q.id}`" v-model="answers[q.id]" rows="3" maxlength="500"
                         class="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-3 py-2 text-sm"></textarea>
-              <div class="text-right text-[11px] tabular-nums text-slate-400 mt-1" aria-hidden="true">{{ (answers[q.id] || '').length }} / 500</div>
+              <div class="text-right text-[11px] tabular-nums text-slate-500 dark:text-slate-400 mt-1" aria-hidden="true">{{ (answers[q.id] || '').length }} / 500</div>
             </div>
           </fieldset>
         </div>

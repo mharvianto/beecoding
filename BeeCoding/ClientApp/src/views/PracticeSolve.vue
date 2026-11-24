@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirmDialog } from '../stores/confirmDialog';
 import { tr } from '../lib/i18n';
 import RunOutput from '../components/RunOutput.vue';
 import Icon from '../components/Icon.vue';
@@ -128,10 +129,11 @@ async function load() {
   }
 }
 // Put an old submission back in the editor. The current text is only lost if it is not already one of the submissions.
-function loadFromHistory(sub) {
+const confirmDialog = useConfirmDialog();
+async function loadFromHistory(sub) {
   const here = code.value.trim();
   if (here && !isPristine(code.value) && !submissions.value.some((x) => (x.code || '').trim() === here)
-      && !confirm(tr('Replace the code in the editor? It has not been submitted.'))) return;
+      && !await confirmDialog.ask('Replace the code in the editor? It has not been submitted.', { confirmLabel: 'Replace', danger: false })) return;
   code.value = sub.code || '';
   if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }

@@ -95,7 +95,7 @@ function useExample() { form.value = { prefix: 'cpp_main', lang: 'cpp', descript
           {{ editing === null ? tr('Add snippet') : tr('Save changes') }}
         </button>
         <button v-if="editing !== null" type="button" @click="cancel" class="row-action-btn">{{ tr('Cancel') }}</button>
-        <span v-if="atLimit" class="text-xs text-slate-400">{{ tr('Limit of {n} snippets reached.', { n: MAX_SNIPPETS }) }}</span>
+        <span v-if="atLimit" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('Limit of {n} snippets reached.', { n: MAX_SNIPPETS }) }}</span>
       </div>
     </form>
   </section>

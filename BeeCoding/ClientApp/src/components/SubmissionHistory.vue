@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref, computed, nextTick } from 'vue';
 import VerdictBadge from './VerdictBadge.vue';
@@ -53,23 +54,23 @@ function load() { emit('load', open.value); close(); }
       </span>
       <span v-if="s.codePurged" class="text-[11px] text-slate-500 dark:text-slate-400" :title="tr('The source code of this submission was removed after the retention period. The verdict and score are kept.')">{{ tr('code removed') }}</span>
       <time :datetime="s.createdAt" :title="fullTime(s.createdAt)" class="text-xs text-slate-500 dark:text-slate-400 ml-auto">{{ timeAgo(s.createdAt) }}</time>
-      <Chevron v-if="canOpen(s)" :open="false" size="1rem" class="text-slate-400" />
+      <Chevron v-if="canOpen(s)" :open="false" size="1rem" class="text-slate-500 dark:text-slate-400" />
     </component>
     <p v-if="!submissions.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr(emptyText) }}</p>
   </div>
 
-  <div v-if="open" role="dialog" aria-modal="true" :aria-label="tr('Submission')" @keydown.esc="close" @click.self="close"
+  <div v-if="open" role="dialog" aria-modal="true" v-modal="close" :aria-label="tr('Submission')" @click.self="close"
        class="fixed inset-0 z-50 flex items-start justify-center p-4 overflow-y-auto bg-black/50">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full my-8 flex flex-col overflow-hidden transition-[max-width]" :class="mode === 'code' ? 'max-w-3xl' : 'max-w-6xl'" style="height: 80vh">
       <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="flex items-center justify-between gap-2 px-4 pt-3">
           <div class="flex items-center gap-1.5 min-w-0">
-            <button v-if="older" type="button" @click="show(older)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Older submission')" :aria-label="tr('Older submission')">◀</button>
+            <button v-if="older" type="button" @click="show(older)" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Older submission')" :aria-label="tr('Older submission')">◀</button>
             <VerdictBadge :verdict="open.status === 'Done' ? open.verdict : open.status" small />
             <time :datetime="open.createdAt" class="text-sm font-semibold truncate">{{ fullTime(open.createdAt) }} <span class="hidden sm:inline font-normal text-slate-500 dark:text-slate-400">({{ timeAgo(open.createdAt) }})</span></time>
-            <button v-if="newer" type="button" @click="show(newer)" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Newer submission')" :aria-label="tr('Newer submission')">▶</button>
+            <button v-if="newer" type="button" @click="show(newer)" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0 px-1" :title="tr('Newer submission')" :aria-label="tr('Newer submission')">▶</button>
           </div>
-          <button ref="closeBtn" type="button" @click="close" :aria-label="tr('Close')" :title="tr('Close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0">✕</button>
+          <button ref="closeBtn" type="button" @click="close" :aria-label="tr('Close')" :title="tr('Close')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 shrink-0">✕</button>
         </div>
         <div class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs text-slate-500 dark:text-slate-400">
           <span v-if="open.status === 'Done'">{{ open.runtimeMs }}ms · {{ open.memoryKb }}KB · {{ Math.round(open.score * 100) }}%</span>

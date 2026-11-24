@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, computed, onMounted, watch } from 'vue';
@@ -77,7 +78,7 @@ const ready = computed(() => category.value && message.value.trim().length >= 10
   </span>
 
   <Teleport to="body">
-    <div v-if="modal" role="dialog" aria-modal="true" :aria-label="tr('Report a problem')" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" @click.self="modal = false" @keydown.esc="modal = false">
+    <div v-if="modal" role="dialog" aria-modal="true" :aria-label="tr('Report a problem')" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50" v-modal="() => (modal = false)" @click.self="modal = false">
       <div class="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-5 space-y-3 max-h-[90vh] overflow-y-auto" role="dialog" :aria-label="tr('Report a problem')">
         <template v-if="!sent">
           <h2 class="font-semibold">{{ tr('Report a problem') }}</h2>

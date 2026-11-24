@@ -117,7 +117,7 @@ const ACTION = {
           <Icon :name="check(result).mismatched + check(result).errored ? 'alert' : 'check'" /> {{ check(result).summary }}
         </p>
         <div v-for="t in flagged(check(result))" :key="t.index" class="border border-slate-200 dark:border-slate-800 rounded p-2 bg-white dark:bg-slate-900">
-          <div class="text-slate-400 mb-1">{{ t.isSample ? 'sample' : 'hidden' }} #{{ t.index }} · {{ t.verdict }}<template v-if="t.detail"> — {{ t.detail }}</template></div>
+          <div class="text-slate-500 dark:text-slate-400 mb-1">{{ t.isSample ? 'sample' : 'hidden' }} #{{ t.index }} · {{ t.verdict }}<template v-if="t.detail"> — {{ t.detail }}</template></div>
           <div v-if="t.verdict === 'mismatch'" class="grid sm:grid-cols-2 gap-2">
             <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto">stored: {{ t.expected }}</pre>
             <pre class="bg-slate-100 dark:bg-slate-800 rounded p-1.5 overflow-x-auto">AI's output: {{ t.actual }}</pre>

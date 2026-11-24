@@ -95,7 +95,7 @@ function exportCsv() {
               <h3 class="text-sm font-medium flex-1">{{ c.q.q.en }}</h3>
               <span v-if="c.mean !== undefined" class="text-xs tabular-nums text-slate-500">{{ tr('mean {n}', { n: c.mean }) }}</span>
               <span v-if="c.nps !== undefined" class="text-xs tabular-nums text-slate-500">NPS {{ c.nps }}</span>
-              <span class="text-xs tabular-nums text-slate-400">n={{ c.n }}</span>
+              <span class="text-xs tabular-nums text-slate-500 dark:text-slate-400">n={{ c.n }}</span>
             </div>
             <div v-if="c.q.type === 'choice' && view === 'donut'" class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
               <svg viewBox="0 0 100 100" class="w-28 h-28 shrink-0" role="img" :aria-label="c.q.q.en">
@@ -123,7 +123,7 @@ function exportCsv() {
             </ul>
             <ul v-else class="mt-2 space-y-1.5">
               <li v-for="(t, i) in c.texts" :key="i" class="text-sm bg-slate-50 dark:bg-slate-800/60 rounded-lg px-3 py-2 whitespace-pre-wrap">{{ t }}</li>
-              <li v-if="!c.texts.length" class="text-xs text-slate-400">{{ tr('No answers yet.') }}</li>
+              <li v-if="!c.texts.length" class="text-xs text-slate-500 dark:text-slate-400">{{ tr('No answers yet.') }}</li>
             </ul>
           </div>
         </div>

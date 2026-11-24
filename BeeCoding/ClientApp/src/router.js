@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuth } from './stores/auth';
+import { tr } from './lib/i18n';
 
 // meta.keyed: the :params name one entity (a board, a problem) whose page loads its data once when created, so a link
 // from one entity to another of the same kind must remount the page (see the RouterView key in App.vue). Do NOT add it
@@ -81,4 +82,23 @@ router.beforeEach(async (to) => {
   if (to.meta.anon && auth.user) return { path: '/boards' };
   if (to.meta.teacherOnly && !auth.isTeacher && !(to.meta.adminToo && auth.user?.isAdmin)) return { path: '/boards' };
   return true;
+});
+
+// A new page says so: the tab title changes (it was always the same) and focus moves to the content, which is how a screen
+// reader hears that the page changed. Only a change of path counts, not a tab or query change inside the same page.
+const TITLES = [
+  [/^\/$/, 'Home'], [/^\/login/, 'Sign in'], [/^\/register/, 'Create account'], [/^\/verify-email/, 'Verify email'],
+  [/^\/forgot-password/, 'Forgot password'], [/^\/reset-password/, 'Reset password'], [/^\/privacy/, 'Privacy policy'], [/^\/terms/, 'Terms'],
+  [/^\/boards$/, 'Boards'], [/^\/boards\/[^/]+$/, 'Board'], [/^\/boards\/[^/]+\/stats/, 'Board stats'], [/^\/boards\/[^/]+\/submissions/, 'Submissions'],
+  [/^\/boards\/[^/]+\/plagiarism/, 'Plagiarism'], [/^\/boards\/[^/]+\/live/, 'Live code'], [/^\/boards\/[^/]+\/problems$/, 'Problems'],
+  [/^\/boards\/[^/]+\/problems\/(new|[^/]+\/edit)/, 'Edit problem'], [/^\/boards\/[^/]+\/problems\//, 'Problem'],
+  [/^\/practice$/, 'Practice'], [/^\/practice\//, 'Problem'], [/^\/playground/, 'Playground'], [/^\/leaderboard/, 'Leaderboard'],
+  [/^\/bank/, 'Problem bank'], [/^\/guide/, 'Problem guide'], [/^\/journey/, 'Journey'], [/^\/survey/, 'Survey'],
+  [/^\/account/, 'Account'], [/^\/admin/, 'Admin'], [/^\/org-admin/, 'Organization'], [/^\/reports/, 'Problem reports'], [/^\/join\//, 'Join a board'],
+];
+router.afterEach((to, from) => {
+  const name = TITLES.find(([re]) => re.test(to.path))?.[1];
+  document.title = name ? `${tr(name)} · BeeCoding` : 'BeeCoding';
+  if (from.path === to.path || !from.matched.length) return;   // first load: the browser starts at the top already
+  setTimeout(() => document.getElementById('main')?.focus({ preventScroll: true }), 0);
 });

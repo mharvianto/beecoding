@@ -628,12 +628,12 @@ onMounted(() => { url.read(); loadOrgs(); });
           </p>
           <p v-if="!hintEffect.pairs" class="text-sm text-slate-500">{{ tr('No hints on this organization\'s boards in this period yet.') }}</p>
           <dl v-else class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-            <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('Student–problem pairs') }}</dt><dd class="font-semibold">{{ hintEffect.pairs }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ tr('{n} students', { n: hintEffect.students }) }})</span></dd></div>
             <div><dt class="text-xs text-slate-500">{{ tr('Solved after a hint') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedAfterPct) }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ tr('Solved within 30 min') }}</dt><dd class="font-semibold">{{ pct(hintEffect.solvedWithin30MinPct) }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ tr('Median time to solve') }}</dt><dd class="font-semibold">{{ hintEffect.medianMinutesToSolve == null ? '–' : hintEffect.medianMinutesToSolve + ' min' }}</dd></div>
             <div><dt class="text-xs text-slate-500">{{ tr('Deep hints (level 3+), never solved') }}</dt><dd class="font-semibold">{{ hintEffect.deepStuck }}</dd></div>
-            <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
+            <div><dt class="text-xs text-slate-500">{{ tr('No hint, same problems: solved') }}</dt><dd class="font-semibold">{{ pct(hintEffect.baselineSolvedPct) }} <span class="text-xs font-normal text-slate-500 dark:text-slate-400">({{ hintEffect.baselinePairs }})</span></dd></div>
           </dl>
         </div>
 
@@ -672,7 +672,7 @@ onMounted(() => { url.read(); loadOrgs(); });
           <h3 class="font-semibold text-xs text-slate-500 dark:text-slate-400 mb-1">{{ tr('Waiting for an answer ({n})', { n: invites.length }) }}</h3>
           <ul class="divide-y divide-slate-100 dark:divide-slate-800">
             <li v-for="i in invites" :key="i.id" class="py-1.5 flex items-center gap-2 text-sm">
-              <span class="flex-1 min-w-0 truncate">{{ i.displayName }} <span class="text-xs text-slate-400">· {{ i.email }} · {{ i.orgRole.toLowerCase() }}</span></span>
+              <span class="flex-1 min-w-0 truncate">{{ i.displayName }} <span class="text-xs text-slate-500 dark:text-slate-400">· {{ i.email }} · {{ i.orgRole.toLowerCase() }}</span></span>
               <button @click="cancelInvite(i)" class="row-action-btn">{{ tr('Cancel') }}</button>
             </li>
           </ul>
@@ -684,7 +684,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             {{ tr('Header row with an “email” column (optional “role”: Member/Admin, default Member). Only existing BeeCoding accounts can be added — have others register first. Accounts outside this organization\'s domains are invited, not added.') }}
           </p>
           <input type="file" accept="text/csv,.csv" :aria-label="tr('CSV file of members')" @change="importMembersCsv" :disabled="importingMembers" class="text-sm" />
-          <p v-if="importingMembers" class="text-xs text-slate-400 mt-2">{{ tr('Importing…') }}</p>
+          <p v-if="importingMembers" class="text-xs text-slate-500 dark:text-slate-400 mt-2">{{ tr('Importing…') }}</p>
           <div v-if="memberImportResult" class="mt-2 text-xs space-y-1">
             <p class="text-emerald-600 dark:text-emerald-400">
               {{ tr('Added {a} · Invited {b} · Skipped {c} · Errors {d}', { a: memberImportResult.added, b: memberImportResult.invited, c: memberImportResult.skipped, d: memberImportResult.errors }) }}
@@ -703,7 +703,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="font-medium text-sm truncate">{{ m.displayName }}</div>
-                <div class="text-[11px] text-slate-400 truncate">{{ m.email }}</div>
+                <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ m.email }}</div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
                 <button @click="viewMemberSubmissions(m)" class="row-action-btn">{{ tr('Submissions') }}</button>
@@ -716,7 +716,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                 <option value="Member">{{ tr('Member') }}</option>
                 <option value="Admin">{{ tr('Admin') }}</option>
               </select>
-              <span class="text-[11px] text-slate-400">{{ tr('joined {when}', { when: new Date(m.joinedAt).toLocaleDateString() }) }}</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('joined {when}', { when: new Date(m.joinedAt).toLocaleDateString() }) }}</span>
             </div>
           </div>
           <p v-if="members && !members.length" class="text-slate-500 dark:text-slate-400 text-sm">{{ tr('No members yet.') }}</p>
@@ -733,7 +733,7 @@ onMounted(() => { url.read(); loadOrgs(); });
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
               <tr v-for="m in members" :key="m.userId" class="border-b border-slate-100 dark:border-slate-800/60">
-                <td><div class="font-medium">{{ m.displayName }}</div><div class="text-[11px] text-slate-400">{{ m.email }}</div></td>
+                <td><div class="font-medium">{{ m.displayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ m.email }}</div></td>
                 <td>
                   <select :value="m.orgRole" @change="changeMemberRole(m, $event.target.value)"
                           class="text-[11px] border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded px-1 py-0.5">
@@ -741,7 +741,7 @@ onMounted(() => { url.read(); loadOrgs(); });
                     <option value="Admin">{{ tr('Admin') }}</option>
                   </select>
                 </td>
-                <td class="text-[11px] text-slate-400">{{ new Date(m.joinedAt).toLocaleDateString() }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ new Date(m.joinedAt).toLocaleDateString() }}</td>
                 <td class="whitespace-nowrap">
                   <button @click="viewMemberSubmissions(m)" class="row-action-btn">{{ tr('Submissions') }}</button>
                   <button @click="removeMember(m)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
@@ -805,8 +805,8 @@ onMounted(() => { url.read(); loadOrgs(); });
             <div class="font-medium text-sm flex items-center gap-2">
               <input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" class="shrink-0" />{{ b.title }}
             </div>
-            <div class="text-[11px] text-slate-400">{{ b.ownerEmail }}</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">
+            <div class="text-[11px] text-slate-500 dark:text-slate-400">{{ b.ownerEmail }}</div>
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               {{ tr('{a} student(s) · {b} problem(s) · created {when}', { a: b.memberCount, b: b.problemCount, when: new Date(b.createdAt).toLocaleDateString() }) }}
             </div>
             <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1 mt-1.5">
@@ -841,10 +841,10 @@ onMounted(() => { url.read(); loadOrgs(); });
               <tr v-for="b in boards" :key="b.id" class="border-b border-slate-100 dark:border-slate-800/60">
                 <td><input type="checkbox" :checked="selectedBoards.has(b.slug)" @change="toggleBoardSelect(b.slug)" /></td>
                 <td class="font-medium">{{ b.title }}</td>
-                <td class="text-[11px] text-slate-400">{{ b.ownerEmail }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ b.ownerEmail }}</td>
                 <td class="tabular-nums">{{ b.memberCount }}</td>
                 <td class="tabular-nums">{{ b.problemCount }}</td>
-                <td class="text-[11px] text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ new Date(b.createdAt).toLocaleDateString() }}</td>
                 <td class="min-w-48">
                   <div v-if="editingBoardTagsSlug === b.slug" class="flex items-center gap-1">
                     <input v-model="boardTagsInput" :placeholder="tr('e.g. semester-1, class-a')" :aria-label="tr('Tags')" @keyup.enter="saveBoardTags(b)"
@@ -901,14 +901,14 @@ onMounted(() => { url.read(); loadOrgs(); });
                   class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
             <div class="flex items-center justify-between gap-2 mb-1">
               <VerdictBadge :verdict="s.verdict" small />
-              <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
+              <span class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
             </div>
             <div class="text-sm font-medium">
               <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
                           class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
               <template v-else>{{ s.problemTitle }}</template>
             </div>
-            <div class="text-[11px] text-slate-400 mt-0.5">
+            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               {{ s.userDisplayName }} ({{ s.userEmail }}) · {{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}
             </div>
           </button>
@@ -927,20 +927,20 @@ onMounted(() => { url.read(); loadOrgs(); });
               </tr>
             </thead>
             <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
-              <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)"
+              <tr v-for="s in submissionRows" :key="`${s.source}-${s.id}`" @click="openSubmission(s)" tabindex="0" @keydown.enter.self="openSubmission(s)"
                   class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
-                <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
-                <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-400">{{ s.userEmail }}</div></td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
+                <td><div class="font-medium">{{ s.userDisplayName }}</div><div class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.userEmail }}</div></td>
                 <td>
                   <RouterLink v-if="problemLink(s)" :to="problemLink(s)" @click.stop
                               class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
                   <template v-else>{{ s.problemTitle }}</template>
                 </td>
-                <td class="text-[11px] text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.source === 'Board' ? s.boardTitle : tr('Practice') }}</td>
                 <td><VerdictBadge :verdict="s.verdict" small /></td>
                 <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
-                <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
-                <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
+                <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.language || '—' }}</td>
               </tr>
               <tr v-if="submissionRows && !submissionRows.length"><td colspan="8" class="text-slate-500 dark:text-slate-400 py-3">{{ tr('No submissions.') }}</td></tr>
             </tbody>
@@ -1143,8 +1143,8 @@ onMounted(() => { url.read(); loadOrgs(); });
                   {{ p.enabled ? tr('enabled') : tr('disabled') }}
                 </span>
               </div>
-              <div class="text-[11px] text-slate-400 truncate mt-1">{{ p.issuer }}</div>
-              <div class="text-[11px] text-slate-400 truncate">{{ p.clientId }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-1">{{ p.issuer }}</div>
+              <div class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ p.clientId }}</div>
               <div class="mt-2 flex gap-3">
                 <button @click="startEditLtiPlatform(p)" class="row-action-btn row-action-btn--accent">{{ tr('Edit') }}</button>
                 <button @click="deleteLtiPlatform(p)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
@@ -1166,8 +1166,8 @@ onMounted(() => { url.read(); loadOrgs(); });
               <tbody class="[&_td]:py-1.5 [&_td]:pr-3">
                 <tr v-for="p in ltiPlatforms" :key="p.id" class="border-b border-slate-100 dark:border-slate-800/60">
                   <td class="font-medium">{{ p.name }}</td>
-                  <td class="text-[11px] text-slate-400 max-w-40 truncate">{{ p.issuer }}</td>
-                  <td class="text-[11px] text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
+                  <td class="text-[11px] text-slate-500 dark:text-slate-400 max-w-40 truncate">{{ p.issuer }}</td>
+                  <td class="text-[11px] text-slate-500 dark:text-slate-400 max-w-32 truncate">{{ p.clientId }}</td>
                   <td>
                     <span class="text-[11px] px-1.5 py-0.5 rounded-full whitespace-nowrap"
                           :class="p.enabled ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'">

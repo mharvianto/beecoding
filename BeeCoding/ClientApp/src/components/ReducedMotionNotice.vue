@@ -33,7 +33,7 @@ function dismiss() { visible.value = false; }
         <button @click="expanded = !expanded" class="text-left flex-1 hover:underline">
           <Icon name="sparkles" /> {{ tr('Animations are reduced, following your device setting') }}
         </button>
-        <button @click="dismiss" class="shrink-0 text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
+        <button @click="dismiss" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
       </div>
       <div v-if="expanded" class="mt-2 pt-2 border-t border-slate-600 dark:border-slate-500 text-xs text-slate-300 dark:text-slate-200 space-y-1">
         <p><strong>Windows 11:</strong> {{ tr('Settings → Accessibility → Visual effects → turn on "Animation effects"') }}</p>

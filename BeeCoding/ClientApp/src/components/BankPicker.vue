@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import Icon from './Icon.vue';
 import { ref, onMounted } from 'vue';
@@ -36,11 +37,11 @@ async function add(item) {
 </script>
 
 <template>
-  <div role="dialog" aria-modal="true" :aria-label="tr('Pick a problem from the bank')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
+  <div role="dialog" aria-modal="true" v-modal="() => emit('cancel')" :aria-label="tr('Pick a problem from the bank')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-2xl p-4 sm:p-5 my-4 sm:my-8">
       <div class="flex items-center justify-between mb-3">
         <h2 class="font-bold text-lg">{{ tr('Add from problem bank') }}</h2>
-        <button @click="emit('cancel')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
+        <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
       </div>
 
       <div class="flex flex-wrap gap-2 mb-3">

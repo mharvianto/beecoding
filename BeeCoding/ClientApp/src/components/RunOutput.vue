@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue';
 import { tr } from '../lib/i18n';
 import { runText } from '../lib/runText';
@@ -32,19 +33,19 @@ async function copy() {
     <div class="flex items-center justify-between">
       <label class="text-xs text-slate-500 dark:text-slate-400">{{ tr('output') }}</label>
       <button type="button" @click="show" :title="tr('Open the output in a large window')" :aria-label="tr('Open the output in a large window')"
-              class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm leading-none px-1"><Icon name="maximize" /></button>
+              class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-sm leading-none px-1"><Icon name="maximize" /></button>
     </div>
     <pre :style="{ fontSize: fontSize + 'px' }"
          class="w-full h-20 resize-y bg-slate-900 text-slate-100 dark:bg-black dark:border dark:border-slate-800 rounded-lg px-2 py-1 font-mono overflow-auto whitespace-pre-wrap">{{ text }}</pre>
 
     <Teleport to="body">
-      <div v-if="open" role="dialog" aria-modal="true" :aria-label="tr('output')" @click.self="open = false"
+      <div v-if="open" role="dialog" aria-modal="true" v-modal="() => (open = false)" :aria-label="tr('output')" @click.self="open = false"
            class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
         <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-5xl my-8 flex flex-col overflow-hidden" style="height: 85vh">
           <div class="border-b border-slate-100 dark:border-slate-800 shrink-0">
             <div class="flex items-center justify-between gap-2 px-4 pt-3">
               <span class="text-sm font-semibold capitalize">{{ tr('output') }}</span>
-              <button ref="closeBtn" type="button" @click="open = false" :aria-label="tr('Close')" :title="tr('Close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
+              <button ref="closeBtn" type="button" @click="open = false" :aria-label="tr('Close')" :title="tr('Close')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">✕</button>
             </div>
             <div class="flex items-center gap-2 flex-wrap px-4 pb-2.5 pt-1 text-xs">
               <button type="button" @click="copy" class="row-action-btn shrink-0"><Icon name="copy" /><span>{{ copied ? tr('Copied') : tr('Copy') }}</span></button>

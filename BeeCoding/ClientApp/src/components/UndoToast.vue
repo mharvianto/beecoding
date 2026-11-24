@@ -32,7 +32,7 @@ const secondsLeft = computed(() => Math.max(0, Math.ceil((toast.deadline - now.v
               class="shrink-0 font-semibold text-amber-300 hover:text-amber-200 underline underline-offset-2">
         {{ tr('Undo ({n}s)', { n: secondsLeft }) }}
       </button>
-      <button @click="toast.dismiss()" class="shrink-0 text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
+      <button @click="toast.dismiss()" class="shrink-0 text-slate-500 dark:text-slate-400 hover:text-slate-200" :title="tr('Dismiss')" :aria-label="tr('Dismiss')">✕</button>
     </div>
   </Transition>
 </template>

@@ -47,7 +47,7 @@ onMounted(load);
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ tr(error) }}</p>
       <ul v-if="shares.length" class="mt-3 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
         <li v-for="s in shares" :key="s.userId" class="flex items-center gap-2 py-1.5">
-          <span class="truncate">{{ s.displayName }} <span class="text-xs text-slate-400">{{ s.email }}</span></span>
+          <span class="truncate">{{ s.displayName }} <span class="text-xs text-slate-500 dark:text-slate-400">{{ s.email }}</span></span>
           <button @click="remove(s)" class="row-action-btn row-action-btn--danger ml-auto"><span><Icon name="x" /></span><span>{{ tr('Stop sharing') }}</span></button>
         </li>
       </ul>

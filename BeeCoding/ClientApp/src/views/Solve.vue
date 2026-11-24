@@ -1,4 +1,5 @@
 <script setup>
+import { useConfirmDialog } from '../stores/confirmDialog';
 import { agoShort as ago } from '../lib/timeAgo';
 import { tr } from '../lib/i18n';
 import Chevron from '../components/Chevron.vue';
@@ -170,10 +171,11 @@ async function load() {
   }
 }
 // Put an old submission of mine back in the editor. The current text is only lost if it is not already one of my submissions.
-function loadFromHistory(sub) {
+const confirmDialog = useConfirmDialog();
+async function loadFromHistory(sub) {
   const here = code.value.trim();
   if (here && !isPristine(code.value) && !submissions.value.some((x) => x.mine && (x.code || '').trim() === here)
-      && !confirm(tr('Replace the code in the editor? It has not been submitted.'))) return;
+      && !await confirmDialog.ask('Replace the code in the editor? It has not been submitted.', { confirmLabel: 'Replace', danger: false })) return;
   code.value = sub.code || '';
   if (sub.language === 'c' || sub.language === 'cpp') solveLang.value = sub.language;
 }
@@ -418,7 +420,7 @@ onBeforeUnmount(async () => {
                     class="w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-800/40">
               <span class="flex-1 truncate">{{ s.authorName }}</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ ago(s.updatedAt) }}</span>
-              <span class="text-slate-400"><Chevron :open="openStudent === s.uid" size="1rem" /></span>
+              <span class="text-slate-500 dark:text-slate-400"><Chevron :open="openStudent === s.uid" size="1rem" /></span>
             </button>
             <pre v-if="openStudent === s.uid"
                  class="bg-slate-900 text-slate-100 dark:bg-black rounded-lg m-2 p-2 font-mono text-xs overflow-auto max-h-72 whitespace-pre">{{ s.code || tr('(empty)') }}</pre>

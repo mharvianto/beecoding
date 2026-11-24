@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { vClickOutside } from '../lib/clickOutside';
@@ -231,9 +232,9 @@ onBeforeUnmount(async () => {
 
     <!-- Join QR: centered modal, with the code large enough to read from the back of a room -->
     <div v-if="isStaff && showQr" role="dialog" aria-modal="true" :aria-label="tr('Join code QR')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-         @click.self="showQr = false">
+         v-modal="() => (showQr = false)" @click.self="showQr = false">
       <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-sm p-6 shadow-lg text-center relative">
-        <button @click="showQr = false" class="absolute top-3 right-3 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
+        <button @click="showQr = false" class="absolute top-3 right-3 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
         <h2 class="font-semibold mb-3">{{ board.title }}</h2>
         <QrCode :text="joinUrl" :size="260" />
         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">{{ tr('Scan to join instantly, or enter the code:') }}</p>

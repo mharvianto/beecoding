@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { api } from '../lib/api';
@@ -69,11 +70,11 @@ async function run() {
 </script>
 
 <template>
-  <div role="dialog" aria-modal="true" :aria-label="tr('Add several boards')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
+  <div role="dialog" aria-modal="true" v-modal="() => emit('close')" :aria-label="tr('Add several boards')" class="fixed inset-0 bg-black/50 flex items-start justify-center p-4 overflow-y-auto z-50">
     <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-2xl p-5 my-8 space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="font-bold text-lg">{{ tr('Bulk add to') }} {{ tr(slugs.length === 1 ? '{n} board' : '{n} boards', { n: slugs.length }) }}</h2>
-        <button @click="emit('close')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
+        <button @click="emit('close')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
       </div>
 
       <!-- groups -->

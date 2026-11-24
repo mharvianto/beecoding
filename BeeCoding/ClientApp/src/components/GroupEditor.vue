@@ -1,4 +1,5 @@
 <script setup>
+import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref } from 'vue';
 
@@ -38,7 +39,7 @@ function save() {
 </script>
 
 <template>
-  <div role="dialog" aria-modal="true" :aria-label="tr('Edit group')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @keydown.esc="emit('cancel')" @click.self="emit('cancel')">
+  <div role="dialog" aria-modal="true" v-modal="() => emit('cancel')" :aria-label="tr('Edit group')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" @click.self="emit('cancel')">
     <form @submit.prevent="save"
           class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-md p-5 shadow-lg space-y-3">
       <h2 class="font-semibold">{{ group ? tr('Edit group') : tr('New group') }}</h2>

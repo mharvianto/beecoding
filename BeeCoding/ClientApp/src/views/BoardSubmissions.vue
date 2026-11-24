@@ -107,14 +107,14 @@ onMounted(async () => {
               class="w-full text-left border border-slate-200 dark:border-slate-800 rounded-xl p-3">
         <div class="flex items-center justify-between gap-2 mb-1">
           <VerdictBadge :verdict="s.verdict" small />
-          <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
+          <span class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</span>
         </div>
         <div class="text-sm font-medium">
           <RouterLink v-if="s.problemSlug" :to="`/boards/${props.slug}/problems/${s.problemSlug}`" @click.stop
                       class="hover:underline hover:text-amber-600 dark:hover:text-amber-400">{{ s.problemTitle }}</RouterLink>
           <template v-else>{{ s.problemTitle }}</template>
         </div>
-        <div class="text-[11px] text-slate-400 mt-0.5">
+        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
           {{ s.userDisplayName }} · {{ Math.round(s.score * 100) }}% · {{ s.runtimeMs }}ms · {{ s.language || '—' }}
         </div>
       </button>
@@ -132,9 +132,9 @@ onMounted(async () => {
           </tr>
         </thead>
         <tbody class="[&_td]:py-1.5 [&_td]:px-3">
-          <tr v-for="s in submissionRows" :key="s.id" @click="openSubmission(s)"
+          <tr v-for="s in submissionRows" :key="s.id" @click="openSubmission(s)" tabindex="0" @keydown.enter.self="openSubmission(s)"
               class="border-b border-slate-100 dark:border-slate-800/60 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/40">
-            <td class="text-[11px] text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
+            <td class="text-[11px] text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ new Date(s.createdAt).toLocaleString() }}</td>
             <td>{{ s.userDisplayName }}</td>
             <td>
               <RouterLink v-if="s.problemSlug" :to="`/boards/${props.slug}/problems/${s.problemSlug}`" @click.stop
@@ -143,8 +143,8 @@ onMounted(async () => {
             </td>
             <td><VerdictBadge :verdict="s.verdict" small /></td>
             <td class="tabular-nums">{{ Math.round(s.score * 100) }}%</td>
-            <td class="text-[11px] text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
-            <td class="text-[11px] text-slate-400">{{ s.language || '—' }}</td>
+            <td class="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{{ s.runtimeMs }}ms</td>
+            <td class="text-[11px] text-slate-500 dark:text-slate-400">{{ s.language || '—' }}</td>
           </tr>
           <tr v-if="submissionRows && !submissionRows.length"><td colspan="7" class="text-slate-500 dark:text-slate-400 py-3 px-3">{{ tr('No submissions.') }}</td></tr>
         </tbody>

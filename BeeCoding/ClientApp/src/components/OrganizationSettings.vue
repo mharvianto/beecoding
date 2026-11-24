@@ -51,7 +51,7 @@ async function leave(o) {
 
     <ul v-if="orgs.length" class="divide-y divide-slate-100 dark:divide-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl px-3">
       <li v-for="o in orgs" :key="o.organizationId" class="py-2 flex items-center gap-2">
-        <span class="text-sm flex-1 min-w-0 truncate">{{ o.name }} <span class="text-xs text-slate-400">· {{ o.orgRole.toLowerCase() }}</span></span>
+        <span class="text-sm flex-1 min-w-0 truncate">{{ o.name }} <span class="text-xs text-slate-500 dark:text-slate-400">· {{ o.orgRole.toLowerCase() }}</span></span>
         <button @click="leave(o)" :disabled="busy" class="row-action-btn row-action-btn--danger">{{ tr('Leave') }}</button>
       </li>
     </ul>
