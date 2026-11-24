@@ -1513,11 +1513,29 @@ namespace BeeCoding.Migrations.Postgres
                     b.Property<int>("JudgeRateLimitMs")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("LspDefaultOn")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("LspEnabled")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("LspIdleTimeoutSeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LspMaxConcurrent")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LspMemoryLimitMb")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("LspShared")
                         .HasColumnType("boolean");
+
+                    b.Property<int?>("LspSharedMaxProcesses")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("LspSharedMaxSessions")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("MfaRequireAdmin")
                         .HasColumnType("boolean");

@@ -67,7 +67,9 @@ const hasEditContext = typeof window !== 'undefined' && 'EditContext' in window;
 const LSP_KEY = 'beecoding.editor.lsp';
 // font size is shared with the stdin/output panels beside the editor — see lib/editorFont.js
 const fontSize = editorFontSize;
-const lspEnabled = ref((() => { try { return localStorage.getItem(LSP_KEY) === '1'; } catch { return false; } })());   // off until the person turns it on
+// Nothing stored = the person never chose: the platform default decides once the probe below answers; a stored choice always wins.
+const lspChoice = (() => { try { return localStorage.getItem(LSP_KEY); } catch { return null; } })();
+const lspEnabled = ref(lspChoice === '1');
 
 // Is the clangd bridge switched on server-side? Asked once, shared by every editor.
 // Without this the editor opens a WebSocket that the server rejects -> console error.
@@ -76,7 +78,7 @@ let serverLspProbe = null;
 function probeServerLsp() {
   serverLspProbe ??= fetch(withBase('/api/lsp/enabled'), { credentials: 'include' })
     .then((r) => (r.ok ? r.json() : null))
-    .then((j) => j?.enabled === true)
+    .then((j) => { if (lspChoice === null && j?.defaultOn === true) lspEnabled.value = true; return j?.enabled === true; })
     .catch(() => false);
   return serverLspProbe;
 }

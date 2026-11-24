@@ -637,7 +637,7 @@ app.MapGet("/lsp/cpp", (HttpContext c, LspEndpoint ep) => ep.HandleAsync(c)).Req
 // Lets the editor skip the WebSocket attempt (and its console error) when the bridge is off.
 // Live-toggleable from /admin/reports (see PlatformRuntimeConfig) — not appsettings-fixed.
 app.MapGet("/api/lsp/enabled", (PlatformRuntimeConfig cfg) =>
-    Results.Ok(new { enabled = cfg.LspEnabled }));
+    Results.Ok(new { enabled = cfg.LspEnabled, defaultOn = cfg.LspDefaultOn }));
 
 app.MapFallbackToFile("index.html");
 

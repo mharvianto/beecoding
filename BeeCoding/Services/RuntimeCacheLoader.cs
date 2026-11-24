@@ -50,6 +50,8 @@ public static class RuntimeCacheLoader
         var rc = sp.GetRequiredService<PlatformRuntimeConfig>();
         rc.Set(row.LspEnabled, row.JudgeRateLimitMs);
         rc.SetLspShared(row.LspShared);
+        rc.SetLspDefaultOn(row.LspDefaultOn);
+        rc.ApplyLspLimits(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<BeeCoding.Services.Lsp.LspOptions>>().Value, row);
         rc.SetStudentMaxProblems(row.StudentMaxProblems);
         rc.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
         rc.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);

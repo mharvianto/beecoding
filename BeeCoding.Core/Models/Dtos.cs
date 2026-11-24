@@ -327,7 +327,8 @@ public record AdminSystemStatusDto(
     bool SysstatInstalled, string Hostname,
     int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7,
     bool LspShared = false, int LspSharedSessions = 0, int LspSharedMax = 40, int LspSharedProcesses = 0, int LspSharedMaxProcesses = 1,
-    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90, bool JourneyEnabled = true);
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90, bool JourneyEnabled = true,
+    bool LspDefaultOn = false, int LspSharedMaxSessions = 40);
 
 // ---- Admin: sysstat (sar) CPU/memory history — one instance's own host only ----
 public record SysstatPointDto(string Time, double Value);
@@ -355,7 +356,8 @@ public record AdminNotifyKindDto(string Kind, string Label, bool Enabled, bool E
 public record AdminNotifyKindsDto(List<AdminNotifyKindDto> Kinds, bool EmailConfigured);
 
 public record AdminRuntimeConfigDto(bool LspEnabled, int JudgeRateLimitMs, int StudentMaxProblems = 50, int ImageMaxKb = 1024, int ImageMaxPerUser = 100, int NotificationReadRetentionDays = 7, bool LspShared = false,
-    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90, bool JourneyEnabled = true);
+    int BoardCodeRetentionDays = 365, int PracticeCodeRetentionDays = 180, int DeletedUserRetentionDays = 90, bool JourneyEnabled = true,
+    bool LspDefaultOn = false, int LspMaxConcurrent = 4, int LspIdleTimeoutSeconds = 90, int LspMemoryLimitMb = 0, int LspSharedMaxSessions = 40, int LspSharedMaxProcesses = 1);
 
 /// <summary>Which groups must use two-step verification, plus how many accounts in each still lack it
 /// (so the admin sees the impact before switching a group on).</summary>

@@ -1,3 +1,6 @@
+using BeeCoding.Services.Lsp;
+using BeeCoding.Models;
+
 namespace BeeCoding.Services;
 
 /// <summary>
@@ -15,6 +18,24 @@ public class PlatformRuntimeConfig
     /// <summary>Students share one clangd per language instead of one process each (see SharedClangd).</summary>
     public bool LspShared { get; private set; }
     public void SetLspShared(bool shared) => LspShared = shared;
+
+    /// <summary>IntelliSense starts on for people who never chose (see MonacoEditor).</summary>
+    public bool LspDefaultOn { get; private set; }
+    public void SetLspDefaultOn(bool on) => LspDefaultOn = on;
+
+    // What appsettings.json said, kept so that clearing an override goes back to it.
+    private (int MaxConcurrent, int Idle, int Memory, int Sessions, int Procs)? _lspBase;
+
+    /// <summary>Writes the admin's limits into the live LspOptions (every reader looks at it per use); null = the appsettings value.</summary>
+    public void ApplyLspLimits(LspOptions o, PlatformRuntimeSettings row)
+    {
+        var b = _lspBase ??= (o.MaxConcurrent, o.IdleTimeoutSeconds, o.MemoryLimitMb, o.SharedMaxSessions, o.SharedMaxProcesses);
+        o.MaxConcurrent = row.LspMaxConcurrent ?? b.MaxConcurrent;
+        o.IdleTimeoutSeconds = row.LspIdleTimeoutSeconds ?? b.Idle;
+        o.MemoryLimitMb = row.LspMemoryLimitMb ?? b.Memory;
+        o.SharedMaxSessions = row.LspSharedMaxSessions ?? b.Sessions;
+        o.SharedMaxProcesses = row.LspSharedMaxProcesses ?? b.Procs;
+    }
     public int JudgeRateLimitMs { get; private set; } = 1500;
 
     public bool MfaRequireAdmin { get; private set; }

@@ -591,7 +591,8 @@ public class AdminUiController(
             _runtimeConfig.StudentMaxProblems, _runtimeConfig.ImageMaxKb, _runtimeConfig.ImageMaxPerUser, _runtimeConfig.NotificationReadRetentionDays,
             _runtimeConfig.LspShared, _sharedLsp.ActiveSessions, Math.Min(_sharedLsp.TotalCap, _lspOpt.SharedMaxSessions * Math.Max(1, _lspOpt.SharedMaxProcesses) * 2),
             _sharedLsp.Processes, Math.Max(1, _lspOpt.SharedMaxProcesses),
-            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays, _runtimeConfig.DeletedUserRetentionDays, _runtimeConfig.JourneyEnabled);
+            _runtimeConfig.BoardCodeRetentionDays, _runtimeConfig.PracticeCodeRetentionDays, _runtimeConfig.DeletedUserRetentionDays, _runtimeConfig.JourneyEnabled,
+            _runtimeConfig.LspDefaultOn, _lspOpt.SharedMaxSessions);
     }
 
     /// <summary>Today's (this host's local calendar day) CPU or memory utilization history
@@ -770,10 +771,10 @@ public class AdminUiController(
             admins, orgAdmins, teachers);
     }
 
-    /// <summary>The handful of judge/LSP knobs that are safe to flip without a restart (see
-    /// PlatformRuntimeSettings/PlatformRuntimeConfig) — everything else in JudgeOptions/
-    /// LspOptions (queue backend, concurrency limits, RequireSandbox) stays
-    /// appsettings.json-only, since those are process-topology decisions fixed at startup.</summary>
+    /// <summary>The judge/LSP knobs that are safe to change without a restart (see
+    /// PlatformRuntimeSettings/PlatformRuntimeConfig) — including the LSP limits; the rest of JudgeOptions/
+    /// LspOptions (queue backend, RequireSandbox, remote nodes) stays appsettings.json-only,
+    /// since those are process-topology decisions fixed at startup.</summary>
     [HttpPut("runtime-config")]
     public async Task<ActionResult<AdminRuntimeConfigDto>> SetRuntimeConfig(AdminRuntimeConfigDto dto)
     {
@@ -790,6 +791,12 @@ public class AdminUiController(
         if (row is null) { row = new PlatformRuntimeSettings { Id = 1 }; _db.PlatformRuntimeSettings.Add(row); }
         row.LspEnabled = dto.LspEnabled;
         row.LspShared = dto.LspShared;
+        row.LspDefaultOn = dto.LspDefaultOn;
+        row.LspMaxConcurrent = Math.Clamp(dto.LspMaxConcurrent, 1, 64);
+        row.LspIdleTimeoutSeconds = Math.Clamp(dto.LspIdleTimeoutSeconds, 30, 3600);
+        row.LspMemoryLimitMb = Math.Clamp(dto.LspMemoryLimitMb, 0, 16000);
+        row.LspSharedMaxSessions = Math.Clamp(dto.LspSharedMaxSessions, 1, 500);
+        row.LspSharedMaxProcesses = Math.Clamp(dto.LspSharedMaxProcesses, 1, 16);
         row.JudgeRateLimitMs = rateLimitMs;
         row.StudentMaxProblems = studentMax;
         row.ImageMaxKb = imageKb;
@@ -804,6 +811,8 @@ public class AdminUiController(
 
         _runtimeConfig.Set(row.LspEnabled, row.JudgeRateLimitMs);
         _runtimeConfig.SetLspShared(row.LspShared);
+        _runtimeConfig.SetLspDefaultOn(row.LspDefaultOn);
+        _runtimeConfig.ApplyLspLimits(_lspOpt, row);
         _runtimeConfig.SetStudentMaxProblems(row.StudentMaxProblems);
         _runtimeConfig.SetImageLimits(row.ImageMaxKb, row.ImageMaxPerUser);
         _runtimeConfig.SetNotificationReadRetentionDays(row.NotificationReadRetentionDays);
@@ -811,8 +820,9 @@ public class AdminUiController(
         _runtimeConfig.SetDeletedUserRetention(row.DeletedUserRetentionDays);
         _runtimeConfig.SetJourneyEnabled(row.JourneyEnabled);
         await _audit.RecordAsync(UserId, ActorEmail, "runtime-config-set", "RuntimeConfig", row.Id,
-            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, journeyEnabled={row.JourneyEnabled}, lspShared={row.LspShared}");
-        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays, row.JourneyEnabled);
+            $"lspEnabled={row.LspEnabled}, judgeRateLimitMs={row.JudgeRateLimitMs}, studentMaxProblems={row.StudentMaxProblems}, imageMaxKb={row.ImageMaxKb}, imageMaxPerUser={row.ImageMaxPerUser}, notificationReadRetentionDays={row.NotificationReadRetentionDays}, boardCodeRetentionDays={row.BoardCodeRetentionDays}, practiceCodeRetentionDays={row.PracticeCodeRetentionDays}, deletedUserRetentionDays={row.DeletedUserRetentionDays}, journeyEnabled={row.JourneyEnabled}, lspShared={row.LspShared}, lspDefaultOn={row.LspDefaultOn}, lspMaxConcurrent={row.LspMaxConcurrent}, lspIdleTimeoutSeconds={row.LspIdleTimeoutSeconds}, lspMemoryLimitMb={row.LspMemoryLimitMb}, lspSharedMaxSessions={row.LspSharedMaxSessions}, lspSharedMaxProcesses={row.LspSharedMaxProcesses}");
+        return new AdminRuntimeConfigDto(row.LspEnabled, row.JudgeRateLimitMs, row.StudentMaxProblems, row.ImageMaxKb, row.ImageMaxPerUser, row.NotificationReadRetentionDays, row.LspShared, row.BoardCodeRetentionDays, row.PracticeCodeRetentionDays, row.DeletedUserRetentionDays, row.JourneyEnabled,
+            row.LspDefaultOn, row.LspMaxConcurrent!.Value, row.LspIdleTimeoutSeconds!.Value, row.LspMemoryLimitMb!.Value, row.LspSharedMaxSessions!.Value, row.LspSharedMaxProcesses!.Value);
     }
 
     /// <summary>Which notification kinds exist for everyone, and which of them may also be emailed.</summary>

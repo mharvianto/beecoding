@@ -1192,6 +1192,16 @@ public class PlatformRuntimeSettings
     /// <summary>Share one clangd between students (SharedClangd) instead of a process each. Off by default.</summary>
     public bool LspShared { get; set; }
 
+    /// <summary>Whether IntelliSense starts on for a person who never chose (the browser's own choice, once made, wins).</summary>
+    public bool LspDefaultOn { get; set; }
+
+    /// <summary>Limits that override the matching Lsp:* setting once an admin saved them (null = appsettings.json).</summary>
+    public int? LspMaxConcurrent { get; set; }
+    public int? LspIdleTimeoutSeconds { get; set; }
+    public int? LspMemoryLimitMb { get; set; }
+    public int? LspSharedMaxSessions { get; set; }
+    public int? LspSharedMaxProcesses { get; set; }
+
     /// <summary>Minimum spacing (ms) between a user's run/submit requests — see RateLimiter.</summary>
     public int JudgeRateLimitMs { get; set; } = 1500;
 

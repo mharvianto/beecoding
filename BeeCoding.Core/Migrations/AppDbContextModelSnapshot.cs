@@ -1436,10 +1436,28 @@ namespace BeeCoding.Migrations
                     b.Property<int>("JudgeRateLimitMs")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("LspDefaultOn")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("LspEnabled")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("LspIdleTimeoutSeconds")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LspMaxConcurrent")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LspMemoryLimitMb")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("LspShared")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LspSharedMaxProcesses")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("LspSharedMaxSessions")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("MfaRequireAdmin")

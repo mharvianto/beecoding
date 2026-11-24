@@ -974,17 +974,17 @@ const shortTime = (s) => new Date(s).toLocaleTimeString(undefined, { hour: '2-di
 const sysstatPoints = () => (sysstatResult.value?.points || []).map((p) => ({ label: shortTime(p.time), value: p.value }));
 
 // ---- runtime config: the handful of judge/LSP knobs safe to flip without a restart ----
-const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180, deletedUserRetentionDays: 90, journeyEnabled: true });
+const runtimeConfigForm = ref({ lspEnabled: false, lspShared: false, lspDefaultOn: false, lspMaxConcurrent: 4, lspIdleTimeoutSeconds: 90, lspMemoryLimitMb: 0, lspSharedMaxSessions: 40, lspSharedMaxProcesses: 1, judgeRateLimitMs: 1500, studentMaxProblems: 50, imageMaxKb: 1024, imageMaxPerUser: 100, notificationReadRetentionDays: 7, boardCodeRetentionDays: 365, practiceCodeRetentionDays: 180, deletedUserRetentionDays: 90, journeyEnabled: true });
 const runtimeConfigSaving = ref(false);
 const runtimeConfigMsg = ref('');
 watch(systemStatus, (s) => {
-  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays, deletedUserRetentionDays: s.deletedUserRetentionDays, journeyEnabled: s.journeyEnabled };
+  if (s) runtimeConfigForm.value = { lspEnabled: s.lspEnabled, lspShared: s.lspShared, lspDefaultOn: s.lspDefaultOn, lspMaxConcurrent: s.lspMaxConcurrent, lspIdleTimeoutSeconds: s.lspIdleTimeoutSeconds, lspMemoryLimitMb: s.lspMemoryLimitMb, lspSharedMaxSessions: s.lspSharedMaxSessions, lspSharedMaxProcesses: s.lspSharedMaxProcesses, judgeRateLimitMs: s.judgeRateLimitMs, studentMaxProblems: s.studentMaxProblems, imageMaxKb: s.imageMaxKb, imageMaxPerUser: s.imageMaxPerUser, notificationReadRetentionDays: s.notificationReadRetentionDays, boardCodeRetentionDays: s.boardCodeRetentionDays, practiceCodeRetentionDays: s.practiceCodeRetentionDays, deletedUserRetentionDays: s.deletedUserRetentionDays, journeyEnabled: s.journeyEnabled };
 });
 async function saveRuntimeConfig() {
   err.value = ''; runtimeConfigMsg.value = ''; runtimeConfigSaving.value = true;
   try {
     const r = await api.put('/api/admin-ui/runtime-config', runtimeConfigForm.value);
-    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; systemStatus.value.deletedUserRetentionDays = r.deletedUserRetentionDays; systemStatus.value.journeyEnabled = r.journeyEnabled; }
+    if (systemStatus.value) { systemStatus.value.lspEnabled = r.lspEnabled; systemStatus.value.lspShared = r.lspShared; systemStatus.value.lspDefaultOn = r.lspDefaultOn; systemStatus.value.lspMaxConcurrent = r.lspMaxConcurrent; systemStatus.value.lspIdleTimeoutSeconds = r.lspIdleTimeoutSeconds; systemStatus.value.lspMemoryLimitMb = r.lspMemoryLimitMb; systemStatus.value.lspSharedMaxSessions = r.lspSharedMaxSessions; systemStatus.value.lspSharedMaxProcesses = r.lspSharedMaxProcesses; systemStatus.value.judgeRateLimitMs = r.judgeRateLimitMs; systemStatus.value.studentMaxProblems = r.studentMaxProblems; systemStatus.value.imageMaxKb = r.imageMaxKb; systemStatus.value.imageMaxPerUser = r.imageMaxPerUser; systemStatus.value.notificationReadRetentionDays = r.notificationReadRetentionDays; systemStatus.value.boardCodeRetentionDays = r.boardCodeRetentionDays; systemStatus.value.practiceCodeRetentionDays = r.practiceCodeRetentionDays; systemStatus.value.deletedUserRetentionDays = r.deletedUserRetentionDays; systemStatus.value.journeyEnabled = r.journeyEnabled; }
     runtimeConfigMsg.value = tr('Saved — takes effect immediately, no restart needed.');
   } catch (e) { err.value = e.message; }
   finally { runtimeConfigSaving.value = false; }
@@ -2128,18 +2128,6 @@ onMounted(async () => {
             </span>
           </div>
           <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP max concurrent sessions') }}</span>
-            <span>{{ systemStatus.lspMaxConcurrent }}</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP idle timeout') }}</span>
-            <span>{{ systemStatus.lspIdleTimeoutSeconds }}s</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
-            <span class="text-slate-500 dark:text-slate-400">{{ tr('LSP memory limit') }}</span>
-            <span>{{ systemStatus.lspMemoryLimitMb > 0 ? systemStatus.lspMemoryLimitMb + 'MB' : tr('unset') }}</span>
-          </div>
-          <div class="flex justify-between border-b border-slate-100 dark:border-slate-800/60 py-1">
             <span class="text-slate-500 dark:text-slate-400">{{ tr('Host (this instance)') }}</span>
             <span class="font-mono text-xs">{{ systemStatus.hostname }}</span>
           </div>
@@ -2229,9 +2217,51 @@ onMounted(async () => {
               <label class="flex items-center justify-between gap-4 py-2.5">
                 <span class="min-w-0">
                   <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Share one clangd between students') }} <span v-if="systemStatus?.lspShared" class="text-xs text-slate-500 dark:text-slate-400">({{ systemStatus.lspSharedSessions }} / {{ systemStatus.lspSharedMax }} attached · {{ systemStatus.lspSharedProcesses }} / {{ systemStatus.lspSharedMaxProcesses }} process<template v-if="systemStatus.lspSharedMaxProcesses > 1">es</template>)</span></span>
-                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total and the process limit come from Lsp:SharedMaxTotalSessions / Lsp:SharedMaxProcesses.') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('One process serves the class instead of one per student: far less RAM, but a heavy request slows everyone. Open sessions keep their kind. The total comes from Lsp:SharedMaxTotalSessions.') }}</span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspShared" class="w-4 h-4" /></span>
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('IntelliSense on by default') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('For people who never switched it themselves; their own choice in the editor always wins.') }}</span>
+                </span>
+                <span class="flex items-center gap-1.5 shrink-0"><input type="checkbox" v-model="runtimeConfigForm.lspDefaultOn" class="w-4 h-4" /></span>
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('LSP max concurrent sessions') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Own clangd per student: how many at once. Past it a student sees "server busy".') }}</span>
+                </span>
+                <input type="number" min="1" max="64" v-model.number="runtimeConfigForm.lspMaxConcurrent" class="w-24 shrink-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-right tabular-nums" />
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('LSP idle timeout (seconds)') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('An editor with no activity gives its clangd back after this long (30–3600).') }}</span>
+                </span>
+                <input type="number" min="30" max="3600" v-model.number="runtimeConfigForm.lspIdleTimeoutSeconds" class="w-24 shrink-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-right tabular-nums" />
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('LSP memory limit (MB)') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Per clangd process, 0 = no limit. Applies to sessions that start from now on.') }}</span>
+                </span>
+                <input type="number" min="0" max="16000" v-model.number="runtimeConfigForm.lspMemoryLimitMb" class="w-24 shrink-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-right tabular-nums" />
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Shared clangd: students per process') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('Only when sharing one clangd between students.') }}</span>
+                </span>
+                <input type="number" min="1" max="500" v-model.number="runtimeConfigForm.lspSharedMaxSessions" class="w-24 shrink-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-right tabular-nums" />
+              </label>
+              <label class="flex items-center justify-between gap-4 py-2.5">
+                <span class="min-w-0">
+                  <span class="block text-sm text-slate-700 dark:text-slate-200">{{ tr('Shared clangd: processes') }}</span>
+                  <span class="block text-[11px] leading-snug text-slate-500 dark:text-slate-400">{{ tr('More processes spread parsing over more CPU cores.') }}</span>
+                </span>
+                <input type="number" min="1" max="16" v-model.number="runtimeConfigForm.lspSharedMaxProcesses" class="w-24 shrink-0 border border-slate-300 dark:border-slate-600 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm text-right tabular-nums" />
               </label>
               </div>
             </section>

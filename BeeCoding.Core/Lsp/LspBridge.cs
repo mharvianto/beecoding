@@ -18,7 +18,7 @@ public sealed class LspBridge
     private readonly LspOptions _opt;
     private readonly SharedClangd _shared;
     private readonly ILogger<LspBridge> _log;
-    private readonly SemaphoreSlim _slots;
+    private int _slotsInUse;   // a counter, not a SemaphoreSlim: Lsp:MaxConcurrent can be changed live (Admin → System)
     // One bridge per user and language: a second tab/editor takes over and the older one is closed with reason "replaced".
     private sealed record Mine(CancellationTokenSource Replaced, TaskCompletionSource Done);
     private readonly ConcurrentDictionary<(string, string), Mine> _byUser = new();
@@ -31,7 +31,6 @@ public sealed class LspBridge
         _opt = opt.Value;
         _shared = shared;
         _log = log;
-        _slots = new SemaphoreSlim(Math.Max(1, _opt.MaxConcurrent));
     }
 
     /// <param name="user">Who is asking (one bridge per user and language).</param>
@@ -60,11 +59,23 @@ public sealed class LspBridge
         }
     }
 
+    private async Task<bool> TakeSlotAsync(CancellationToken ct)
+    {
+        var until = DateTime.UtcNow.AddSeconds(2);
+        while (true)
+        {
+            var n = Volatile.Read(ref _slotsInUse);
+            if (n < Math.Max(1, _opt.MaxConcurrent) && Interlocked.CompareExchange(ref _slotsInUse, n + 1, n) == n) return true;
+            if (DateTime.UtcNow >= until) return false;
+            await Task.Delay(50, ct);
+        }
+    }
+
     private async Task LocalAsync(string lang, string style, bool shared, Func<Task<WebSocket>> accept, CancellationToken aborted, CancellationToken replaced)
     {
         // Shared mode: students share one clangd and the cap is Lsp:SharedMaxSessions; otherwise each gets a clangd of their own,
         // Lsp:MaxConcurrent at a time. Sessions already open keep their kind.
-        if (!shared && !await _slots.WaitAsync(TimeSpan.FromSeconds(2), aborted))
+        if (!shared && !await TakeSlotAsync(aborted))
         {
             using var busy = await accept();
             await busy.CloseAsync(WebSocketCloseStatus.PolicyViolation, "server busy", CancellationToken.None);
@@ -145,7 +156,7 @@ public sealed class LspBridge
         finally
         {
             if (session is not null) await session.DisposeAsync();
-            if (!shared) _slots.Release();
+            if (!shared) Interlocked.Decrement(ref _slotsInUse);
             await CloseQuietlyAsync(ws, replaced.IsCancellationRequested ? WebSocketCloseStatus.PolicyViolation : WebSocketCloseStatus.NormalClosure,
                 replaced.IsCancellationRequested ? "replaced" : "bye");
         }
