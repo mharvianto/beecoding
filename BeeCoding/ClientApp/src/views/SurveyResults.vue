@@ -16,15 +16,16 @@ function setView(v) { view.value = v; try { localStorage.setItem(VIEW_KEY, v); }
 
 const COLORS = ['#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6', '#f43f5e', '#64748b'];
 const R_ = 36;
-// one ring segment per option, on a circle of pathLength 100: dash = its percent, offset = the percent before it.
-// The last non-empty segment ends exactly at 100 (float error otherwise wraps a sliver of it onto the start).
+// One ring segment per option. Each is its own arc path from angle to angle (clockwise from 12 o'clock), so nothing depends on
+// where a circle's dash pattern starts: the earlier stroke-dasharray version drew a notch where a dash crossed the path's seam.
+// A single option holding everything is a full circle, which an arc cannot draw (start = end).
+function pt(frac) { const a = frac * 2 * Math.PI; return `${(50 + R_ * Math.sin(a)).toFixed(3)} ${(50 - R_ * Math.cos(a)).toFixed(3)}`; }
 function segs(c) {
   let before = 0;
-  const last = c.bars.reduce((m, b, i) => (b.n ? i : m), -1);
   return c.bars.map((b, i) => {
-    const len = !c.n || !b.n ? 0 : i === last ? 100 - before : (b.n / c.n) * 100;
-    const seg = { ...b, color: COLORS[i % COLORS.length], dash: `${len} ${100 - len}`, offset: -before };
-    before += len;
+    const f = !c.n || !b.n ? 0 : b.n / c.n;
+    const seg = { ...b, color: COLORS[i % COLORS.length], full: f >= 0.9999, d: f > 0 ? `M ${pt(before)} A ${R_} ${R_} 0 ${f > 0.5 ? 1 : 0} 1 ${pt(before + f)}` : '' };
+    before += f;
     return seg;
   });
 }
@@ -100,10 +101,10 @@ function exportCsv() {
             <div v-if="c.q.type === 'choice' && view === 'donut'" class="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
               <svg viewBox="0 0 100 100" class="w-28 h-28 shrink-0" role="img" :aria-label="c.q.q.en">
                 <circle cx="50" cy="50" :r="R_" fill="none" stroke-width="14" class="stroke-slate-100 dark:stroke-slate-800" />
-                <g transform="rotate(-90 50 50)">
-                  <circle v-for="g in segs(c)" :key="g.label" v-show="g.n" cx="50" cy="50" :r="R_" fill="none" stroke-width="14" pathLength="100"
-                          :stroke="g.color" :stroke-dasharray="g.dash" :stroke-dashoffset="g.offset" />
-                </g>
+                <template v-for="g in segs(c)" :key="g.label">
+                  <circle v-if="g.full" cx="50" cy="50" :r="R_" fill="none" stroke-width="14" :stroke="g.color" />
+                  <path v-else-if="g.d" :d="g.d" fill="none" stroke-width="14" :stroke="g.color" />
+                </template>
                 <text x="50" y="50" text-anchor="middle" dominant-baseline="central" class="fill-slate-700 dark:fill-slate-200 text-[16px] font-semibold">{{ c.n }}</text>
               </svg>
               <ul class="space-y-1 text-xs min-w-0 flex-1">
