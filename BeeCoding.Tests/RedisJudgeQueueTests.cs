@@ -64,8 +64,9 @@ public class RedisJudgeQueueTests
         for (var i = 1; i <= 20; i++) await producer.ReportGradeResultAsync(Result(i));
 
         var got = new System.Collections.Concurrent.ConcurrentBag<int>();
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-        async Task Consume() { try { await foreach (var r in node().ReadResultsAsync(cts.Token)) got.Add(r.SubmissionId); } catch (OperationCanceledException) { } }
+        // Read until all 20 have arrived (15 s ceiling): a fixed 2 s window failed on slow CI runners with only 2 read.
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        async Task Consume() { try { await foreach (var r in node().ReadResultsAsync(cts.Token)) { got.Add(r.SubmissionId); if (got.Count >= 20) cts.Cancel(); } } catch (OperationCanceledException) { } }
         await Task.WhenAll(Consume(), Consume());
         Assert.Equal(Enumerable.Range(1, 20), got.OrderBy(x => x));
     }
