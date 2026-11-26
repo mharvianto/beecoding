@@ -235,6 +235,7 @@ function pickFormula(e) {
           </button>
         </div>
       </div>
+      <slot name="placement" />
 
       <div v-show="tab === 'problem'" class="space-y-3">
         <input v-model="form.title" :placeholder="tr('Title')" :aria-label="tr('Title')" class="w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-3 py-2" />

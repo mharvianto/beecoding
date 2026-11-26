@@ -93,7 +93,9 @@ public record UpsertProblemDto(
     List<UpsertTestCaseDto>? TestCases,   // null => leave test cases untouched
     string? BannedHeaders = null,         // comma-separated headers a submission may not #include
     string? BannedSymbols = null,         // comma-separated identifiers it may not use
-    string? InputFileName = null);        // set => stdin is written to this file instead of piped
+    string? InputFileName = null,         // set => stdin is written to this file instead of piped
+    // Only read when a BOARD problem is created: where it goes and whether students may see it, from the first moment.
+    int? GroupId = null, bool? Hidden = null);
 
 public record UpdateProblemVisibilityDto(bool Hidden);
 /// <summary>A board problem whose bank source has changed since it was copied. Locked = students already submitted, so an update makes a new version.</summary>

@@ -6,8 +6,15 @@ import { ref, onMounted } from 'vue';
 import { api } from '../lib/api';
 import { langLabel } from '../lib/templates';
 import LevelBadge from './LevelBadge.vue';
+import ProblemPlacement from './ProblemPlacement.vue';
+import { newPlacement } from '../lib/placement';
 
-const props = defineProps({ boardSlug: { type: String, required: true } });
+const props = defineProps({
+  boardSlug: { type: String, required: true },
+  groups: { type: Array, default: () => [] },
+  groupId: { type: Number, default: null },   // opened from a group's header
+});
+const placement = ref(newPlacement(props.groupId));
 const emit = defineEmits(['added', 'cancel']);
 
 const items = ref([]);
@@ -29,7 +36,8 @@ onMounted(load);
 async function add(item) {
   busyId.value = item.id;
   try {
-    await api.post(`/api/bank/${item.id}/copy-to/${props.boardSlug}`);
+    const { groupId, hidden } = placement.value;
+    await api.post(`/api/bank/${item.id}/copy-to/${props.boardSlug}?hidden=${hidden}${groupId ? `&groupId=${groupId}` : ''}`);
     emit('added');
   } catch (e) { error.value = e.message; }
   finally { busyId.value = null; }
@@ -43,6 +51,8 @@ async function add(item) {
         <h2 class="font-bold text-lg">{{ tr('Add from problem bank') }}</h2>
         <button @click="emit('cancel')" class="text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" :aria-label="tr('Close')">✕</button>
       </div>
+
+      <ProblemPlacement v-model="placement" :groups="groups" class="mb-3 rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2" />
 
       <div class="flex flex-wrap gap-2 mb-3">
         <input v-model="q" @keyup.enter="load" :placeholder="tr('Search title or tag…')" :aria-label="tr('Search title or tag…')"

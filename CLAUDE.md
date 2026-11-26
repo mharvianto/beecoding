@@ -135,6 +135,8 @@ with its own bank row (the editor offers it on that 409). A copy that fell behin
 "Update from bank" on the board's problem list (owner only): `POST .../{slug}/update-from-bank` replaces it in place, or, once students have submitted, adds the bank version as a hidden draft.
 Not built: moving the content columns out of `Problem` (the bell/push does not announce a bank change either).
 
+A new board problem takes its place at creation (`GroupId`/`Hidden` on `POST .../problems`, `?groupId=&hidden=` on `copy-to`), never by a later move, so students cannot glimpse it first; the web defaults an ungrouped new problem to draft (`ProblemPlacement.vue`), the API defaults to visible.
+
 ### Sharing a private bank problem with teachers
 
 `BankProblemShare` (owner → one teacher, by email, `BankController.AddShare`, panel `BankShare.vue` on the bank problem's edit page, max 50): the teacher reads it

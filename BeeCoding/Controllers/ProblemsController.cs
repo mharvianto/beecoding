@@ -163,7 +163,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         if (err is not null) return err;
 
         if (ProblemRules.Validate(dto.Title, dto.StatementMarkdown, dto.TestCases, testsRequired: true) is { } invalid) return BadRequest(invalid);
-        var p = new Problem { BoardId = boardId!.Value };
+        if (dto.GroupId is int gid && !await _db.ProblemGroups.AnyAsync(g => g.Id == gid && g.BoardId == boardId!.Value))
+            return BadRequest("Unknown group.");
+        var p = new Problem { BoardId = boardId!.Value, GroupId = dto.GroupId, Hidden = dto.Hidden == true };
         Apply(p, dto);
         _db.Problems.Add(p);
         await _db.SaveChangesAsync();

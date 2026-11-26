@@ -349,7 +349,7 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
     /// <summary>Copy a bank problem (with all its tests) onto a board the caller owns.</summary>
     [Authorize(Roles = "Teacher")]
     [HttpPost("api/bank/{id:int}/copy-to/{slug}")]
-    public async Task<ActionResult<ProblemDto>> CopyToBoard(int id, string slug)
+    public async Task<ActionResult<ProblemDto>> CopyToBoard(int id, string slug, [FromQuery] int? groupId = null, [FromQuery] bool hidden = false)
     {
         var bank = await Readable().Include(x => x.TestCases).FirstOrDefaultAsync(x => x.Id == id);
         if (bank is null) return NotFound();
@@ -361,7 +361,11 @@ public class BankController(AppDbContext db, IBoardNotifier notifier, AdminAcces
         int nextPos = await _db.Problems.Where(p => p.BoardId == board.Id)
             .Select(p => (int?)p.Position).MaxAsync() is int max ? max + 1 : 0;
 
+        if (groupId is int gid && !await _db.ProblemGroups.AnyAsync(g => g.Id == gid && g.BoardId == board.Id))
+            return BadRequest("Unknown group.");
         var p = BoardBulkService.ProblemFromBank(bank, board.Id, nextPos);
+        p.GroupId = groupId;
+        p.Hidden = hidden;
 
         _db.Problems.Add(p);
         await _db.SaveChangesAsync();

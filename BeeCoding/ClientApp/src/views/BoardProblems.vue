@@ -26,6 +26,8 @@ const stats = ref({});   // problemId -> { submissions, accepted, acceptRate, so
 const error = ref('');
 const q = ref('');
 const picking = ref(false);
+const pickInto = ref(null);   // the group the bank picker was opened from
+function openBank(groupId = null) { pickInto.value = groupId; picking.value = true; }
 
 const isStaff = computed(() => board.value && board.value.role !== 'Student');
 
@@ -312,7 +314,7 @@ async function reorderGroupTo(id, target, pos) {
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           <Icon name="folder" /> {{ tr('Add group') }}
         </button>
-        <button @click="picking = true"
+        <button @click="openBank()"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           <Icon name="book" /> {{ tr('From bank') }}
         </button>
@@ -423,7 +425,9 @@ async function reorderGroupTo(id, target, pos) {
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
                     : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'">{{ stateLabel(sec.group) }}</span>
-            <span v-if="isStaff" class="sm:ml-auto flex items-center gap-1 max-sm:w-full max-sm:pl-6">
+            <span v-if="isStaff" class="sm:ml-auto flex flex-wrap items-center gap-1 max-sm:w-full max-sm:pl-6">
+              <button @click="router.push(`/boards/${slug}/problems/new?group=${sec.group.id}`)" class="row-action-btn row-action-btn--accent" :aria-label="tr('Add a problem to {p0}', { p0: sec.group.title })">+ {{ tr('Problem') }}</button>
+              <button @click="openBank(sec.group.id)" class="row-action-btn row-action-btn--accent" :aria-label="tr('Add a problem from the bank to {p0}', { p0: sec.group.title })"><span><Icon name="book" /></span><span>{{ tr('Bank') }}</span></button>
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" :title="tr('Move group up')"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" :title="tr('Move group down')"><span>↓</span></button>
@@ -508,6 +512,6 @@ async function reorderGroupTo(id, target, pos) {
     </div>
 
     <GroupEditor v-if="editingGroup !== undefined" :group="editingGroup" @save="saveGroup" @cancel="editingGroup = undefined" />
-    <BankPicker v-if="picking" :board-slug="slug" @added="onBankAdded" @cancel="picking = false" />
+    <BankPicker v-if="picking" :board-slug="slug" :groups="groups" :group-id="pickInto" @added="onBankAdded" @cancel="picking = false" />
   </div>
 </template>

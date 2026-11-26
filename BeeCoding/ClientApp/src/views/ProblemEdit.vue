@@ -1,13 +1,15 @@
 <script setup>
 import { tr } from '../lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import { useRouter, onBeforeRouteLeave } from 'vue-router';
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
 import { useUndoToast } from '../stores/undoToast';
 import { useConfirmDialog } from '../stores/confirmDialog';
 import ProblemEditor from '../components/ProblemEditor.vue';
 import BankShare from '../components/BankShare.vue';
+import ProblemPlacement from '../components/ProblemPlacement.vue';
+import { newPlacement } from '../lib/placement';
 
 const undoToast = useUndoToast();
 const confirmDialog = useConfirmDialog();
@@ -25,6 +27,9 @@ const listPath = computed(() => (isBoard.value ? `/boards/${props.slug}` : '/ban
 const apiBase = computed(() => (isBoard.value ? `/api/boards/${props.slug}/problems` : '/api/bank'));
 
 const problem = ref(null);        // null = new / not loaded yet
+const isNewOnBoard = computed(() => isBoard.value && !editSlug.value);
+const groups = ref([]);
+const placement = ref(newPlacement(useRoute().query.group));
 const loaded = ref(false);
 const error = ref('');
 const busy = ref(false);
@@ -45,6 +50,9 @@ async function load() {
   try {
     problem.value = editSlug.value ? await api.get(`${apiBase.value}/${editSlug.value}`) : null;
   } catch (e) { error.value = e.message; }
+  if (isNewOnBoard.value) {
+    try { groups.value = await api.get(`/api/boards/${props.slug}/groups`); } catch (e) { error.value = e.message; }
+  }
   loaded.value = true;
 }
 
@@ -52,6 +60,7 @@ async function save(form) {
   error.value = ''; busy.value = true;
   try {
     const body = { ...(form.value ?? form) };
+    if (isNewOnBoard.value) Object.assign(body, { groupId: placement.value.groupId, hidden: placement.value.hidden });
     if (editSlug.value) await api.put(`${apiBase.value}/${editSlug.value}`, body);
     else await api.post(apiBase.value, body);
     dirty.value = false;
@@ -167,7 +176,11 @@ onMounted(async () => {
       :regen-busy="regenBusy"
       :add-extreme-busy="addExtremeBusy"
       @dirty="dirty = $event" @save="save" @delete="remove" @cancel="cancel" @regenerate-tests="regenerateTests"
-      @add-extreme-tests="addExtremeTests" />
+      @add-extreme-tests="addExtremeTests">
+      <template v-if="isNewOnBoard" #placement>
+        <ProblemPlacement v-model="placement" :groups="groups" class="mb-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3" />
+      </template>
+    </ProblemEditor>
     <BankShare v-if="loaded && !isBoard && auth.isTeacher && editSlug && problem?.mine" :slug="editSlug" />
   </div>
 </template>
