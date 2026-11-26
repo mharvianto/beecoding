@@ -416,7 +416,7 @@ async function reorderGroupTo(id, target, pos) {
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr(sec.items.length === 1 ? '{n} problem' : '{n} problems', { n: sec.items.length }) }}</span>
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
-            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> {{ tr('hidden') }}</span>
+            <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> {{ tr('draft') }}</span>
             <span v-for="l in [sec.group.examMode && 'peers hidden', sec.group.blockPaste && 'no paste', sec.group.noAiHints && 'no AI hints'].filter(Boolean)" :key="l"
                   class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> {{ tr(l) }}</span>
             <span v-if="stateLabel(sec.group)" class="text-[11px] px-1.5 py-0.5 rounded"

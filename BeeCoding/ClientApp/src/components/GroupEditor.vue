@@ -76,7 +76,7 @@ function save() {
       </label>
       <label class="flex items-start gap-2 text-sm">
         <input v-model="hidden" type="checkbox" class="mt-1" />
-        <span>{{ tr('Hidden') }} <span class="text-slate-500 dark:text-slate-400">{{ tr('— keep it as a draft, invisible to students.') }}</span></span>
+        <span>{{ tr('Draft (not visible to students)') }}</span>
       </label>
 
       <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>

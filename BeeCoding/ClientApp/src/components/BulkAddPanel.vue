@@ -93,7 +93,7 @@ async function run() {
         </div>
         <div class="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm">
           <ExamOptions v-model="exam" />
-          <label class="flex items-center gap-1.5"><input v-model="hidden" type="checkbox" /> {{ tr('Hidden') }}</label>
+          <label class="flex items-center gap-1.5"><input v-model="hidden" type="checkbox" /> {{ tr('Draft (not visible to students)') }}</label>
         </div>
         <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('These settings apply to every new group. A group whose title already exists on a board is left untouched.') }}</p>
       </section>
