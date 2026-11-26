@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </header>
-    <MfaRequiredBanner v-if="auth.mustSetupMfa" />
+    <MfaRequiredBanner v-if="auth.mustSetupMfa || auth.adminHeld" />
     <VerifyEmailBanner v-else-if="auth.user && auth.needsVerification && !auth.mustVerify && route.path !== '/verify-email'" />
     <OrgInviteBanner v-else-if="auth.user?.pendingOrgInvites > 0 && !route.path.startsWith('/account/profile')" />
     <MfaOfferBanner v-else-if="auth.user && auth.user.mfaEnabled === false && !auth.user.mfaOfferSnoozed && !route.path.startsWith('/account/security') && !quietRoute" />

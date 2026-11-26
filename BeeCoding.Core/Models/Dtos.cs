@@ -7,9 +7,10 @@ public record MeDto(int Id, string Email, string DisplayName, string Role, bool 
     bool EmailVerified = true,    // false => the account's email hasn't been confirmed yet
     bool HasPassword = true,      // false => created via Google; no password until the user sets one
     bool MfaEnabled = false,      // has an authenticator app or email code on (drives the "turn on 2-step" offer)
-    bool MfaRequired = false,     // the platform policy requires it for this account (admin / org admin / teacher)
+    bool MfaRequired = false,     // a lock rule (teacher / org admin): nothing but Account works until a factor is on
     bool MfaOfferSnoozed = false,  // the user dismissed the "turn on two-step" banner (for now, or for good)
-    int PendingOrgInvites = 0);    // organization invitations waiting for this user to accept
+    int PendingOrgInvites = 0,     // organization invitations waiting for this user to accept
+    bool AdminHeld = false);       // a listed admin without a factor while admins must have one: an ordinary user until then
 public record ChangePasswordDto(string CurrentPassword, string NewPassword);
 
 // ---- Second factor (MFA) ----

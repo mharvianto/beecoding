@@ -18,5 +18,5 @@ public abstract class ApiControllerBase : ControllerBase
 
     /// <summary>Is the caller an admin (Admin:Emails), independent of their Teacher/Student
     /// role? No base-class DI here, so pass the controller's own injected instance.</summary>
-    protected bool IsAdminUser(AdminAccess admin) => admin.IsAdminEmail(User.FindFirst(ClaimTypes.Email)?.Value);
+    protected bool IsAdminUser(AdminAccess admin) => admin.HasAdminPowers(User.FindFirst(ClaimTypes.Email)?.Value);
 }

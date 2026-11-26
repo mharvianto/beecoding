@@ -35,6 +35,14 @@ public class AdminAccess(IConfiguration cfg)
     public bool IsAdminEmail(string? email) =>
         !string.IsNullOrWhiteSpace(email) && (IsConfiguredAdmin(email) || _dbAdmins.Contains(email));
 
+    // Listed admins the two-step policy is holding back, refreshed by MfaRequirementGate on every request of theirs (before authorization).
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _held = new(StringComparer.OrdinalIgnoreCase);
+    public void SetHeld(string email, bool held) { if (held) _held[email] = true; else _held.TryRemove(email, out _); }
+
+    /// <summary>May this signed-in person ACT as an admin now? Use this for granting access. <see cref="IsAdminEmail"/> stays "is listed
+    /// as an admin", for protecting such accounts (deleting, LTI e-mail takeover) and for the policy itself.</summary>
+    public bool HasAdminPowers(string? email) => IsAdminEmail(email) && !_held.ContainsKey(email!);
+
     /// <summary>Every admin email — config plus the DB-granted cache, lower-cased.</summary>
     public List<string> AllAdminEmails() =>
         ConfiguredEmails().Concat(_dbAdmins.Select(e => e.ToLowerInvariant())).Distinct().ToList();
@@ -64,7 +72,7 @@ public class AdminAuthorizationHandler(AdminAccess admin) : AuthorizationHandler
 
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, AdminRequirement requirement)
     {
-        if (_admin.IsAdminEmail(context.User.FindFirst(ClaimTypes.Email)?.Value))
+        if (_admin.HasAdminPowers(context.User.FindFirst(ClaimTypes.Email)?.Value))
             context.Succeed(requirement);
         return Task.CompletedTask;
     }

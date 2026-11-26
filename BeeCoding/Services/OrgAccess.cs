@@ -18,7 +18,7 @@ public class OrgAccess(AppDbContext db, AdminAccess admin)
     /// platform super admin, or an OrgRole.Admin member of that specific organization.</summary>
     public async Task<bool> CanManageAsync(int userId, string? actorEmail, int organizationId)
     {
-        if (_admin.IsAdminEmail(actorEmail)) return true;
+        if (_admin.HasAdminPowers(actorEmail)) return true;
         return await _db.OrganizationMemberships.AnyAsync(m =>
             m.OrganizationId == organizationId && m.UserId == userId && m.Role == OrgRole.Admin);
     }
@@ -27,7 +27,7 @@ public class OrgAccess(AppDbContext db, AdminAccess admin)
     /// picker. A platform super admin gets every organization.</summary>
     public async Task<List<Organization>> ManagedOrgsAsync(int userId, string? actorEmail)
     {
-        if (_admin.IsAdminEmail(actorEmail)) return await _db.Organizations.OrderBy(o => o.Name).ToListAsync();
+        if (_admin.HasAdminPowers(actorEmail)) return await _db.Organizations.OrderBy(o => o.Name).ToListAsync();
         return await _db.OrganizationMemberships.Where(m => m.UserId == userId && m.Role == OrgRole.Admin)
             .Select(m => m.Organization!).OrderBy(o => o.Name).ToListAsync();
     }
@@ -38,7 +38,7 @@ public class OrgAccess(AppDbContext db, AdminAccess admin)
     /// False for a board with no organization (nobody manages an unaffiliated board here).</summary>
     public async Task<bool> CanManageBoardAsync(int userId, string? actorEmail, int boardId)
     {
-        if (_admin.IsAdminEmail(actorEmail)) return true;
+        if (_admin.HasAdminPowers(actorEmail)) return true;
         var orgId = await _db.Boards.Where(b => b.Id == boardId).Select(b => (int?)b.OrganizationId).FirstOrDefaultAsync();
         return orgId is int oid && await CanManageAsync(userId, actorEmail, oid);
     }
@@ -48,7 +48,7 @@ public class OrgAccess(AppDbContext db, AdminAccess admin)
     /// is the same "proxy via current membership" used for the org AI-usage dashboard.</summary>
     public async Task<bool> CanManageMemberAsync(int userId, string? actorEmail, int targetUserId)
     {
-        if (_admin.IsAdminEmail(actorEmail)) return true;
+        if (_admin.HasAdminPowers(actorEmail)) return true;
         var managedOrgIds = await _db.OrganizationMemberships
             .Where(m => m.UserId == userId && m.Role == OrgRole.Admin)
             .Select(m => m.OrganizationId).ToListAsync();

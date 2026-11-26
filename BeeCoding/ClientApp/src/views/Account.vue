@@ -91,7 +91,7 @@ const section = computed(() => sections.find((s) => s.key === route.params.secti
 
 // Held by the two-step policy: that block goes first, so what unlocks the app is on screen. Stays first after setup, where the recovery codes show.
 const mfaFirst = ref(false);
-watch(() => auth.mustSetupMfa, (held) => { if (held) mfaFirst.value = true; }, { immediate: true });
+watch(() => auth.mustSetupMfa || auth.adminHeld, (held) => { if (held) mfaFirst.value = true; }, { immediate: true });
 
 // A link like /account/security#two-step: scroll to that block once the section has rendered.
 async function scrollToHash() {

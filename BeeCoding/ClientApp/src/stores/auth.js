@@ -19,6 +19,7 @@ export const useAuth = defineStore('auth', {
     // ...and the server locks unverified accounts to the verification screen
     // the platform requires two-step verification for this account (admin / org admin / teacher) and it isn't on yet
     mustSetupMfa: (s) => !!s.user && s.user.mfaRequired === true && s.user.mfaEnabled !== true,
+    adminHeld: (s) => s.user?.adminHeld === true,   // admin rights wait for two-step; everything else works
     mustVerify() { return this.needsVerification && this.config.requireVerifiedEmail && !this.user.isAdmin; },
   },
   actions: {

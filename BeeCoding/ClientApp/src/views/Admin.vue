@@ -498,7 +498,7 @@ async function changeRole(u, role) {
 }
 async function grantAdmin(u) {
   err.value = '';
-  if (!(await confirmDialog.ask(tr('Make {p0} an admin? If two-step verification is required for admins and they have not set it up, they are held on Account → Security until they do.', { p0: u.email }), { confirmLabel: tr('Make admin'), danger: false }))) return;
+  if (!(await confirmDialog.ask(tr('Make {p0} an admin? If two-step verification is required for admins and they have not set it up, their admin rights start only once they do.', { p0: u.email }), { confirmLabel: tr('Make admin'), danger: false }))) return;
   try { await api.post(`/api/admin-ui/users/${u.id}/admin`); u.isAdmin = true; }
   catch (e) { err.value = e.message; }
 }

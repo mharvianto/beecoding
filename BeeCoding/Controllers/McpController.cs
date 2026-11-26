@@ -20,7 +20,7 @@ namespace BeeCoding.Controllers;
 [ApiController]
 [AllowAnonymous]
 [Route("mcp")]
-public class McpController(AppDbContext db, McpServer server, AdminAccess admin, ICounterStore counters, IConfiguration cfg) : ControllerBase
+public class McpController(AppDbContext db, McpServer server, AdminAccess admin, MfaPolicy policy, ICounterStore counters, IConfiguration cfg) : ControllerBase
 {
     private const int MaxBodyBytes = 64 * 1024;
 
@@ -53,7 +53,7 @@ public class McpController(AppDbContext db, McpServer server, AdminAccess admin,
             await db.SaveChangesAsync();
         }
 
-        var reply = await server.HandleAsync(message, new McpCaller(u.Id, u.Email, admin.IsAdminEmail(u.Email), u.UtcOffsetMinutes));
+        var reply = await server.HandleAsync(message, new McpCaller(u.Id, u.Email, admin.IsAdminEmail(u.Email) && !policy.AdminHeld(u.Email, MfaPolicy.HasFactor(u)), u.UtcOffsetMinutes));
         return reply is null ? Accepted() : Ok(reply);
     }
 

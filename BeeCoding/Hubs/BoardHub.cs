@@ -30,7 +30,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     {
         var membership = await _db.BoardMemberships
             .FirstOrDefaultAsync(m => m.BoardId == boardId && m.UserId == UserId);
-        bool isAdmin = membership is null && _admin.IsAdminEmail(Context.User!.FindFirstValue(ClaimTypes.Email));
+        bool isAdmin = membership is null && _admin.HasAdminPowers(Context.User!.FindFirstValue(ClaimTypes.Email));
         if (membership is null && !isAdmin) throw new HubException("Not a member of this board");
 
         var name = Context.User!.FindFirstValue(ClaimTypes.Name) ?? "user";
@@ -133,7 +133,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     public async Task<Lecture?> GetLecture(int boardId, int problemId)
     {
         bool member = await _db.BoardMemberships.AnyAsync(m => m.BoardId == boardId && m.UserId == UserId);
-        if (!member && !_admin.IsAdminEmail(Context.User!.FindFirstValue(ClaimTypes.Email))) return null;
+        if (!member && !_admin.HasAdminPowers(Context.User!.FindFirstValue(ClaimTypes.Email))) return null;
         return await _lectures.GetAsync(boardId, problemId);
     }
 

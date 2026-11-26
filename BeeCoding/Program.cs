@@ -616,10 +616,10 @@ app.Use(async (ctx, next) =>
 app.UseWebSockets();
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<MfaRequirementGate>();      // before authorization: it decides whether an admin's rights count (no-op with the 2-step policy off)
 app.UseAuthorization();
 app.UseMiddleware<UtcOffsetMiddleware>();
 app.UseMiddleware<EmailVerificationGate>();   // no-op unless Auth:RequireVerifiedEmail
-app.UseMiddleware<MfaRequirementGate>();      // no-op unless an Admin > Users > 2-step policy toggle is on
 
 app.MapControllers();
 app.MapHub<BoardHub>("/hubs/board");

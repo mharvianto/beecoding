@@ -26,7 +26,7 @@ const hasFactor = computed(() => !!(status.value?.totpEnabled || status.value?.e
 async function load() {
   try { status.value = await api.get('/api/auth/mfa'); } catch (e) { error.value = e.message; return; }
   // keep the "turn on two-step" offer in the header in step with reality
-  if (auth.user && auth.user.mfaEnabled !== hasFactor.value) auth.user.mfaEnabled = hasFactor.value;
+  if (auth.user && auth.user.mfaEnabled !== hasFactor.value) await auth.fetchMe();   // admin rights may start or stop with it
 }
 onMounted(load);
 
@@ -110,6 +110,9 @@ const primaryBtn = 'bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg px
        :class="hasFactor ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300'">
       <template v-if="hasFactor">{{ tr('✓ Required for your role, and it\'s on.') }}</template>
       <template v-else>{{ tr('Required for your role: turn on an authenticator app or email code to keep using BeeCoding.') }}</template>
+    </p>
+    <p v-if="auth.adminHeld" class="text-sm rounded-lg px-3 py-2 bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-300">
+      {{ tr('Admin rights start once two-step verification is on. Everything else works as usual.') }}
     </p>
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400">{{ tr(error) }}</p>
 

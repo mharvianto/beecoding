@@ -8,6 +8,7 @@ using Xunit;
 
 namespace BeeCoding.Tests;
 
+[Collection("app")]
 public class BoardJoinRoleTests
 {
     [Fact]
