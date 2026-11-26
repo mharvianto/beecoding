@@ -103,7 +103,17 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         _throttle.RecordSuccess(ClientIp, throttleKey);
 
         var existing = board.Members.FirstOrDefault(m => m.UserId == UserId);
-        if (existing is not null) return ToDto(board, existing.Role);
+        if (existing is not null)
+        {
+            // Joined as a student before the account became a Teacher's: entering the code again makes the membership a teacher's too
+            // (nothing else changes it — the role is fixed at join, and a promoted account would otherwise see this board as a student).
+            if (existing.Role == MembershipRole.Student && CurrentRole == "Teacher")
+            {
+                existing.Role = MembershipRole.Teacher;
+                await _db.SaveChangesAsync();
+            }
+            return ToDto(board, existing.Role);
+        }
 
         var role = CurrentRole == "Teacher" ? MembershipRole.Teacher : MembershipRole.Student;
         _db.BoardMemberships.Add(new BoardMembership { BoardId = board.Id, UserId = UserId, Role = role });

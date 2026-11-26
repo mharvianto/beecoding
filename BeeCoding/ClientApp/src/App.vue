@@ -121,7 +121,15 @@ function syncViewportHeight() {
   const h = vv ? vv.height * vv.scale : window.innerHeight;
   document.documentElement.style.setProperty('--app-h', h + 'px');
 }
+// The server answered 403 "mfa_required": the platform's two-step policy began to apply to this account mid-session (admin promoted
+// them, or switched the policy on). Without this the page keeps its old copy of the user and every list just fails silently.
+async function onMfaRequired() {
+  if (auth.mustSetupMfa) return;
+  await auth.fetchMe();
+  if (auth.mustSetupMfa) router.push('/account/security');
+}
 onMounted(() => {
+  window.addEventListener('beecoding:mfa-required', onMfaRequired);
   syncViewportHeight();
   window.visualViewport?.addEventListener('resize', syncViewportHeight);
   window.visualViewport?.addEventListener('scroll', syncViewportHeight);
@@ -129,6 +137,7 @@ onMounted(() => {
   window.addEventListener('orientationchange', syncViewportHeight);
 });
 onBeforeUnmount(() => {
+  window.removeEventListener('beecoding:mfa-required', onMfaRequired);
   window.visualViewport?.removeEventListener('resize', syncViewportHeight);
   window.visualViewport?.removeEventListener('scroll', syncViewportHeight);
   window.removeEventListener('resize', syncViewportHeight);

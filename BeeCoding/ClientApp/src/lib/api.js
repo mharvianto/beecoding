@@ -20,6 +20,7 @@ async function request(method, url, body) {
   if (res.status === 204) return null;
   const text = await res.text();
   const data = text ? tryParse(text) : null;
+  if (res.status === 403 && data?.code === 'mfa_required') window.dispatchEvent(new Event('beecoding:mfa-required'));   // the policy started to apply mid-session, see App.vue
   if (!res.ok) {
     const msg = friendlyMessage(res.status, data) || res.statusText || `HTTP ${res.status}`;
     const err = new Error(tr(msg));   // the server's English message, in the app's language when there is a translation

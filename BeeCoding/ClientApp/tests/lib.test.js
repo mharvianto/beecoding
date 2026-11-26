@@ -87,3 +87,13 @@ describe('starter templates', () => {
     expect(isPristine(CODE_TEMPLATES.cpp + '// mine')).toBe(false);
   });
 });
+
+import { api } from '../src/lib/api';
+describe('api', () => {
+  it('announces a 403 mfa_required answer so the app can refresh the user', async () => {
+    const seen = vi.fn(); window.addEventListener('beecoding:mfa-required', seen);
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ message: 'Turn on two-step verification to continue.', code: 'mfa_required' }), { status: 403 }));
+    await expect(api.get('/api/boards')).rejects.toMatchObject({ status: 403 });
+    expect(seen).toHaveBeenCalledTimes(1);
+  });
+});
