@@ -144,7 +144,7 @@ checks `OwnerId`. Students cannot receive one, and there is no bell/email on sha
 
 ### Board role is fixed at join
 
-`BoardMembership.Role` is set once, from the account's role at the moment of joining (`BoardsController.Join`); changing the account role later (Admin → Users) does not touch it. A teacher who joined as a student stays a student on that board until they enter the join code again (an existing Student membership is lifted when the account is a Teacher's) or the owner clicks "make teacher" on their row in the Grid (`MembersController.MakeTeacher`, refuses a student account: staff see every student's code). The browser reloads when its own role changes, to join the staff SignalR group.
+`BoardMembership.Role` is set once, from the account's role at the moment of joining (`BoardsController.Join`); changing the account role later (Admin → Users) does not touch it. A teacher who joined as a student stays a student on that board until the owner clicks "make teacher" on their row in the Grid (`MembersController.MakeTeacher`, refuses a student account: staff see every student's code); entering the code again changes nothing. The owner's Settings → Teachers dialog turns a teacher back into a student (`MakeStudent`, which pulls their tabs out of the staff SignalR group first) or removes them; a teacher can leave from Settings → "Leave board" (`DELETE members/{own id}`). The owner can be neither removed nor leave. A removed person who knows the join code can rejoin (the code cannot be changed yet). The browser reloads when its own role crosses student ⇄ staff.
 
 ### Lecturing: who presents
 

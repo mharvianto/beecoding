@@ -104,6 +104,34 @@ async function makeTeacher(student) {
   try { await api.post(`/api/boards/${props.slug}/members/${student.userId}/make-teacher`); await loadProgress(); }
   catch (e) { error.value = e.message; }
 }
+// The board's other teachers, for the owner: remove one, or turn one back into a student.
+const showTeachers = ref(false);
+const teachers = ref([]);
+async function loadTeachers() {
+  try { teachers.value = (await api.get(`/api/boards/${props.slug}/members`)).filter((m) => m.role === 'Teacher'); }
+  catch (e) { error.value = e.message; }
+}
+function openTeachers() { showTeachers.value = true; loadTeachers(); }
+async function demoteTeacher(t) {
+  const ok = await confirmDialog.ask(tr('Make {p0} a student of “{p1}”? They stop seeing other students’ code.', { p0: t.displayName, p1: board.value.title }),
+    { confirmLabel: tr('Make student') });
+  if (!ok) return;
+  try { await api.post(`/api/boards/${props.slug}/members/${t.userId}/make-student`); await loadTeachers(); await loadProgress(); }
+  catch (e) { error.value = e.message; }
+}
+async function removeTeacher(t) {
+  const ok = await confirmDialog.ask(tr('Remove {p0} from “{p1}”? They can rejoin as a teacher with the join code.', { p0: t.displayName, p1: board.value.title }),
+    { confirmLabel: tr('Remove') });
+  if (!ok) return;
+  try { await api.del(`/api/boards/${props.slug}/members/${t.userId}`); await loadTeachers(); }
+  catch (e) { error.value = e.message; }
+}
+async function leaveBoard() {
+  const ok = await confirmDialog.ask(tr('Leave “{p0}”? You can rejoin with the join code.', { p0: board.value.title }), { confirmLabel: tr('Leave board') });
+  if (!ok) return;
+  try { await api.del(`/api/boards/${props.slug}/members/${auth.user.id}`); router.push('/boards'); }
+  catch (e) { error.value = e.message; }
+}
 async function toggleHide(student) {
   await api.patch(`/api/boards/${props.slug}/members/${student.userId}`, { hiddenByTeacher: !student.hiddenByTeacher });
   await loadProgress();
@@ -187,7 +215,7 @@ onMounted(async () => {
   conn.on('boardSettingsChanged', async () => {
     const was = board.value?.role;
     await loadAll();
-    if (was === 'Student' && board.value?.role !== 'Student') window.location.reload();   // lifted to teacher: reconnect so the staff channel (live drafts) is joined
+    if (was && board.value && (was === 'Student') !== (board.value.role === 'Student')) window.location.reload();   // teacher ⇄ student: reconnect, so the page and its hub channels match the new role
   });
   conn.on('problemChanged', async () => { problems.value = await api.get(`/api/boards/${props.slug}/problems`); scheduleRefresh(); });
   conn.on('presence', (list) => { presence.value = list; });
@@ -250,6 +278,24 @@ onBeforeUnmount(async () => {
         <QrCode :text="joinUrl" :size="260" />
         <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">{{ tr('Scan to join instantly, or enter the code:') }}</p>
         <p class="mt-1 font-mono font-bold text-4xl tracking-widest text-slate-800 dark:text-slate-100 select-all">{{ board.joinCode }}</p>
+      </div>
+    </div>
+
+    <div v-if="showTeachers" role="dialog" aria-modal="true" :aria-label="tr('Teachers')" class="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-40"
+         v-modal="() => (showTeachers = false)" @click.self="showTeachers = false">
+      <div class="bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800 rounded-xl w-full max-w-md p-5 shadow-lg">
+        <div class="flex items-center mb-3">
+          <h2 class="font-semibold">{{ tr('Teachers') }}</h2>
+          <button @click="showTeachers = false" class="ml-auto text-slate-500 dark:text-slate-400" :aria-label="tr('Close')">✕</button>
+        </div>
+        <ul class="divide-y divide-slate-100 dark:divide-slate-800">
+          <li v-for="t in teachers" :key="t.userId" class="flex items-center gap-2 py-2 text-sm">
+            <span class="flex-1 min-w-0 truncate">{{ t.displayName }}</span>
+            <button @click="demoteTeacher(t)" class="row-action-btn">{{ tr('Make student') }}</button>
+            <button @click="removeTeacher(t)" class="row-action-btn row-action-btn--danger">{{ tr('Remove') }}</button>
+          </li>
+          <li v-if="!teachers.length" class="py-2 text-sm text-slate-500 dark:text-slate-400">{{ tr('No other teachers on this board.') }}</li>
+        </ul>
       </div>
     </div>
 
@@ -344,6 +390,17 @@ onBeforeUnmount(async () => {
                       class="flex items-center gap-2 px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
             <Icon name="search" /> {{ tr('Plagiarism check') }}
           </RouterLink>
+          <button v-if="board.isOwner" @click="openTeachers(); settingsOpen = false"
+                  class="w-full text-left px-3 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2">
+            <Icon name="users" /> {{ tr('Teachers') }}
+          </button>
+          <template v-if="board.role === 'Teacher'">
+            <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
+            <button @click="settingsOpen = false; leaveBoard()"
+                    class="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+              {{ tr('Leave board') }}
+            </button>
+          </template>
           <template v-if="board.isOwner">
             <div class="border-t border-slate-100 dark:border-slate-800 my-1"></div>
             <button @click="deleteBoard"

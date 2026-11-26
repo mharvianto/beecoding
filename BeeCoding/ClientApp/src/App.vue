@@ -85,7 +85,7 @@ notifications.onBrowserClick = (n) => { notifications.markRead(n); router.push(n
 // The teacher removed this user from a board: if they're inside it, send them back to the list.
 notifications.onMemberRemoved = (e) => {
   if (route.path === `/boards/${e.boardSlug}` || route.path.startsWith(`/boards/${e.boardSlug}/`)) router.push('/boards');
-  undoToast.show(tr('You were removed from “{p0}”.', { p0: e.boardTitle }));
+  undoToast.show(tr(e.left ? 'You left “{p0}”.' : 'You were removed from “{p0}”.', { p0: e.boardTitle }));
 };
 watch(activeUserId, (id) => { if (id) { notifications.start(); refreshPush(api); } else notifications.stop(); }, { immediate: true });
 // A notification clicked while the app is open in another tab: the service worker asks us to route there.

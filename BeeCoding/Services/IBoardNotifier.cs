@@ -41,7 +41,10 @@ public interface IBoardNotifier
     Task SubmissionProgressAsync(int userId, string kind, int submissionId, int current, int total);
 
     /// <summary>The teacher removed this user from a board: their open pages should leave it.</summary>
-    Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle);
+    Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle, bool left = false);
+
+    /// <summary>A member stopped being staff: take their open tabs out of the staff channel at once.</summary>
+    Task StaffRevokedAsync(int userId, int boardId);
 
     /// <summary>A notification was created or updated for this user (also carries the new unread total).</summary>
     Task NotificationAsync(int userId, NotificationDto item, int unread);

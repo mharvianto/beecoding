@@ -44,7 +44,13 @@ public class BoardNotifier(IHubContext<BoardHub> hub, IPresenceTracker presence)
         _hub.Clients.User(userId.ToString())
             .SendAsync("submissionProgress", new { kind, submissionId, current, total });
 
-    public async Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle)
+    public async Task StaffRevokedAsync(int userId, int boardId)
+    {
+        foreach (var conn in await _presence.ConnectionsOfAsync(boardId, userId))
+            await _hub.Groups.RemoveFromGroupAsync(conn, BoardHub.StaffGroup(boardId));
+    }
+
+    public async Task MemberRemovedAsync(int userId, int boardId, string boardSlug, string boardTitle, bool left = false)
     {
         // A hub group is joined once, at JoinBoard: take the removed member's open tabs out of the board's groups now, or they would keep
         // receiving the lecture buffer and peers' drafts until they close the tab.
@@ -54,7 +60,7 @@ public class BoardNotifier(IHubContext<BoardHub> hub, IPresenceTracker presence)
             await _hub.Groups.RemoveFromGroupAsync(conn, BoardHub.StaffGroup(boardId));
             await _presence.RemoveAsync(conn);
         }
-        await _hub.Clients.User(userId.ToString()).SendAsync("memberRemoved", new { boardId, boardSlug, boardTitle });
+        await _hub.Clients.User(userId.ToString()).SendAsync("memberRemoved", new { boardId, boardSlug, boardTitle, left });
     }
 
     public Task NotificationAsync(int userId, NotificationDto item, int unread) =>

@@ -216,7 +216,7 @@ onMounted(async () => {
   conn.on('boardSettingsChanged', async () => {
     const was = board.value?.role;
     try { board.value = await api.get(`/api/boards/${props.slug}`); } catch { /* ignore */ }
-    if (was === 'Student' && board.value?.role !== 'Student') window.location.reload();   // lifted to teacher: reconnect to join the staff channel
+    if (was && board.value && (was === 'Student') !== (board.value.role === 'Student')) window.location.reload();   // teacher ⇄ student: reconnect, so the page and its hub channels match the new role
   });
   conn.on('lectureUpdated', ingestLecture);
   conn.on('draftUpdated', (d) => { if (isStaff.value) ingestDraft(d); });

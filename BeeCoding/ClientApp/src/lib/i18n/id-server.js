@@ -28,7 +28,7 @@ export default {
   "The picture is {p0} x {p1} pixels, too large. Shrink it to under {p2} megapixels first.": "Gambar berukuran {p0} x {p1} piksel, terlalu besar. Kecilkan dulu hingga di bawah {p2} megapiksel.",
   "This image cannot be compressed enough. Use a smaller or simpler picture.": "Gambar ini tidak bisa dikompres cukup kecil. Pakai gambar yang lebih kecil atau sederhana.",
   "Only students can be hidden.": "Hanya siswa yang bisa disembunyikan.",
-  "Only students can be removed.": "Hanya siswa yang bisa dikeluarkan.",
+  "The board owner cannot be removed.": "Pemilik board tidak bisa dikeluarkan.",
   "Only a teacher's account can be made a teacher of a board.": "Hanya akun guru yang bisa dijadikan guru di sebuah board.",
   "This proposal was already answered.": "Usulan ini sudah dijawab.",
   "The proposer deleted this problem.": "Pengusul sudah menghapus soal ini.",

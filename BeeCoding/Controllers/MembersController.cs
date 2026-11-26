@@ -88,32 +88,58 @@ public class MembersController(AppDbContext db, BoardService boards, VisibilityS
     }
 
     /// <summary>
-    /// Owner removes a student from the board. Only the membership goes: their submissions and
-    /// wall posts are kept (so re-adding them restores everything) and simply stop showing while
-    /// they aren't a member. They can rejoin with the join code unless it is changed.
+    /// The owner removes a student or a teacher, or a teacher leaves by naming themselves. Only the membership goes: their submissions
+    /// and wall posts are kept (so re-adding them restores everything) and simply stop showing while they aren't a member. They can
+    /// rejoin with the join code (a Teacher's account comes back as a teacher). The owner can be neither removed nor leave.
     /// </summary>
     [HttpDelete("{userId:int}")]
     public async Task<IActionResult> Remove(string slug, int userId)
     {
         var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == slug);
         if (board is null) return NotFound();
-        if (board.OwnerId != UserId) return Forbid();
+        bool leaving = userId == UserId;
+        if (board.OwnerId != UserId && !leaving) return Forbid();
 
         var target = await _db.BoardMemberships
             .Include(m => m.User)
             .FirstOrDefaultAsync(m => m.BoardId == board.Id && m.UserId == userId);
         if (target is null) return NotFound();
-        if (target.Role != MembershipRole.Student) return BadRequest("Only students can be removed.");
+        if (userId == board.OwnerId || target.Role == MembershipRole.Owner) return BadRequest("The board owner cannot be removed.");
+        if (leaving && target.Role != MembershipRole.Teacher) return Forbid();   // leaving is for teachers; a student is removed by the owner
 
         _db.BoardMemberships.Remove(target);
         await _db.SaveChangesAsync();
         // Bell items pointing into a board they can no longer open would only lead to a 403.
         await _db.Notifications.Where(n => n.UserId == userId && n.BoardId == board.Id).ExecuteDeleteAsync();
-        await _audit.RecordAsync(UserId, ActorEmail, "remove-member", "Board", board.Id, $"{target.User!.DisplayName} removed from {board.Title}");
+        await _audit.RecordAsync(UserId, ActorEmail, leaving ? "leave-board" : "remove-member", "Board", board.Id,
+            leaving ? $"{target.User!.DisplayName} left {board.Title}" : $"{target.User!.DisplayName} removed from {board.Title}");
 
-        await _notifier.MemberRemovedAsync(userId, board.Id, board.Slug, board.Title);
+        await _notifier.MemberRemovedAsync(userId, board.Id, board.Slug, board.Title, leaving);
         await _notifier.ProgressChangedAsync(board.Id, 0, userId);   // staff grids drop the row
         await _notifier.WallChangedAsync(board.Id);
+        return NoContent();
+    }
+
+    /// <summary>Owner turns a teacher of the board back into a student: no more student code, live drafts or presenting.</summary>
+    [HttpPost("{userId:int}/make-student")]
+    public async Task<IActionResult> MakeStudent(string slug, int userId)
+    {
+        var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        if (board.OwnerId != UserId) return Forbid();
+
+        var target = await _db.BoardMemberships.Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.BoardId == board.Id && m.UserId == userId);
+        if (target is null) return NotFound();
+        if (userId == board.OwnerId || target.Role == MembershipRole.Owner) return BadRequest("The board owner cannot be removed.");
+        if (target.Role == MembershipRole.Student) return NoContent();
+
+        target.Role = MembershipRole.Student;
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "make-student", "Board", board.Id, $"{target.User!.DisplayName} is now a student of {board.Title}");
+        await _notifier.StaffRevokedAsync(userId, board.Id);         // before anything else is broadcast to staff
+        await _notifier.BoardSettingsChangedAsync(board.Id);        // their open page re-reads the board and reloads as a student
+        await _notifier.ProgressChangedAsync(board.Id, 0, userId);
         return NoContent();
     }
 }
