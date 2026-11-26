@@ -36,6 +36,31 @@ public class GroupAccessTests
     private static readonly DateTime Now = new(2026, 1, 1, 12, 0, 0, DateTimeKind.Utc);
     private static Problem In(ProblemGroup g, bool hidden = false) => new() { Hidden = hidden, Group = g, GroupId = g.Id == 0 ? 1 : g.Id };
 
+    [Fact]
+    public void The_wall_and_grid_selection_leaves_the_archive_out_of_all()
+    {
+        var old = In(new ProblemGroup { Id = 7, Archived = true }); old.GroupId = 7;
+        var now = In(new ProblemGroup { Id = 8 }); now.GroupId = 8;
+        var loose = new Problem();
+        bool[] Pick(string? s) => [GroupAccess.InSelection(old, s), GroupAccess.InSelection(now, s), GroupAccess.InSelection(loose, s)];
+        Assert.Equal([true, true, true], Pick(null));      // callers that ask for nothing in particular (MCP, export) get everything
+        Assert.Equal([false, true, true], Pick("all"));
+        Assert.Equal([false, false, true], Pick("none"));
+        Assert.Equal([true, false, false], Pick("7"));
+        Assert.Equal([false, false, false], Pick("x"));
+    }
+
+    [Fact]
+    public void An_archived_group_stays_open_for_submissions_but_hidden_and_not_yet_open_still_win()
+    {
+        var past = new ProblemGroup { Archived = true, ClosesAt = Now.AddDays(-1) };
+        Assert.True(GroupAccess.StudentVisible(In(past), Now));
+        Assert.False(GroupAccess.IsClosed(In(past), Now));
+        Assert.Equal("Archived", GroupAccess.State(past, Now));
+        Assert.False(GroupAccess.StudentVisible(In(new ProblemGroup { Archived = true, Hidden = true }), Now));
+        Assert.False(GroupAccess.StudentVisible(In(new ProblemGroup { Archived = true, OpensAt = Now.AddHours(1) }), Now));
+    }
+
     [Fact] public void Hidden_problem_or_group_is_not_student_visible()
     {
         Assert.False(GroupAccess.StudentVisible(In(new ProblemGroup(), hidden: true), Now));

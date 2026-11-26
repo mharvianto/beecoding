@@ -43,7 +43,8 @@ public class BoardService(AppDbContext db, VisibilityService vis)
     public async Task<int?> ResolveBoardIdAsync(string slug) =>
         await _db.Boards.Where(b => b.Slug == slug).Select(b => (int?)b.Id).FirstOrDefaultAsync();
 
-    public async Task<ProgressBoardDto?> BuildProgressAsync(int boardId, int viewerUserId, bool viewerIsAdmin = false)
+    /// <param name="group">Only load cells and hints for this selection (<see cref="GroupAccess.InSelection"/>); the problem list is always complete.</param>
+    public async Task<ProgressBoardDto?> BuildProgressAsync(int boardId, int viewerUserId, bool viewerIsAdmin = false, string? group = null)
     {
         var board = await _db.Boards
             .Include(b => b.Members).ThenInclude(m => m.User)
@@ -64,7 +65,8 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         var examByProblem = problems.ToDictionary(p => p.Id, p => GroupAccess.ExamMode(board, p));
         // A peer's row is only worth listing if at least one visible problem is not in exam mode.
         bool peersVisible = problems.Count == 0 || examByProblem.Values.Any(e => !e);
-        var problemIds = problems.Select(p => p.Id).ToList();
+        var selected = problems.Where(p => GroupAccess.InSelection(p, group)).ToList();
+        var problemIds = selected.Select(p => p.Id).ToList();
 
         var subs = await _db.Submissions
             .Where(s => problemIds.Contains(s.ProblemId))
@@ -105,7 +107,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         var cells = new List<ProgressCellDto>();
         foreach (var m in visibleStudents)
         {
-            foreach (var p in problems)
+            foreach (var p in selected)
             {
                 if (!latestByKey.TryGetValue((m.UserId, p.Id), out var agg)) continue;
                 // Exam-mode problem: a student gets nothing at all about peers' attempts on it.

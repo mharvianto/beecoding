@@ -20,6 +20,7 @@ const fromLocalInput = (v) => (v ? new Date(v).toISOString() : null);
 const title = ref(props.group?.title || '');
 const hidden = ref(!!props.group?.hidden);
 const exam = ref({ examMode: !!props.group?.examMode, blockPaste: !!props.group?.blockPaste, noAiHints: !!props.group?.noAiHints });
+const archived = ref(!!props.group?.archived);
 const opensAt = ref(toLocalInput(props.group?.opensAt));
 const closesAt = ref(toLocalInput(props.group?.closesAt));
 const error = ref('');
@@ -33,6 +34,7 @@ function save() {
     title: title.value.trim(),
     hidden: hidden.value,
     ...exam.value,
+    archived: archived.value,
     opensAt: fromLocalInput(opensAt.value),
     closesAt: fromLocalInput(closesAt.value),
   });
@@ -68,6 +70,10 @@ function save() {
       </p>
 
       <ExamOptions v-model="exam" />
+      <label class="flex items-start gap-2 text-sm">
+        <input v-model="archived" type="checkbox" class="mt-1" />
+        <span>{{ tr('Archived') }} <span class="text-slate-500 dark:text-slate-400">{{ tr('— moved to the archive; students can still read and submit, even after the close time.') }}</span></span>
+      </label>
       <label class="flex items-start gap-2 text-sm">
         <input v-model="hidden" type="checkbox" class="mt-1" />
         <span>{{ tr('Hidden') }} <span class="text-slate-500 dark:text-slate-400">{{ tr('— keep it as a draft, invisible to students.') }}</span></span>

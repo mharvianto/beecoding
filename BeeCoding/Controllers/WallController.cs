@@ -21,11 +21,11 @@ public class WallController(AppDbContext db, WallService wall, VisibilityService
     private readonly NotificationService _notifications = notifications;
 
     [HttpGet("api/boards/{slug}/wall")]
-    public async Task<ActionResult<WallDto>> Get(string slug)
+    public async Task<ActionResult<WallDto>> Get(string slug, [FromQuery] string? group = null)
     {
         var boardId = await _boards.ResolveBoardIdAsync(slug);
         if (boardId is null) return NotFound();
-        var wall = await _wall.BuildWallAsync(boardId.Value, UserId);
+        var wall = await _wall.BuildWallAsync(boardId.Value, UserId, group);
         return wall is null ? Forbid() : wall;
     }
 

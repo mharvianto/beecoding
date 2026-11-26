@@ -206,6 +206,10 @@ public class ProblemGroup
     public bool BlockPaste { get; set; }
     public bool NoAiHints { get; set; }
 
+    /// <summary>A finished session kept for reference and re-practice: listed apart from the current ones, readable AND open for
+    /// submissions even after <see cref="ClosesAt"/>. <see cref="Hidden"/> and <see cref="OpensAt"/> still keep it invisible.</summary>
+    public bool Archived { get; set; }
+
     /// <summary>UTC. Before this the group is invisible to students. Null = open from the start.</summary>
     public DateTime? OpensAt { get; set; }
 

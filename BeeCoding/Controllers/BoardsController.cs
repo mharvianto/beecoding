@@ -162,11 +162,11 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
     }
 
     [HttpGet("{slug}/progress")]
-    public async Task<ActionResult<ProgressBoardDto>> Progress(string slug)
+    public async Task<ActionResult<ProgressBoardDto>> Progress(string slug, [FromQuery] string? group = null)
     {
         var boardId = await _boards.ResolveBoardIdAsync(slug);
         if (boardId is null) return NotFound();
-        var progress = await _boards.BuildProgressAsync(boardId.Value, UserId, IsAdminUser(_admin));
+        var progress = await _boards.BuildProgressAsync(boardId.Value, UserId, IsAdminUser(_admin), group);
         return progress is null ? Forbid() : progress;
     }
 

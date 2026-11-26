@@ -20,7 +20,17 @@ public static class GroupAccess
         return g is not null && !g.Hidden && !(g.OpensAt > now);
     }
 
-    public static bool IsClosed(Problem p, DateTime now) => p.Group?.ClosesAt <= now;
+    /// <summary>Does the problem belong to the Wall/Grid selection? null = everything, "all" = everything outside the archive,
+    /// "none" = ungrouped, otherwise a group id. The browser's copy is <c>lib/boardGroups.js</c>.</summary>
+    public static bool InSelection(Problem p, string? group) => group switch
+    {
+        null or "" => true,
+        "all" => p.Group?.Archived != true,
+        "none" => p.GroupId is null,
+        _ => int.TryParse(group, out var id) && p.GroupId == id,
+    };
+
+    public static bool IsClosed(Problem p, DateTime now) => p.Group is { Archived: false } g && g.ClosesAt <= now;
 
     /// <summary>A grouped problem uses its group's exam mode; an ungrouped one the board's.</summary>
     public static bool ExamMode(Board board, Problem p) => p.Group?.ExamMode ?? board.ExamMode;
@@ -38,7 +48,7 @@ public static class GroupAccess
     }
 
     public static string State(ProblemGroup g, DateTime now) =>
-        g.OpensAt > now ? "Upcoming" : g.ClosesAt <= now ? "Closed" : "Open";
+        g.OpensAt > now ? "Upcoming" : g.Archived ? "Archived" : g.ClosesAt <= now ? "Closed" : "Open";
 
     public static string? Validate(UpsertProblemGroupDto dto)
     {
@@ -55,6 +65,7 @@ public static class GroupAccess
         g.ExamMode = dto.ExamMode;
         g.BlockPaste = dto.BlockPaste ?? g.BlockPaste;
         g.NoAiHints = dto.NoAiHints ?? g.NoAiHints;
+        g.Archived = dto.Archived ?? g.Archived;
         var opens = dto.OpensAt?.ToUniversalTime();
         var closes = dto.ClosesAt?.ToUniversalTime();
         if (opens != g.OpensAt) g.OpenNotifiedAt = null;

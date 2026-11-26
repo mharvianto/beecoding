@@ -1702,6 +1702,9 @@ namespace BeeCoding.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("Archived")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("BlockPaste")
                         .HasColumnType("INTEGER");
 

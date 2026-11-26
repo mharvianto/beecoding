@@ -49,7 +49,7 @@ public class WallService(AppDbContext db, VisibilityService vis)
         return PeerCanSee(examMode, author.HiddenByTeacher, post.HiddenByStudent);
     }
 
-    public async Task<WallDto?> BuildWallAsync(int boardId, int viewerUserId)
+    public async Task<WallDto?> BuildWallAsync(int boardId, int viewerUserId, string? group = null)
     {
         var board = await _db.Boards
             .Include(b => b.Members).ThenInclude(m => m.User)
@@ -68,11 +68,11 @@ public class WallService(AppDbContext db, VisibilityService vis)
         var now = DateTime.UtcNow;
         var problems = board.Problems.Where(p => GroupAccess.StudentVisible(p, now)).OrderBy(p => p.Position).ThenBy(p => p.Id).ToList();
         var examByProblem = problems.ToDictionary(p => p.Id, p => GroupAccess.ExamMode(board, p));
-        var problemIds = problems.Select(p => p.Id).ToHashSet();
+        var problemIds = problems.Where(p => GroupAccess.InSelection(p, group)).Select(p => p.Id).ToHashSet();   // posts of the selection only
         var langByProblem = problems.ToDictionary(p => p.Id, p => Languages.Default(p.AllowedLanguages));
 
         var posts = await _db.Posts
-            .Where(p => p.BoardId == boardId)
+            .Where(p => p.BoardId == boardId && problemIds.Contains(p.ProblemId))
             .Include(p => p.Reactions)
             .Include(p => p.Comments).ThenInclude(c => c.User)
             .Include(p => p.User)
@@ -95,7 +95,7 @@ public class WallService(AppDbContext db, VisibilityService vis)
         var membersById = board.Members.ToDictionary(m => m.UserId);
         var dtos = new List<WallPostDto>();
 
-        foreach (var post in posts.Where(p => problemIds.Contains(p.ProblemId)))
+        foreach (var post in posts)
         {
             if (!membersById.TryGetValue(post.UserId, out var author)) continue;
             latestByKey.TryGetValue((post.UserId, post.ProblemId), out var agg);

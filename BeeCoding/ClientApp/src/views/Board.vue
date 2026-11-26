@@ -3,7 +3,7 @@ import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import Icon from '../components/Icon.vue';
 import { vClickOutside } from '../lib/clickOutside';
-import { ref, reactive, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { api } from '../lib/api';
 import { withBase } from '../lib/base';
@@ -13,6 +13,7 @@ import { createBoardConnection } from '../lib/signalr';
 import { useUndoToast } from '../stores/undoToast';
 import ProgressGrid from '../components/ProgressGrid.vue';
 import ExamOptions from '../components/ExamOptions.vue';
+import { groupOptions, liveProblems, pickGroup, inSelection } from '../lib/boardGroups';
 import PadletWall from '../components/PadletWall.vue';
 import QrCode from '../components/QrCode.vue';
 import BoardContinue from '../components/BoardContinue.vue';
@@ -41,6 +42,7 @@ function openCard({ problemSlug }) { router.push(`/boards/${props.slug}/problems
 
 const board = ref(null);
 const problems = ref([]);
+const groups = ref([]);
 const progress = ref({ students: [], problems: [], cells: [], examMode: false, viewerIsStaff: false });
 const presence = ref([]);
 const error = ref('');
@@ -56,12 +58,36 @@ const joinUrl = computed(() =>
 
 async function loadAll() {
   board.value = await api.get(`/api/boards/${props.slug}`);
-  problems.value = await api.get(`/api/boards/${props.slug}/problems`);
+  [problems.value, groups.value] = await Promise.all([
+    api.get(`/api/boards/${props.slug}/problems`),
+    api.get(`/api/boards/${props.slug}/groups`),
+  ]);
+  groupsLoaded.value = true;
   await loadProgress();
 }
+let progressAsked = 0;
 async function loadProgress() {
-  progress.value = await api.get(`/api/boards/${props.slug}/progress`);
+  const asked = ++progressAsked;
+  const answer = await api.get(`/api/boards/${props.slug}/progress?group=${selectedGroup.value}`);
+  if (asked === progressAsked) progress.value = answer;   // a slower, older selection must not overwrite a newer one
 }
+// One choice for Wall and Grid, remembered per board on this device.
+const GROUP_KEY = `beecoding.board.group.${props.slug}`;
+const savedGroup = ref((() => { try { return localStorage.getItem(GROUP_KEY); } catch { return null; } })());
+const options = computed(() => groupOptions(groups.value, liveProblems(groups.value, problems.value)));
+const groupsLoaded = ref(false);   // the selection is known only then: Wall and Grid ask the server for that part alone
+const selectedGroup = computed({
+  get: () => (options.value.length ? pickGroup(savedGroup.value, options.value) : 'all'),
+  set: (v) => { savedGroup.value = v; try { localStorage.setItem(GROUP_KEY, v); } catch { /* the choice just does not persist */ } },
+});
+const shows = computed(() => inSelection(selectedGroup.value, groups.value));
+const shownProblems = computed(() => progress.value.problems.filter(shows.value));
+// Arriving from a notification about a problem outside the selection: show its group (for this visit only).
+watch([() => route.query.problem, () => progress.value.problems], ([pid]) => {
+  const p = pid && progress.value.problems.find((x) => x.id === Number(pid));
+  if (p && !shows.value(p)) savedGroup.value = p.groupId == null ? 'none' : String(p.groupId);
+});
+watch(selectedGroup, () => { if (groupsLoaded.value) loadProgress().catch((e) => { error.value = e.message; }); });
 const wallSignal = ref(0);
 const drafts = reactive({});   // "problemId:userId" -> { code, updatedAt, authorName }
 function scheduleRefresh() {
@@ -223,7 +249,10 @@ onMounted(async () => {
     await loadAll();
     if (was && board.value && (was === 'Student') !== (board.value.role === 'Student')) window.location.reload();   // teacher ⇄ student: reconnect, so the page and its hub channels match the new role
   });
-  conn.on('problemChanged', async () => { problems.value = await api.get(`/api/boards/${props.slug}/problems`); scheduleRefresh(); });
+  conn.on('problemChanged', async () => {
+    [problems.value, groups.value] = await Promise.all([api.get(`/api/boards/${props.slug}/problems`), api.get(`/api/boards/${props.slug}/groups`)]);
+    scheduleRefresh();
+  });
   conn.on('presence', (list) => { presence.value = list; });
   conn.on('draftUpdated', (d) => {
     drafts[`${d.problemId}:${d.userId}`] = { code: d.code, updatedAt: d.updatedAt, authorName: d.authorName };
@@ -443,9 +472,15 @@ onBeforeUnmount(async () => {
     <BoardContinue v-if="!isStaff" :board-slug="slug" />
 
     <!-- Live board -->
-    <div class="flex items-center justify-between mt-8 mb-2">
-      <h2 class="font-semibold text-slate-600 dark:text-slate-300 text-sm">{{ tr('Live progress') }}</h2>
-      <div class="flex rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
+    <div class="flex flex-wrap items-center justify-between gap-2 mt-8 mb-2">
+      <h2 class="font-semibold text-slate-600 dark:text-slate-300 text-sm max-sm:basis-full">{{ tr('Live progress') }}</h2>
+      <select v-if="options.length" v-model="selectedGroup" :aria-label="tr('Group')"
+              class="ml-auto min-w-0 max-w-full max-sm:flex-1 text-xs border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1">
+        <option v-for="o in options" :key="o.value" :value="o.value">
+          {{ o.group ? (o.group.archived ? tr('Archive: {p0}', { p0: o.group.title }) : o.group.title) : o.value === 'none' ? tr('Ungrouped') : tr('All (without the archive)') }}
+        </option>
+      </select>
+      <div class="flex shrink-0 rounded-lg border border-slate-300 dark:border-slate-700 overflow-hidden text-xs">
         <button @click="setView('wall')" class="px-3 py-1"
                 :class="view === 'wall' ? 'bg-amber-500 text-slate-900' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400'">{{ tr('Wall') }}</button>
         <button @click="setView('grid')" class="px-3 py-1 border-l border-slate-300 dark:border-slate-700"
@@ -453,15 +488,17 @@ onBeforeUnmount(async () => {
       </div>
     </div>
 
-    <PadletWall v-if="view === 'wall'"
+    <PadletWall v-if="view === 'wall' && groupsLoaded"
       :board-slug="board.slug"
       :current-user-id="auth.user?.id"
       :refresh-signal="wallSignal"
+      :group="selectedGroup"
+      :shows="shows"
       :drafts="drafts" />
 
-    <ProgressGrid v-else
+    <ProgressGrid v-else-if="view === 'grid'"
       :students="progress.students"
-      :problems="progress.problems"
+      :problems="shownProblems"
       :cells="progress.cells"
       :hints="progress.hints || []"
       :is-staff="progress.viewerIsStaff"

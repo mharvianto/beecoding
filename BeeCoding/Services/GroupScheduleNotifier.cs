@@ -38,7 +38,7 @@ public sealed class GroupScheduleNotifier(IServiceScopeFactory scopes, ILogger<G
             var notifications = scope.ServiceProvider.GetRequiredService<NotificationService>();
 
             var opening = await db.ProblemGroups.Include(g => g.Board)
-                .Where(g => !g.Hidden && g.OpensAt != null && g.OpensAt <= now && g.OpenNotifiedAt == null).ToListAsync(ct);
+                .Where(g => !g.Hidden && !g.Archived && g.OpensAt != null && g.OpensAt <= now && g.OpenNotifiedAt == null).ToListAsync(ct);
             foreach (var g in opening)
             {
                 if (!await db.Problems.AnyAsync(p => p.GroupId == g.Id && !p.Hidden, ct)) continue;   // nothing to open yet: look again later
@@ -49,7 +49,7 @@ public sealed class GroupScheduleNotifier(IServiceScopeFactory scopes, ILogger<G
             }
 
             var closing = await db.ProblemGroups.Include(g => g.Board)
-                .Where(g => !g.Hidden && g.ClosesAt != null && g.ClosesAt > now && g.ClosesAt <= now + ClosingWindow
+                .Where(g => !g.Hidden && !g.Archived && g.ClosesAt != null && g.ClosesAt > now && g.ClosesAt <= now + ClosingWindow
                     && (g.OpensAt == null || g.OpensAt <= now) && g.CloseNotifiedAt == null).ToListAsync(ct);
             foreach (var g in closing)
             {

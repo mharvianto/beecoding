@@ -431,7 +431,7 @@ public class PracticeController(AppDbContext db, IJudgeQueue queue, RateLimiter 
 
         var now = DateTime.UtcNow;
         var visible = (await _db.Problems.Include(p => p.Group).Where(p => p.BoardId == board.Id).ToListAsync())
-            .Where(p => GroupAccess.StudentVisible(p, now)).ToList();
+            .Where(p => GroupAccess.StudentVisible(p, now) && p.Group?.Archived != true).ToList();   // past sessions neither count nor block
         if (visible.Count == 0 || visible.Any(p => GroupAccess.ExamMode(new Board { ExamMode = board.ExamMode }, p))) return new List<RecommendationDto>();
 
         var ids = visible.Select(p => p.Id).ToList();

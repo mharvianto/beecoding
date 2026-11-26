@@ -127,19 +127,26 @@ const filtered = computed(() => {
 // Each group is a section; problems with no group form the trailing "Ungrouped" section.
 const sections = computed(() => {
   const list = filtered.value;
-  const out = groups.value.map((g) => ({ group: g, items: list.filter((p) => p.groupId === g.id) }));
+  const section = (g) => ({ group: g, items: list.filter((p) => p.groupId === g.id) });
+  const out = groups.value.filter((g) => !g.archived).map(section);
   const known = new Set(groups.value.map((g) => g.id));
   const loose = list.filter((p) => p.groupId == null || !known.has(p.groupId));
   if (loose.length || !groups.value.length) out.push({ group: null, items: loose });
+  out.push(...groups.value.filter((g) => g.archived).reverse().map(section));   // the archive comes last, newest first
   // While searching, drop sections with no hits so results aren't buried in empty headers.
   return q.value.trim() ? out.filter((sec) => sec.items.length) : out;
 });
+const firstArchivedId = computed(() => sections.value.find((s) => s.group?.archived)?.group.id);
 const collapsed = ref(loadCollapsed());
 function loadCollapsed() {
   try { return JSON.parse(localStorage.getItem(`beecoding.groups.collapsed.${props.slug}`) || '{}'); } catch { return {}; }
 }
-function toggleCollapsed(key) {
-  collapsed.value = { ...collapsed.value, [key]: !collapsed.value[key] };
+// Until the person folds or unfolds a section themselves, finished ones (archived or closed) are folded (but not while searching).
+const isCollapsed = (sec) => collapsed.value[secKey(sec.group)]
+  ?? (!!(sec.group?.archived || sec.group?.state === 'Closed') && !q.value.trim());
+function toggleCollapsed(sec) {
+  const key = secKey(sec.group);
+  collapsed.value = { ...collapsed.value, [key]: !isCollapsed(sec) };
   try { localStorage.setItem(`beecoding.groups.collapsed.${props.slug}`, JSON.stringify(collapsed.value)); } catch { /* ignore */ }
 }
 
@@ -149,6 +156,15 @@ async function saveGroup(payload) {
     if (editingGroup.value) await api.put(`/api/boards/${props.slug}/groups/${editingGroup.value.id}`, payload);
     else await api.post(`/api/boards/${props.slug}/groups`, payload);
     editingGroup.value = undefined;
+    await loadAll();
+  } catch (e) { error.value = e.message; }
+}
+// One click. Archiving also unhides: the archive is for students to look back at.
+async function setArchived(g, archived) {
+  try {
+    await api.put(`/api/boards/${props.slug}/groups/${g.id}`, {
+      title: g.title, hidden: archived ? false : g.hidden, examMode: g.examMode, opensAt: utc(g.opensAt), closesAt: utc(g.closesAt), archived,
+    });
     await loadAll();
   } catch (e) { error.value = e.message; }
 }
@@ -172,11 +188,13 @@ async function moveProblem(p, groupId) {
     groups.value = await api.get(`/api/boards/${props.slug}/groups`);
   } catch (e) { error.value = e.message; }
 }
+const utc = (iso) => (!iso || iso.endsWith('Z') ? iso : iso + 'Z');   // the server's UTC times may come without the suffix
 const fmtWhen = (iso) => new Date(iso.endsWith('Z') ? iso : iso + 'Z').toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 function stateLabel(g) {
   if (g.state === 'Upcoming') return tr('⏳ Opens {p0}', { p0: fmtWhen(g.opensAt) });
+  if (g.state === 'Archived') return tr('Archived · still open for submissions');
   if (g.state === 'Closed') return tr('🔚 Closed {p0}', { p0: fmtWhen(g.closesAt) });
-  return g.closesAt ? `🟢 Open · closes ${fmtWhen(g.closesAt)}` : g.opensAt ? `🟢 Open since ${fmtWhen(g.opensAt)}` : '';
+  return g.closesAt ? tr('🟢 Open · closes {p0}', { p0: fmtWhen(g.closesAt) }) : g.opensAt ? tr('🟢 Open since {p0}', { p0: fmtWhen(g.opensAt) }) : '';
 }
 
 async function toggleHidden(p) {
@@ -375,21 +393,24 @@ async function reorderGroupTo(id, target, pos) {
       {{ tr('Drag ⠿ to reorder or move problems between groups — drop on a group\'s header to send a problem to its end. Groups can be dragged by their ⠿ too.') }}
     </p>
 
-    <div class="space-y-5">
+    <div class="space-y-3">
       <section v-for="sec in sections" :key="sec.group ? sec.group.id : 'none'"
                @dragover="overSection($event, sec)" @drop="dropOnSection($event, sec)"
                class="transition-shadow"
                :class="{ 'shadow-[0_-4px_0_0_rgb(245_158_11)]': isOverGroup(sec, 'before'), 'shadow-[0_4px_0_0_rgb(245_158_11)]': isOverGroup(sec, 'after') }">
+        <h2 v-if="sec.group && sec.group.id === firstArchivedId" class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-3 mb-2">
+          <Icon name="folder" /> {{ tr('Archive') }}
+        </h2>
         <!-- section header: only when the board actually uses groups (also the drop target for "send to this group") -->
         <div v-if="groups.length" class="flex items-center gap-2 flex-wrap mb-2 rounded-lg transition-colors"
              :class="isOverSection(sec) ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-300 dark:ring-amber-500/40' : ''"
              :draggable="canReorder && !!sec.group"
              @dragstart="sec.group && dragStart($event, { kind: 'group', id: sec.group.id })" @dragend="dragEnd">
           <span v-if="canReorder && sec.group" class="max-sm:hidden cursor-grab text-slate-300 dark:text-slate-600 select-none" :title="tr('Drag to reorder groups')">⠿</span>
-          <button @click="toggleCollapsed(sec.group ? sec.group.id : 'none')" class="text-slate-500 dark:text-slate-400 text-left"
-                  :aria-expanded="!collapsed[sec.group ? sec.group.id : 'none']"
-                  :title="collapsed[sec.group ? sec.group.id : 'none'] ? 'Expand' : 'Collapse'">
-            <Chevron :open="!collapsed[sec.group ? sec.group.id : 'none']" />
+          <button @click="toggleCollapsed(sec)" class="text-slate-500 dark:text-slate-400 text-left"
+                  :aria-expanded="!isCollapsed(sec)"
+                  :title="isCollapsed(sec) ? 'Expand' : 'Collapse'">
+            <Chevron :open="!isCollapsed(sec)" />
           </button>
           <h2 class="font-semibold text-sm text-slate-700 dark:text-slate-200">{{ sec.group ? sec.group.title : tr('Ungrouped') }}</h2>
           <span class="text-xs text-slate-500 dark:text-slate-400">{{ tr(sec.items.length === 1 ? '{n} problem' : '{n} problems', { n: sec.items.length }) }}</span>
@@ -406,13 +427,14 @@ async function reorderGroupTo(id, target, pos) {
               <ExportMenu :slug="slug" :group="sec.group.id" :label="`Download ${sec.group.title}`" @error="error = $event" />
               <button @click="moveGroup(sec.group, -1)" class="row-action-btn" :title="tr('Move group up')"><span>↑</span></button>
               <button @click="moveGroup(sec.group, 1)" class="row-action-btn" :title="tr('Move group down')"><span>↓</span></button>
+              <button @click="setArchived(sec.group, !sec.group.archived)" class="row-action-btn">{{ sec.group.archived ? tr('Unarchive') : tr('Archive') }}</button>
               <button @click="editingGroup = sec.group" class="row-action-btn" :aria-label="tr('Edit')"><span><Icon name="pencil" /></span><span class="max-sm:hidden">{{ tr('Edit') }}</span></button>
               <button @click="deleteGroup(sec.group)" class="row-action-btn row-action-btn--danger" :aria-label="tr('Delete')"><span><Icon name="trash" /></span><span class="max-sm:hidden">{{ tr('Delete') }}</span></button>
             </span>
           </template>
         </div>
 
-        <div v-show="!collapsed[sec.group ? sec.group.id : 'none']" class="grid gap-2">
+        <div v-show="!isCollapsed(sec)" class="grid gap-2">
           <div v-for="p in sec.items" :key="p.id"
                :draggable="canReorder"
                @dragstart="dragStart($event, { kind: 'problem', slug: p.slug })" @dragend="dragEnd"

@@ -868,7 +868,7 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         var boards = await _db.Boards.AsNoTracking().Where(b => ids.Contains(b.Id)).ToDictionaryAsync(b => b.Id);   // a deleted board is not here
         var now = DateTime.UtcNow;
         return problems.Any(p => boards.TryGetValue(p.BoardId, out var board)
-            && GroupAccess.StudentVisible(p, now) && !GroupAccess.IsClosed(p, now) && GroupAccess.NoAiHints(board, p));
+            && p.Group?.Archived != true && GroupAccess.StudentVisible(p, now) && !GroupAccess.IsClosed(p, now) && GroupAccess.NoAiHints(board, p));
     }
 
     private async Task<(AiHintContext? ctx, ObjectResult? err)> BuildContextAsync(AiHintDto dto)

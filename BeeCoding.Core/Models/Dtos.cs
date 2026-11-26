@@ -130,9 +130,9 @@ public record StudentProblemDto(
 /// <summary>State is "Upcoming" (before OpensAt), "Closed" (after ClosesAt) or "Open".</summary>
 public record ProblemGroupDto(
     int Id, string Title, int Position, bool Hidden, bool ExamMode,
-    DateTime? OpensAt, DateTime? ClosesAt, string State, int ProblemCount, bool BlockPaste = false, bool NoAiHints = false);
-// BlockPaste / NoAiHints null = leave as it is (off on a new group).
-public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, DateTime? OpensAt, DateTime? ClosesAt, bool? BlockPaste = null, bool? NoAiHints = null);
+    DateTime? OpensAt, DateTime? ClosesAt, string State, int ProblemCount, bool BlockPaste = false, bool NoAiHints = false, bool Archived = false);
+// BlockPaste / NoAiHints / Archived null = leave as it is (off on a new group).
+public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, DateTime? OpensAt, DateTime? ClosesAt, bool? BlockPaste = null, bool? NoAiHints = null, bool? Archived = null);
 public record ReorderGroupsDto(List<int> Order);   // group ids, new top-to-bottom order
 public record MoveProblemDto(int? GroupId);        // null => ungrouped
 

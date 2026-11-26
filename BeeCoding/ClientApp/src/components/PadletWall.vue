@@ -12,6 +12,8 @@ const props = defineProps({
   boardSlug: { type: String, required: true },
   currentUserId: Number,
   refreshSignal: { type: Number, default: 0 },
+  group: { type: String, default: 'all' },   // which part of the board to ask the server for
+  shows: { type: Function, default: () => true },   // the board's group selection: which problems get a tab
   drafts: { type: Object, default: () => ({}) },   // "problemId:userId" -> { code, updatedAt, authorName }
 });
 const route = useRoute();
@@ -28,11 +30,15 @@ const viewSubmissionId = ref(null); // set to open the full-code viewer modal
 
 const EMOJIS = ['👍', '⭐', '🎉', '🔥', '👀'];
 
+const loadedGroup = ref(null);   // whose posts are on screen
+let asked = 0;
 async function load() {
+  const mine = ++asked, group = props.group;
   try {
-    wall.value = await api.get(`/api/boards/${props.boardSlug}/wall`);
-    if (!activeProblem.value && wall.value.problems.length)
-      activeProblem.value = wall.value.problems[0].id;
+    const answer = await api.get(`/api/boards/${props.boardSlug}/wall?group=${group}`);
+    if (mine !== asked) return;
+    wall.value = answer;
+    loadedGroup.value = group;
     await applyDeepLink();
   } catch (e) { error.value = e.message; }
 }
@@ -44,7 +50,9 @@ async function applyDeepLink() {
   const { problem, post, ...rest } = route.query;
   if (!problem) return;
   const pid = Number(problem);
-  if (wall.value.problems.some((p) => p.id === pid)) activeProblem.value = pid;
+  const target = wall.value.problems.find((p) => p.id === pid);
+  if (target && !props.shows(target)) return;   // the board is switching to its group: apply when that arrives
+  if (target) activeProblem.value = pid;
   router.replace({ query: rest });
   if (!post) return;
   await nextTick();
@@ -55,6 +63,7 @@ async function applyDeepLink() {
   setTimeout(() => { flashPost.value = null; }, 2500);
 }
 onMounted(load);
+watch(() => props.group, load);
 // The hub signals on every submission, reaction and comment, and each client would reload the whole wall for each one:
 // a class submitting together turned into hundreds of full rebuilds. Reload once after a quiet moment instead.
 let reloadTimer = null;
@@ -62,6 +71,9 @@ watch(() => props.refreshSignal, () => { clearTimeout(reloadTimer); reloadTimer 
 onBeforeUnmount(() => clearTimeout(reloadTimer));
 watch(() => route.query.problem, (v) => { if (v) load(); });
 
+const tabs = computed(() => wall.value.problems.filter(props.shows));
+// The open tab stays inside the selection.
+watch(tabs, (list) => { if (!list.some((p) => p.id === activeProblem.value)) activeProblem.value = list[0]?.id ?? null; });
 const activeExam = computed(() => !!wall.value.problems.find((p) => p.id === activeProblem.value)?.examMode);
 
 const visiblePosts = computed(() => {
@@ -193,12 +205,12 @@ async function toggleHiddenByStudent(post) {
 
     <!-- problem tabs -->
     <div class="flex gap-1 flex-wrap mb-4">
-      <button v-for="p in wall.problems" :key="p.id" @click="activeProblem = p.id"
+      <button v-for="p in tabs" :key="p.id" @click="activeProblem = p.id"
               class="px-3 py-1.5 rounded-full text-sm border transition"
               :class="activeProblem === p.id
                 ? 'bg-slate-800 text-white border-slate-800 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
                 : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-300'">
-        <span v-if="p.groupTitle" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
+        <span v-if="p.groupTitle && group === 'all'" class="opacity-60">{{ p.groupTitle }} · </span>{{ p.title }}
         <span v-if="tabHasNew(p.id)" class="ml-1" :title="tr('New reactions or comments on your card')"><Icon name="bell" /></span>
       </button>
     </div>
@@ -336,7 +348,7 @@ async function toggleHiddenByStudent(post) {
     </div>
 
     <p v-if="!visiblePosts.length" class="text-slate-500 dark:text-slate-400 text-sm">
-      {{ tr('No posts yet — a card appears here when a student runs their first submission.') }}
+      {{ loadedGroup !== group ? tr('Loading…') : tr('No posts yet — a card appears here when a student runs their first submission.') }}
     </p>
 
     <SubmissionView v-if="viewSubmissionId" :submission-id="viewSubmissionId" @close="viewSubmissionId = null" />

@@ -152,7 +152,7 @@ A board has one presenter (`BoardHub.PushLecture`); another teacher's push is re
 
 ### Problem groups (folders/sessions)
 
-`ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and
+`ProblemGroup` is a one-level folder on a board. `Archived` = a finished session: still visible and open for submissions (it overrides `ClosesAt`; `Hidden`/`OpensAt` still win), listed last on the Problems page, left out of the Wall/Grid unless chosen in the group dropdown (`lib/boardGroups.js`; `GET .../wall?group=` and `.../progress?group=` load posts and cells for that selection only, mirrored by `GroupAccess.InSelection`, no parameter = everything), closed or archived groups start folded, no schedule notifications, and it no longer blocks hints elsewhere or counts for after-board suggestions. It carries its own `Hidden`, `ExamMode` and
 `OpensAt`/`ClosesAt` window. The exam switches are three independent flags on both `ProblemGroup` and `Board` (the board's apply to ungrouped problems): `ExamMode` (= hide other students' work), `BlockPaste` (editor only, client side) and `NoAiHints` (server: `AiController` refuses a student's hint for the problem, and while such a problem is open to them also Practice hints for the same bank problem and that board's Live Code hints, `HintsOffNowAsync`; AI outside the app cannot be stopped). `Services/GroupAccess.cs` is the source of truth for what that
 means: student-visible (not hidden, group not hidden, already open), closed (readable but
 submit refused) and *effective exam mode* (the group's flag, or `Board.ExamMode` for
