@@ -89,6 +89,10 @@ const sections = [
 ];
 const section = computed(() => sections.find((s) => s.key === route.params.section)?.key || 'overview');
 
+// Held by the two-step policy: that block goes first, so what unlocks the app is on screen. Stays first after setup, where the recovery codes show.
+const mfaFirst = ref(false);
+watch(() => auth.mustSetupMfa, (held) => { if (held) mfaFirst.value = true; }, { immediate: true });
+
 // A link like /account/security#two-step: scroll to that block once the section has rendered.
 async function scrollToHash() {
   if (!route.hash) return;
@@ -366,7 +370,7 @@ async function deleteAccount(force = false) {
         </div>
 
         <!-- Security -->
-        <div v-else-if="section === 'security'" class="max-w-xl space-y-10">
+        <div v-else-if="section === 'security'" class="max-w-xl flex flex-col gap-10">
         <!-- change password -->
         <section v-if="auth.user?.hasPassword === false" class="space-y-3">
           <h2 class="font-semibold text-sm">{{ tr('Set a password') }}</h2>
@@ -409,7 +413,7 @@ async function deleteAccount(force = false) {
 
         <PasskeySettings />
 
-        <MfaSettings />
+        <MfaSettings :class="{ '-order-1': mfaFirst }" />
 
         <McpSettings />
         </div>

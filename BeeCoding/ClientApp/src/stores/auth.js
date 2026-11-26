@@ -36,10 +36,11 @@ export const useAuth = defineStore('auth', {
       try { this.config = await api.get('/api/auth/config'); } catch { /* keep the defaults (features off) */ }
       this.configLoaded = true;
     },
-    // Resolves to null once signed in, or to { ticket, methods } when the account needs a second factor.
+    // Resolves to null once signed in, or to { ticket, methods } when the account needs a second factor. Told apart by the ticket:
+    // a signed-in answer has its own `mfaRequired` (the platform policy asks this account to SET UP a factor).
     async login(email, password, turnstileToken = '') {
       const r = await api.post('/api/auth/login', { email, password, turnstileToken });
-      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
+      if (r.ticket) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
       this.user = r;
       return null;
     },
@@ -47,7 +48,7 @@ export const useAuth = defineStore('auth', {
     // Same result shape as login(): null once signed in, or { ticket, methods } when a second factor is needed.
     async googleLink(ticket, password) {
       const r = await api.post('/api/auth/google/link', { ticket, password });
-      if (r.mfaRequired) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
+      if (r.ticket) return { ticket: r.ticket, methods: r.methods, emailHint: r.emailHint };
       this.user = r;
       return null;
     },

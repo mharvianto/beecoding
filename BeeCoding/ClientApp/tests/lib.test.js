@@ -97,3 +97,22 @@ describe('api', () => {
     expect(seen).toHaveBeenCalledTimes(1);
   });
 });
+
+import { setActivePinia, createPinia } from 'pinia';
+import { useAuth } from '../src/stores/auth';
+describe('sign-in answers', () => {
+  it('an account the policy asks to set up two-step is signed in, not shown the code challenge', async () => {
+    setActivePinia(createPinia());
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ id: 7, email: 'a@t.test', mfaRequired: true, mfaEnabled: false }), { status: 200 }));
+    const auth = useAuth();
+    expect(await auth.login('a@t.test', 'password1!')).toBeNull();
+    expect(auth.mustSetupMfa).toBe(true);
+  });
+  it('a challenge answer (with a ticket) asks for the code', async () => {
+    setActivePinia(createPinia());
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify({ mfaRequired: true, ticket: 't', methods: ['totp'] }), { status: 200 }));
+    const auth = useAuth();
+    expect(await auth.login('a@t.test', 'password1!')).toMatchObject({ ticket: 't', methods: ['totp'] });
+    expect(auth.user).toBeNull();
+  });
+});
