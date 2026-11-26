@@ -97,6 +97,13 @@ async function removeStudent(student) {
     wallSignal.value++;
   } catch (e) { error.value = e.message; }
 }
+async function makeTeacher(student) {
+  const ok = await confirmDialog.ask(tr('Make {p0} a teacher of “{p1}”? They will see every student’s code and live drafts.', { p0: student.displayName, p1: board.value.title }),
+    { confirmLabel: tr('Make teacher'), danger: false });
+  if (!ok) return;
+  try { await api.post(`/api/boards/${props.slug}/members/${student.userId}/make-teacher`); await loadProgress(); }
+  catch (e) { error.value = e.message; }
+}
 async function toggleHide(student) {
   await api.patch(`/api/boards/${props.slug}/members/${student.userId}`, { hiddenByTeacher: !student.hiddenByTeacher });
   await loadProgress();
@@ -177,7 +184,11 @@ onMounted(async () => {
   conn.on('wallChanged', () => { wallSignal.value++; refreshDrafts(); });
   conn.on('memberVisibilityChanged', () => { scheduleRefresh(); refreshDrafts(); });
   conn.on('examModeChanged', async () => { await loadAll(); refreshDrafts(); });
-  conn.on('boardSettingsChanged', async () => { await loadAll(); });
+  conn.on('boardSettingsChanged', async () => {
+    const was = board.value?.role;
+    await loadAll();
+    if (was === 'Student' && board.value?.role !== 'Student') window.location.reload();   // lifted to teacher: reconnect so the staff channel (live drafts) is joined
+  });
   conn.on('problemChanged', async () => { problems.value = await api.get(`/api/boards/${props.slug}/problems`); scheduleRefresh(); });
   conn.on('presence', (list) => { presence.value = list; });
   conn.on('draftUpdated', (d) => {
@@ -395,6 +406,7 @@ onBeforeUnmount(async () => {
       :current-user-id="auth.user?.id"
       :board-slug="slug"
       @toggle-hide="toggleHide"
+      @make-teacher="makeTeacher"
       @remove="removeStudent" />
 
     <SubmissionView v-if="ltiSubmissionId" :submission-id="ltiSubmissionId" @close="ltiSubmissionId = null" />

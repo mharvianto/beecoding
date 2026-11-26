@@ -73,7 +73,8 @@ public record JoinBoardDto(string Code);
 public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null, bool? AllowProposals = null);
 public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "", bool AllowProposals = true);
 
-public record MemberDto(int UserId, string DisplayName, string Role, bool HiddenByTeacher);
+/// <summary>CanBeTeacher (staff only): the account is a Teacher's, so the owner may lift this student membership to teacher.</summary>
+public record MemberDto(int UserId, string DisplayName, string Role, bool HiddenByTeacher, bool CanBeTeacher = false);
 public record UpdateMemberDto(bool HiddenByTeacher);
 
 // ---- Problems ----

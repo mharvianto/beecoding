@@ -29,6 +29,7 @@ export default {
   "This image cannot be compressed enough. Use a smaller or simpler picture.": "Gambar ini tidak bisa dikompres cukup kecil. Pakai gambar yang lebih kecil atau sederhana.",
   "Only students can be hidden.": "Hanya siswa yang bisa disembunyikan.",
   "Only students can be removed.": "Hanya siswa yang bisa dikeluarkan.",
+  "Only a teacher's account can be made a teacher of a board.": "Hanya akun guru yang bisa dijadikan guru di sebuah board.",
   "This proposal was already answered.": "Usulan ini sudah dijawab.",
   "The proposer deleted this problem.": "Pengusul sudah menghapus soal ini.",
   "Wait a moment before asking again.": "Tunggu sebentar sebelum bertanya lagi.",

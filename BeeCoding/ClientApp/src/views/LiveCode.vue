@@ -199,7 +199,9 @@ onMounted(async () => {
 
   conn = createBoardConnection();
   conn.on('boardSettingsChanged', async () => {
+    const was = board.value?.role;
     try { board.value = await api.get(`/api/boards/${props.slug}`); } catch { /* ignore */ }
+    if (was === 'Student' && board.value?.role !== 'Student') window.location.reload();   // lifted to teacher: reconnect to join the staff channel
   });
   conn.on('lectureUpdated', ingestLecture);
   tickTimer = setInterval(() => { nowTick.value = Date.now(); }, 5000);

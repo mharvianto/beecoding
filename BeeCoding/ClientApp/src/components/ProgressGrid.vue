@@ -16,7 +16,7 @@ const props = defineProps({
   currentUserId: Number,
   boardSlug: { type: String, default: '' },   // lets a problem's column header open that problem
 });
-const emit = defineEmits(['toggle-hide', 'remove']);
+const emit = defineEmits(['toggle-hide', 'remove', 'make-teacher']);
 
 const viewSubmissionId = ref(null);
 
@@ -104,6 +104,10 @@ const sortedStudents = computed(() => {
                       ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30'
                       : 'text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-400'">
               {{ s.hiddenByTeacher ? tr('hidden from peers') : tr('visible') }}
+            </button>
+            <button v-if="isStaff && canRemove && s.canBeTeacher" @click="emit('make-teacher', s)" :title="tr('Make this person a teacher of the board: they then see every student’s code')"
+                    class="ml-1 text-[11px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-sky-700 hover:border-sky-300 dark:hover:text-sky-300 dark:hover:border-sky-500/40">
+              {{ tr('make teacher') }}
             </button>
             <button v-if="isStaff && canRemove" @click="emit('remove', s)" :title="tr('Remove from this board')"
                     class="ml-1 text-[11px] px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:text-rose-600 hover:border-rose-300 dark:hover:text-rose-400 dark:hover:border-rose-500/40">

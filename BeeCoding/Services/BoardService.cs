@@ -99,7 +99,7 @@ public class BoardService(AppDbContext db, VisibilityService vis)
         var studentDtos = visibleStudents
             .Select(m => new MemberDto(
                 m.UserId, m.User!.DisplayName, m.Role.ToString(),
-                viewerIsStaff && m.HiddenByTeacher))
+                viewerIsStaff && m.HiddenByTeacher, viewerIsStaff && m.User!.Role == UserRole.Teacher))
             .ToList();
 
         var cells = new List<ProgressCellDto>();

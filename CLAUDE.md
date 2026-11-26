@@ -142,6 +142,10 @@ Not built: moving the content columns out of `Problem` (the bell/push does not a
 checks `OwnerId`. Students cannot receive one, and there is no bell/email on sharing. Stopping a share removes access; a board copy already made stays, but
 `bank-updates` / `update-from-bank` only follow a source the teacher can still read (`ProblemsController.CanReadBank`). Copying copies all tests, as for a public problem.
 
+### Board role is fixed at join
+
+`BoardMembership.Role` is set once, from the account's role at the moment of joining (`BoardsController.Join`); changing the account role later (Admin → Users) does not touch it. A teacher who joined as a student stays a student on that board until they enter the join code again (an existing Student membership is lifted when the account is a Teacher's) or the owner clicks "make teacher" on their row in the Grid (`MembersController.MakeTeacher`, refuses a student account: staff see every student's code). The browser reloads when its own role changes, to join the staff SignalR group.
+
 ### Problem groups (folders/sessions)
 
 `ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and

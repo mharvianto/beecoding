@@ -36,4 +36,42 @@ public class BoardJoinRoleTests
         }
         finally { Environment.SetEnvironmentVariable("Security__SessionRecheckSeconds", null); }
     }
+
+    // Same class as the test above on purpose: TestApp sets a process-wide connection-string variable, so two classes starting at once can share a database.
+    [Fact]
+    public async Task The_owner_can_lift_a_teachers_account_to_teacher_of_the_board_but_not_a_students()
+    {
+        Environment.SetEnvironmentVariable("Security__SessionRecheckSeconds", "0");
+        try
+        {
+            using var app = new TestApp();
+            async Task<HttpClient> Student(string email, bool teacherAccount)
+            {
+                var c = app.CreateClient();
+                (await c.PostAsJsonAsync("/api/auth/register", new { email, password = "password1!", displayName = email, role = "Student" })).EnsureSuccessStatusCode();
+                (await c.PostAsJsonAsync("/api/boards/join", new { code = "DEMO01" })).EnsureSuccessStatusCode();
+                if (teacherAccount)
+                {
+                    using var scope = app.Services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    db.Users.Single(u => u.Email == email).Role = UserRole.Teacher;
+                    await db.SaveChangesAsync();
+                }
+                return c;
+            }
+            var late = await Student("late2@t.test", teacherAccount: true);
+            var plain = await Student("plain@t.test", teacherAccount: false);
+            int Id(string email) { using var s = app.Services.CreateScope(); return s.ServiceProvider.GetRequiredService<AppDbContext>().Users.Single(u => u.Email == email).Id; }
+
+            var owner = app.CreateClient();
+            (await owner.PostAsJsonAsync("/api/auth/login", new { email = "teacher@demo.test", password = "password" })).EnsureSuccessStatusCode();
+            Assert.Equal(System.Net.HttpStatusCode.NoContent, (await owner.PostAsync($"/api/boards/demo-board/members/{Id("late2@t.test")}/make-teacher", null)).StatusCode);
+            Assert.Equal(System.Net.HttpStatusCode.BadRequest, (await owner.PostAsync($"/api/boards/demo-board/members/{Id("plain@t.test")}/make-teacher", null)).StatusCode);
+            Assert.Equal(System.Net.HttpStatusCode.Forbidden, (await plain.PostAsync($"/api/boards/demo-board/members/{Id("late2@t.test")}/make-teacher", null)).StatusCode);
+
+            Assert.Equal("Teacher", (await late.GetFromJsonAsync<JsonElement>("/api/boards/demo-board")).GetProperty("role").GetString());
+            Assert.Equal("Student", (await plain.GetFromJsonAsync<JsonElement>("/api/boards/demo-board")).GetProperty("role").GetString());
+        }
+        finally { Environment.SetEnvironmentVariable("Security__SessionRecheckSeconds", null); }
+    }
 }

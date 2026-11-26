@@ -62,6 +62,32 @@ public class MembersController(AppDbContext db, BoardService boards, VisibilityS
     }
 
     /// <summary>
+    /// Owner makes a member a teacher of this board (sees every student's code and live drafts, may present). Only for an account that
+    /// is itself a Teacher's: the board role is fixed when someone joins, so a teacher who joined while their account was a student's
+    /// would otherwise stay a student here. A student account is refused: staff see everyone's code.
+    /// </summary>
+    [HttpPost("{userId:int}/make-teacher")]
+    public async Task<IActionResult> MakeTeacher(string slug, int userId)
+    {
+        var board = await _db.Boards.FirstOrDefaultAsync(b => b.Slug == slug);
+        if (board is null) return NotFound();
+        if (board.OwnerId != UserId) return Forbid();
+
+        var target = await _db.BoardMemberships.Include(m => m.User)
+            .FirstOrDefaultAsync(m => m.BoardId == board.Id && m.UserId == userId);
+        if (target is null) return NotFound();
+        if (target.Role != MembershipRole.Student) return NoContent();   // already staff
+        if (target.User!.Role != UserRole.Teacher) return BadRequest("Only a teacher's account can be made a teacher of a board.");
+
+        target.Role = MembershipRole.Teacher;
+        await _db.SaveChangesAsync();
+        await _audit.RecordAsync(UserId, ActorEmail, "make-teacher", "Board", board.Id, $"{target.User.DisplayName} is now a teacher of {board.Title}");
+        await _notifier.BoardSettingsChangedAsync(board.Id);   // their open page re-reads the board (and reloads to join the staff channel)
+        await _notifier.ProgressChangedAsync(board.Id, 0, userId);   // the grid drops the row
+        return NoContent();
+    }
+
+    /// <summary>
     /// Owner removes a student from the board. Only the membership goes: their submissions and
     /// wall posts are kept (so re-adding them restores everything) and simply stop showing while
     /// they aren't a member. They can rejoin with the join code unless it is changed.
