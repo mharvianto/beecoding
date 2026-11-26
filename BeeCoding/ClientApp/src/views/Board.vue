@@ -12,6 +12,7 @@ import { useAuth } from '../stores/auth';
 import { createBoardConnection } from '../lib/signalr';
 import { useUndoToast } from '../stores/undoToast';
 import ProgressGrid from '../components/ProgressGrid.vue';
+import ExamOptions from '../components/ExamOptions.vue';
 import PadletWall from '../components/PadletWall.vue';
 import QrCode from '../components/QrCode.vue';
 import BoardContinue from '../components/BoardContinue.vue';
@@ -69,10 +70,15 @@ function scheduleRefresh() {
   wallSignal.value++;
 }
 
-async function toggleExam() {
-  board.value = await api.patch(`/api/boards/${props.slug}`, { examMode: !progress.value.examMode });
+// The board's own exam switches (ungrouped problems).
+async function saveExam(next) {
+  try { board.value = await api.patch(`/api/boards/${props.slug}`, { examMode: next.examMode, blockPaste: next.blockPaste, noAiHints: next.noAiHints }); }
+  catch (e) { error.value = e.message; }
   await loadProgress();
 }
+const boardExamLabels = computed(() => [
+  board.value?.examMode && 'peers hidden', board.value?.blockPaste && 'no paste', board.value?.noAiHints && 'no AI hints',
+].filter(Boolean));
 async function toggleLecturing() {
   board.value = await api.patch(`/api/boards/${props.slug}`, { lecturingMode: !board.value.lecturingMode });
 }
@@ -350,23 +356,23 @@ onBeforeUnmount(async () => {
         </div>
       </div>
 
-      <span v-if="progress.examMode" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
-            :title="tr('Exam mode is on for ungrouped problems')"><Icon name="lock" /> {{ tr('Exam mode') }}{{ hasGroups ? ' ' + tr('(ungrouped)') : '' }}</span>
-      <div class="sm:relative" :class="progress.examMode ? '' : 'sm:ml-auto'" v-click-outside="() => (settingsOpen = false)">
+      <span v-if="boardExamLabels.length" class="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 sm:ml-auto"
+            :title="tr('Exam settings for ungrouped problems')"><Icon name="lock" /> {{ boardExamLabels.map((l) => tr(l)).join(' · ') }}{{ hasGroups ? ' ' + tr('(ungrouped)') : '' }}</span>
+      <div class="sm:relative" :class="boardExamLabels.length ? '' : 'sm:ml-auto'" v-click-outside="() => (settingsOpen = false)">
         <button @click="settingsOpen = !settingsOpen"
                 class="px-3 py-1.5 rounded-lg text-sm font-medium border bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700">
           <Icon name="settings" /> {{ tr('Settings') }}
         </button>
         <div v-if="settingsOpen"
              class="absolute inset-x-0 sm:inset-x-auto sm:right-0 z-50 mt-1 sm:w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg py-1">
-          <button @click="toggleExam(); settingsOpen = false"
-                  class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                  :class="progress.examMode ? 'text-purple-600 dark:text-purple-400 font-medium' : 'text-slate-600 dark:text-slate-300'">
-            <Icon :name="progress.examMode ? 'lock' : 'unlock'" /> {{ progress.examMode ? tr('Exam mode ON — peers hidden') : tr('Exam mode off') }}{{ hasGroups ? ' ' + tr('(ungrouped)') : '' }}
-          </button>
+          <fieldset v-if="board.isOwner || auth.user?.isAdmin" class="px-3 py-2 text-slate-600 dark:text-slate-300">
+            <legend class="sr-only">{{ tr('Exam settings for ungrouped problems') }}</legend>
+            <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-1.5" aria-hidden="true">{{ tr('Exam settings for ungrouped problems') }}</p>
+            <ExamOptions :model-value="board" @update:model-value="saveExam" />
+          </fieldset>
           <RouterLink v-if="hasGroups" :to="`/boards/${board.slug}/problems`" @click="settingsOpen = false"
                       class="block px-3 pb-2 -mt-1 text-[11px] text-slate-500 dark:text-slate-400 hover:underline">
-            {{ tr('Grouped problems use their group\'s exam mode — set it on the Problems page') }}
+            {{ tr('Grouped problems use their group\'s settings — set them on the Problems page') }}
           </RouterLink>
           <button @click="toggleLecturing(); settingsOpen = false"
                   class="w-full text-left px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
@@ -414,7 +420,7 @@ onBeforeUnmount(async () => {
 
     <!-- Student: exam-mode notice -->
     <div v-if="!isStaff && examProblems.length" class="my-4 text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2">
-      <Icon name="lock" /> Exam mode is on for {{ examProblems.length === progress.problems.length ? tr('every problem') : examProblems.map((p) => p.title).join(', ') }}
+      <Icon name="lock" /> Other students’ work is hidden for {{ examProblems.length === progress.problems.length ? tr('every problem') : examProblems.map((p) => p.title).join(', ') }}
       — you can’t see other students’ progress {{ examProblems.length === progress.problems.length ? '' : 'on ' + (examProblems.length === 1 ? 'it' : tr('them')) }}.
     </div>
 

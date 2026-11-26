@@ -289,6 +289,12 @@ onMounted(async () => {
     if (p.kind === 'board' && p.submissionId === submittingId.value) testProgress.value = { current: p.current, total: p.total };
   });
   conn.on('progressBumped', (p) => { progress.$patch({ ...p, ready: true }); });
+  conn.on('examModeChanged', async () => {   // the exam switches may have changed under an open editor
+    try {
+      const p = await api.get(`/api/boards/${props.slug}/problems/${props.problemSlug}`);
+      problem.value = { ...problem.value, examMode: p.examMode, blockPaste: p.blockPaste, noAiHints: p.noAiHints };
+    } catch { /* ignore */ }
+  });
   conn.on('boardSettingsChanged', async () => {
     try { board.value = await api.get(`/api/boards/${props.slug}`); } catch { /* ignore */ }
   });
@@ -429,7 +435,8 @@ onBeforeUnmount(async () => {
         </div>
       </div>
 
-      <AiHint :problem-id="pid" :language="solveLang" :code="code" :stdin="stdin"
+      <p v-if="!isStaff && problem?.noAiHints" class="mt-4 text-sm text-slate-500 dark:text-slate-400"><Icon name="lock" /> {{ tr('AI hints are switched off for this problem.') }}</p>
+      <AiHint v-else :problem-id="pid" :language="solveLang" :code="code" :stdin="stdin"
               :verdict="latestMine?.status === 'Done' ? latestMine?.verdict : ''"
               :compiler-output="runOut && !runOut.compileOk ? runOut.compilerOutput : (latestMine?.compilerOutput || '')"
               :stderr="runOut?.stderr || ''" />
@@ -444,7 +451,7 @@ onBeforeUnmount(async () => {
     <SplitPane direction="vertical" foldable storage-key="beecoding.split.solve-console" :initial="66" :min="110">
       <template #a>
         <MonacoEditor v-model="code" :language="solveLang" :lsp="solveLang" :filename="props.problemSlug"
-                      :block-paste="!isStaff && !!problem?.examMode" />
+                      :block-paste="!isStaff && !!problem?.blockPaste" />
       </template>
       <template #b>
       <div class="h-full overflow-y-auto border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 space-y-2">

@@ -151,6 +151,11 @@ public class Board
     /// group's own <see cref="ProblemGroup.ExamMode"/>): students never see peers' answers/progress.</summary>
     public bool ExamMode { get; set; }
 
+    /// <summary>For ungrouped problems: students cannot paste into the editor.</summary>
+    public bool BlockPaste { get; set; }
+    /// <summary>For ungrouped problems: the AI tutor refuses students.</summary>
+    public bool NoAiHints { get; set; }
+
     /// <summary>Lecturing / live-coding mode: the teacher's editor buffer is streamed to
     /// students (read-only) so they can follow along; students still code, run and ask the AI.</summary>
     public bool LecturingMode { get; set; }
@@ -196,8 +201,10 @@ public class ProblemGroup
     /// <summary>Teacher-hidden: every problem in the group is hidden from students.</summary>
     public bool Hidden { get; set; }
 
-    /// <summary>Exam mode for this group's problems: students never see peers' work on them.</summary>
+    /// <summary>"Hide other students' work": students never see peers' work on this group's problems. (Named ExamMode from when it was the only switch.)</summary>
     public bool ExamMode { get; set; }
+    public bool BlockPaste { get; set; }
+    public bool NoAiHints { get; set; }
 
     /// <summary>UTC. Before this the group is invisible to students. Null = open from the start.</summary>
     public DateTime? OpensAt { get; set; }

@@ -205,7 +205,7 @@ async function toggleHiddenByStudent(post) {
 
     <div v-if="activeExam && !wall.viewerIsStaff"
          class="text-sm bg-purple-50 text-purple-700 dark:bg-purple-500/10 dark:text-purple-300 rounded-lg px-3 py-2 mb-3">
-      <Icon name="lock" /> {{ tr('Exam mode — only your own posts are shown.') }}
+      <Icon name="lock" /> {{ tr('Other students’ work is hidden — only your own posts are shown.') }}
     </div>
 
     <!-- masonry wall -->

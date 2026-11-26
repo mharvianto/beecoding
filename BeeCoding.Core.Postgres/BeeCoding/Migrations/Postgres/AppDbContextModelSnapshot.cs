@@ -615,6 +615,9 @@ namespace BeeCoding.Migrations.Postgres
                     b.Property<bool>("AllowProposals")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("BlockPaste")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -630,6 +633,9 @@ namespace BeeCoding.Migrations.Postgres
                         .HasColumnType("character varying(12)");
 
                     b.Property<bool>("LecturingMode")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NoAiHints")
                         .HasColumnType("boolean");
 
                     b.Property<int?>("OrganizationId")
@@ -1783,6 +1789,9 @@ namespace BeeCoding.Migrations.Postgres
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("BlockPaste")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("BoardId")
                         .HasColumnType("integer");
 
@@ -1799,6 +1808,9 @@ namespace BeeCoding.Migrations.Postgres
                         .HasColumnType("boolean");
 
                     b.Property<bool>("Hidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NoAiHints")
                         .HasColumnType("boolean");
 
                     b.Property<DateTime?>("OpenNotifiedAt")

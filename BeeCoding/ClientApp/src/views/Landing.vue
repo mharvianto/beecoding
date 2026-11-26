@@ -22,7 +22,7 @@ const steps = [
 
 const teacher = [
   'Group problems into sessions with open and close times',
-  'Exam mode per session: peers hidden, paste blocked',
+  'Exam settings per session: peers hidden, paste blocked, AI hints off',
   'Live coding: stream your editor to the class',
   'Plagiarism spot-checks and full submission history',
   'Bulk-create boards and add problems across many at once',

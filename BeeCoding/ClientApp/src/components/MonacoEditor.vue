@@ -465,7 +465,7 @@ function download() {
     <div ref="el" class="h-full w-full"></div>
     <div v-if="pasteBlockedFlash"
          class="absolute top-1 left-4 z-10 text-[11px] font-mono px-2 py-1 rounded bg-rose-600 text-white shadow-sm">
-      {{ tr('Paste disabled — Exam mode') }}
+      {{ tr('Paste is switched off for this problem') }}
     </div>
     <div class="absolute top-1 right-4 z-10 flex items-center gap-1 text-[11px] font-mono transition-opacity
                 rounded-md px-1 py-0.5 bg-white/85 dark:bg-slate-900/85 opacity-70 hover:opacity-100 focus-within:opacity-100"

@@ -143,10 +143,13 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         // an org admin can tag/organize a board for their institution without also being
         // able to remotely flip a teacher's in-class settings.
         if (!isOwner && !isPlatformAdmin
-            && (dto.ExamMode is not null || dto.ProtectContent is not null || dto.LecturingMode is not null || dto.AllowProposals is not null))
+            && (dto.ExamMode is not null || dto.ProtectContent is not null || dto.LecturingMode is not null || dto.AllowProposals is not null
+                || dto.BlockPaste is not null || dto.NoAiHints is not null))
             return Forbid();
 
         if (dto.ExamMode is bool exam) board.ExamMode = exam;
+        if (dto.BlockPaste is bool paste) board.BlockPaste = paste;
+        if (dto.NoAiHints is bool noAi) board.NoAiHints = noAi;
         if (dto.ProtectContent is bool protect) board.ProtectContent = protect;
         if (dto.LecturingMode is bool lecture) board.LecturingMode = lecture;
         if (dto.AllowProposals is bool allow) board.AllowProposals = allow;
@@ -359,5 +362,5 @@ public class BoardsController(AppDbContext db, BoardService boards, VisibilitySe
         b.OwnerId == UserId, role.ToString(),
         b.Members?.Count(m => m.Role == MembershipRole.Student) ?? 0,
         b.Problems?.Count ?? 0,
-        b.OrganizationId, b.Organization?.Name, b.Tags, b.AllowProposals);
+        b.OrganizationId, b.Organization?.Name, b.Tags, b.AllowProposals, b.BlockPaste, b.NoAiHints);
 }

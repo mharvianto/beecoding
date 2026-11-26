@@ -43,9 +43,9 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         if (staff) return problems.Select(Mapping.ToOwnerDto).ToList();
 
         var now = DateTime.UtcNow;
-        var boardExam = await _db.Boards.Where(b => b.Id == boardId.Value).Select(b => b.ExamMode).FirstAsync();
+        var boardFlags = await _db.Boards.AsNoTracking().FirstAsync(b => b.Id == boardId.Value);
         return problems.Where(p => GroupAccess.StudentVisible(p, now))
-            .Select(p => Mapping.ToStudentDto(p, p.Group?.ExamMode ?? boardExam, GroupAccess.IsClosed(p, now))).ToList();
+            .Select(p => Mapping.ToStudentDto(p, boardFlags, GroupAccess.IsClosed(p, now))).ToList();
     }
 
     [HttpGet("{problemSlug}")]
@@ -66,8 +66,8 @@ public class ProblemsController(AppDbContext db, BoardService boards, Visibility
         var now = DateTime.UtcNow;
         if (!staff && !GroupAccess.StudentVisible(p, now)) return NotFound();
         if (staff) return Mapping.ToOwnerDto(p);
-        var boardExam = await _db.Boards.Where(b => b.Id == boardId.Value).Select(b => b.ExamMode).FirstAsync();
-        return Mapping.ToStudentDto(p, p.Group?.ExamMode ?? boardExam, GroupAccess.IsClosed(p, now));
+        var boardFlags = await _db.Boards.AsNoTracking().FirstAsync(b => b.Id == boardId.Value);
+        return Mapping.ToStudentDto(p, boardFlags, GroupAccess.IsClosed(p, now));
     }
 
     /// <summary>Owner-only: hide/unhide a problem from students (draft/not-ready), without

@@ -790,7 +790,8 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
         var (ctx, err) = await BuildContextAsync(dto);
         if (err is not null)
         {
-            Response.StatusCode = err is ObjectResult o ? o.StatusCode ?? 400 : 400;
+            Response.StatusCode = err.StatusCode ?? 400;
+            await Response.WriteAsync(err.Value as string ?? "");   // the panel shows why (e.g. hints are off for an exam)
             return;
         }
 
@@ -855,6 +856,21 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
     /// (and the spacing holds across web instances with Redis).</summary>
     private bool RateLimited() => !_counters.TryClaim("ai:rl:" + UserId, TimeSpan.FromSeconds(Math.Max(1, _opt.RateLimitSeconds)));
 
+    /// <summary>Is one of these problems open to the caller AS A STUDENT right now with AI hints switched off? Closes the side doors
+    /// (the same bank problem in Practice, the Live Code panel) while an exam runs; staff and admins are never affected.</summary>
+    private async Task<bool> HintsOffNowAsync(Func<IQueryable<Problem>, IQueryable<Problem>> scope)
+    {
+        if (IsAdminUser(_admin)) return false;
+        var mine = _db.Problems.AsNoTracking().Include(p => p.Group)
+            .Where(p => _db.BoardMemberships.Any(m => m.BoardId == p.BoardId && m.UserId == UserId && m.Role == MembershipRole.Student));
+        var problems = await scope(mine).ToListAsync();
+        var ids = problems.Select(p => p.BoardId).Distinct().ToList();
+        var boards = await _db.Boards.AsNoTracking().Where(b => ids.Contains(b.Id)).ToDictionaryAsync(b => b.Id);   // a deleted board is not here
+        var now = DateTime.UtcNow;
+        return problems.Any(p => boards.TryGetValue(p.BoardId, out var board)
+            && GroupAccess.StudentVisible(p, now) && !GroupAccess.IsClosed(p, now) && GroupAccess.NoAiHints(board, p));
+    }
+
     private async Task<(AiHintContext? ctx, ObjectResult? err)> BuildContextAsync(AiHintDto dto)
     {
         // In a live session the student may ask about the teacher's code before writing anything.
@@ -873,6 +889,8 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             var b = await _db.BankProblems.Include(x => x.TestCases)
                 .FirstOrDefaultAsync(x => x.Id == bid && (x.IsPublic || x.OwnerId == UserId));
             if (b is null) return (null, new ObjectResult("Problem not found.") { StatusCode = 404 });
+            if (await HintsOffNowAsync(q => q.Where(p => p.BankProblemId == bid || p.SourceBankProblemId == bid)))
+                return (null, new ObjectResult("AI hints are switched off while this problem is open on one of your boards.") { StatusCode = 403 });
             statement = b.StatementMarkdown; language = Languages.Default(b.AllowedLanguages);
             samples = b.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
@@ -887,6 +905,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
             // The statement goes to the AI and comes back in its reply: a student must not get a hidden or not-yet-open problem this way.
             if (member.Role == MembershipRole.Student && !GroupAccess.StudentVisible(p, DateTime.UtcNow))
                 return (null, new ObjectResult("Problem not found.") { StatusCode = 404 });
+            if (member.Role == MembershipRole.Student && !IsAdminUser(_admin)
+                && GroupAccess.NoAiHints(await _db.Boards.AsNoTracking().FirstAsync(x => x.Id == p.BoardId), p))
+                return (null, new ObjectResult("AI hints are switched off for this problem.") { StatusCode = 403 });
             statement = p.StatementMarkdown; language = Languages.Default(p.AllowedLanguages);
             samples = p.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id)
                 .Select(t => (t.Stdin, t.ExpectedStdout)).ToList();
@@ -899,6 +920,9 @@ public class AiController(AppDbContext db, BoardService boards, AiTutorService a
                 return (null, new ObjectResult("Not a member of this board.") { StatusCode = 403 });
             if (!await _db.Boards.Where(b => b.Id == boardId).Select(b => b.LecturingMode).FirstAsync())
                 return (null, new ObjectResult("No live-coding session is running.") { StatusCode = 409 });
+            // Live hints belong to no problem, so an exam statement pasted into them would get through: off while one is open.
+            if (await HintsOffNowAsync(q => q.Where(p => p.BoardId == boardId.Value)))
+                return (null, new ObjectResult("AI hints are switched off while an exam problem is open on this board.") { StatusCode = 403 });
 
             var teacherCode = dto.TeacherCode is { Length: > 0 } tc ? (tc.Length > 60_000 ? tc[..60_000] : tc) : null;
             var q = dto.Question;

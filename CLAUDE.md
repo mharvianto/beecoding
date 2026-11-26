@@ -153,7 +153,7 @@ A board has one presenter (`BoardHub.PushLecture`); another teacher's push is re
 ### Problem groups (folders/sessions)
 
 `ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and
-`OpensAt`/`ClosesAt` window. `Services/GroupAccess.cs` is the source of truth for what that
+`OpensAt`/`ClosesAt` window. The exam switches are three independent flags on both `ProblemGroup` and `Board` (the board's apply to ungrouped problems): `ExamMode` (= hide other students' work), `BlockPaste` (editor only, client side) and `NoAiHints` (server: `AiController` refuses a student's hint for the problem, and while such a problem is open to them also Practice hints for the same bank problem and that board's Live Code hints, `HintsOffNowAsync`; AI outside the app cannot be stopped). `Services/GroupAccess.cs` is the source of truth for what that
 means: student-visible (not hidden, group not hidden, already open), closed (readable but
 submit refused) and *effective exam mode* (the group's flag, or `Board.ExamMode` for
 ungrouped problems). Exam mode is therefore per problem, not per board —

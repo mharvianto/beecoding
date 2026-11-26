@@ -1,9 +1,10 @@
 <script setup>
+import ExamOptions from './ExamOptions.vue';
 import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref } from 'vue';
 
-// Create/edit a problem group (folder/session): title, hide flag, exam mode and an optional
+// Create/edit a problem group (folder/session): title, hide flag, the exam switches and an optional
 // open/close window. Times are edited in the viewer's local zone and sent as UTC instants.
 const props = defineProps({ group: { type: Object, default: null } });
 const emit = defineEmits(['save', 'cancel']);
@@ -18,7 +19,7 @@ const fromLocalInput = (v) => (v ? new Date(v).toISOString() : null);
 
 const title = ref(props.group?.title || '');
 const hidden = ref(!!props.group?.hidden);
-const examMode = ref(!!props.group?.examMode);
+const exam = ref({ examMode: !!props.group?.examMode, blockPaste: !!props.group?.blockPaste, noAiHints: !!props.group?.noAiHints });
 const opensAt = ref(toLocalInput(props.group?.opensAt));
 const closesAt = ref(toLocalInput(props.group?.closesAt));
 const error = ref('');
@@ -31,7 +32,7 @@ function save() {
   emit('save', {
     title: title.value.trim(),
     hidden: hidden.value,
-    examMode: examMode.value,
+    ...exam.value,
     opensAt: fromLocalInput(opensAt.value),
     closesAt: fromLocalInput(closesAt.value),
   });
@@ -66,10 +67,7 @@ function save() {
         {{ tr('Before it opens, students can\'t see the group. After it closes they can still read the problems but can\'t submit.') }}
       </p>
 
-      <label class="flex items-start gap-2 text-sm">
-        <input v-model="examMode" type="checkbox" class="mt-1" />
-        <span>{{ tr('Exam mode') }} <span class="text-slate-500 dark:text-slate-400">{{ tr('— students can\'t see peers\' work on these problems, and paste is blocked.') }}</span></span>
-      </label>
+      <ExamOptions v-model="exam" />
       <label class="flex items-start gap-2 text-sm">
         <input v-model="hidden" type="checkbox" class="mt-1" />
         <span>{{ tr('Hidden') }} <span class="text-slate-500 dark:text-slate-400">{{ tr('— keep it as a draft, invisible to students.') }}</span></span>

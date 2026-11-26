@@ -43,11 +43,13 @@ public static class Mapping
 
     /// <summary>What a board student gets as JSON. The statement and the samples' expected output are NOT in it: they reach the student only as the
     /// protected image (StatementController), so the Network tab or a script cannot read them as text. Sample inputs stay, to fill the Run box.</summary>
-    public static StudentProblemDto ToStudentDto(Problem p, bool examMode = false, bool closed = false) => new(
+    public static StudentProblemDto ToStudentDto(Problem p, Board? board = null, bool closed = false) => new(
         p.Id, p.Slug, p.BoardId, p.Title, "", p.AllowedLanguages,
         p.TimeLimitMs, p.MemoryLimitKb, p.Position, p.Tags, p.Level.ToString(), p.GeneratedByAi,
         p.TestCases.Where(t => t.IsSample).OrderBy(t => t.Position).ThenBy(t => t.Id).Select(t => new TestCaseDto(t.Id, t.Stdin, "", true, t.Points, t.Position)).ToList(), p.BannedHeaders, p.BannedSymbols, p.InputFileName,
-        p.GroupId, examMode, closed);
+        p.GroupId,
+        p.Group?.ExamMode ?? board?.ExamMode ?? false, closed,
+        p.Group?.BlockPaste ?? board?.BlockPaste ?? false, p.Group?.NoAiHints ?? board?.NoAiHints ?? false);
 
     public static TestCaseDto ToDto(BankTestCase t) =>
         new(t.Id, t.Stdin, t.ExpectedStdout, t.IsSample, t.Points, t.Position);

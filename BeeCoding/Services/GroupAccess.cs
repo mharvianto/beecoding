@@ -7,7 +7,7 @@ namespace BeeCoding.Services;
 /// <summary>
 /// Single source of truth for what a problem's group means for students: whether they can see
 /// it (hidden flags + open time), whether it has closed for submissions, and its effective
-/// exam mode. Callers must load <c>Problem.Group</c> (Include) — an unloaded group on a
+/// exam switches (hide peers' work, block paste, no AI hints). Callers must load <c>Problem.Group</c> (Include) — an unloaded group on a
 /// grouped problem fails closed rather than silently behaving as "ungrouped".
 /// </summary>
 public static class GroupAccess
@@ -24,6 +24,9 @@ public static class GroupAccess
 
     /// <summary>A grouped problem uses its group's exam mode; an ungrouped one the board's.</summary>
     public static bool ExamMode(Board board, Problem p) => p.Group?.ExamMode ?? board.ExamMode;
+
+    public static bool BlockPaste(Board board, Problem p) => p.Group?.BlockPaste ?? board.BlockPaste;
+    public static bool NoAiHints(Board board, Problem p) => p.Group?.NoAiHints ?? board.NoAiHints;
 
     /// <summary>Same as <see cref="ExamMode"/> for a problem known only by id (a deleted
     /// problem falls back to the board's setting).</summary>
@@ -50,6 +53,8 @@ public static class GroupAccess
         g.Title = title.Length > 120 ? title[..120] : title;
         g.Hidden = dto.Hidden;
         g.ExamMode = dto.ExamMode;
+        g.BlockPaste = dto.BlockPaste ?? g.BlockPaste;
+        g.NoAiHints = dto.NoAiHints ?? g.NoAiHints;
         var opens = dto.OpensAt?.ToUniversalTime();
         var closes = dto.ClosesAt?.ToUniversalTime();
         if (opens != g.OpensAt) g.OpenNotifiedAt = null;

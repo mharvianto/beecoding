@@ -71,8 +71,8 @@ public record DeleteAccountDto(string Password, bool DeleteOwnedBoards = false, 
 // ---- Boards ----
 public record CreateBoardDto(string Title, int? OrganizationId = null);
 public record JoinBoardDto(string Code);
-public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null, bool? AllowProposals = null);
-public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "", bool AllowProposals = true);
+public record UpdateBoardDto(bool? ExamMode, bool? ProtectContent, bool? LecturingMode, string? Tags = null, bool? AllowProposals = null, bool? BlockPaste = null, bool? NoAiHints = null);
+public record BoardDto(int Id, string Slug, string Title, string JoinCode, bool ExamMode, bool ProtectContent, bool LecturingMode, bool IsOwner, string Role, int MemberCount, int ProblemCount, int? OrganizationId = null, string? OrganizationName = null, string Tags = "", bool AllowProposals = true, bool BlockPaste = false, bool NoAiHints = false);
 
 /// <summary>CanBeTeacher (staff only): the account is a Teacher's, so the owner may lift this student membership to teacher.</summary>
 public record MemberDto(int UserId, string DisplayName, string Role, bool HiddenByTeacher, bool CanBeTeacher = false);
@@ -123,14 +123,16 @@ public record StudentProblemDto(
     List<TestCaseDto> SampleTests, string? BannedHeaders, string? BannedSymbols, string? InputFileName = null,
     int? GroupId = null,
     bool ExamMode = false,      // effective exam mode for this problem (its group's, or the board's if ungrouped)
-    bool Closed = false);       // its group's close time has passed: readable, but submissions are refused
+    bool Closed = false,        // its group's close time has passed: readable, but submissions are refused
+    bool BlockPaste = false, bool NoAiHints = false);   // effective, like ExamMode
 
 // ---- Problem groups (one-level folders/sessions on a board) ----
 /// <summary>State is "Upcoming" (before OpensAt), "Closed" (after ClosesAt) or "Open".</summary>
 public record ProblemGroupDto(
     int Id, string Title, int Position, bool Hidden, bool ExamMode,
-    DateTime? OpensAt, DateTime? ClosesAt, string State, int ProblemCount);
-public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, DateTime? OpensAt, DateTime? ClosesAt);
+    DateTime? OpensAt, DateTime? ClosesAt, string State, int ProblemCount, bool BlockPaste = false, bool NoAiHints = false);
+// BlockPaste / NoAiHints null = leave as it is (off on a new group).
+public record UpsertProblemGroupDto(string Title, bool Hidden, bool ExamMode, DateTime? OpensAt, DateTime? ClosesAt, bool? BlockPaste = null, bool? NoAiHints = null);
 public record ReorderGroupsDto(List<int> Order);   // group ids, new top-to-bottom order
 public record MoveProblemDto(int? GroupId);        // null => ungrouped
 

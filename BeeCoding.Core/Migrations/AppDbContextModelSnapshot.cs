@@ -584,6 +584,9 @@ namespace BeeCoding.Migrations
                     b.Property<bool>("AllowProposals")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("BlockPaste")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -599,6 +602,9 @@ namespace BeeCoding.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("LecturingMode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NoAiHints")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("OrganizationId")
@@ -1696,6 +1702,9 @@ namespace BeeCoding.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("BlockPaste")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("BoardId")
                         .HasColumnType("INTEGER");
 
@@ -1712,6 +1721,9 @@ namespace BeeCoding.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("Hidden")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NoAiHints")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("OpenNotifiedAt")

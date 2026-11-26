@@ -117,7 +117,7 @@ public class GroupsController(AppDbContext db, BoardService boards, VisibilitySe
     }
 
     private static ProblemGroupDto ToDto(ProblemGroup g, DateTime now, int problemCount) =>
-        new(g.Id, g.Title, g.Position, g.Hidden, g.ExamMode, g.OpensAt, g.ClosesAt, GroupAccess.State(g, now), problemCount);
+        new(g.Id, g.Title, g.Position, g.Hidden, g.ExamMode, g.OpensAt, g.ClosesAt, GroupAccess.State(g, now), problemCount, g.BlockPaste, g.NoAiHints);
 
     // Group changes can flip what students see (visibility, exam mode), so refresh every
     // open board the same way the board-wide exam toggle does.

@@ -396,7 +396,8 @@ async function reorderGroupTo(id, target, pos) {
           <ExportMenu v-if="isStaff && !sec.group && sec.items.length" class="ml-auto" :slug="slug" :group="0" label="Download ungrouped problems" @error="error = $event" />
           <template v-if="sec.group">
             <span v-if="sec.group.hidden" class="text-[11px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><Icon name="eyeoff" /> {{ tr('hidden') }}</span>
-            <span v-if="sec.group.examMode" class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> {{ tr('exam') }}</span>
+            <span v-for="l in [sec.group.examMode && 'peers hidden', sec.group.blockPaste && 'no paste', sec.group.noAiHints && 'no AI hints'].filter(Boolean)" :key="l"
+                  class="text-[11px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300"><Icon name="lock" /> {{ tr(l) }}</span>
             <span v-if="stateLabel(sec.group)" class="text-[11px] px-1.5 py-0.5 rounded"
                   :class="sec.group.state === 'Upcoming' ? 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300'
                     : sec.group.state === 'Closed' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'

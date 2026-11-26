@@ -1,4 +1,5 @@
 <script setup>
+import ExamOptions from './ExamOptions.vue';
 import { vModal } from '../lib/vModal';
 import { tr } from '../lib/i18n';
 import { ref, computed, onMounted } from 'vue';
@@ -16,7 +17,7 @@ const props = defineProps({
 const emit = defineEmits(['done', 'close']);
 
 const groupTitles = ref('');
-const examMode = ref(false);
+const exam = ref({ examMode: false, blockPaste: false, noAiHints: false });
 const hidden = ref(false);
 const opensAt = ref('');
 const closesAt = ref('');
@@ -58,7 +59,7 @@ async function run() {
     result.value = await api.post(props.addUrl, {
       slugs: props.slugs,
       groups: titles.value.map((title) => ({
-        title, hidden: hidden.value, examMode: examMode.value, opensAt: iso(opensAt.value), closesAt: iso(closesAt.value),
+        title, hidden: hidden.value, ...exam.value, opensAt: iso(opensAt.value), closesAt: iso(closesAt.value),
       })),
       bankProblemIds: [...picked.value],
       problemGroupTitle: problemGroup.value.trim() || null,
@@ -90,8 +91,8 @@ async function run() {
             <input v-model="closesAt" type="datetime-local" class="mt-1 w-full border border-slate-400 dark:border-slate-500 dark:bg-slate-800 rounded-lg px-2 py-1 text-sm" />
           </label>
         </div>
-        <div class="flex gap-4 text-sm">
-          <label class="flex items-center gap-1.5"><input v-model="examMode" type="checkbox" /> {{ tr('Exam mode') }}</label>
+        <div class="flex flex-wrap items-start gap-x-6 gap-y-2 text-sm">
+          <ExamOptions v-model="exam" />
           <label class="flex items-center gap-1.5"><input v-model="hidden" type="checkbox" /> {{ tr('Hidden') }}</label>
         </div>
         <p class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('These settings apply to every new group. A group whose title already exists on a board is left untouched.') }}</p>
