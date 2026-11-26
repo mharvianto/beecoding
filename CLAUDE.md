@@ -146,6 +146,10 @@ checks `OwnerId`. Students cannot receive one, and there is no bell/email on sha
 
 `BoardMembership.Role` is set once, from the account's role at the moment of joining (`BoardsController.Join`); changing the account role later (Admin → Users) does not touch it. A teacher who joined as a student stays a student on that board until they enter the join code again (an existing Student membership is lifted when the account is a Teacher's) or the owner clicks "make teacher" on their row in the Grid (`MembersController.MakeTeacher`, refuses a student account: staff see every student's code). The browser reloads when its own role changes, to join the staff SignalR group.
 
+### Lecturing: who presents
+
+A board has one presenter (`BoardHub.PushLecture`); another teacher's push is refused unless it is a take-over. Live Code (problem 0): the presenter keeps the slot until their connection leaves (`ReleaseLectureAsync` sets teacher id 0 and keeps the code), a watching teacher sees the presenter's code read-only beside their own editor, Take over asks first, the displaced one gets an alert banner, and merely opening the page never replaces someone else's code. Problem pages (`Solve.vue`) have no take-over button, so there the slot still frees after `PresenterIdleSeconds` (90).
+
 ### Problem groups (folders/sessions)
 
 `ProblemGroup` is a one-level folder on a board, carrying its own `Hidden`, `ExamMode` and

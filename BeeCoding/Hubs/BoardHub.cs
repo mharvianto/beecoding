@@ -20,6 +20,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     private int UserId => int.Parse(Context.User!.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
     private const string DraftAtKey = "draftAt";
+    private const string PresentingKey = "presenting";
     private const int MinDraftGapMs = 250;
 
     public static string BoardGroup(int boardId) => $"board-{boardId}";
@@ -44,6 +45,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
     public async Task LeaveBoard(int boardId)
     {
+        await ReleaseLectureAsync();
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, BoardGroup(boardId));
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, StaffGroup(boardId));
         await _presence.RemoveAsync(Context.ConnectionId);
@@ -82,9 +84,10 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
     /// <summary>
     /// Lecturing mode: a teacher streams their own editor buffer so students can follow along.
     /// Staff-only, and only while the board has LecturingMode on. A board has ONE presenter at
-    /// a time: while another teacher's buffer is fresh (see <see cref="PresenterIdleSeconds"/>)
-    /// a push is refused unless <paramref name="takeOver"/> is set, so two teachers never
-    /// overwrite each other on the students' screens.
+    /// a time: a push by another teacher is refused unless <paramref name="takeOver"/> is set, so two teachers never
+    /// overwrite each other on the students' screens. On the Live Code page (problem 0) the presenter keeps the slot until
+    /// their connection leaves (<see cref="ReleaseLectureAsync"/>), however long they stay quiet; on a problem page, which
+    /// has no take-over button, it frees after <see cref="PresenterIdleSeconds"/> without a push.
     /// </summary>
     public async Task<LecturePushResult> PushLecture(int boardId, int problemId, string code, string language, string? stdin = null, bool takeOver = false)
     {
@@ -97,7 +100,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
         var current = await _lectures.GetAsync(boardId, problemId);
         if (!takeOver && current is { TeacherId: > 0 } && current.TeacherId != UserId
-            && (DateTime.UtcNow - current.UpdatedAt).TotalSeconds < PresenterIdleSeconds)
+            && (problemId == 0 || (DateTime.UtcNow - current.UpdatedAt).TotalSeconds < PresenterIdleSeconds))
             return new(false, current.TeacherId, current.TeacherName);
 
         if (code is { Length: > 200_000 }) code = code[..200_000];
@@ -105,11 +108,23 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
         var name = Context.User!.FindFirstValue(ClaimTypes.Name) ?? "teacher";
         var lec = await _lectures.SetAsync(boardId, problemId, code ?? "", language is "c" or "cpp" ? language : "cpp", name, stdin ?? "", UserId);
+        Context.Items[PresentingKey] = (boardId, problemId);
         await Clients.Group(BoardGroup(boardId)).SendAsync("lectureUpdated", lec);
         return new(true, UserId, name);
     }
 
-    /// <summary>A presenter that hasn't pushed for this long is considered gone; another
+    /// <summary>The presenter's connection is leaving: free the slot (teacher id 0) but keep the code on the students' screens.</summary>
+    // shortcut: keyed by teacher, so closing one of a presenter's two tabs frees the slot until the other pushes again.
+    private async Task ReleaseLectureAsync()
+    {
+        if (!Context.Items.Remove(PresentingKey, out var v) || v is not ValueTuple<int, int> (var boardId, var problemId)) return;
+        var l = await _lectures.GetAsync(boardId, problemId);
+        if (l is null || l.TeacherId != UserId) return;   // someone took over in the meantime
+        var freed = await _lectures.SetAsync(boardId, problemId, l.Code, l.Language, l.TeacherName, l.Stdin, 0);
+        await Clients.Group(BoardGroup(boardId)).SendAsync("lectureUpdated", freed);
+    }
+
+    /// <summary>On a problem page: a presenter that hasn't pushed for this long is considered gone; another
     /// teacher's next push then takes the slot without an explicit take-over.</summary>
     public const int PresenterIdleSeconds = 90;
 
@@ -172,6 +187,7 @@ public class BoardHub(AppDbContext db, IPresenceTracker presence, IDraftStore dr
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
+        await ReleaseLectureAsync();
         var boardId = await _presence.RemoveAsync(Context.ConnectionId);
         if (boardId is int b)
             await Clients.Group(BoardGroup(b)).SendAsync("presence", await _presence.ForBoardAsync(b));

@@ -7,6 +7,7 @@ import { ref, computed, reactive, onMounted, onBeforeUnmount, watch } from 'vue'
 import { RouterLink } from 'vue-router';
 import { api } from '../lib/api';
 import { useAuth } from '../stores/auth';
+import { useConfirmDialog } from '../stores/confirmDialog';
 import { createBoardConnection } from '../lib/signalr';
 import MonacoEditor from '../components/MonacoEditor.vue';
 import SplitPane from '../components/SplitPane.vue';
@@ -65,38 +66,46 @@ const runOut = ref(null);
 let conn = null;
 let pushTimer = null;
 let saveTimer = null;
+const confirmDialog = useConfirmDialog();
 
 function pushSoon() {
   if (!conn || conn.state !== 'Connected') return;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(pushNow, 600);
 }
-// One presenter per board: while another teacher's buffer is fresh we observe instead of
-// pushing, so two teachers never overwrite each other on the students' screens. The server
-// enforces this too (a push is refused) — this just keeps the UI in step.
-const PRESENTER_IDLE_MS = 90_000;
-const other = ref(null);             // { id, name, at } — the other teacher currently presenting
-const nowTick = ref(Date.now());
-let tickTimer = null;
-const observing = computed(() =>
-  isStaff.value && lecturingOn.value && !!other.value && nowTick.value - other.value.at < PRESENTER_IDLE_MS);
+// One presenter per board: while another teacher holds the slot we watch their code instead of pushing, and only
+// "Take over" changes that. The server frees the slot when the presenter's page goes (teacher id 0) and enforces all of this.
+const other = ref(null);             // { id, name } — the other teacher currently presenting
+const presenting = ref(false);       // my last push was accepted and nobody has taken over since
+const takenOver = ref(false);        // I was presenting and another teacher took over: say so
+const peekStudents = ref(false);     // while watching the presenter: show the student panel instead
+const observing = computed(() => isStaff.value && lecturingOn.value && !!other.value);
 
-function noteOtherPresenter(id, name, at) {
-  other.value = { id, name, at: at ?? Date.now() };
-  nowTick.value = Date.now();
+function noteOtherPresenter(id, name) {
+  if (presenting.value) takenOver.value = true;
+  presenting.value = false;
+  other.value = { id, name };
+}
+function becamePresenter() {
+  presenting.value = true;
+  takenOver.value = false;
+  other.value = null;
 }
 function ingestLecture(l) {
   if (!l || l.problemId !== SCRATCH) return;
   if (!isStaff.value) { lecture.value = l; return; }
   if (l.teacherId && l.teacherId !== auth.user?.id) {
     lecture.value = l;
-    noteOtherPresenter(l.teacherId, l.teacherName, Date.parse(l.updatedAt.endsWith('Z') ? l.updatedAt : l.updatedAt + 'Z'));
-  } else other.value = null;   // our own push (or a takeover by us)
+    noteOtherPresenter(l.teacherId, l.teacherName);
+  } else other.value = null;   // our own push (or a takeover by us), or the presenter left
 }
 async function takeOver() {
+  const ok = await confirmDialog.ask(tr('Take over from {name}? Students will see your editor instead of theirs.', { name: other.value?.name }),
+    { confirmLabel: tr('Take over'), danger: false });
+  if (!ok) return;
   try {
     const res = await conn.invoke('PushLecture', board.value.id, SCRATCH, code.value, liveLang.value, stdin.value, true);
-    if (res?.accepted) other.value = null;
+    if (res?.accepted) becamePresenter();
   } catch { /* ignore */ }
 }
 
@@ -105,7 +114,10 @@ function pushNow() {
   if (isStaff.value) {
     if (lecturingOn.value && !observing.value)
       conn.invoke('PushLecture', board.value.id, SCRATCH, code.value, liveLang.value, stdin.value, false)
-        .then((res) => { if (res && !res.accepted && res.presenterId) noteOtherPresenter(res.presenterId, res.presenterName); })
+        .then((res) => {
+          if (res?.accepted) becamePresenter();
+          else if (res?.presenterId) noteOtherPresenter(res.presenterId, res.presenterName);
+        })
         .catch(() => {});
   } else {
     conn.invoke('PushDraft', board.value.id, SCRATCH, code.value).catch(() => {});
@@ -122,10 +134,13 @@ function setLang(l) {
 function resetTemplate() {
   code.value = CODE_TEMPLATES[liveLang.value] || '';
 }
-function loadTeacherCode() {
-  if (!lecture.value) return;
-  code.value = lecture.value.code || '';
-  if (lecture.value.language === 'c' || lecture.value.language === 'cpp') liveLang.value = lecture.value.language;
+async function loadTeacherCode() {
+  const l = lecture.value;
+  if (!l) return;
+  if (!isPristine(code.value) && code.value !== (l.code || '')
+      && !(await confirmDialog.ask(tr('Replace the code in your editor with the code of {name}?', { name: l.teacherName }), { confirmLabel: tr('Replace'), danger: false }))) return;
+  code.value = l.code || '';
+  if (l.language === 'c' || l.language === 'cpp') liveLang.value = l.language;
 }
 const stdinCopied = ref(false);
 function useTeacherStdin() {
@@ -204,15 +219,16 @@ onMounted(async () => {
     if (was === 'Student' && board.value?.role !== 'Student') window.location.reload();   // lifted to teacher: reconnect to join the staff channel
   });
   conn.on('lectureUpdated', ingestLecture);
-  tickTimer = setInterval(() => { nowTick.value = Date.now(); }, 5000);
   conn.on('draftUpdated', (d) => { if (isStaff.value) ingestDraft(d); });
   try {
     await conn.start();
     await conn.invoke('JoinBoard', board.value.id);
     if (isStaff.value) {
-      // See whether another teacher is already presenting before pushing our own buffer.
-      try { ingestLecture(await conn.invoke('GetLecture', board.value.id, SCRATCH)); } catch { /* ignore */ }
-      pushNow();
+      // See who presented last before pushing our own buffer: someone else's code stays on the students' screens
+      // until we edit (or take over), merely opening the page must not replace it.
+      let last = null;
+      try { last = await conn.invoke('GetLecture', board.value.id, SCRATCH); ingestLecture(last); } catch { /* ignore */ }
+      if (!last || last.teacherId === auth.user?.id) pushNow();
       try {
         const ds = await conn.invoke('GetDrafts', board.value.id);
         (ds || []).forEach(ingestDraft);
@@ -226,7 +242,6 @@ onMounted(async () => {
 });
 onBeforeUnmount(async () => {
   clearTimeout(pushTimer);
-  clearInterval(tickTimer);
   clearTimeout(saveTimer);
   try { await conn?.stop(); } catch { /* ignore */ }
 });
@@ -242,7 +257,7 @@ onBeforeUnmount(async () => {
             :class="lecturingOn
               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
               : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'">
-        {{ lecturingOn ? tr('students are watching') : tr('not broadcasting') }}
+        {{ !lecturingOn ? tr('not broadcasting') : observing ? tr('students are watching {name}', { name: other.name }) : tr('students are watching') }}
       </span>
       <div class="ml-auto flex items-center gap-2">
         <button v-if="isStaff" @click="toggleStudentsPanel"
@@ -279,9 +294,14 @@ onBeforeUnmount(async () => {
 
     <p v-if="error" role="alert" class="text-sm text-red-600 dark:text-red-400 px-4 py-2">{{ tr(error) }}</p>
 
-    <div v-if="observing"
-         class="flex items-center gap-2 flex-wrap text-sm bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300 px-4 py-2 border-b border-sky-100 dark:border-sky-500/20">
-      <span><Icon name="present" /> {{ tr('{name} is presenting — your editor is not shown to students.', { name: other.name }) }}</span>
+    <div v-if="observing" :role="takenOver ? 'alert' : 'status'"
+         class="flex items-center gap-2 flex-wrap text-sm px-4 py-2 border-b"
+         :class="takenOver
+           ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-200 dark:border-amber-500/40 font-semibold'
+           : 'bg-sky-50 text-sky-700 border-sky-100 dark:bg-sky-500/10 dark:text-sky-300 dark:border-sky-500/20'">
+      <span><Icon name="present" /> {{ takenOver
+        ? tr('{name} took over the broadcast — students now see their editor, not yours.', { name: other.name })
+        : tr('{name} is presenting — your editor is not shown to students.', { name: other.name }) }}</span>
       <button @click="loadTeacherCode" class="underline hover:no-underline">{{ tr('Copy their code') }}</button>
       <button @click="takeOver" class="ml-auto px-2.5 py-1 rounded-lg bg-sky-600 text-white text-xs font-medium">{{ tr('Take over') }}</button>
     </div>
@@ -289,7 +309,7 @@ onBeforeUnmount(async () => {
     <!-- Teacher: left = my code + stdin + AI tutor, right = a student's code -->
     <div v-if="isStaff" class="flex-1 min-h-0">
       <SplitPane direction="horizontal" storage-key="beecoding.split.livecode-main"
-                 :initial="55" :initial-stacked="50" :min="320" :hide-b="!showStudents">
+                 :initial="55" :initial-stacked="50" :min="320" :hide-b="!showStudents && !observing">
         <template #a>
           <SplitPane direction="vertical" foldable storage-key="beecoding.split.livecode" :initial="60" :min="110">
             <template #a>
@@ -328,8 +348,19 @@ onBeforeUnmount(async () => {
         </template>
 
         <template #b>
-          <div class="h-full flex flex-col bg-white dark:bg-slate-900">
+          <!-- another teacher presents: their code, live and read-only, beside my editor -->
+          <div v-if="observing && !peekStudents" class="h-full flex flex-col bg-white dark:bg-slate-900">
             <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
+              <span class="font-semibold truncate"><Icon name="present" /> {{ tr("{name}'s code · live", { name: other.name }) }}</span>
+              <button @click="peekStudents = true" class="ml-auto shrink-0 text-xs underline hover:no-underline">{{ tr('Show student code') }}</button>
+            </div>
+            <MonacoEditor v-if="lecture" :model-value="lecture.code" :language="lecture.language || 'cpp'" :read-only="true" class="flex-1 min-h-0" />
+            <pre v-if="lecture?.stdin" tabindex="0" :style="{ fontSize: editorFontSize + 'px' }"
+                 class="m-2 max-h-24 overflow-auto bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1 font-mono whitespace-pre-wrap">{{ lecture.stdin }}</pre>
+          </div>
+          <div v-else class="h-full flex flex-col bg-white dark:bg-slate-900">
+            <div class="flex items-center gap-2 px-3 py-2 border-b border-slate-200 dark:border-slate-800 text-sm">
+              <button v-if="observing" @click="peekStudents = false" class="shrink-0 text-xs underline hover:no-underline">{{ tr("{name}'s code · live", { name: other.name }) }}</button>
               <span class="font-semibold"><Icon name="eye" /> {{ tr('Student code') }}</span>
               <span class="text-[11px] text-slate-500 dark:text-slate-400">{{ tr('{n} live', { n: studentList.length }) }}</span>
               <select :aria-label="tr('Student')" v-if="studentList.length" v-model="selectedUid"
